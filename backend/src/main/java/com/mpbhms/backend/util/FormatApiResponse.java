@@ -1,0 +1,49 @@
+package com.mpbhms.backend.util;
+
+import com.mpbhms.backend.entity.ApiResponse;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.core.MethodParameter;
+import org.springframework.http.MediaType;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.server.ServerHttpRequest;
+import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.http.server.ServletServerHttpResponse;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
+
+@RestControllerAdvice
+public class FormatApiResponse implements ResponseBodyAdvice{
+
+    @Override
+    public boolean supports(MethodParameter returnType, Class converterType) {
+        return true;
+    }
+
+    @Override
+    public Object beforeBodyWrite(Object body,
+                                  MethodParameter returnType,
+                                  MediaType selectedContentType,
+                                  Class selectedConverterType,
+                                  ServerHttpRequest request,
+                                  ServerHttpResponse response) {
+        HttpServletResponse servletResponse = ((ServletServerHttpResponse) response).getServletResponse();
+        int statusCode = servletResponse.getStatus();
+
+//        if(body instanceof String) {
+//            return body;
+//        }
+
+        ApiResponse<Object> apiResponse = new ApiResponse<Object>();
+             apiResponse.setStatus(statusCode);
+        if (statusCode >= 400) {
+            //Error
+            apiResponse.setError(body.toString());
+            apiResponse.setMessage("Call api Failed");
+        }else {
+            //Success
+            apiResponse.setData(body);
+            apiResponse.setMessage("Call api Success");
+        }
+        return apiResponse;
+    }
+}
