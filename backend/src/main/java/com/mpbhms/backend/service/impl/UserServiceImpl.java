@@ -37,21 +37,15 @@ public class UserServiceImpl implements UserService {
         user.setEmail(request.getEmail());
         user.setPassword(request.getPassword());
         // user.setIsActive(request.getIsActive());
-        user.setCreatedDate(new Date());
         user.setCreatedBy("system");
-
         user = userRepository.save(user);
-
         // Gán role renter
         RoleEntity renterRole = roleRepository.findById(3L) // hoặc findByRoleName("RENTER")
                 .orElseThrow(() -> new RuntimeException("Role not found"));
-
         UserRoleEntity userRole = new UserRoleEntity();
         userRole.setUser(user);
         userRole.setRole(renterRole);
-
         userRoleRepository.save(userRole);
-
         return user;
     }
 

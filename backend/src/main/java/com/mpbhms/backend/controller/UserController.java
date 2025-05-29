@@ -6,6 +6,7 @@ import com.mpbhms.backend.dto.UserWithRoleDTO;
 import com.mpbhms.backend.entity.ApiResponse;
 import com.mpbhms.backend.entity.UserEntity;
 import com.mpbhms.backend.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +27,7 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
     @PostMapping()
-    public ResponseEntity<UserEntity> createRenterUser(@RequestBody CreateUserDTO request) {
+    public ResponseEntity<UserEntity> createRenterUser(@Valid @RequestBody CreateUserDTO request) {
         String hashedPassword = passwordEncoder.encode(request.getPassword());
         request.setPassword(hashedPassword);
         UserEntity user = userService.createUserWithRenterRole(request);

@@ -26,7 +26,7 @@ public class GlobalExceptionHandler {
             UsernameNotFoundException.class,
             BadCredentialsException.class
     })
-    public ResponseEntity<ApiResponse<Object>> handleAuthenticationException(Exception ex) {
+    public ResponseEntity<Object> handleAuthenticationException(Exception ex) {
         ApiResponse<Object> response = new ApiResponse<>(
                 HttpStatus.UNAUTHORIZED.value(),
                 ex.getMessage(),

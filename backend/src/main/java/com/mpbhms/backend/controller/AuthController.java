@@ -5,6 +5,7 @@ import com.mpbhms.backend.dto.ResLoginDTO;
 import com.mpbhms.backend.dto.UserWithRoleDTO;
 import com.mpbhms.backend.entity.ApiResponse;
 import com.mpbhms.backend.util.SecurityUtil;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +39,6 @@ public class AuthController {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         ResLoginDTO resLoginDTO = new ResLoginDTO();
         resLoginDTO.setAccessToken(accessToken);
-           return ResponseEntity.ok().body(resLoginDTO);
+        return ResponseEntity.ok().body(resLoginDTO);
     }
 }
