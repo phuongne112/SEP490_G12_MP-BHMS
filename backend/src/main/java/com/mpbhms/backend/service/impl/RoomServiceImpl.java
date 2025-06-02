@@ -1,9 +1,6 @@
 package com.mpbhms.backend.service.impl;
 
-import com.mpbhms.backend.dto.AddRoomDTO;
-import com.mpbhms.backend.dto.Meta;
-import com.mpbhms.backend.dto.ResultPaginationDTO;
-import com.mpbhms.backend.dto.UserInfoDTO;
+import com.mpbhms.backend.dto.*;
 import com.mpbhms.backend.entity.RoomEntity;
 import com.mpbhms.backend.entity.UserEntity;
 import com.mpbhms.backend.entity.UserInfoEntity;
@@ -65,28 +62,28 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public ResultPaginationDTO getAllRooms(Specification<RoomEntity> spec, Pageable pageable) {
         Page<RoomEntity> roomsPage = roomRepository.findAll(spec, pageable);
-
+        List<RoomDTO> roomDTOs = convertToRoomDTOList(roomsPage.getContent());
         Meta meta = new Meta();
-        meta.setPage(roomsPage.getNumber());
+        meta.setPage(roomsPage.getNumber() + 1);
         meta.setPageSize(roomsPage.getSize());
         meta.setPages(roomsPage.getTotalPages());
         meta.setTotal(roomsPage.getTotalElements());
 
         ResultPaginationDTO result = new ResultPaginationDTO();
         result.setMeta(meta);
-        result.setResult(roomsPage.getContent()); // Trả về list<RoomEntity>
+        result.setResult(roomDTOs); // Trả về list<RoomEntity>
 
         return result;
     }
 
 
 
-    public List<AddRoomDTO> convertToAddRoomDTOList(List<RoomEntity> rooms) {
-        return rooms.stream().map(this::convertToAddRoomDTO).toList();
+    public List<RoomDTO> convertToRoomDTOList(List<RoomEntity> rooms) {
+        return rooms.stream().map(this::convertToRoomDTO).toList();
     }
 
-    public AddRoomDTO convertToAddRoomDTO(RoomEntity roomEntity) {
-        AddRoomDTO dto = new AddRoomDTO();
+    public RoomDTO convertToRoomDTO(RoomEntity roomEntity) {
+        RoomDTO dto = new RoomDTO();
         dto.setId(roomEntity.getId());
         dto.setRoomNumber(roomEntity.getRoomNumber());
         dto.setArea(roomEntity.getArea());

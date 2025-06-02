@@ -2,6 +2,7 @@ package com.mpbhms.backend.service;
 
 import com.mpbhms.backend.dto.AddRoomDTO;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
+import com.mpbhms.backend.dto.RoomDTO;
 import com.mpbhms.backend.dto.UserInfoDTO;
 import com.mpbhms.backend.entity.RoomEntity;
 import com.mpbhms.backend.entity.UserInfoEntity;
@@ -15,8 +16,8 @@ public interface RoomService {
 
     ResultPaginationDTO getAllRooms(Specification<RoomEntity> spec, Pageable pageable);
 
-    AddRoomDTO convertToAddRoomDTO(RoomEntity roomEntity);
+    RoomDTO convertToRoomDTO(RoomEntity roomEntity);
 
-    List<AddRoomDTO> convertToAddRoomDTOList(List<RoomEntity> rooms);
+    List<RoomDTO> convertToRoomDTOList(List<RoomEntity> rooms);
 }
 
