@@ -35,7 +35,16 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
-
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<?>> handleIllegalArgument(IllegalArgumentException ex) {
+        ApiResponse<?> response = new ApiResponse<>(
+                HttpStatus.BAD_REQUEST.value(),
+                "IllegalArgumentException",
+                ex.getMessage(),
+                null
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
     @ExceptionHandler(NullPointerException.class)
     public ResponseEntity<ApiResponse<?>> handleNullPointer(NullPointerException ex) {
         ApiResponse<?> response = new ApiResponse<>(

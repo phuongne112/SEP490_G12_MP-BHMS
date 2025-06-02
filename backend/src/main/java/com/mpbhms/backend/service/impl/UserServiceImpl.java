@@ -2,18 +2,16 @@ package com.mpbhms.backend.service.impl;
 
 import com.mpbhms.backend.dto.CreateUserDTO;
 import com.mpbhms.backend.dto.UserWithRoleDTO;
-import com.mpbhms.backend.entity.RoleEntity;
-import com.mpbhms.backend.entity.UserEntity;
-import com.mpbhms.backend.entity.UserRoleEntity;
+import com.mpbhms.backend.entity.*;
 import com.mpbhms.backend.exception.ResourceNotFoundException;
 import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.repository.RoleRepository;
 import com.mpbhms.backend.repository.UserRoleRepository;
+import com.mpbhms.backend.response.CreateUserDTOResponse;
 import com.mpbhms.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
 import java.util.List;
 
 @Service
@@ -53,5 +51,20 @@ public class UserServiceImpl implements UserService {
     public UserEntity getUserWithEmail(String email) {
     return this.userRepository.findByEmail(email);
     }
+
+    @Override
+    public CreateUserDTOResponse convertToCreateUserDTO(UserEntity entity) {
+        CreateUserDTOResponse dto = new CreateUserDTOResponse();
+        dto.setId(entity.getId());
+        dto.setUsername(entity.getUsername());
+        dto.setEmail(entity.getEmail());
+        dto.setIsActive(entity.getIsActive());
+        dto.setCreatedDate(entity.getCreatedDate());
+        dto.setUpdatedDate(entity.getUpdatedDate());
+        return dto;
+    }
+
+
+
 
 }

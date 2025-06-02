@@ -1,9 +1,12 @@
 package com.mpbhms.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.util.Date;
 
 @Entity
@@ -27,8 +30,8 @@ public class UserInfoEntity {
 
     @Enumerated(EnumType.STRING)
     private Gender gender;
-
-    private Date birthDate;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss a",timezone = "GMT+7")
+    private Instant birthDate;
 
     private String birthPlace;
 

@@ -3,13 +3,11 @@ import lombok.*;
 
 import java.time.Instant;
 import java.util.Date;
-
 @AllArgsConstructor
-@NoArgsConstructor
 @Getter
 @Setter
 public class UserWithRoleDTO {
-    private Long userId;
+    private Long id;
     private String username;
     private String email;
     private Boolean isActive;

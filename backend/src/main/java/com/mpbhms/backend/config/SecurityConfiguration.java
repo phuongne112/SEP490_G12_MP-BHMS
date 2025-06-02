@@ -13,6 +13,11 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableMethodSecurity(securedEnabled = true)
@@ -27,6 +32,7 @@ public class SecurityConfiguration {
     public SecurityFilterChain filterChain(
             HttpSecurity http, CustomAuthenticationEntryPoint caep) throws Exception {
         http
+                .cors(Customizer.withDefaults())
                 .csrf(c -> c.disable())
                 .authorizeHttpRequests(
                         authz -> authz
@@ -55,6 +61,5 @@ public class SecurityConfiguration {
 
         return jwtAuthenticationConverter;
     }
-
 
 }
