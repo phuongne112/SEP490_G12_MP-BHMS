@@ -12,4 +12,6 @@ public interface UserService {
     UserEntity createUserWithRenterRole(CreateUserDTO request);
     UserEntity getUserWithEmail(String email);
     CreateUserDTOResponse convertToCreateUserDTO(UserEntity entity);
+    void updateUserToken(String token, String email);
+    UserEntity getUserByRefreshTokenAndEmail(String refreshToken, String email);
 }

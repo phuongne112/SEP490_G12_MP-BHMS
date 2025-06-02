@@ -36,7 +36,7 @@ public class SecurityConfiguration {
                 .csrf(c -> c.disable())
                 .authorizeHttpRequests(
                         authz -> authz
-                                .requestMatchers("/","/mpbhms/auth/login").permitAll()
+                                .requestMatchers("/","/mpbhms/auth/login","/mpbhms/auth/refresh").permitAll()
                                 .anyRequest().authenticated())
                                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults())
                                         .authenticationEntryPoint(caep))
@@ -53,7 +53,7 @@ public class SecurityConfiguration {
         // Converter để lấy danh sách authorities từ JWT
         JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
         grantedAuthoritiesConverter.setAuthorityPrefix(""); // Không thêm prefix "ROLE_"
-        grantedAuthoritiesConverter.setAuthoritiesClaimName("Phuong"); // Đây là tên claim trong JWT chứa roles
+        grantedAuthoritiesConverter.setAuthoritiesClaimName("user"); // Đây là tên claim trong JWT chứa roles
 
         // Tạo JwtAuthenticationConverter và gán GrantedAuthoritiesConverter
         JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();

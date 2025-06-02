@@ -43,5 +43,6 @@ public class UserEntity extends BaseEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<RoomUserEntity> roomUsers;
 
-
+    @Column(columnDefinition = "MEDIUMTEXT")
+    private String refreshToken;
 }

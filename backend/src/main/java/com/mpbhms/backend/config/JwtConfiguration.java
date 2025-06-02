@@ -20,8 +20,8 @@ public class JwtConfiguration {
     @Value("${mpbhms.jwt.base64-secret}")
     private String jwtKey;
 
-    @Value("${mpbhms.jwt.token-validity-in-seconds}")
-    private String jwtExpiration;
+    @Value("${mpbhms.jwt.access-token-validity-in-seconds}")
+    private String accessTokenExpiration;
 
     private SecretKey getSecretKey() {
         byte[] keyBytes = Base64.from(jwtKey).decode();

@@ -64,7 +64,19 @@ public class UserServiceImpl implements UserService {
         return dto;
     }
 
+    @Override
+    public void updateUserToken(String token, String email) {
+        UserEntity currentUser = this.getUserWithEmail(email);
+        if (currentUser != null) {
+            currentUser.setRefreshToken(token);
+            userRepository.save(currentUser); // lưu lại thay đổi
+        }
+    }
 
+    @Override
+    public UserEntity getUserByRefreshTokenAndEmail(String refreshToken, String email) {
+        return this.userRepository.findByRefreshTokenAndEmail(refreshToken, email);
+    }
 
 
 }
