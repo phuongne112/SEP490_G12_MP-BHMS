@@ -1,7 +1,7 @@
 package com.mpbhms.backend.controller;
 
 import com.mpbhms.backend.dto.LoginDTO;
-import com.mpbhms.backend.dto.LoginDTORes;
+import com.mpbhms.backend.response.LoginDTOResponse;
 import com.mpbhms.backend.entity.UserEntity;
 import com.mpbhms.backend.service.UserService;
 import com.mpbhms.backend.util.SecurityUtil;
@@ -29,27 +29,27 @@ public class AuthController {
     private long refreshTokenExpiration;
 
     @PostMapping("/login")
-    public ResponseEntity<LoginDTORes> login(@RequestBody LoginDTO login) {
+    public ResponseEntity<LoginDTOResponse> login(@RequestBody LoginDTO login) {
         //Nap input gom email/password vao security
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(login.username, login.password);
         //Xac thuc ng dung = loadUserByUserName
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        LoginDTORes loginDTORes = new LoginDTORes();
+        LoginDTOResponse loginDTOResponse = new LoginDTOResponse();
         UserEntity currentUserDB = this.userService.getUserWithEmail(login.username);
 
         if(currentUserDB != null){
-            LoginDTORes.UserLogin userLogin = new LoginDTORes.UserLogin(
+            LoginDTOResponse.UserLogin userLogin = new LoginDTOResponse.UserLogin(
                     currentUserDB.getId(),
                     currentUserDB.getEmail(),
                     currentUserDB.getUsername());
-            loginDTORes.setUser(userLogin);
+            loginDTOResponse.setUser(userLogin);
         }
-        String access_Token = this.securityUtil.createAccessToken(authentication.getName(), loginDTORes.getUser());
-        loginDTORes.setAccessToken(access_Token);
+        String access_Token = this.securityUtil.createAccessToken(authentication.getName(), loginDTOResponse.getUser());
+        loginDTOResponse.setAccessToken(access_Token);
         //Create Refresh Token
-        String refresh_token = this.securityUtil.createRefreshToken(login.getUsername(),loginDTORes);
+        String refresh_token = this.securityUtil.createRefreshToken(login.getUsername(), loginDTOResponse);
         //Update User
         this.userService.updateUserToken(refresh_token, login.getUsername());
         //Set Cookies
@@ -60,16 +60,16 @@ public class AuthController {
                 .maxAge(refreshTokenExpiration)
                 .build();
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE,responseCookie.toString())
-                .body(loginDTORes);
+                .body(loginDTOResponse);
     }
     @GetMapping("/account")
-    public ResponseEntity<LoginDTORes.UserGetAccount> getAccount() {
+    public ResponseEntity<LoginDTOResponse.UserGetAccount> getAccount() {
         String email = SecurityUtil.getCurrentUserLogin().isPresent() ?
                 SecurityUtil.getCurrentUserLogin().get() : "";
 
         UserEntity currentUserDB = this.userService.getUserWithEmail(email);
-        LoginDTORes.UserLogin userLogin = new LoginDTORes.UserLogin();
-        LoginDTORes.UserGetAccount userGetAccount = new LoginDTORes.UserGetAccount();
+        LoginDTOResponse.UserLogin userLogin = new LoginDTOResponse.UserLogin();
+        LoginDTOResponse.UserGetAccount userGetAccount = new LoginDTOResponse.UserGetAccount();
         if(currentUserDB != null){
                   userLogin.setId(currentUserDB.getId());
                   userLogin.setEmail(currentUserDB.getEmail());
@@ -80,7 +80,7 @@ public class AuthController {
 
     }
     @GetMapping("/refresh")
-    public ResponseEntity<LoginDTORes> getRefreshToken(
+    public ResponseEntity<LoginDTOResponse> getRefreshToken(
             @CookieValue(name = "refreshToken", required = false) String refreshToken) throws JwtException {
 
         if (refreshToken == null || refreshToken.isBlank()) {
@@ -98,22 +98,22 @@ public class AuthController {
         }
 
         // Tạo đối tượng phản hồi
-        LoginDTORes loginDTORes = new LoginDTORes();
+        LoginDTOResponse loginDTOResponse = new LoginDTOResponse();
 
         // Bổ sung thông tin user
-        LoginDTORes.UserLogin userLogin = new LoginDTORes.UserLogin(
+        LoginDTOResponse.UserLogin userLogin = new LoginDTOResponse.UserLogin(
                 currentUser.getId(),
                 currentUser.getEmail(),
                 currentUser.getUsername()
         );
-        loginDTORes.setUser(userLogin);
+        loginDTOResponse.setUser(userLogin);
 
         // Tạo access token mới
         String access_Token = this.securityUtil.createAccessToken(email, userLogin);
-        loginDTORes.setAccessToken(access_Token);
+        loginDTOResponse.setAccessToken(access_Token);
 
         // Tạo refresh token mới
-        String new_refresh_token = this.securityUtil.createRefreshToken(email, loginDTORes);
+        String new_refresh_token = this.securityUtil.createRefreshToken(email, loginDTOResponse);
 
         // Cập nhật token trong DB
         this.userService.updateUserToken(new_refresh_token, email);
@@ -128,7 +128,7 @@ public class AuthController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, responseCookie.toString())
-                .body(loginDTORes);
+                .body(loginDTOResponse);
     }
     @PostMapping("/logout")
     public ResponseEntity<Void> logout() {

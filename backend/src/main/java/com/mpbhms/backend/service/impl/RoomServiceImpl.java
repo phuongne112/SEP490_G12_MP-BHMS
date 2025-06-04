@@ -77,7 +77,6 @@ public class RoomServiceImpl implements RoomService {
     }
 
 
-
     public List<RoomDTO> convertToRoomDTOList(List<RoomEntity> rooms) {
         return rooms.stream().map(this::convertToRoomDTO).toList();
     }

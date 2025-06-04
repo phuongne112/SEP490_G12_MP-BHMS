@@ -1,4 +1,4 @@
-package com.mpbhms.backend.dto;
+package com.mpbhms.backend.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -8,7 +8,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class LoginDTORes {
+public class LoginDTOResponse {
     @JsonProperty("access_token")
     private String accessToken;
     private UserLogin user;

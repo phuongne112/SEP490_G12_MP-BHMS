@@ -1,11 +1,8 @@
 package com.mpbhms.backend.util;
 
-import com.mpbhms.backend.dto.LoginDTORes;
-import com.mpbhms.backend.entity.UserEntity;
-import com.nimbusds.jose.JWSHeader;
+import com.mpbhms.backend.response.LoginDTOResponse;
 import com.nimbusds.jose.util.Base64;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.support.JettyHeadersAdapter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -43,7 +40,7 @@ public class SecurityUtil {
         return new SecretKeySpec(keyBytes,0,keyBytes.length,JWT_MAC_ALGORITHM.getName());
     }
 
-    public String createAccessToken(String email,LoginDTORes.UserLogin loginDTORes) {
+    public String createAccessToken(String email, LoginDTOResponse.UserLogin loginDTORes) {
         Instant now = Instant.now();
         Instant validity =now.plus(this.accessTokenExpiration, ChronoUnit.SECONDS);
         //Data
@@ -57,7 +54,7 @@ public class SecurityUtil {
         return this.jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader,claims)).getTokenValue();
 
     }
-    public String createRefreshToken(String email, LoginDTORes loginDTORes) {
+    public String createRefreshToken(String email, LoginDTOResponse loginDTOResponse) {
         Instant now = Instant.now();
         Instant validity =now.plus(this.refreshTokenExpiration, ChronoUnit.SECONDS);
         //Data
@@ -65,7 +62,7 @@ public class SecurityUtil {
                 .issuedAt(now)
                 .expiresAt(validity)
                 .subject(email)
-                .claim("user", loginDTORes.getUser())
+                .claim("user", loginDTOResponse.getUser())
                 .build();
         JwsHeader jwsHeader = JwsHeader.with(JWT_MAC_ALGORITHM).build();
         return this.jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader,claims)).getTokenValue();

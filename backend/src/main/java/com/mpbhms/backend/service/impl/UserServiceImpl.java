@@ -1,7 +1,6 @@
 package com.mpbhms.backend.service.impl;
 
-import com.mpbhms.backend.dto.CreateUserDTO;
-import com.mpbhms.backend.dto.UserWithRoleDTO;
+import com.mpbhms.backend.dto.*;
 import com.mpbhms.backend.entity.*;
 import com.mpbhms.backend.exception.ResourceNotFoundException;
 import com.mpbhms.backend.repository.UserRepository;
@@ -10,9 +9,15 @@ import com.mpbhms.backend.repository.UserRoleRepository;
 import com.mpbhms.backend.response.CreateUserDTOResponse;
 import com.mpbhms.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -77,6 +82,74 @@ public class UserServiceImpl implements UserService {
     public UserEntity getUserByRefreshTokenAndEmail(String refreshToken, String email) {
         return this.userRepository.findByRefreshTokenAndEmail(refreshToken, email);
     }
+    @Override
+    public ResultPaginationDTO getAllUsers(Specification<UserEntity> spec, Pageable pageable) {
+        Page<UserEntity> userPage = userRepository.findAll(spec, pageable);
+        List<UserDTO> userDTOs = userPage.getContent().stream()
+                .map(this::convertToUserDTO)
+                .toList();
+
+        Meta meta = new Meta();
+        meta.setPage(userPage.getNumber() + 1);
+        meta.setPageSize(userPage.getSize());
+        meta.setPages(userPage.getTotalPages());
+        meta.setTotal(userPage.getTotalElements());
+
+        ResultPaginationDTO result = new ResultPaginationDTO();
+        result.setMeta(meta);
+        result.setResult(userDTOs);
+        return result;
+    }
+
+    private UserDTO convertToUserDTO(UserEntity user) {
+        UserDTO dto = new UserDTO();
+        dto.setId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+        dto.setIsActive(user.getIsActive());
+        dto.setCreatedBy(user.getCreatedBy());
+        dto.setCreatedDate(user.getCreatedDate());
+        dto.setUpdatedBy(user.getUpdatedBy());
+        dto.setUpdatedDate(user.getUpdatedDate());
+        return dto;
+    }
+
+    @Override
+    public UserDTO updateUserById(Long id, UpdateUserDTO request) {
+        UserEntity user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user với ID: " + id));
+
+        // Cập nhật thông tin cơ bản
+        if (request.getUsername() != null) user.setUsername(request.getUsername());
+        if (request.getEmail() != null) user.setEmail(request.getEmail());
+        if (request.getIsActive() != null) user.setIsActive(request.getIsActive());
+
+        user.setUpdatedBy("system");
+        user.setUpdatedDate(Instant.now());
+        userRepository.save(user);
+
+        // ✅ Cập nhật role nếu có roleId
+        if (request.getRoleId() != null) {
+            RoleEntity role = roleRepository.findById(request.getRoleId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy vai trò với ID: " + request.getRoleId()));
+
+            Optional<UserRoleEntity> existingUserRole = userRoleRepository.findByUser(user);
+
+            if (existingUserRole.isPresent()) {
+                UserRoleEntity userRole = existingUserRole.get();
+                userRole.setRole(role);
+                userRoleRepository.save(userRole); // ✅ UPDATE
+            } else {
+                UserRoleEntity userRole = new UserRoleEntity();
+                userRole.setUser(user);
+                userRole.setRole(role);
+                userRoleRepository.save(userRole); // ✅ INSERT
+            }
+        }
+
+        return convertToUserDTO(user);
+    }
+
 
 
 }
