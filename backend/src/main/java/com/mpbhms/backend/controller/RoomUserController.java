@@ -17,7 +17,6 @@ import java.util.List;
 public class RoomUserController {
 
     private final RoomUserService roomUserService;
-    @CrossOrigin(origins = "http://localhost:5173")
     @PostMapping("/{roomId}/users")
     public ResponseEntity<AddUserToRoomDTOResponse> addUserToRoom(
             @PathVariable Long roomId,

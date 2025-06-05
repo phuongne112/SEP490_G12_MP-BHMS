@@ -66,4 +66,15 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
+    @ExceptionHandler(IdInvalidException.class)
+    public ResponseEntity<ApiResponse<?>> handleIdInvalid(IdInvalidException ex) {
+        ApiResponse<?> response = new ApiResponse<>(
+                HttpStatus.BAD_REQUEST.value(),
+                "IdInvalidException",
+                ex.getMessage(),
+                null
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
 }
