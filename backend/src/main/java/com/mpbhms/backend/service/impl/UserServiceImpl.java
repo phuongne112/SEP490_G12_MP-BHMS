@@ -2,11 +2,12 @@ package com.mpbhms.backend.service.impl;
 
 import com.mpbhms.backend.dto.*;
 import com.mpbhms.backend.entity.*;
-import com.mpbhms.backend.exception.ResourceNotFoundException;
+import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.repository.RoleRepository;
-import com.mpbhms.backend.repository.UserRoleRepository;
 import com.mpbhms.backend.response.CreateUserDTOResponse;
+import com.mpbhms.backend.response.convertResUpdateUserDTO;
+import com.mpbhms.backend.service.RoleService;
 import com.mpbhms.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -14,43 +15,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final UserRoleRepository userRoleRepository;
+    private final RoleService roleService;
 
-    public List<UserWithRoleDTO> getAllUsersWithRoles() {
-        List<UserWithRoleDTO> users = userRepository.findAllUsersWithRoles();
-        if (users.isEmpty()) {
-            throw new ResourceNotFoundException("No users found");
-        }
-        return users;
-    }
-    public UserEntity createUserWithRenterRole(CreateUserDTO request) {
-        // Tạo user
-        UserEntity user = new UserEntity();
-        user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
-        user.setPassword(request.getPassword());
-        // user.setIsActive(request.getIsActive());
-        user.setCreatedBy("system");
-        user = userRepository.save(user);
-        // Gán role renter
-        RoleEntity renterRole = roleRepository.findById(3L) // hoặc findByRoleName("RENTER")
-                .orElseThrow(() -> new RuntimeException("Role not found"));
-        UserRoleEntity userRole = new UserRoleEntity();
-        userRole.setUser(user);
-        userRole.setRole(renterRole);
-        userRoleRepository.save(userRole);
-        return user;
-    }
+
 
     @Override
     public UserEntity getUserWithEmail(String email) {
@@ -58,14 +32,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public CreateUserDTOResponse convertToCreateUserDTO(UserEntity entity) {
-        CreateUserDTOResponse dto = new CreateUserDTOResponse();
-        dto.setId(entity.getId());
+    public CreateUserDTO convertToCreateUserDTO(UserEntity entity) {
+        CreateUserDTO dto = new CreateUserDTO();
         dto.setUsername(entity.getUsername());
         dto.setEmail(entity.getEmail());
         dto.setIsActive(entity.getIsActive());
         dto.setCreatedDate(entity.getCreatedDate());
-        dto.setUpdatedDate(entity.getUpdatedDate());
         return dto;
     }
 
@@ -103,6 +75,13 @@ public class UserServiceImpl implements UserService {
 
     private UserDTO convertToUserDTO(UserEntity user) {
         UserDTO dto = new UserDTO();
+        UserDTO.RoleUser role = new UserDTO.RoleUser();
+        if (user.getRole() != null) {
+            role.setRoleId(user.getRole().getRoleId());
+            role.setRoleName(user.getRole().getRoleName());
+            dto.setRole(role);
+        }
+
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
@@ -113,43 +92,51 @@ public class UserServiceImpl implements UserService {
         dto.setUpdatedDate(user.getUpdatedDate());
         return dto;
     }
-
     @Override
-    public UserDTO updateUserById(Long id, UpdateUserDTO request) {
-        UserEntity user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy user với ID: " + id));
-
-        // Cập nhật thông tin cơ bản
-        if (request.getUsername() != null) user.setUsername(request.getUsername());
-        if (request.getEmail() != null) user.setEmail(request.getEmail());
-        if (request.getIsActive() != null) user.setIsActive(request.getIsActive());
-
-        user.setUpdatedBy("system");
-        user.setUpdatedDate(Instant.now());
-        userRepository.save(user);
-
-        // ✅ Cập nhật role nếu có roleId
-        if (request.getRoleId() != null) {
-            RoleEntity role = roleRepository.findById(request.getRoleId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy vai trò với ID: " + request.getRoleId()));
-
-            Optional<UserRoleEntity> existingUserRole = userRoleRepository.findByUser(user);
-
-            if (existingUserRole.isPresent()) {
-                UserRoleEntity userRole = existingUserRole.get();
-                userRole.setRole(role);
-                userRoleRepository.save(userRole); // ✅ UPDATE
-            } else {
-                UserRoleEntity userRole = new UserRoleEntity();
-                userRole.setUser(user);
-                userRole.setRole(role);
-                userRoleRepository.save(userRole); // ✅ INSERT
+    public UserEntity CreateUser(UserEntity user) {
+        if (user.getRole() != null) {
+            Optional<RoleEntity> optional = roleService.fetchRoleById(user.getRole().getRoleId());
+            if (optional.isEmpty()) {
+                throw new IdInvalidException("Role với ID " + user.getRole().getRoleId() + " không tồn tại.");
             }
+            user.setRole(optional.get());
         }
 
-        return convertToUserDTO(user);
+        return userRepository.save(user);
     }
+    @Override
+    public boolean isEmailExist(String email) {
+        return userRepository.existsByEmail(email);
+    }
+    @Override
+    public UserEntity handleFetchUserById(long id) {
+        if (!this.userRepository.findById(id).isEmpty())
+            return this.userRepository.findById(id).get();
+        return null;
+    }
+    @Override
+    public UserEntity handleUpdateUser(UserEntity user) {
+        Optional<UserEntity> optional = this.userRepository.findById(user.getId());
+        if (this.userRepository.existsByEmail(user.getEmail())) {
+            optional.get().setUsername(user.getUsername());
+            optional.get().setEmail(user.getEmail());
+            optional.get().setIsActive(user.getIsActive());
+            if (user.getRole() != null) {
+                Optional<RoleEntity> optionalRole = this.roleService.fetchRoleById(user.getRole().getRoleId());
+                optional.get().setRole(optionalRole.isEmpty() ? null : optionalRole.get());
+            }
 
-
-
+            return this.userRepository.save(optional.get());
+        }
+        return null;
+    }
+    @Override
+    public UpdateUserDTO convertResUpdateUserDTO(UserEntity user) {
+        UpdateUserDTO dto = new UpdateUserDTO();
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+        dto.setIsActive(user.getIsActive());
+        dto.setUpdatedDate(user.getUpdatedDate());
+        return dto;
+    }
 }

@@ -1,15 +1,15 @@
-package com.mpbhms.backend.dto;
+package com.mpbhms.backend.response;
 
 import lombok.Data;
 
 import java.time.Instant;
 
 @Data
-public class CreateUserDTO {
+public class convertResUpdateUserDTO {
+    private Long id;
     private String username;
     private String email;
     private Boolean isActive;
     private Instant createdDate;
-    private Long roleId;
-
+    private Instant updatedDate;
 }

@@ -18,9 +18,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.web.bind.annotation.*;
 
-@RestController
-@RequestMapping("/mpbhms/auth")
-@RequiredArgsConstructor
+    @RestController
+    @RequestMapping("/mpbhms/auth")
+    @RequiredArgsConstructor
 public class AuthController {
     private final UserService userService;
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
@@ -35,18 +35,20 @@ public class AuthController {
                 new UsernamePasswordAuthenticationToken(login.username, login.password);
         //Xac thuc ng dung = loadUserByUserName
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
+        //Create token
         SecurityContextHolder.getContext().setAuthentication(authentication);
         LoginDTOResponse loginDTOResponse = new LoginDTOResponse();
-        UserEntity currentUserDB = this.userService.getUserWithEmail(login.username);
 
+        UserEntity currentUserDB = this.userService.getUserWithEmail(login.username);
         if(currentUserDB != null){
             LoginDTOResponse.UserLogin userLogin = new LoginDTOResponse.UserLogin(
                     currentUserDB.getId(),
                     currentUserDB.getEmail(),
-                    currentUserDB.getUsername());
+                    currentUserDB.getUsername(),
+                    currentUserDB.getRole());
             loginDTOResponse.setUser(userLogin);
         }
-        String access_Token = this.securityUtil.createAccessToken(authentication.getName(), loginDTOResponse.getUser());
+        String access_Token = this.securityUtil.createAccessToken(authentication.getName(), loginDTOResponse);
         loginDTOResponse.setAccessToken(access_Token);
         //Create Refresh Token
         String refresh_token = this.securityUtil.createRefreshToken(login.getUsername(), loginDTOResponse);
@@ -64,7 +66,7 @@ public class AuthController {
     }
     @GetMapping("/account")
     public ResponseEntity<LoginDTOResponse.UserGetAccount> getAccount() {
-        String email = SecurityUtil.getCurrentUserLogin().isPresent() ?
+                String email = SecurityUtil.getCurrentUserLogin().isPresent() ?
                 SecurityUtil.getCurrentUserLogin().get() : "";
 
         UserEntity currentUserDB = this.userService.getUserWithEmail(email);
@@ -74,6 +76,7 @@ public class AuthController {
                   userLogin.setId(currentUserDB.getId());
                   userLogin.setEmail(currentUserDB.getEmail());
                   userLogin.setName(currentUserDB.getUsername());
+                  userLogin.setRole(currentUserDB.getRole());
                   userGetAccount.setUser(userLogin);
         }
         return ResponseEntity.ok().body(userGetAccount);
@@ -104,12 +107,12 @@ public class AuthController {
         LoginDTOResponse.UserLogin userLogin = new LoginDTOResponse.UserLogin(
                 currentUser.getId(),
                 currentUser.getEmail(),
-                currentUser.getUsername()
-        );
+                currentUser.getUsername(),
+                currentUser.getRole());
         loginDTOResponse.setUser(userLogin);
 
         // Tạo access token mới
-        String access_Token = this.securityUtil.createAccessToken(email, userLogin);
+        String access_Token = this.securityUtil.createAccessToken(email, loginDTOResponse);
         loginDTOResponse.setAccessToken(access_Token);
 
         // Tạo refresh token mới

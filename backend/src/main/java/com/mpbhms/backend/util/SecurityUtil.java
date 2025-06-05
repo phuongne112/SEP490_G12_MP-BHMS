@@ -40,7 +40,12 @@ public class SecurityUtil {
         return new SecretKeySpec(keyBytes,0,keyBytes.length,JWT_MAC_ALGORITHM.getName());
     }
 
-    public String createAccessToken(String email, LoginDTOResponse.UserLogin loginDTORes) {
+    public String createAccessToken(String email, LoginDTOResponse loginDTOResponse) {
+        LoginDTOResponse.UserInsideToken userInsideToken = new LoginDTOResponse.UserInsideToken();
+        userInsideToken.setId(loginDTOResponse.getUser().getId());
+        userInsideToken.setEmail(loginDTOResponse.getUser().getEmail());
+        userInsideToken.setName(loginDTOResponse.getUser().getName());
+
         Instant now = Instant.now();
         Instant validity =now.plus(this.accessTokenExpiration, ChronoUnit.SECONDS);
         //Data
@@ -48,13 +53,19 @@ public class SecurityUtil {
                 .issuedAt(now)
                 .expiresAt(validity)
                 .subject(email)
-                .claim("user", loginDTORes)
+                .claim("user", userInsideToken)
                 .build();
         JwsHeader jwsHeader = JwsHeader.with(JWT_MAC_ALGORITHM).build();
         return this.jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader,claims)).getTokenValue();
 
     }
     public String createRefreshToken(String email, LoginDTOResponse loginDTOResponse) {
+        LoginDTOResponse.UserInsideToken userInsideToken = new LoginDTOResponse.UserInsideToken();
+        userInsideToken.setId(loginDTOResponse.getUser().getId());
+        userInsideToken.setEmail(loginDTOResponse.getUser().getEmail());
+        userInsideToken.setName(loginDTOResponse.getUser().getName());
+
+
         Instant now = Instant.now();
         Instant validity =now.plus(this.refreshTokenExpiration, ChronoUnit.SECONDS);
         //Data
@@ -62,7 +73,7 @@ public class SecurityUtil {
                 .issuedAt(now)
                 .expiresAt(validity)
                 .subject(email)
-                .claim("user", loginDTOResponse.getUser())
+                .claim("user", userInsideToken)
                 .build();
         JwsHeader jwsHeader = JwsHeader.with(JWT_MAC_ALGORITHM).build();
         return this.jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader,claims)).getTokenValue();
