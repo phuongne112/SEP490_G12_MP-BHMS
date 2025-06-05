@@ -1,31 +1,38 @@
 package com.mpbhms.backend.controller;
 
-import com.mpbhms.backend.dto.LoginDTO;
+import com.mpbhms.backend.dto.*;
 import com.mpbhms.backend.response.LoginDTOResponse;
 import com.mpbhms.backend.entity.UserEntity;
+import com.mpbhms.backend.response.MessageDTOResponse;
 import com.mpbhms.backend.service.UserService;
 import com.mpbhms.backend.util.SecurityUtil;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
+
 @RestController
-@RequestMapping("/mpbhms/auth")
-@RequiredArgsConstructor
+    @RequestMapping("/mpbhms/auth")
+    @RequiredArgsConstructor
 public class AuthController {
     private final UserService userService;
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
     private final SecurityUtil securityUtil;
-    @Value("${mpbhms.jwt.refresh-token-validity-in-seconds}")
+        private final PasswordEncoder passwordEncoder;
+        @Value("${mpbhms.jwt.refresh-token-validity-in-seconds}")
     private long refreshTokenExpiration;
 
     @PostMapping("/login")
@@ -35,18 +42,20 @@ public class AuthController {
                 new UsernamePasswordAuthenticationToken(login.username, login.password);
         //Xac thuc ng dung = loadUserByUserName
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
+        //Create token
         SecurityContextHolder.getContext().setAuthentication(authentication);
         LoginDTOResponse loginDTOResponse = new LoginDTOResponse();
-        UserEntity currentUserDB = this.userService.getUserWithEmail(login.username);
 
+        UserEntity currentUserDB = this.userService.getUserWithEmail(login.username);
         if(currentUserDB != null){
             LoginDTOResponse.UserLogin userLogin = new LoginDTOResponse.UserLogin(
                     currentUserDB.getId(),
                     currentUserDB.getEmail(),
-                    currentUserDB.getUsername());
+                    currentUserDB.getUsername(),
+                    currentUserDB.getRole());
             loginDTOResponse.setUser(userLogin);
         }
-        String access_Token = this.securityUtil.createAccessToken(authentication.getName(), loginDTOResponse.getUser());
+        String access_Token = this.securityUtil.createAccessToken(authentication.getName(), loginDTOResponse);
         loginDTOResponse.setAccessToken(access_Token);
         //Create Refresh Token
         String refresh_token = this.securityUtil.createRefreshToken(login.getUsername(), loginDTOResponse);
@@ -64,7 +73,7 @@ public class AuthController {
     }
     @GetMapping("/account")
     public ResponseEntity<LoginDTOResponse.UserGetAccount> getAccount() {
-        String email = SecurityUtil.getCurrentUserLogin().isPresent() ?
+                String email = SecurityUtil.getCurrentUserLogin().isPresent() ?
                 SecurityUtil.getCurrentUserLogin().get() : "";
 
         UserEntity currentUserDB = this.userService.getUserWithEmail(email);
@@ -74,6 +83,7 @@ public class AuthController {
                   userLogin.setId(currentUserDB.getId());
                   userLogin.setEmail(currentUserDB.getEmail());
                   userLogin.setName(currentUserDB.getUsername());
+                  userLogin.setRole(currentUserDB.getRole());
                   userGetAccount.setUser(userLogin);
         }
         return ResponseEntity.ok().body(userGetAccount);
@@ -104,12 +114,12 @@ public class AuthController {
         LoginDTOResponse.UserLogin userLogin = new LoginDTOResponse.UserLogin(
                 currentUser.getId(),
                 currentUser.getEmail(),
-                currentUser.getUsername()
-        );
+                currentUser.getUsername(),
+                currentUser.getRole());
         loginDTOResponse.setUser(userLogin);
 
         // Tạo access token mới
-        String access_Token = this.securityUtil.createAccessToken(email, userLogin);
+        String access_Token = this.securityUtil.createAccessToken(email, loginDTOResponse);
         loginDTOResponse.setAccessToken(access_Token);
 
         // Tạo refresh token mới
@@ -153,5 +163,31 @@ public class AuthController {
                 .build();
     }
 
+    @PostMapping("/signup")
+    public ResponseEntity<MessageDTOResponse> signUp(@Valid @RequestBody SignUpDTO request){
+        String hashedPassword = passwordEncoder.encode(request.getPassword());
+        request.setPassword(hashedPassword);
 
+        String message = this.userService.signUpUser(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new MessageDTOResponse(message));
+    }
+
+    @PutMapping("/change-password")
+    public ResponseEntity<MessageDTOResponse> changePassword(@Valid @RequestBody ChangePasswordDTO request,
+                                                                    Principal principal) {
+        String message = userService.changePasswordUser(principal.getName(), request.getCurrentPassword(), request.getNewPassword());
+        return ResponseEntity.ok(new MessageDTOResponse(message));
+    }
+
+    @PostMapping("/request-reset")
+    public ResponseEntity<MessageDTOResponse> requestReset(@RequestBody ResetRequestDTO request) {
+        String message = userService.sendResetPasswordToken(request.getEmail());
+        return ResponseEntity.status(HttpStatus.CREATED).body(new MessageDTOResponse(message));
+    }
+
+    @PutMapping("/reset-password")
+    public ResponseEntity<MessageDTOResponse> resetPassword(@RequestParam("token") String token, @Valid @RequestBody ResetPasswordDTO request) {
+        String message = userService.resetPassword(token, request.getNewPassword());
+        return ResponseEntity.ok().body(new MessageDTOResponse(message));
+    }
 }

@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -13,6 +15,7 @@ public class UpdateUserDTO {
     private String username;
     private String email;
     private Boolean isActive;
-    private Long roleId;     // ✅ thêm để cập nhật vai trò
+    private Long roleId;
+    private Instant updatedDate;
 }
 

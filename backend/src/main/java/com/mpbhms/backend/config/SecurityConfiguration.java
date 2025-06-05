@@ -36,7 +36,7 @@ public class SecurityConfiguration {
                 .csrf(c -> c.disable())
                 .authorizeHttpRequests(
                         authz -> authz
-                                .requestMatchers("/","/mpbhms/auth/login","/mpbhms/auth/refresh").permitAll()
+                                .requestMatchers("/","/mpbhms/auth/login","/mpbhms/auth/refresh", "/mpbhms/auth/signup", "/mpbhms/auth/request-reset", "/mpbhms/auth/reset-password").permitAll()
                                 .anyRequest().authenticated())
                                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults())
                                         .authenticationEntryPoint(caep))
