@@ -4,6 +4,7 @@ package com.mpbhms.backend.controller;
 import com.mpbhms.backend.dto.*;
 import com.mpbhms.backend.entity.UserEntity;
 import com.mpbhms.backend.entity.UserInfoEntity;
+import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.response.CreateUserDTOResponse;
 import com.mpbhms.backend.service.UserService;
 import com.turkraft.springfilter.boot.Filter;
@@ -25,18 +26,6 @@ public class UserController {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
 
-    @GetMapping("/roles")
-    public ResponseEntity<List<UserWithRoleDTO>> getUsersWithRoles() {
-        List<UserWithRoleDTO> users = userService.getAllUsersWithRoles();
-        return ResponseEntity.ok(users);
-    }
-    @PostMapping()
-    public ResponseEntity<CreateUserDTOResponse> createRenterUser(@Valid @RequestBody CreateUserDTO request) {
-        String hashedPassword = passwordEncoder.encode(request.getPassword());
-        request.setPassword(hashedPassword);
-        UserEntity user = userService.createUserWithRenterRole(request);
-        return new ResponseEntity<>(this.userService.convertToCreateUserDTO(user), HttpStatus.CREATED);
-    }
     @GetMapping
     public ResponseEntity<ResultPaginationDTO> getAllUsers(
             @Filter Specification<UserEntity> spec,
@@ -45,12 +34,35 @@ public class UserController {
         ResultPaginationDTO result = userService.getAllUsers(spec, pageable);
         return ResponseEntity.ok(result);
     }
-    @PutMapping("/{id}")
-    public ResponseEntity<UserDTO> updateUser(
-            @PathVariable Long id,
-            @RequestBody UpdateUserDTO request
+    @PostMapping()
+    public ResponseEntity<CreateUserDTO> createNewUser(
+            @Valid @RequestBody UserEntity userEntity
     ) {
-        UserDTO updatedUser = userService.updateUserById(id, request);
-        return ResponseEntity.ok(updatedUser);
+        boolean isEmailExist = this.userService.isEmailExist(userEntity.getEmail());
+        if (isEmailExist) {
+            throw new IdInvalidException("Email " + userEntity.getEmail() + " đã tồn tại, vui lòng sử dụng email khác");
+        }
+
+        // ✅ Hash mật khẩu
+        String hashedPassword = passwordEncoder.encode(userEntity.getPassword());
+        userEntity.setPassword(hashedPassword);
+
+        UserEntity user = this.userService.CreateUser(userEntity);
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.userService.convertToCreateUserDTO(user));
+    }
+
+
+    @PutMapping()
+    public ResponseEntity<UpdateUserDTO> updateUser(@RequestBody UserEntity user) throws IdInvalidException {
+        boolean isEmailExist = this.userService.isEmailExist(user.getEmail());
+        UserEntity user2 = this.userService.handleFetchUserById(user.getId());
+        if (user2 == null || !isEmailExist) {
+            throw new IdInvalidException("id hoặc email không tồn tại");
+        } else {
+            UserEntity user3 = this.userService.handleUpdateUser(user);
+            return ResponseEntity.status(HttpStatus.OK).body(this.userService.convertResUpdateUserDTO(user3));
+
+        }
+
     }
 }

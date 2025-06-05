@@ -1,6 +1,7 @@
 package com.mpbhms.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
@@ -37,8 +38,9 @@ public class UserEntity extends BaseEntity {
     private UserInfoEntity userInfo;
 
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    private UserRoleEntity userRoles ;
+    @ManyToOne
+    @JoinColumn(name = "role_id")
+    private RoleEntity role;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<RoomUserEntity> roomUsers;
