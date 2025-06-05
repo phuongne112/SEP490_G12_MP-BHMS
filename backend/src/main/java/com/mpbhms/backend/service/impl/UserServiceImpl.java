@@ -31,6 +31,9 @@ public class UserServiceImpl implements UserService {
     return this.userRepository.findByEmail(email);
     }
 
+    public UserEntity handleGetUserByUsername(String username) {
+        return this.userRepository.findByEmail(username);
+    }
     @Override
     public CreateUserDTO convertToCreateUserDTO(UserEntity entity) {
         CreateUserDTO dto = new CreateUserDTO();

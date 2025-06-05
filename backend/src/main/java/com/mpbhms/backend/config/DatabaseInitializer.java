@@ -34,8 +34,9 @@ public class DatabaseInitializer implements CommandLineRunner {
         // --- Init Permissions ---
         if (countPermissions == 0) {
             List<PermissionEntity> permissions = new ArrayList<>();
-            permissions.add(new PermissionEntity("Create Company", "/mpbhms/users", "POST", "User"));
-            permissions = permissionRepository.saveAll(permissions); // ⚠️ phải gán lại
+            permissions.add(new PermissionEntity("Create User", "/mpbhms/users", "POST", "User"));
+            permissions.add(new PermissionEntity("Update Role", "/mpbhms/roles", "PUT", "User"));
+            permissions = permissionRepository.saveAll(permissions);
         }
 
         // --- Init Roles ---
@@ -49,13 +50,15 @@ public class DatabaseInitializer implements CommandLineRunner {
 
             RoleEntity renterRole = new RoleEntity();
             renterRole.setRoleName("RENTER");
+            RoleEntity landlordRole = new RoleEntity();
+            landlordRole.setRoleName("LANDLORD");
             roleRepository.save(renterRole);
         }
 
         // --- Init Users ---
         if (countUsers == 0) {
             UserEntity admin = new UserEntity();
-            admin.setEmail("admin@mpbhms.com");
+            admin.setEmail("admin@gmail.com");
             admin.setUsername("Administrator");
             admin.setPassword(passwordEncoder.encode("123123123aA@"));
 

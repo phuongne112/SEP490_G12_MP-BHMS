@@ -21,4 +21,5 @@ public interface UserService {
     UserEntity handleFetchUserById(long id);
     UserEntity handleUpdateUser(UserEntity user);
     UpdateUserDTO convertResUpdateUserDTO(UserEntity user);
+    UserEntity handleGetUserByUsername(String username);
 }
