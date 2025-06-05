@@ -1,0 +1,56 @@
+package com.mpbhms.backend.entity;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+@Entity
+@Data
+@EqualsAndHashCode(callSuper = true)
+@Table(name = "Rooms")
+public class RoomEntity extends BaseEntity {
+
+    @Column(nullable = false, unique = true, length = 10)
+    private String roomNumber;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal area;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal pricePerMonth;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RoomStatus roomStatus;
+
+    private Integer numberOfBedrooms;
+
+    private Integer numberOfBathrooms;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(nullable = false)
+    private Boolean isActive = true;
+
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL)
+    private List<RoomUserEntity> roomUsers;
+
+    @Column(length = 50)
+    private String createdBy;
+
+    @Column(length = 50)
+    private String updatedBy;
+
+
+    // ===== Enum for RoomStatus =====
+    public enum RoomStatus {
+        Available,
+        Occupied,
+        Maintenance,
+        Inactive
+    }
+}
