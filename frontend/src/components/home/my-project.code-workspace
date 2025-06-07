@@ -1,0 +1,37 @@
+{
+  "folders": [
+	{
+		"path": "../../../../../../../Desktop/my-project"
+	},
+	{
+		"path": "../../../../../../Tài liệu fontend/BaiTap/B1"
+	},
+	{
+		"path": "../../../../../../Tài liệu fontend/BaiTap/B5"
+	},
+	{
+		"path": "../../../../../../Tài liệu fontend/BaiTap/B6"
+	},
+	{
+		"path": "../../../../../../Tài liệu fontend/BaiTap/B7"
+	},
+	{
+		"path": "../../../../../../Tài liệu fontend/BaiTap/B8"
+	},
+	{
+		"path": "../../../../../../Tài liệu fontend/BaiTap/B9"
+	},
+	{
+		"path": "../../../../../../Tài liệu fontend/BaiTap/B10"
+	},
+	{
+		"path": "../../../../../../Tài liệu fontend/BaiTap/B11"
+	},
+	{
+		"path": "../../../.."
+	}
+],
+  "settings": {
+    "liveServer.settings.multiRootWorkspaceName": "B1"
+  }
+}
