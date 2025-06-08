@@ -5,6 +5,9 @@ import HomePage from "../pages/HomePage";
 import Register from "../pages/RegisterPage";
 import ForgotPasswordPage from "../pages/ForgotPasswordPage";
 import ResetPasswordPage from "../pages/ResetPasswordPage";
+import AdminUserListPage from "../pages/admin/AdminUserListPage";
+import AdminSidebar from "../components/layout/AdminSidebar";
+import AdminNotification from "../pages/admin/AdminNotification";
 
 export default function AppRouter() {
   return (
@@ -14,6 +17,9 @@ export default function AppRouter() {
       <Route path="/home" element={<HomePage />} />
       <Route path="/forgotPassword" element={<ForgotPasswordPage />} />
       <Route path="/resetPassword" element={<ResetPasswordPage />} />
+      <Route path="/admin/users" element={<AdminUserListPage />} />
+      <Route path="/layout/adminSidebar" element={<AdminSidebar />} />
+      <Route path="/admin/notification" element={<AdminNotification />} />
       <Route path="*" element={<LoginPage />} />
     </Routes>
   );
