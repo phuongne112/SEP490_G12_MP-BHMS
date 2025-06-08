@@ -35,7 +35,16 @@ public class DatabaseInitializer implements CommandLineRunner {
         if (countPermissions == 0) {
             List<PermissionEntity> permissions = new ArrayList<>();
             permissions.add(new PermissionEntity("Create User", "/mpbhms/users", "POST", "User"));
-            permissions.add(new PermissionEntity("Update Role", "/mpbhms/roles", "PUT", "User"));
+            //Roles
+            permissions.add(new PermissionEntity("Create Role", "/mpbhms/roles", "POST", "Role"));
+            permissions.add(new PermissionEntity("Update Role", "/mpbhms/roles", "PUT", "Role"));
+            permissions.add(new PermissionEntity("Delete Role", "/mpbhms/roles/{id}", "DELETE", "Role"));
+            permissions.add(new PermissionEntity("View Roles", "/mpbhms/roles", "GET", "Role"));
+            //Permissions
+            permissions.add(new PermissionEntity("Create Permission", "/mpbhms/permissions", "POST", "Permission"));
+            permissions.add(new PermissionEntity("Update Permission", "/mpbhms/permissions", "PUT", "Permission"));
+            permissions.add(new PermissionEntity("Delete Permission", "/mpbhms/permissions/{id}", "DELETE", "Permission"));
+            permissions.add(new PermissionEntity("View Permissions", "/mpbhms/permissions", "GET", "Permission"));
             permissions = permissionRepository.saveAll(permissions);
         }
 

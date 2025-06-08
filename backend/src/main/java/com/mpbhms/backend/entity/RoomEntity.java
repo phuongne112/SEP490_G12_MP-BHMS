@@ -1,5 +1,6 @@
 package com.mpbhms.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -36,14 +37,18 @@ public class RoomEntity extends BaseEntity {
     @Column(nullable = false)
     private Boolean isActive = true;
 
-    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL)
-    private List<RoomUserEntity> roomUsers;
+    @ManyToMany(mappedBy = "rooms", fetch = FetchType.LAZY)
+    @JsonIgnoreProperties("rooms")
+    private List<UserEntity> users;
 
-    @Column(length = 50)
-    private String createdBy;
 
-    @Column(length = 50)
-    private String updatedBy;
+    @ManyToMany
+    @JoinTable(
+            name = "room_services",
+            joinColumns = @JoinColumn(name = "RoomID"),
+            inverseJoinColumns = @JoinColumn(name = "ServiceID")
+    )
+    private List<ServiceEntity> services;
 
 
     // ===== Enum for RoomStatus =====

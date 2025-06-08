@@ -4,10 +4,12 @@ import com.mpbhms.backend.dto.*;
 import com.mpbhms.backend.entity.RoomEntity;
 import com.mpbhms.backend.entity.UserEntity;
 import com.mpbhms.backend.entity.UserInfoEntity;
+import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.repository.RoomRepository;
 import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.service.RoomService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -41,24 +43,6 @@ public class RoomServiceImpl implements RoomService {
 
         return roomRepository.save(room);
     }
-//    @Override
-//    public ResultPaginationDTO getAllRooms(Pageable pageable) {
-//        Page<RoomEntity> roomsPage = roomRepository.findAllByIsActiveTrue(pageable);
-//        List<AddRoomDTO> roomDTOs = convertToAddRoomDTOList(roomsPage.getContent());
-//
-//        Meta meta = new Meta();
-//        meta.setPage(roomsPage.getNumber() + 1); // FE bắt đầu từ 1
-//        meta.setPageSize(roomsPage.getSize());
-//        meta.setPages(roomsPage.getTotalPages());
-//        meta.setTotal(roomsPage.getTotalElements());
-//
-//        ResultPaginationDTO rs = new ResultPaginationDTO();
-//        rs.setMeta(meta);
-//        rs.setResult(roomDTOs);
-//
-//        return rs;
-//    }
-
     @Override
     public ResultPaginationDTO getAllRooms(Specification<RoomEntity> spec, Pageable pageable) {
         Page<RoomEntity> roomsPage = roomRepository.findAll(spec, pageable);
@@ -92,4 +76,26 @@ public class RoomServiceImpl implements RoomService {
         dto.setDescription(roomEntity.getDescription());
         return dto;
     }
+    @Override
+    public RoomEntity updateRoom(Long id, AddRoomDTO request) {
+        RoomEntity room = roomRepository.findById(id)
+                .orElseThrow(() -> new IdInvalidException("Room với id  không tồn tại."));
+
+        room.setRoomNumber(request.getRoomNumber());
+        room.setArea(request.getArea());
+        room.setPricePerMonth(request.getPricePerMonth());
+        room.setRoomStatus(RoomEntity.RoomStatus.valueOf(request.getRoomStatus()));
+        room.setNumberOfBedrooms(request.getNumberOfBedrooms());
+        room.setNumberOfBathrooms(request.getNumberOfBathrooms());
+        room.setDescription(request.getDescription());
+        room.setIsActive(true);
+
+        return roomRepository.save(room);
+    }
+
+    @Override
+    public void deleteRoom(Long id) {
+      roomRepository.deleteById(id);
+    }
+
 }

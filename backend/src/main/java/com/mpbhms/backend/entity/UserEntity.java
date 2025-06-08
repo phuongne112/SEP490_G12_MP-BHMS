@@ -2,6 +2,7 @@ package com.mpbhms.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
@@ -37,14 +38,20 @@ public class UserEntity extends BaseEntity {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private UserInfoEntity userInfo;
 
-
     @ManyToOne
     @JoinColumn(name = "role_id")
     private RoleEntity role;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<RoomUserEntity> roomUsers;
 
     @Column(columnDefinition = "MEDIUMTEXT")
     private String refreshToken;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "room_user",
+            joinColumns = @JoinColumn(name = "userId"),
+            inverseJoinColumns = @JoinColumn(name = "roomId")
+    )
+    @JsonIgnoreProperties("users")
+    private List<RoomEntity> rooms;
 }
