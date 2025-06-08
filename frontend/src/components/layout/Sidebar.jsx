@@ -2,6 +2,7 @@ import React from "react";
 import { Layout, Menu } from "antd";
 import { useNavigate } from "react-router-dom";
 import SidebarLogo from "./SidebarLogo";
+import { useLocation } from "react-router-dom";
 
 const { Sider } = Layout;
 
@@ -12,6 +13,7 @@ export default function Sidebar({
   defaultKey = "1",
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleClick = ({ key }) => {
     const clickedItem = menuItems.find((item) => item.key === key);
@@ -79,11 +81,11 @@ export default function Sidebar({
         <Menu
           theme="dark"
           mode="inline"
-          defaultSelectedKeys={["defaultKey"]}
+          selectedKeys={[location.pathname]}
           onClick={handleClick}
         >
           {menuItems.map((item) => (
-            <Menu.Item key={item.key} icon={item.icon}>
+            <Menu.Item key={item.path} icon={item.icon}>
               {item.label}
             </Menu.Item>
           ))}

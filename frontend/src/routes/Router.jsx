@@ -17,8 +17,8 @@ export default function AppRouter() {
       <Route path="/home" element={<HomePage />} />
       <Route path="/forgotPassword" element={<ForgotPasswordPage />} />
       <Route path="/resetPassword" element={<ResetPasswordPage />} />
-      <Route path="/admin/users" element={<AdminUserListPage />} />
       <Route path="/layout/adminSidebar" element={<AdminSidebar />} />
+      <Route path="/admin/users" element={<AdminUserListPage />} />
       <Route path="/admin/notification" element={<AdminNotification />} />
       <Route path="*" element={<LoginPage />} />
     </Routes>

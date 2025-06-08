@@ -9,19 +9,19 @@ import Sidebar from "./Sidebar";
 export default function AdminSidebar() {
   const adminMenu = [
     {
-      key: "1",
+      key: "/admin/users",
       icon: <UserOutlined />,
       label: "Account",
       path: "/admin/users",
     },
     {
-      key: "2",
+      key: "/admin/notification",
       icon: <NotificationOutlined />,
       label: "Notification",
       path: "/admin/notification",
     },
     {
-      key: "3",
+      key: "/admin/settings",
       icon: <SettingOutlined />,
       label: "Other options",
       path: "/admin/settings",
