@@ -139,95 +139,90 @@ public class UserServiceImpl implements UserService {
         if (!this.userRepository.findById(id).isEmpty())
             return this.userRepository.findById(id).get();
         return null;
+    }
+        @Override
+        public UserEntity handleUpdateUser (UserEntity user){
+            Optional<UserEntity> optional = this.userRepository.findById(user.getId());
+            if (this.userRepository.existsByEmail(user.getEmail())) {
+                optional.get().setUsername(user.getUsername());
+                optional.get().setEmail(user.getEmail());
+                optional.get().setIsActive(user.getIsActive());
+                if (user.getRole() != null) {
+                    Optional<RoleEntity> optionalRole = this.roleService.fetchRoleById(user.getRole().getRoleId());
+                    optional.get().setRole(optionalRole.isEmpty() ? null : optionalRole.get());
+                }
 
-    @Override
-    public UserEntity handleUpdateUser(UserEntity user) {
-        Optional<UserEntity> optional = this.userRepository.findById(user.getId());
-        if (this.userRepository.existsByEmail(user.getEmail())) {
-            optional.get().setUsername(user.getUsername());
-            optional.get().setEmail(user.getEmail());
-            optional.get().setIsActive(user.getIsActive());
-            if (user.getRole() != null) {
-                Optional<RoleEntity> optionalRole = this.roleService.fetchRoleById(user.getRole().getRoleId());
-                optional.get().setRole(optionalRole.isEmpty() ? null : optionalRole.get());
+                return this.userRepository.save(optional.get());
+            }
+            return null;
+        }
+        @Override
+        public UpdateUserDTO convertResUpdateUserDTO (UserEntity user) {
+            UpdateUserDTO dto = new UpdateUserDTO();
+            dto.setUsername(user.getUsername());
+            dto.setEmail(user.getEmail());
+            dto.setIsActive(user.getIsActive());
+            dto.setUpdatedDate(user.getUpdatedDate());
+            return dto;
+        }
+            @Override
+            public void updateUserStatus (Long userId,boolean isActive){
+                UserEntity user = userRepository.findById(userId)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+                user.setIsActive(isActive);
+                userRepository.save(user);
             }
 
-            return this.userRepository.save(optional.get());
+            @Override
+            public String signUpUser (SignUpDTO request ){
+                if (this.userRepository.existsByEmail(request.getEmail())) {
+                    return "Email đã tồn tại.";
+                }
+                if (this.userRepository.existsByUsername(request.getUsername())) {
+                    return "Username đã tồn tại.";
+                }
+                UserEntity user = new UserEntity();
+                user.setUsername(request.getUsername());
+                user.setEmail(request.getEmail());
+                user.setPassword(request.getPassword());
+                user.setCreatedBy("system");
+
+                this.userRepository.save(user);
+
+                return "Đăng ký thành công.";
+            }
+
+            @Override
+            public String changePasswordUser (String email, String currentPassword, String newPassword){
+                UserEntity user = userRepository.findByEmail(email);
+
+                if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+                    return "Mật khẩu hiện tại không đúng.";
+                }
+
+                user.setPassword(passwordEncoder.encode(newPassword));
+                userRepository.save(user);
+                return "Cập nhật mật khẩu thành công.";
+            }
+
+            @Override
+            public void sendResetPasswordToken (String email){
+
+                String token = securityUtil.generateResetToken(email);
+                emailService.sendPasswordResetLink(email, token);
+            }
+
+            @Override
+            public void resetPassword (String token, String newPassword){
+                String email = securityUtil.extractEmailFromResetToken(token);
+
+                UserEntity user = userRepository.findByEmail(email);
+
+                user.setPassword(passwordEncoder.encode(newPassword));
+                userRepository.save(user);
+            }
+
+
         }
-        return null;
-    }
-    @Override
-    public UpdateUserDTO convertResUpdateUserDTO(UserEntity user) {
-        UpdateUserDTO dto = new UpdateUserDTO();
-        dto.setUsername(user.getUsername());
-        dto.setEmail(user.getEmail());
-        dto.setIsActive(user.getIsActive());
-        dto.setUpdatedDate(user.getUpdatedDate());
-        return dto;
-    @Override
-    public void updateUserStatus(Long userId, boolean isActive) {
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        user.setIsActive(isActive);
-        userRepository.save(user);
-    }
-
-    @Override
-    public String signUpUser(SignUpDTO request ) {
-        if(this.userRepository.existsByEmail(request.getEmail())) {
-            return "Email đã tồn tại.";
-        }
-        if(this.userRepository.existsByUsername(request.getUsername())) {
-            return "Username đã tồn tại.";
-        }
-        UserEntity user = new UserEntity();
-        user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
-        user.setPassword(request.getPassword());
-        user.setCreatedBy("system");
-
-        this.userRepository.save(user);
-
-        return "Đăng ký thành công.";
-    }
-
-    @Override
-    public String changePasswordUser(String email, String currentPassword, String newPassword) {
-        UserEntity user = userRepository.findByEmail(email);
-
-        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            return "Mật khẩu hiện tại không đúng.";
-        }
-
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-        return "Cập nhật mật khẩu thành công.";
-    }
-
-    @Override
-    public void sendResetPasswordToken(String email) {
-
-        String token = securityUtil.generateResetToken(email);
-        emailService.sendPasswordResetLink(email, token);
-    }
-
-    @Override
-    public void resetPassword(String token, String newPassword) {
-        String email = securityUtil.extractEmailFromResetToken(token);
-
-        UserEntity user = userRepository.findByEmail(email);
-
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-    }
-    @Override
-    public void updateUserStatus(Long userId, boolean isActive) {
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-
-        user.setIsActive(isActive);
-        userRepository.save(user);
-    }
-
-}
