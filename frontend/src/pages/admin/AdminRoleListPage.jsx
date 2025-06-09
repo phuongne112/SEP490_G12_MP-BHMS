@@ -1,23 +1,23 @@
 import React, { useState } from "react";
 import { Layout, Button, Space, Popover } from "antd";
-import { FilterOutlined, PlusOutlined } from "@ant-design/icons";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import PageHeader from "../../components/common/PageHeader";
-import NotificationTable from "../../components/admin/NotificationTable";
-import SearchBox from "../../components/common/SearchBox";
 import EntrySelect from "../../components/common/EntrySelect";
-import NotificationFilterPopover from "../../components/admin/NotificationFilterPopover";
+import SearchBox from "../../components/common/SearchBox";
+import RoleTable from "../../components/admin/RoleTable";
+import RoleFilterPopover from "../../components/admin/RoleFilterPopover";
+import {
+  PlusOutlined,
+  ReloadOutlined,
+  FilterOutlined,
+} from "@ant-design/icons";
 
 const { Content } = Layout;
 
-export default function AdminNotification() {
+export default function AdminRoleListPage() {
   const [pageSize, setPageSize] = useState(5);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState({
-    role: "All",
-    event: "All",
-    dateRange: null,
-  });
+  const [filters, setFilters] = useState({ status: "All", dateRange: null });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const handleApplyFilter = (values) => {
@@ -25,7 +25,7 @@ export default function AdminNotification() {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
+    <Layout>
       <AdminSidebar />
       <Layout style={{ marginLeft: 220 }}>
         <Content style={{ padding: "32px" }}>
@@ -37,9 +37,9 @@ export default function AdminNotification() {
               marginBottom: 24,
             }}
           >
-            <PageHeader title="List Notification" />
+            <PageHeader title="- List Role -" />
             <Button type="primary" icon={<PlusOutlined />}>
-              Add New
+              Add new role
             </Button>
           </div>
           <div
@@ -47,18 +47,21 @@ export default function AdminNotification() {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              flexWrap: "wrap",
               marginBottom: 24,
+              flexWrap: "wrap",
             }}
           >
             <EntrySelect value={pageSize} onChange={setPageSize} />
             <Space style={{ gap: 100 }}>
-              <SearchBox onSearch={setSearchTerm} />
+              <SearchBox
+                onSearch={setSearchTerm}
+                placeholder="Enter role name..."
+              />
               <Popover
                 open={isFilterOpen}
                 onOpenChange={setIsFilterOpen}
                 content={
-                  <NotificationFilterPopover
+                  <RoleFilterPopover
                     onApply={(values) => {
                       handleApplyFilter(values);
                       setIsFilterOpen(false);
@@ -77,8 +80,7 @@ export default function AdminNotification() {
               </Popover>
             </Space>
           </div>
-
-          <NotificationTable
+          <RoleTable
             pageSize={pageSize}
             searchTerm={searchTerm}
             filters={filters}

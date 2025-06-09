@@ -3,6 +3,8 @@ import {
   UserOutlined,
   NotificationOutlined,
   SettingOutlined,
+  KeyOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import Sidebar from "./Sidebar";
 
@@ -21,6 +23,18 @@ export default function AdminSidebar() {
       path: "/admin/notification",
     },
     {
+      key: "/admin/roles",
+      icon: <TeamOutlined />,
+      label: "Role",
+      path: "/admin/roles",
+    },
+    {
+      key: "/admin/permissions",
+      icon: <KeyOutlined />,
+      label: "Permission",
+      path: "/admin/permissions",
+    },
+    {
       key: "/admin/settings",
       icon: <SettingOutlined />,
       label: "Other options",
@@ -33,7 +47,7 @@ export default function AdminSidebar() {
       name="Long ngu"
       avatar="https://i.pravatar.cc/40?img=1"
       menuItems={adminMenu}
-      defaultKey="1"
+      defaultKey="/admin/users"
     />
   );
 }
