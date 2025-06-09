@@ -31,7 +31,13 @@ public class SecurityConfiguration {
     String[] whiteList = {
             "/",
             "/mpbhms/auth/login",
+            "/mpbhms/auth/logout",
             "/mpbhms/auth/refresh",
+            "/mpbhms/auth/account",
+            "/mpbhms/auth/change-password",
+            "/mpbhms/auth/request-reset",
+            "/mpbhms/auth/reset-password",
+            "/mpbhms/auth/signup"
     };
     @Bean
     public SecurityFilterChain filterChain(

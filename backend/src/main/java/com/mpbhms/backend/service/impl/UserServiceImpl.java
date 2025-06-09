@@ -175,25 +175,6 @@ public class UserServiceImpl implements UserService {
             }
 
             @Override
-            public String signUpUser (SignUpDTO request ){
-                if (this.userRepository.existsByEmail(request.getEmail())) {
-                    return "Email đã tồn tại.";
-                }
-                if (this.userRepository.existsByUsername(request.getUsername())) {
-                    return "Username đã tồn tại.";
-                }
-                UserEntity user = new UserEntity();
-                user.setUsername(request.getUsername());
-                user.setEmail(request.getEmail());
-                user.setPassword(request.getPassword());
-                user.setCreatedBy("system");
-
-                this.userRepository.save(user);
-
-                return "Đăng ký thành công.";
-            }
-
-            @Override
             public String changePasswordUser (String email, String currentPassword, String newPassword){
                 UserEntity user = userRepository.findByEmail(email);
 

@@ -1,6 +1,7 @@
 package com.mpbhms.backend.controller;
 
 import com.mpbhms.backend.dto.*;
+import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.response.ChangePasswordDTOResponse;
 import com.mpbhms.backend.response.LoginDTOResponse;
 import com.mpbhms.backend.entity.UserEntity;
@@ -166,12 +167,17 @@ public class AuthController {
         }
 
         @PostMapping("/signup")
-        public ResponseEntity<SignUpDTOResponse> signUp(@Valid @RequestBody SignUpDTO request) {
-            String hashedPassword = passwordEncoder.encode(request.getPassword());
-            request.setPassword(hashedPassword);
-
-            String response = this.userService.signUpUser(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(new SignUpDTOResponse(response));
+        public ResponseEntity<CreateUserResponse> signUp(@Valid @RequestBody CreateUserRequest request) {
+            // Kiểm tra trùng email
+            if (userService.isEmailExist(request.getEmail())) {
+                throw new IdInvalidException("Email " + request.getEmail() + " đã tồn tại, vui lòng sử dụng email khác");
+            }
+            // Hash mật khẩu
+            request.setPassword(passwordEncoder.encode(request.getPassword()));
+            // Gọi service để tạo
+            UserEntity saved = userService.CreateUser(request);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(userService.convertToCreateUserDTO(saved));
         }
 
         @PutMapping("/change-password")
