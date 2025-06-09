@@ -90,8 +90,6 @@ public class SecurityUtil {
             throw e;
         }
     }
-
-
     /**
      * Get the login of the current user.
      *

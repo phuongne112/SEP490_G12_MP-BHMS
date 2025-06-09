@@ -5,7 +5,6 @@ import com.mpbhms.backend.dto.*;
 import com.mpbhms.backend.entity.UserEntity;
 import com.mpbhms.backend.entity.UserInfoEntity;
 import com.mpbhms.backend.exception.IdInvalidException;
-import com.mpbhms.backend.response.CreateUserDTOResponse;
 import com.mpbhms.backend.service.UserService;
 import com.turkraft.springfilter.boot.Filter;
 import jakarta.validation.Valid;
@@ -16,8 +15,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/mpbhms/users")
@@ -35,20 +32,16 @@ public class UserController {
         return ResponseEntity.ok(result);
     }
     @PostMapping()
-    public ResponseEntity<CreateUserDTO> createNewUser(
-            @Valid @RequestBody UserEntity userEntity
+    public ResponseEntity<CreateUserResponse> createNewUser(
+            @Valid @RequestBody CreateUserRequest userEntity
     ) {
         boolean isEmailExist = this.userService.isEmailExist(userEntity.getEmail());
         if (isEmailExist) {
             throw new IdInvalidException("Email " + userEntity.getEmail() + " đã tồn tại, vui lòng sử dụng email khác");
         }
 
-        // ✅ Hash mật khẩu
-        String hashedPassword = passwordEncoder.encode(userEntity.getPassword());
-        userEntity.setPassword(hashedPassword);
-
-        UserEntity user = this.userService.CreateUser(userEntity);
-        return ResponseEntity.status(HttpStatus.CREATED).body(this.userService.convertToCreateUserDTO(user));
+        UserEntity saved = userService.CreateUser(userEntity);
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.userService.convertToCreateUserDTO(saved));
     }
 
 
@@ -64,5 +57,12 @@ public class UserController {
 
         }
 
+    }
+    @PutMapping("/{id}/status")
+    public ResponseEntity<Void> updateUserStatus(
+            @PathVariable Long id,
+            @RequestBody UpdateUserStatusRequest request) {
+        userService.updateUserStatus(id, request.isActive());
+        return ResponseEntity.noContent().build();
     }
 }

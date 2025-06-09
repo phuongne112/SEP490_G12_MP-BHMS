@@ -34,7 +34,13 @@ public class DatabaseInitializer implements CommandLineRunner {
         // --- Init Permissions ---
         if (countPermissions == 0) {
             List<PermissionEntity> permissions = new ArrayList<>();
+            //Rooms
+            permissions.add(new PermissionEntity("Update Room", "/mpbhms/rooms/{id}", "PUT", "Room"));
+            permissions.add(new PermissionEntity("Delete Room", "/mpbhms/rooms/{id}", "DELETE", "Room"));
+            permissions.add(new PermissionEntity("Create Room", "/mpbhms/rooms", "POST", "Room"));
+            //User
             permissions.add(new PermissionEntity("Create User", "/mpbhms/users", "POST", "User"));
+            permissions.add(new PermissionEntity("Active/ De-Active User", "/mpbhms/users/{id}/status", "PUT", "User"));
             //Roles
             permissions.add(new PermissionEntity("Create Role", "/mpbhms/roles", "POST", "Role"));
             permissions.add(new PermissionEntity("Update Role", "/mpbhms/roles", "PUT", "Role"));
@@ -50,18 +56,33 @@ public class DatabaseInitializer implements CommandLineRunner {
 
         // --- Init Roles ---
         if (countRoles == 0) {
-                List<PermissionEntity> allPermissions = permissionRepository.findAll(); // lấy từ DB đã managed
-
             RoleEntity adminRole = new RoleEntity();
             adminRole.setRoleName("ADMIN");
-            adminRole.setPermissionEntities(allPermissions); // gán luôn
+            List<PermissionEntity> adminPermissions = permissionRepository.findAll()
+                    .stream()
+                    .filter(p -> List.of("User", "Role", "Permission").contains(p.getModule())) // hoặc theo API cụ thể
+                    .toList();
+
+            adminRole.setPermissionEntities(adminPermissions);
             roleRepository.save(adminRole);
 
             RoleEntity renterRole = new RoleEntity();
             renterRole.setRoleName("RENTER");
+            List<PermissionEntity> renterPermission = permissionRepository.findAll()
+                    .stream()
+                    .filter(p -> List.of().contains(p.getModule())) // hoặc theo API cụ thể
+                    .toList();
+            renterRole.setPermissionEntities(renterPermission);
+            roleRepository.save(renterRole);
+
             RoleEntity landlordRole = new RoleEntity();
             landlordRole.setRoleName("LANDLORD");
-            roleRepository.save(renterRole);
+            List<PermissionEntity> landlordPermission = permissionRepository.findAll()
+                    .stream()
+                    .filter(p -> List.of("Room").contains(p.getModule())) // hoặc theo API cụ thể
+                    .toList();
+            landlordRole.setPermissionEntities(landlordPermission);
+            roleRepository.save(landlordRole);
         }
 
         // --- Init Users ---
@@ -76,6 +97,18 @@ public class DatabaseInitializer implements CommandLineRunner {
                 admin.setRole(adminRole);
             }
             userRepository.save(admin);
+
+
+            UserEntity landlord  = new UserEntity();
+            landlord.setEmail("landlord@gmail.com");
+            landlord.setUsername("Landlord");
+            landlord.setPassword(passwordEncoder.encode("123123123aA@"));
+
+            RoleEntity landlordRole = roleRepository.findByRoleName("LANDLORD");
+            if (landlordRole != null) {
+                landlord.setRole(landlordRole);
+            }
+            userRepository.save(landlord);
         }
 
         if (countPermissions > 0 && countRoles > 0 && countUsers > 0) {

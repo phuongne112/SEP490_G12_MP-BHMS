@@ -38,6 +38,7 @@ public class UserEntity extends BaseEntity {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private UserInfoEntity userInfo;
 
+
     @ManyToOne
     @JoinColumn(name = "role_id")
     private RoleEntity role;

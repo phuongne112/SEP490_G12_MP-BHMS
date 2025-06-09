@@ -2,6 +2,7 @@ package com.mpbhms.backend.service.impl;
 
 import com.mpbhms.backend.dto.*;
 import com.mpbhms.backend.entity.RoomEntity;
+import com.mpbhms.backend.entity.RoomImageEntity;
 import com.mpbhms.backend.entity.UserEntity;
 import com.mpbhms.backend.entity.UserInfoEntity;
 import com.mpbhms.backend.exception.IdInvalidException;
@@ -16,6 +17,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class RoomServiceImpl implements RoomService {
@@ -28,9 +30,10 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public RoomEntity addRoom(AddRoomDTO request) {
-        if (roomRepository.existsByRoomNumber((request.getRoomNumber()))) {
+        if (roomRepository.existsByRoomNumber(request.getRoomNumber())) {
             throw new RuntimeException("Room number already exists");
         }
+
         RoomEntity room = new RoomEntity();
         room.setRoomNumber(request.getRoomNumber());
         room.setArea(request.getArea());
@@ -41,8 +44,23 @@ public class RoomServiceImpl implements RoomService {
         room.setDescription(request.getDescription());
         room.setIsActive(true);
 
+        //Xử lý ảnh nếu có
+        if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
+            List<RoomImageEntity> imageEntities = request.getImageUrls().stream()
+                    .map(url -> {
+                        RoomImageEntity img = new RoomImageEntity();
+                        img.setImageURL(url);
+                        img.setRoom(room); // liên kết ngược lại
+                        return img;
+                    })
+                    .collect(Collectors.toList());
+
+            room.setImages(imageEntities); // gán ảnh vào phòng
+        }
+
         return roomRepository.save(room);
     }
+
     @Override
     public ResultPaginationDTO getAllRooms(Specification<RoomEntity> spec, Pageable pageable) {
         Page<RoomEntity> roomsPage = roomRepository.findAll(spec, pageable);
@@ -74,8 +92,19 @@ public class RoomServiceImpl implements RoomService {
         dto.setNumberOfBedrooms(roomEntity.getNumberOfBedrooms());
         dto.setNumberOfBathrooms(roomEntity.getNumberOfBathrooms());
         dto.setDescription(roomEntity.getDescription());
+
+        // Set danh sách ảnh
+        List<RoomImageDTO> imageDTOs = roomEntity.getImages().stream().map(image -> {
+            RoomImageDTO img = new RoomImageDTO();
+            img.setId(image.getId());
+            img.setImageUrl(image.getImageURL());
+            return img;
+        }).toList();
+
+        dto.setImages(imageDTOs);
         return dto;
     }
+
     @Override
     public RoomEntity updateRoom(Long id, AddRoomDTO request) {
         RoomEntity room = roomRepository.findById(id)

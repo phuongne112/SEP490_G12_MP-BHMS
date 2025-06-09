@@ -1,11 +1,13 @@
 package com.mpbhms.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -49,6 +51,10 @@ public class RoomEntity extends BaseEntity {
             inverseJoinColumns = @JoinColumn(name = "ServiceID")
     )
     private List<ServiceEntity> services;
+
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @JsonManagedReference
+    private List<RoomImageEntity> images = new ArrayList<>();
 
 
     // ===== Enum for RoomStatus =====
