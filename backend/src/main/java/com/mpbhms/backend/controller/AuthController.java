@@ -1,23 +1,28 @@
 package com.mpbhms.backend.controller;
 
-import com.mpbhms.backend.dto.LoginDTO;
+import com.mpbhms.backend.dto.*;
+import com.mpbhms.backend.response.ChangePasswordDTOResponse;
 import com.mpbhms.backend.response.LoginDTOResponse;
 import com.mpbhms.backend.entity.UserEntity;
+import com.mpbhms.backend.response.SignUpDTOResponse;
 import com.mpbhms.backend.service.UserService;
 import com.mpbhms.backend.util.SecurityUtil;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.web.bind.annotation.*;
-
+import java.security.Principal;
     @RestController
     @RequestMapping("/mpbhms/auth")
     @RequiredArgsConstructor
@@ -25,6 +30,7 @@ public class AuthController {
     private final UserService userService;
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
     private final SecurityUtil securityUtil;
+    private final PasswordEncoder passwordEncoder;
     @Value("${mpbhms.jwt.refresh-token-validity-in-seconds}")
     private long refreshTokenExpiration;
 
@@ -79,27 +85,26 @@ public class AuthController {
                   userLogin.setRole(currentUserDB.getRole());
                   userGetAccount.setUser(userLogin);
         }
-        return ResponseEntity.ok().body(userGetAccount);
+        @GetMapping("/refresh")
+        public ResponseEntity<LoginDTOResponse> getRefreshToken(
+                @CookieValue(name = "refreshToken", required = false) String refreshToken) throws JwtException {
 
-    }
-    @GetMapping("/refresh")
-    public ResponseEntity<LoginDTOResponse> getRefreshToken(
-            @CookieValue(name = "refreshToken", required = false) String refreshToken) throws JwtException {
+            if (refreshToken == null || refreshToken.isBlank()) {
+                throw new JwtException("Missing refresh token");
+            }
 
-        if (refreshToken == null || refreshToken.isBlank()) {
-            throw new JwtException("Missing refresh token");
-        }
+            // Kiểm tra token
+            Jwt decodedToken = securityUtil.checkValidRefreshToken(refreshToken);
+            String email = decodedToken.getSubject();
 
-        // Kiểm tra token
-        Jwt decodedToken = securityUtil.checkValidRefreshToken(refreshToken);
-        String email = decodedToken.getSubject();
+            // Tìm user trong DB
+            UserEntity currentUser = this.userService.getUserByRefreshTokenAndEmail(refreshToken, email);
+            if (currentUser == null) {
+                throw new JwtException("Invalid refresh token");
+            }
 
-        // Tìm user trong DB
-        UserEntity currentUser = this.userService.getUserByRefreshTokenAndEmail(refreshToken, email);
-        if (currentUser == null) {
-            throw new JwtException("Invalid refresh token");
-        }
-
+            // Tạo đối tượng phản hồi
+            LoginDTOResponse loginDTOResponse = new LoginDTOResponse();
         // Tạo đối tượng phản hồi
         LoginDTOResponse loginDTOResponse = new LoginDTOResponse();
 
@@ -140,21 +145,32 @@ public class AuthController {
             throw new JwtException("Token is empty or invalid");
         }
 
-        // Xóa refresh token trong DB
-        this.userService.updateUserToken(null, email);
 
-        // Xóa cookie bằng cách đặt maxAge = 0
-        ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
-                .httpOnly(true)
-                .secure(true)
-                .path("/")
-                .maxAge(0)
-                .build();
+        @PostMapping("/signup")
+    public ResponseEntity<SignUpDTOResponse> signUp(@Valid @RequestBody SignUpDTO request){
+        String hashedPassword = passwordEncoder.encode(request.getPassword());
+        request.setPassword(hashedPassword);
 
-        return ResponseEntity.noContent() // Trả về 204 No Content cho logout là chuẩn REST
-                .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
-                .build();
+        String response = this.userService.signUpUser(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new SignUpDTOResponse(response));
     }
 
+    @PutMapping("/change-password")
+    public ResponseEntity<ChangePasswordDTOResponse> changePassword(@Valid @RequestBody ChangePasswordDTO request,
+                                                                    Principal principal) {
+        String response = userService.changePasswordUser(principal.getName(), request.getCurrentPassword(), request.getNewPassword());
+        return ResponseEntity.ok(new ChangePasswordDTOResponse(response));
+    }
 
+    @PostMapping("/request-reset")
+    public ResponseEntity<?> requestReset(@RequestBody ResetRequestDTO request) {
+        userService.sendResetPasswordToken(request.getEmail());
+        return ResponseEntity.ok("Reset link sent if email is registered.");
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordDTO request) {
+        userService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok("Password reset successful.");
+    }
 }

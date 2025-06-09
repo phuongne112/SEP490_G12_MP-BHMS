@@ -13,10 +13,15 @@ public interface UserService {
     UserEntity getUserByRefreshTokenAndEmail(String refreshToken, String email);
     ResultPaginationDTO getAllUsers(Specification<UserEntity> spec, Pageable pageable);
     UserEntity CreateUser(CreateUserRequest userDTO);
+    UserEntity Register(UserEntity userDTO);
     boolean isEmailExist(String email);
     UserEntity handleFetchUserById(long id);
     UserEntity handleUpdateUser(UserEntity user);
     UpdateUserDTO convertResUpdateUserDTO(UserEntity user);
+    String signUpUser(SignUpDTO request);
+    String changePasswordUser(String username, String currentPassword, String newPassword);
+    void sendResetPasswordToken(String email);
+    void resetPassword(String token, String newPassword);
     UserEntity handleGetUserByUsername(String username);
     void updateUserStatus(Long userId, boolean isActive);
 }

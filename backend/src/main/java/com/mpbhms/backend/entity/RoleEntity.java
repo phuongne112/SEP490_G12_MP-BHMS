@@ -27,11 +27,10 @@ public class RoleEntity {
     @JoinTable(name = "role_permission", joinColumns = @JoinColumn(name = "role_id"),
             inverseJoinColumns = @JoinColumn(name = "permission_id"))
     private List<PermissionEntity> permissionEntities;
-
-
     @OneToMany(mappedBy = "role", fetch = FetchType.LAZY)
     @JsonIgnore
     List<UserEntity> users;
 
 
 }
+

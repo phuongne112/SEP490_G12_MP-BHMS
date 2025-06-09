@@ -2,6 +2,7 @@ package com.mpbhms.backend.util;
 
 import com.mpbhms.backend.response.LoginDTOResponse;
 import com.nimbusds.jose.util.Base64;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -13,18 +14,18 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 
 @Service
+@RequiredArgsConstructor
 public class SecurityUtil {
     private final JwtEncoder jwtEncoder;
+    private final JwtDecoder jwtDecoder;
 
-    public SecurityUtil(JwtEncoder jwtEncoder) {
-        this.jwtEncoder = jwtEncoder;
-    }
     public static final MacAlgorithm JWT_MAC_ALGORITHM = MacAlgorithm.HS512;
     @Value("${mpbhms.jwt.base64-secret}")
     private String jwtKey;
@@ -125,5 +126,27 @@ public class SecurityUtil {
                 .map(authentication -> (String) authentication.getCredentials());
     }
 
+    public String generateResetToken(String email) {
+        Instant now = Instant.now();
+        Instant expiry = now.plus(Duration.ofMinutes(15));
+
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .subject(email)
+                .issuedAt(now)
+                .expiresAt(expiry)
+                .claim("type", "RESET")
+                .build();
+
+        return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+    }
+
+    public String extractEmailFromResetToken(String token) {
+        Jwt decoded = jwtDecoder.decode(token);
+        String type = decoded.getClaimAsString("type");
+        if (!"RESET".equals(type)) {
+            throw new IllegalArgumentException("Invalid token type");
+        }
+        return decoded.getSubject();
+    }
 
 }
