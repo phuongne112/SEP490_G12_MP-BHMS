@@ -9,6 +9,7 @@ import AdminUserListPage from "../pages/admin/AdminUserListPage";
 import AdminSidebar from "../components/layout/AdminSidebar";
 import AdminNotificationPage from "../pages/admin/AdminNotificationPage";
 import AdminRoleListPage from "../pages/admin/AdminRoleListPage";
+import AdminPermissionListPage from "../pages/admin/AdminPermissionListPage";
 
 export default function AppRouter() {
   return (
@@ -22,6 +23,7 @@ export default function AppRouter() {
       <Route path="/admin/users" element={<AdminUserListPage />} />
       <Route path="/admin/notification" element={<AdminNotificationPage />} />
       <Route path="/admin/roles" element={<AdminRoleListPage />} />
+      <Route path="/admin/permissions" element={<AdminPermissionListPage />} />
       <Route path="*" element={<LoginPage />} />
     </Routes>
   );
