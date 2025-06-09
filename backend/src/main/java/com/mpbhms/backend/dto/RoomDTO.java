@@ -3,6 +3,7 @@ package com.mpbhms.backend.dto;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 public class RoomDTO {
@@ -14,4 +15,5 @@ public class RoomDTO {
     private Integer numberOfBedrooms;
     private Integer numberOfBathrooms;
     private String description;
+    private List<RoomImageDTO> images;
 }

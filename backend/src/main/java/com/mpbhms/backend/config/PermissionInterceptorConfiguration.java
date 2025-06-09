@@ -18,7 +18,9 @@ public class PermissionInterceptorConfiguration implements WebMvcConfigurer {
         String[] whiteList = {
                 "/",
                 "/mpbhms/auth/login",
-                "/mpbhms/auth/refresh"
+                "/mpbhms/auth/logout",
+                "/mpbhms/auth/refresh",
+
         };
 
         registry.addInterceptor(getPermissionInterceptor())

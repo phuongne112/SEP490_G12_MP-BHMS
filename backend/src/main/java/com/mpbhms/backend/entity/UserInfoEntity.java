@@ -19,7 +19,7 @@ public class UserInfoEntity {
     private Long userInfoId;
 
     @OneToOne
-    @JoinColumn(name = "userId", nullable = false, unique = true)
+    @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
     private String fullName;
