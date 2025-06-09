@@ -1,26 +1,6 @@
 import React from "react";
 import { Table, Button, Space } from "antd";
 
-const columns = [
-  { title: "No", dataIndex: "key", key: "key" },
-  { title: "Account(Email)", dataIndex: "email", key: "email" },
-  { title: "Role", dataIndex: "role", key: "role" },
-  { title: "Event", dataIndex: "event", key: "event" },
-  { title: "Description", dataIndex: "description", key: "description" },
-  { title: "Date", dataIndex: "date", key: "date" },
-  {
-    title: "Actions",
-    key: "actions",
-    render: (_, record) => (
-      <Space>
-        <Button size="medium" onClick={() => alert(`Delete ${record.email}`)}>
-          Delete
-        </Button>
-      </Space>
-    ),
-  },
-];
-
 const mockData = [
   {
     key: 1,
@@ -111,7 +91,36 @@ const mockData = [
     date: "2024-12-02 08:30:00",
   },
 ];
-export default function NotificationTable({ pageSize, searchTerm, filters }) {
+export default function NotificationTable({
+  pageSize,
+  searchTerm,
+  filters,
+  onView,
+  onDelete,
+}) {
+  const columns = (onView, onDelete) => [
+    { title: "No", dataIndex: "key", key: "key" },
+    { title: "Account(Email)", dataIndex: "email", key: "email" },
+    { title: "Role", dataIndex: "role", key: "role" },
+    { title: "Event", dataIndex: "event", key: "event" },
+    { title: "Description", dataIndex: "description", key: "description" },
+    { title: "Date", dataIndex: "date", key: "date" },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <Space>
+          <Button size="medium" onClick={() => onView(record)}>
+            View
+          </Button>
+          <Button size="medium" danger onClick={() => onDelete(record)}>
+            Delete
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
   const filteredData = mockData
     .filter((item) =>
       item.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -134,7 +143,7 @@ export default function NotificationTable({ pageSize, searchTerm, filters }) {
     });
   return (
     <Table
-      columns={columns}
+      columns={columns(onView, onDelete)}
       dataSource={filteredData}
       pagination={{ pageSize }}
     />

@@ -10,6 +10,7 @@ import AdminSidebar from "../components/layout/AdminSidebar";
 import AdminNotificationPage from "../pages/admin/AdminNotificationPage";
 import AdminRoleListPage from "../pages/admin/AdminRoleListPage";
 import AdminPermissionListPage from "../pages/admin/AdminPermissionListPage";
+import RoomSection from "../components/home/RoomSection";
 
 export default function AppRouter() {
   return (
@@ -25,6 +26,7 @@ export default function AppRouter() {
       <Route path="/admin/roles" element={<AdminRoleListPage />} />
       <Route path="/admin/permissions" element={<AdminPermissionListPage />} />
       <Route path="*" element={<LoginPage />} />
+      <Route path="/room" element={<RoomSection />} />
     </Routes>
   );
 }

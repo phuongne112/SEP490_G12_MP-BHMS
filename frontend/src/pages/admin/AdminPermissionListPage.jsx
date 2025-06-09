@@ -32,16 +32,48 @@ export default function AdminPermissionListPage() {
   const [filters, setFilters] = useState({ module: "All", method: "All" });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingPermission, setEditingPermission] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedPermission, setSelectedPermission] = useState(null);
   const [form] = Form.useForm();
 
   const handleApplyFilter = (values) => {
     setFilters(values);
   };
 
-  const handleCreatePermission = (values) => {
-    alert("New Permission:", values);
+  const handleSubmitPermission = (values) => {
+    if (editingPermission) {
+      console.log("Updating permission:", {
+        id: editingPermission.id,
+        ...values,
+      });
+      // Gọi API PUT ở đây
+    } else {
+      console.log("Creating new permission:", values);
+      // Gọi API POST ở đây
+    }
+
     setIsModalOpen(false);
     form.resetFields();
+    setEditingPermission(null);
+  };
+
+  const handleDeletePermission = (permission) => {
+    setSelectedPermission(permission);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    console.log("Deleting permission:", selectedPermission);
+    // Gọi API DELETE ở đây nếu có
+    setIsDeleteModalOpen(false);
+    setSelectedPermission(null);
+  };
+
+  const handleEditPermission = (permission) => {
+    setEditingPermission(permission);
+    form.setFieldsValue(permission);
+    setIsModalOpen(true);
   };
 
   return (
@@ -128,19 +160,27 @@ export default function AdminPermissionListPage() {
             pageSize={pageSize}
             search={search}
             filters={filters}
+            onEditPermission={handleEditPermission}
+            onDeletePermission={handleDeletePermission}
           />
 
           <Modal
-            title="Add new Permission"
+            title={
+              editingPermission ? "Update Permission" : "Add new Permission"
+            }
             open={isModalOpen}
-            onCancel={() => setIsModalOpen(false)}
+            onCancel={() => {
+              setIsModalOpen(false);
+              form.resetFields();
+              setEditingPermission(null);
+            }}
             footer={null}
             width={600}
           >
             <Form
               form={form}
               layout="vertical"
-              onFinish={handleCreatePermission}
+              onFinish={handleSubmitPermission}
             >
               <Row gutter={16}>
                 <Col span={12}>
@@ -212,11 +252,20 @@ export default function AdminPermissionListPage() {
                   Cancel
                 </Button>
                 <Button type="primary" htmlType="submit">
-                  Create new
+                  {editingPermission ? "Update" : "Create new"}
                 </Button>
               </div>
             </Form>
           </Modal>
+
+          <Modal
+            title="Are you sure you want to delete this permission?"
+            open={isDeleteModalOpen}
+            onOk={handleConfirmDelete}
+            onCancel={() => setIsDeleteModalOpen(false)}
+            okText="Yes"
+            cancelText="Cancel"
+          />
         </Content>
       </Layout>
     </Layout>

@@ -102,45 +102,7 @@ const mockData = [
   },
 ];
 
-const columns = [
-  {
-    title: "No.",
-    dataIndex: "key",
-    width: 60,
-  },
-  {
-    title: "Account(Email)",
-    dataIndex: "email",
-  },
-  {
-    title: "Created Date",
-    dataIndex: "createdAt",
-  },
-  {
-    title: "Status",
-    dataIndex: "status",
-    render: (status) => (
-      <Tag color={status === "Active" ? "green" : "red"}>{status}</Tag>
-    ),
-  },
-  {
-    title: "Role",
-    dataIndex: "role",
-  },
-  {
-    title: "Actions",
-    key: "actions",
-    render: (_, record) => (
-      <Space>
-        <Button size="medium" onClick={() => alert(`Edit ${record.email}`)}>
-          Edit
-        </Button>
-      </Space>
-    ),
-  },
-];
-
-export default function UserTable({ pageSize, searchTerm, filters }) {
+export default function UserTable({ pageSize, searchTerm, filters, onEdit }) {
   const filteredData = mockData
     .filter((item) =>
       item.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -156,6 +118,45 @@ export default function UserTable({ pageSize, searchTerm, filters }) {
         created <= filters.dateRange[1].toDate()
       );
     });
+
+  const columns = [
+    {
+      title: "No.",
+      dataIndex: "key",
+      width: 60,
+    },
+    {
+      title: "Account(Email)",
+      dataIndex: "email",
+    },
+    {
+      title: "Created Date",
+      dataIndex: "createdAt",
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      render: (status) => (
+        <Tag color={status === "Active" ? "green" : "red"}>{status}</Tag>
+      ),
+    },
+    {
+      title: "Role",
+      dataIndex: "role",
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <Space>
+          <Button size="medium" onClick={() => onEdit(record.email)}>
+            Edit
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
   return (
     <Table
       columns={columns}

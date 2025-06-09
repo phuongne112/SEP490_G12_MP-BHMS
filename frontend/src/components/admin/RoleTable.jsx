@@ -2,28 +2,6 @@ import React from "react";
 import { Table, Button, Space, Tooltip } from "antd";
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
 
-const columns = [
-  { title: "Id", dataIndex: "id", key: "id" },
-  { title: "Name", dataIndex: "name", key: "name" },
-  { title: "Status", dataIndex: "status", key: "status" },
-  { title: "CreatedAt", dataIndex: "createdAt", key: "createdAt" },
-  { title: "UpdateAt", dataIndex: "updateAt", key: "updateAt" },
-  {
-    title: "Actions",
-    key: "actions",
-    render: (_, record) => (
-      <Space>
-        <Tooltip title="Edit">
-          <Button icon={<EditOutlined />} />
-        </Tooltip>
-        <Tooltip title="Delete">
-          <Button danger icon={<DeleteOutlined />} />
-        </Tooltip>
-      </Space>
-    ),
-  },
-];
-
 const mockData = [
   {
     id: 1,
@@ -48,7 +26,13 @@ const mockData = [
   },
 ];
 
-export default function RoleTable({ pageSize, searchTerm, filters }) {
+export default function RoleTable({
+  pageSize,
+  searchTerm,
+  filters,
+  onEditRole,
+  onDeleteRole,
+}) {
   const filteredData = mockData
     .filter((item) =>
       item.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -64,6 +48,35 @@ export default function RoleTable({ pageSize, searchTerm, filters }) {
         created <= filters.dateRange[1].toDate()
       );
     });
+
+  const columns = [
+    { title: "Id", dataIndex: "id", key: "id" },
+    { title: "Name", dataIndex: "name", key: "name" },
+    { title: "Status", dataIndex: "status", key: "status" },
+    { title: "Created At", dataIndex: "createdAt", key: "createdAt" },
+    { title: "Updated At", dataIndex: "updatedAt", key: "updatedAt" },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="Edit">
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => onEditRole(record)}
+            />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => onDeleteRole(record)}
+            />
+          </Tooltip>
+        </Space>
+      ),
+    },
+  ];
 
   return (
     <Table
