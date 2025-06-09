@@ -12,9 +12,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -32,10 +33,12 @@ public class UserServiceImpl implements UserService {
     public UserEntity getUserWithEmail(String email) {
     return this.userRepository.findByEmail(email);
     }
-
+    public UserEntity handleGetUserByUsername(String username) {
+        return this.userRepository.findByEmail(username);
+    }
     @Override
-    public CreateUserDTO convertToCreateUserDTO(UserEntity entity) {
-        CreateUserDTO dto = new CreateUserDTO();
+    public CreateUserResponse convertToCreateUserDTO(UserEntity entity) {
+        CreateUserResponse dto = new CreateUserResponse();
         dto.setUsername(entity.getUsername());
         dto.setEmail(entity.getEmail());
         dto.setIsActive(entity.getIsActive());
@@ -95,7 +98,27 @@ public class UserServiceImpl implements UserService {
         return dto;
     }
     @Override
-    public UserEntity CreateUser(UserEntity user) {
+    public UserEntity CreateUser(CreateUserRequest dto) {
+        // 2. Tạo UserEntity
+        UserEntity user = new UserEntity();
+        user.setEmail(dto.getEmail());
+        user.setUsername(dto.getUsername());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        user.setIsActive(true);
+
+        // 3. Tạo UserInfoEntity
+        UserInfoEntity info = new UserInfoEntity();
+        info.setFullName(dto.getFullName());
+        info.setPhoneNumber(dto.getPhone());
+        info.setUser(user);         // liên kết ngược
+
+        user.setUserInfo(info);     // gán userInfo vào user
+
+        // 4. Lưu DB (cascade userInfo)
+        return userRepository.save(user);
+    }
+    @Override
+    public UserEntity Register(UserEntity user) {
         if (user.getRole() != null) {
             Optional<RoleEntity> optional = roleService.fetchRoleById(user.getRole().getRoleId());
             if (optional.isEmpty()) {
@@ -190,6 +213,13 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
+    @Override
+    public void updateUserStatus(Long userId, boolean isActive) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
+        user.setIsActive(isActive);
+        userRepository.save(user);
+    }
 
 }

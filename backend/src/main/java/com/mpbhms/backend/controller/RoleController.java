@@ -30,17 +30,12 @@ public class RoleController {
         RoleEntity savedRole = roleService.createRole(roleEntity);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedRole);
     }
-    @PutMapping("/id")
-    public ResponseEntity<RoleEntity> updateRole(@Valid @RequestBody RoleEntity roleEntity, @PathVariable("id") Long id) throws IdInvalidException {
+    @PutMapping()
+    public ResponseEntity<RoleEntity> updateRole(@Valid @RequestBody RoleEntity roleEntity) throws IdInvalidException {
         // Check id exist
-        if (!roleService.existsById(id)) {
-            throw new IdInvalidException("Role with id = \"" + roleEntity.getRoleId() + "\" not exist.");
+        if (this.roleService.getById(roleEntity.getRoleId()) == null){
+            throw new IdInvalidException("Role with id " + roleEntity.getRoleId() + " does not exist");
         }
-//        // Check name exist
-//        if(roleService.existByName(roleEntity.getRoleName())) {
-//            throw new IdInvalidException("Role with name = \"" + roleEntity.getRoleName() + "\" not exist.");
-//        }
-
         return ResponseEntity.status(HttpStatus.CREATED).body(this.roleService.updateRole(roleEntity));
     }
     @DeleteMapping("/id")
