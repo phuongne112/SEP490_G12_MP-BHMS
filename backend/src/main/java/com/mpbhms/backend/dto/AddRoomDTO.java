@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.List;
+
 @Data
 @Getter
 @Setter
@@ -17,4 +19,7 @@ public class AddRoomDTO {
     private Integer numberOfBedrooms;
     private Integer numberOfBathrooms;
     private String description;
+
+    // Thêm field ảnh
+    private List<String> imageUrls; // danh sách đường dẫn ảnh
 }

@@ -116,4 +116,5 @@ public class DatabaseInitializer implements CommandLineRunner {
         }
         System.out.println(">>> INIT DONE <<<");
     }
+
 }

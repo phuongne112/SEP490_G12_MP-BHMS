@@ -11,5 +11,5 @@ public class CreateUserResponse {
     private Boolean isActive;
     private Instant createdDate;
     private Long roleId;
-
 }
+

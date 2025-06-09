@@ -32,3 +32,4 @@ public class PermissionEntity extends BaseEntity {
         this.module = module;
     }
 }
+

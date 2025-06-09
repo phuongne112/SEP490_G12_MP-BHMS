@@ -8,11 +8,11 @@ import org.springframework.data.jpa.domain.Specification;
 public interface UserService {
 
     UserEntity getUserWithEmail(String email);
-    CreateUserRequest convertToCreateUserDTO(UserEntity entity);
+    CreateUserResponse convertToCreateUserDTO(UserEntity entity);
     void updateUserToken(String token, String email);
     UserEntity getUserByRefreshTokenAndEmail(String refreshToken, String email);
     ResultPaginationDTO getAllUsers(Specification<UserEntity> spec, Pageable pageable);
-    UserEntity CreateUser(UserEntity userDTO);
+    UserEntity CreateUser(CreateUserRequest userDTO);
     UserEntity Register(UserEntity userDTO);
     boolean isEmailExist(String email);
     UserEntity handleFetchUserById(long id);
@@ -22,4 +22,6 @@ public interface UserService {
     String changePasswordUser(String username, String currentPassword, String newPassword);
     void sendResetPasswordToken(String email);
     void resetPassword(String token, String newPassword);
+    UserEntity handleGetUserByUsername(String username);
+    void updateUserStatus(Long userId, boolean isActive);
 }

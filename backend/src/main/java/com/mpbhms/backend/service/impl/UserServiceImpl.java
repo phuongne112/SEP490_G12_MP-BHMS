@@ -33,6 +33,7 @@ public class UserServiceImpl implements UserService {
     public UserEntity getUserWithEmail(String email) {
     return this.userRepository.findByEmail(email);
     }
+
     public UserEntity handleGetUserByUsername(String username) {
         return this.userRepository.findByEmail(username);
     }
@@ -138,7 +139,7 @@ public class UserServiceImpl implements UserService {
         if (!this.userRepository.findById(id).isEmpty())
             return this.userRepository.findById(id).get();
         return null;
-    }
+
     @Override
     public UserEntity handleUpdateUser(UserEntity user) {
         Optional<UserEntity> optional = this.userRepository.findById(user.getId());
@@ -163,6 +164,13 @@ public class UserServiceImpl implements UserService {
         dto.setIsActive(user.getIsActive());
         dto.setUpdatedDate(user.getUpdatedDate());
         return dto;
+    @Override
+    public void updateUserStatus(Long userId, boolean isActive) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        user.setIsActive(isActive);
+        userRepository.save(user);
     }
 
     @Override
