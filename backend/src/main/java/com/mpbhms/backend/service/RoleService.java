@@ -17,5 +17,4 @@ public interface RoleService {
     ResultPaginationDTO getAllRoles(Specification<RoleEntity> spec, Pageable pageable);
     RoleEntity getById(Long Id);
     Optional<RoleEntity> fetchRoleById(long id);
-    RoleEntity findRoleByName(String roleName);
 }
