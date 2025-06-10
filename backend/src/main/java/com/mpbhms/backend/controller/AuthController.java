@@ -172,8 +172,6 @@ public class AuthController {
             if (userService.isEmailExist(request.getEmail())) {
                 throw new IdInvalidException("Email " + request.getEmail() + " đã tồn tại, vui lòng sử dụng email khác");
             }
-            // Hash mật khẩu
-            request.setPassword(passwordEncoder.encode(request.getPassword()));
             // Gọi service để tạo
             UserEntity saved = userService.CreateUser(request);
             return ResponseEntity.status(HttpStatus.CREATED)
