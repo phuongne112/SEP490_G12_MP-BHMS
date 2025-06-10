@@ -17,6 +17,8 @@ import SearchBox from "../../components/common/SearchBox";
 import EntrySelect from "../../components/common/EntrySelect";
 import { FilterOutlined } from "@ant-design/icons";
 import UserFilterPopover from "../../components/admin/UserFilterPopover";
+import { createUser } from "../../services/userApi";
+import { message } from "antd";
 
 const { Content } = Layout;
 
@@ -114,7 +116,22 @@ export default function AdminUserListPage() {
             <Form
               layout="vertical"
               form={createForm}
-              onFinish={(values) => console.log("Create:", values)}
+              onFinish={async (values) => {
+                try {
+                  // Gán roleId mặc định (ví dụ: RENTER)
+                  const payload = {
+                    ...values,
+                    roleId: 4, // hoặc lấy từ Select, hoặc xử lý logic
+                  };
+
+                  await createUser(payload);
+                  message.success("User created successfully");
+                  setIsCreateModalOpen(false);
+                  createForm.resetFields();
+                } catch (error) {
+                  message.error("Failed to create user");
+                }
+              }}
             >
               <Row gutter={16}>
                 <Col span={12}>

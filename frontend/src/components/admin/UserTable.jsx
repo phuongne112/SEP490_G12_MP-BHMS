@@ -1,123 +1,57 @@
-import React from "react";
-import { Table, Tag, Button, Space } from "antd";
-
-const mockData = [
-  {
-    key: 1,
-    email: "minhphuong01@gmail.com",
-    createdAt: "2024-12-01",
-    status: "Active",
-    role: "Landlord",
-  },
-  {
-    key: 2,
-    email: "minhphuong01@gmail.com",
-    createdAt: "2024-12-01",
-    status: "Active",
-    role: "Landlord",
-  },
-  {
-    key: 3,
-    email: "lethuha03@gmail.com",
-    createdAt: "2024-12-03",
-    status: "Deactivate",
-    role: "Renter",
-  },
-  {
-    key: 4,
-    email: "minhphuong01@gmail.com",
-    createdAt: "2024-12-01",
-    status: "Deactivate",
-    role: "Landlord",
-  },
-  {
-    key: 5,
-    email: "minhphuong01@gmail.com",
-    createdAt: "2024-12-01",
-    status: "Active",
-    role: "Landlord",
-  },
-  {
-    key: 6,
-    email: "minhphuong01@gmail.com",
-    createdAt: "2024-12-01",
-    status: "Active",
-    role: "Landlord",
-  },
-  {
-    key: 7,
-    email: "minhphuong01@gmail.com",
-    createdAt: "2024-12-01",
-    status: "Active",
-    role: "Landlord",
-  },
-  {
-    key: 8,
-    email: "minhphuong01@gmail.com",
-    createdAt: "2024-12-01",
-    status: "Active",
-    role: "Landlord",
-  },
-  {
-    key: 9,
-    email: "minhphuong01@gmail.com",
-    createdAt: "2024-12-01",
-    status: "Active",
-    role: "Landlord",
-  },
-  {
-    key: 10,
-    email: "lethuha03@gmail.com",
-    createdAt: "2024-12-03",
-    status: "Deactivate",
-    role: "Renter",
-  },
-  {
-    key: 11,
-    email: "minhphuong01@gmail.com",
-    createdAt: "2024-12-01",
-    status: "Deactivate",
-    role: "Landlord",
-  },
-  {
-    key: 12,
-    email: "minhphuong01@gmail.com",
-    createdAt: "2024-12-01",
-    status: "Active",
-    role: "Landlord",
-  },
-  {
-    key: 13,
-    email: "minhphuong01@gmail.com",
-    createdAt: "2024-12-01",
-    status: "Active",
-    role: "Landlord",
-  },
-  {
-    key: 14,
-    email: "minhphuong01@gmail.com",
-    createdAt: "2024-12-01",
-    status: "Active",
-    role: "Landlord",
-  },
-];
+import React, { useEffect, useState } from "react";
+import { Table, Tag, Button, Space, message } from "antd";
+import { getAllUsers } from "../../services/userApi";
 
 export default function UserTable({ pageSize, searchTerm, filters, onEdit }) {
-  const filteredData = mockData
-    .filter((item) =>
-      item.email.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .filter((item) =>
-      filters.role === "All" ? true : item.role === filters.role
-    )
-    .filter((item) => {
-      if (!filters.dateRange) return true;
-      const created = new Date(item.createdAt);
-      return (
-        created >= filters.dateRange[0].toDate() &&
-        created <= filters.dateRange[1].toDate()
+  const [data, setData] = useState([]);
+  const [pagination, setPagination] = useState({ current: 1, total: 0 });
+  const [loading, setLoading] = useState(false);
+
+  const fetchData = async (page = 1) => {
+    setLoading(true);
+    try {
+      // Gọi API truyền tham số
+      const res = await getAllUsers({
+        page: page - 1,
+        size: pageSize,
+        search: searchTerm || "",
+        role: filters.role !== "All" ? filters.role : undefined,
+        startDate: filters.dateRange
+          ? filters.dateRange[0].format("YYYY-MM-DD")
+          : undefined,
+        endDate: filters.dateRange
+          ? filters.dateRange[1].format("YYYY-MM-DD")
+          : undefined,
+      });
+
+      const result = res.data?.result || [];
+      const total = res.data?.meta?.total || 0;
+
+      // Duyet du lieu tra ve va day len bang
+      setData(
+        result.map((item, index) => ({
+          key: index + 1 + (page - 1) * pageSize,
+          email: item.email,
+          createdAt: item.createdDate?.slice(0, 10),
+          status: item.isActive ? "Active" : "Deactivate",
+          role: item.role?.roleName || "Unknown",
+        }))
       );
-    });
+      // Hien thi phan tu
+      setPagination({
+        current: page,
+        total: total,
+      });
+    } catch (err) {
+      message.error("Failed to load user data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData(1);
+  }, [searchTerm, filters.role, filters.dateRange, pageSize]);
 
   const columns = [
     {
@@ -160,8 +94,14 @@ export default function UserTable({ pageSize, searchTerm, filters, onEdit }) {
   return (
     <Table
       columns={columns}
-      dataSource={filteredData}
-      pagination={{ pageSize }}
-    ></Table>
+      dataSource={data}
+      loading={loading}
+      pagination={{
+        current: pagination.current,
+        total: pagination.total,
+        pageSize,
+        onChange: (page) => fetchData(page),
+      }}
+    />
   );
 }
