@@ -2,6 +2,7 @@ package com.mpbhms.backend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -27,7 +28,17 @@ public class SecurityConfiguration {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-
+    String[] whiteList = {
+            "/",
+            "/mpbhms/auth/login",
+            "/mpbhms/auth/logout",
+            "/mpbhms/auth/refresh",
+            "/mpbhms/auth/account",
+            "/mpbhms/auth/change-password",
+            "/mpbhms/auth/request-reset",
+            "/mpbhms/auth/reset-password",
+            "/mpbhms/auth/signup"
+    };
     @Bean
     public SecurityFilterChain filterChain(
             HttpSecurity http, CustomAuthenticationEntryPoint caep) throws Exception {
@@ -36,10 +47,11 @@ public class SecurityConfiguration {
                 .csrf(c -> c.disable())
                 .authorizeHttpRequests(
                         authz -> authz
-                                .requestMatchers("/","/mpbhms/auth/login","/mpbhms/auth/refresh", "/mpbhms/auth/signup", "/mpbhms/auth/request-reset", "/mpbhms/auth/reset-password").permitAll()
+                                .requestMatchers(whiteList).permitAll()
+                                .requestMatchers(HttpMethod.GET, "/mpbhms/rooms/**").permitAll()
                                 .anyRequest().authenticated())
-                                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults())
-                                        .authenticationEntryPoint(caep))
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults())
+                        .authenticationEntryPoint(caep))
                 .exceptionHandling(
                         exceptions -> exceptions
                                 .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())//401

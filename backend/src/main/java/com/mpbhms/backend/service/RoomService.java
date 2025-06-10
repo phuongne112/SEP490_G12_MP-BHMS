@@ -19,5 +19,8 @@ public interface RoomService {
     RoomDTO convertToRoomDTO(RoomEntity roomEntity);
 
     List<RoomDTO> convertToRoomDTOList(List<RoomEntity> rooms);
+    RoomEntity updateRoom(Long id, AddRoomDTO request);
+    void deleteRoom(Long id);
+
 }
 

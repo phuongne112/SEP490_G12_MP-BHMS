@@ -22,15 +22,17 @@ public class RoleEntity {
     @Column(nullable = false, unique = true)
     private String roleName;
 
+    private boolean active;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JsonIgnoreProperties(value = { "roles" })
-    @JoinTable(name = "role_permission", joinColumns = @JoinColumn(name = "role_id"), inverseJoinColumns = @JoinColumn(name = "permission_id"))
-    private List<PermissionEntity> permissionEntities = new ArrayList<>();
-
-
+    @JoinTable(name = "role_permission", joinColumns = @JoinColumn(name = "role_id"),
+            inverseJoinColumns = @JoinColumn(name = "permission_id"))
+    private List<PermissionEntity> permissionEntities;
     @OneToMany(mappedBy = "role", fetch = FetchType.LAZY)
     @JsonIgnore
     List<UserEntity> users;
 
 
 }
+

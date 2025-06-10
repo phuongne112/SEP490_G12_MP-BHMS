@@ -21,7 +21,7 @@ public class PermissionEntity extends BaseEntity {
     private String method;
     private String module;
 
-    @ManyToMany(fetch = FetchType.EAGER, mappedBy = "permissionEntities") // ✅ phải là permissionEntities
+    @ManyToMany(fetch = FetchType.LAZY, mappedBy = "permissionEntities")
     @JsonIgnore
     private List<RoleEntity> roleEntities;
 
@@ -32,3 +32,4 @@ public class PermissionEntity extends BaseEntity {
         this.module = module;
     }
 }
+

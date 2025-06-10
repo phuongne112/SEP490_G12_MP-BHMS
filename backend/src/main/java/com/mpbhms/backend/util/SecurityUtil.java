@@ -81,6 +81,7 @@ public class SecurityUtil {
 
     }
 
+
     public Jwt checkValidRefreshToken(String token) {
         NimbusJwtDecoder jwtEncoder = NimbusJwtDecoder.withSecretKey(getSecretKey()).macAlgorithm
                 (SecurityUtil.JWT_MAC_ALGORITHM).build();
@@ -91,8 +92,6 @@ public class SecurityUtil {
             throw e;
         }
     }
-
-
     /**
      * Get the login of the current user.
      *

@@ -27,20 +27,24 @@ public class RoomController {
         RoomEntity savedRoom = roomService.addRoom(request);
         return new ResponseEntity<>(savedRoom, HttpStatus.CREATED);
     }
-    @GetMapping
+    @GetMapping()
     public ResponseEntity<ResultPaginationDTO> getAllRooms(
-//            @RequestParam("current") Optional<String> currentOptional,
-//            @RequestParam("pageSize") Optional<String> pageSizeOptional) {
-//        String sCurrent = currentOptional.isPresent() ? currentOptional.get() : "";;
-//        String sPageSize = pageSizeOptional.isPresent() ? pageSizeOptional.get() : "";
-//        int current = Integer.parseInt(sCurrent) - 1;
-//        int pageSize = Integer.parseInt(sPageSize);
-//        Pageable pageable = PageRequest.of(current, pageSize);
-//        ResultPaginationDTO response = roomService.getAllRooms(pageable);
-//        return ResponseEntity.ok(response);
-
             @Filter Specification<RoomEntity> spec, Pageable pageable) {
         ResultPaginationDTO response = roomService.getAllRooms(spec, pageable);
         return ResponseEntity.ok(response);
     }
+    @PutMapping("/{id}")
+    public ResponseEntity<RoomEntity> updateRoom(
+            @PathVariable Long id,
+            @RequestBody AddRoomDTO request) {
+        RoomEntity updatedRoom = roomService.updateRoom(id, request);
+        return ResponseEntity.ok(updatedRoom);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteRoom(@PathVariable Long id) {
+        roomService.deleteRoom(id);
+        return ResponseEntity.noContent().build();
+    }
+
 }

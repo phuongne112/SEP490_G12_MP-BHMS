@@ -12,9 +12,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -33,9 +34,12 @@ public class UserServiceImpl implements UserService {
     return this.userRepository.findByEmail(email);
     }
 
+    public UserEntity handleGetUserByUsername(String username) {
+        return this.userRepository.findByEmail(username);
+    }
     @Override
-    public CreateUserDTO convertToCreateUserDTO(UserEntity entity) {
-        CreateUserDTO dto = new CreateUserDTO();
+    public CreateUserResponse convertToCreateUserDTO(UserEntity entity) {
+        CreateUserResponse dto = new CreateUserResponse();
         dto.setUsername(entity.getUsername());
         dto.setEmail(entity.getEmail());
         dto.setIsActive(entity.getIsActive());
@@ -95,7 +99,27 @@ public class UserServiceImpl implements UserService {
         return dto;
     }
     @Override
-    public UserEntity CreateUser(UserEntity user) {
+    public UserEntity CreateUser(CreateUserRequest dto) {
+        // 2. Tạo UserEntity
+        UserEntity user = new UserEntity();
+        user.setEmail(dto.getEmail());
+        user.setUsername(dto.getUsername());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        user.setIsActive(true);
+
+        // 3. Tạo UserInfoEntity
+        UserInfoEntity info = new UserInfoEntity();
+        info.setFullName(dto.getFullName());
+        info.setPhoneNumber(dto.getPhone());
+        info.setUser(user);         // liên kết ngược
+
+        user.setUserInfo(info);     // gán userInfo vào user
+
+        // 4. Lưu DB (cascade userInfo)
+        return userRepository.save(user);
+    }
+    @Override
+    public UserEntity Register(UserEntity user) {
         if (user.getRole() != null) {
             Optional<RoleEntity> optional = roleService.fetchRoleById(user.getRole().getRoleId());
             if (optional.isEmpty()) {
@@ -116,82 +140,70 @@ public class UserServiceImpl implements UserService {
             return this.userRepository.findById(id).get();
         return null;
     }
-    @Override
-    public UserEntity handleUpdateUser(UserEntity user) {
-        Optional<UserEntity> optional = this.userRepository.findById(user.getId());
-        if (this.userRepository.existsByEmail(user.getEmail())) {
-            optional.get().setUsername(user.getUsername());
-            optional.get().setEmail(user.getEmail());
-            optional.get().setIsActive(user.getIsActive());
-            if (user.getRole() != null) {
-                Optional<RoleEntity> optionalRole = this.roleService.fetchRoleById(user.getRole().getRoleId());
-                optional.get().setRole(optionalRole.isEmpty() ? null : optionalRole.get());
+        @Override
+        public UserEntity handleUpdateUser (UserEntity user){
+            Optional<UserEntity> optional = this.userRepository.findById(user.getId());
+            if (this.userRepository.existsByEmail(user.getEmail())) {
+                optional.get().setUsername(user.getUsername());
+                optional.get().setEmail(user.getEmail());
+                optional.get().setIsActive(user.getIsActive());
+                if (user.getRole() != null) {
+                    Optional<RoleEntity> optionalRole = this.roleService.fetchRoleById(user.getRole().getRoleId());
+                    optional.get().setRole(optionalRole.isEmpty() ? null : optionalRole.get());
+                }
+
+                return this.userRepository.save(optional.get());
+            }
+            return null;
+        }
+        @Override
+        public UpdateUserDTO convertResUpdateUserDTO (UserEntity user) {
+            UpdateUserDTO dto = new UpdateUserDTO();
+            dto.setUsername(user.getUsername());
+            dto.setEmail(user.getEmail());
+            dto.setIsActive(user.getIsActive());
+            dto.setUpdatedDate(user.getUpdatedDate());
+            return dto;
+        }
+            @Override
+            public void updateUserStatus (Long userId,boolean isActive){
+                UserEntity user = userRepository.findById(userId)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+                user.setIsActive(isActive);
+                userRepository.save(user);
             }
 
-            return this.userRepository.save(optional.get());
-        }
-        return null;
-    }
-    @Override
-    public UpdateUserDTO convertResUpdateUserDTO(UserEntity user) {
-        UpdateUserDTO dto = new UpdateUserDTO();
-        dto.setUsername(user.getUsername());
-        dto.setEmail(user.getEmail());
-        dto.setIsActive(user.getIsActive());
-        dto.setUpdatedDate(user.getUpdatedDate());
-        return dto;
-    }
+            @Override
+            public String changePasswordUser (String email, String currentPassword, String newPassword){
+                UserEntity user = userRepository.findByEmail(email);
 
-    @Override
-    public String signUpUser(SignUpDTO request ) {
-        if(this.userRepository.existsByEmail(request.getEmail())) {
-            return "Email đã tồn tại.";
-        }
-        if(this.userRepository.existsByUsername(request.getUsername())) {
-            return "Username đã tồn tại.";
-        }
-        UserEntity user = new UserEntity();
-        user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
-        user.setPassword(request.getPassword());
-        user.setCreatedBy("system");
+                if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+                    return "Mật khẩu hiện tại không đúng.";
+                }
 
-        this.userRepository.save(user);
+                user.setPassword(passwordEncoder.encode(newPassword));
+                userRepository.save(user);
+                return "Cập nhật mật khẩu thành công.";
+            }
 
-        return "Đăng ký thành công.";
-    }
+            @Override
+            public void sendResetPasswordToken (String email){
 
-    @Override
-    public String changePasswordUser(String email, String currentPassword, String newPassword) {
-        UserEntity user = userRepository.findByEmail(email);
+                String token = securityUtil.generateResetToken(email);
+                emailService.sendPasswordResetLink(email, token);
+            }
 
-        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            return "Mật khẩu hiện tại không đúng.";
+            @Override
+            public void resetPassword (String token, String newPassword){
+                String email = securityUtil.extractEmailFromResetToken(token);
+
+                UserEntity user = userRepository.findByEmail(email);
+
+                user.setPassword(passwordEncoder.encode(newPassword));
+                userRepository.save(user);
+            }
+
+
         }
 
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-        return "Cập nhật mật khẩu thành công.";
-    }
-
-    @Override
-    public String sendResetPasswordToken(String email) {
-
-        String token = securityUtil.generateResetToken(email);
-        emailService.sendPasswordResetLink(email, token);
-        return "Reset link sent if email is registered.";
-    }
-
-    @Override
-    public String resetPassword(String token, String newPassword) {
-        String email = securityUtil.extractEmailFromResetToken(token);
-
-        UserEntity user = userRepository.findByEmail(email);
-
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-        return "Password reset successful.";
-    }
-
-
-}
