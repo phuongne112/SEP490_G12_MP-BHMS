@@ -22,14 +22,19 @@ export const logout = () => {
 };
 
 export const register = async (formData) => {
-  const response = await axiosClient.post("/auth/register", formData);
+  const response = await axiosClient.post("/auth/signup", formData);
   return response.data;
 };
 
-export const resetPassword = async ({ oldPassword, newPassword }) => {
+export const resetPassword = async ({ token, newPassword }) => {
   const res = await axiosClient.post("/auth/reset-password", {
-    oldPassword,
+    token,
     newPassword,
   });
+  return res.data;
+};
+
+export const sendResetEmail = async (email) => {
+  const res = await axiosClient.post("/auth/request-reset", { email });
   return res.data;
 };

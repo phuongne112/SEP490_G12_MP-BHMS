@@ -12,7 +12,11 @@ const axiosClient = axios.create({
 axiosClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
-    if (token) {
+    const publicEndpoints = ["/auth/login", "/auth/register", "/auth/refresh"];
+    if (
+      token &&
+      !publicEndpoints.some((endpoint) => config.url.includes(endpoint))
+    ) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -29,9 +33,9 @@ axiosClient.interceptors.response.use(
     const originalRequest = error.config;
 
     // ✅ Luôn cho phép retry nếu là lỗi 401, chưa retry và không phải chính refresh
-    const is401 = error.response?.status === 401;
-    const isNotRefresh = !originalRequest.url.includes("/auth/refresh");
-    const isNotRetried = !originalRequest._retry;
+    const is401 = error.response?.status === 401; // Bị lỗi 401
+    const isNotRefresh = !originalRequest.url.includes("/auth/refresh"); // request lỗi có phải là /auth/refresh không
+    const isNotRetried = !originalRequest._retry; //request này chưa từng được retry bằng access token mới
 
     if (is401 && isNotRefresh && isNotRetried) {
       originalRequest._retry = true;

@@ -3,10 +3,20 @@ import Footer from "../components/layout/Footer";
 import Header from "../components/layout/Header";
 import HeroSection from "../components/home/HeroSection";
 import FeaturesSection from "../components/home/FeaturesSection";
+import RoomSection from "../components/home/RoomSection";
+import RoomFilter from "../components/home/RoomFilter";
 
 export default function HomePage() {
   const [welcomeMessage, setWelcomeMessage] = useState("");
   const [visible, setVisible] = useState(true);
+  const [filters, setFilters] = useState({
+    service: ["full"],
+    asset: ["full"],
+    area: [20, 30],
+    price: [0, 3000000],
+    building: ["A", "B"],
+    status: ["available", "pending", "full"],
+  });
 
   useEffect(() => {
     const shouldShow = localStorage.getItem("showWelcome");
@@ -49,7 +59,21 @@ export default function HomePage() {
         </div>
       )}
       <HeroSection />
-      <FeaturesSection />
+      {/* <FeaturesSection /> */}
+      <div
+        style={{
+          display: "flex",
+          gap: 32,
+          padding: "40px",
+        }}
+      >
+        <RoomFilter
+          filters={filters}
+          onChange={setFilters}
+          style={{ marginTop: 200 }}
+        />
+        <RoomSection filters={filters} />
+      </div>
       <Footer />
     </>
   );

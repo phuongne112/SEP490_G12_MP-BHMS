@@ -18,8 +18,27 @@ export default function Login() {
     try {
       const user = await login(email, password);
       localStorage.setItem("showWelcome", "true");
-      console.log(user);
-      navigate("/home");
+
+      const roleName = user?.role?.roleName?.toUpperCase();
+
+      if (!roleName) {
+        // ✅ Nếu chưa có role, chuyển về /home
+        navigate("/home");
+        return;
+      }
+
+      switch (roleName) {
+        case "ADMIN":
+          navigate("/admin/users");
+          break;
+        case "RENTER":
+          navigate("/room");
+          break;
+        case "USER":
+        default:
+          navigate("/home");
+          break;
+      }
     } catch (err) {
       const errorMsg =
         err.response?.data?.message || err.message || "Login failed";
