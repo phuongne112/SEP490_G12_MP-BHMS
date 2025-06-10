@@ -138,7 +138,8 @@ public class SecurityUtil {
                 .claim("type", "RESET")
                 .build();
 
-        return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+        JwsHeader jwsHeader = JwsHeader.with(JWT_MAC_ALGORITHM).build();
+        return this.jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader,claims)).getTokenValue();
     }
 
     public String extractEmailFromResetToken(String token) {
