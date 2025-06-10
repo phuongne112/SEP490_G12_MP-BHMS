@@ -1,18 +1,30 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import SystemLogo from "../components/SystemLogo";
 import { resetPassword } from "../services/authService";
 import TextInput from "../components/common/TextInput";
 
 export default function ResetPasswordPage() {
   const [form, setForm] = useState({
-    oldPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
+
+  const navigate = useNavigate();
+  const location = useLocation();
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
-  const navigate = useNavigate();
+  const [token, setToken] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tokenFromUrl = params.get("token");
+    if (!tokenFromUrl) {
+      setError("Missing token in URL.");
+    } else {
+      setToken(tokenFromUrl);
+    }
+  }, [location]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,10 +38,7 @@ export default function ResetPasswordPage() {
       return setError("New passwords do not match.");
     }
     try {
-      const response = await resetPassword({
-        oldPassword: form.oldPassword,
-        newPassword: form.newPassword,
-      });
+      await resetPassword({ token, newPassword: form.newPassword });
       setSuccess(true);
     } catch (err) {
       const errorMsg =
@@ -94,13 +103,6 @@ export default function ResetPasswordPage() {
             }}
           >
             <TextInput
-              label="Password"
-              name="oldPassword"
-              value={form.oldPassword}
-              onChange={handleChange}
-              type="password"
-            ></TextInput>
-            <TextInput
               label="New Password"
               name="newPassword"
               value={form.newPassword}
@@ -108,7 +110,7 @@ export default function ResetPasswordPage() {
               type="password"
             ></TextInput>
             <TextInput
-              label="Re-enter New Password"
+              label="Confirm Password"
               name="confirmPassword"
               value={form.confirmPassword}
               onChange={handleChange}
@@ -136,7 +138,7 @@ export default function ResetPasswordPage() {
             </div>
           </form>
 
-          {true && (
+          {success && (
             <div
               style={{
                 position: "absolute",
@@ -154,26 +156,25 @@ export default function ResetPasswordPage() {
                 width: 320,
               }}
             >
-              <div style={{ fontWeight: "bold", fontSize: 16 }}>
-                Account password change successfully !!!
-              </div>
-              <div style={{ fontSize: 14 }}>Please Sign in again!!!</div>
-              <div style={{ textAlign: "right" }}>
-                <button
-                  onClick={() => navigate("/login")}
+              {success && (
+                <div
                   style={{
-                    padding: "6px 14px",
-                    backgroundColor: "green",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 6,
-                    fontSize: 14,
-                    cursor: "pointer",
+                    marginTop: 20,
+                    color: "green",
+                    fontWeight: "bold",
+                    textAlign: "center",
                   }}
                 >
-                  Done
-                </button>
-              </div>
+                  Reset successful. Please{" "}
+                  <span
+                    onClick={() => navigate("/login")}
+                    style={{ textDecoration: "underline", cursor: "pointer" }}
+                  >
+                    login again
+                  </span>
+                  .
+                </div>
+              )}
             </div>
           )}
         </div>
