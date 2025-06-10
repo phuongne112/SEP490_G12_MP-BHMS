@@ -16,7 +16,7 @@ export default function AppRouter() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<Register />} />
+      <Route path="/signup" element={<Register />} />
       <Route path="/home" element={<HomePage />} />
       <Route path="/forgotPassword" element={<ForgotPasswordPage />} />
       <Route path="/resetPassword" element={<ResetPasswordPage />} />

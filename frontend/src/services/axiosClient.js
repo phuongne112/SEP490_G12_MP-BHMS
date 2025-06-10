@@ -12,7 +12,11 @@ const axiosClient = axios.create({
 axiosClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
-    if (token) {
+    const publicEndpoints = ["/auth/login", "/auth/register", "/auth/refresh"];
+    if (
+      token &&
+      !publicEndpoints.some((endpoint) => config.url.includes(endpoint))
+    ) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;

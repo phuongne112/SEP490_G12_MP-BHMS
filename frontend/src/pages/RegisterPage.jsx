@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import SystemLogo from "../components/SystemLogo";
 import TextInput from "../components/common/TextInput";
 import ErrorMessage from "../components/common/ErrorMessage";
+import { register } from "../services/authService";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -29,8 +30,16 @@ export default function Register() {
       return setError("Passwords do not match.");
     }
 
+    // Chỉ gửi đúng những trường backend cần
+    const registerData = {
+      username: form.username,
+      fullName: form.fullName,
+      email: form.email,
+      phone: form.phone,
+      password: form.password,
+    };
     try {
-      await register(form);
+      await register(registerData);
       navigate("/login");
     } catch (err) {
       const errorMsg =

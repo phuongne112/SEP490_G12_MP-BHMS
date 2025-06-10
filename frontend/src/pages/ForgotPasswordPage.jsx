@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SystemLogo from "../components/SystemLogo";
 import TextInput from "../components/common/TextInput";
+import { sendResetEmail } from "../services/authService";
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -112,7 +113,7 @@ export default function ForgotPasswordPage() {
                   cursor: "pointer",
                 }}
               >
-                Reset Password
+                Send
               </button>
             </div>
           </form>
