@@ -1,25 +1,116 @@
 import React from "react";
+import image1 from "../../assets/RoomImage/image1.png";
+import image2 from "../../assets/RoomImage/image2.png";
+
+const statusIcon = {
+  available: (
+    <span
+      style={{
+        color: "#1BC700",
+        fontSize: 22,
+        fontWeight: 700,
+        background: "#fff",
+        borderRadius: "50%",
+        padding: 2,
+        boxShadow: "0 1px 4px #0001",
+      }}
+    >
+      ✔️
+    </span>
+  ),
+  pending: (
+    <span
+      style={{
+        color: "#FFC700",
+        fontSize: 22,
+        fontWeight: 700,
+        background: "#fff",
+        borderRadius: "50%",
+        padding: 2,
+        boxShadow: "0 1px 4px #0001",
+      }}
+    >
+      🛠️
+    </span>
+  ),
+  full: (
+    <span
+      style={{
+        color: "#E53935",
+        fontSize: 22,
+        fontWeight: 700,
+        background: "#fff",
+        borderRadius: "50%",
+        padding: 2,
+        boxShadow: "0 1px 4px #0001",
+      }}
+    >
+      ⛔
+    </span>
+  ),
+};
 
 export default function RoomCard({ room }) {
+  // 👉 Log kiểm tra
+  console.log("🧩 room.images", room.images);
+
+  const getImageUrl = (img) => {
+    if (!img) return null;
+    if (typeof img === "string")
+      return img.startsWith("http") || img.startsWith("/") ? img : `/${img}`;
+    if (typeof img === "object" && img.imageUrl)
+      return img.imageUrl.startsWith("http") || img.imageUrl.startsWith("/")
+        ? img.imageUrl
+        : `/${img.imageUrl}`;
+    return null;
+  };
+
+  // 👉 Lấy ảnh từ room.images nếu có, fallback về ảnh mặc định
+  const img0 = getImageUrl(room.images?.[0]) || image1;
+  const img1 = getImageUrl(room.images?.[1]) || image2;
+
   return (
     <div
       style={{
-        border: "1px solid #eee",
-        borderRadius: 10,
+        border: "1.5px solid #E0E0E0",
+        borderRadius: 14,
         overflow: "hidden",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-        maxWidth: 280,
+        background: "#fff",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+        position: "relative",
+        minWidth: 260,
+        maxWidth: 320,
+        margin: "0 auto",
       }}
     >
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-        <img src={room.images[0]} alt="room" style={{ width: "100%" }} />
-        <img src={room.images[1]} alt="room" style={{ width: "100%" }} />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          position: "relative",
+        }}
+      >
+        <img
+          src={img0}
+          alt="room"
+          style={{ width: "100%", height: 90, objectFit: "cover" }}
+        />
+        <img
+          src={img1}
+          alt="room"
+          style={{ width: "100%", height: 90, objectFit: "cover" }}
+        />
+        <div style={{ position: "absolute", top: 8, right: 8, zIndex: 2 }}>
+          {statusIcon[room.status || room.roomStatus]}
+        </div>
       </div>
-      <div style={{ padding: 12 }}>
-        <h3 style={{ marginBottom: 8 }}>{room.name}</h3>
-        <p style={{ fontWeight: "bold", fontSize: 16 }}>
-          VND/month : {room.price.toLocaleString()}
-        </p>
+      <div style={{ padding: 16, textAlign: "center" }}>
+        <div style={{ fontWeight: 500, fontSize: 17, marginBottom: 6 }}>
+          {room.name || room.roomNumber || "Phòng"}
+        </div>
+        <div style={{ fontSize: 15, color: "#222", fontWeight: 600 }}>
+          VND/month : {(room.price || room.pricePerMonth)?.toLocaleString()}
+        </div>
       </div>
     </div>
   );
