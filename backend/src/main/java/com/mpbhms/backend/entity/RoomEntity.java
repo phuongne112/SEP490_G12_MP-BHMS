@@ -22,8 +22,7 @@ public class RoomEntity extends BaseEntity {
     @Column(precision = 10, scale = 2)
     private BigDecimal area;
 
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal pricePerMonth;
+    private Double pricePerMonth;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

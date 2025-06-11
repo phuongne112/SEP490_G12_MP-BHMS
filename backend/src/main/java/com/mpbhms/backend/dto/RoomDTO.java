@@ -10,7 +10,7 @@ public class RoomDTO {
     private Long id;
     private String roomNumber;
     private BigDecimal area;
-    private BigDecimal pricePerMonth;
+    private Double pricePerMonth;
     private String roomStatus; // Enum: Available, Occupied, Maintenance, Inactive
     private Integer numberOfBedrooms;
     private Integer numberOfBathrooms;
