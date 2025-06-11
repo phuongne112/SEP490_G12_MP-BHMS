@@ -41,6 +41,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new PermissionEntity("View Room", "/mpbhms/rooms", "GET", "Room"));
             //User
             permissions.add(new PermissionEntity("Create User", "/mpbhms/users", "POST", "User"));
+            permissions.add(new PermissionEntity("Update User", "/mpbhms/users", "PUT", "User"));
             permissions.add(new PermissionEntity("Get User", "/mpbhms/users", "GET", "User"));
             permissions.add(new PermissionEntity("Active/ De-Active User", "/mpbhms/users/{id}/status", "PUT", "User"));
             //Roles
