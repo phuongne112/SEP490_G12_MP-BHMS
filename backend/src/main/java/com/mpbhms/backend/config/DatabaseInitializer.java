@@ -38,6 +38,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new PermissionEntity("Update Room", "/mpbhms/rooms/{id}", "PUT", "Room"));
             permissions.add(new PermissionEntity("Delete Room", "/mpbhms/rooms/{id}", "DELETE", "Room"));
             permissions.add(new PermissionEntity("Create Room", "/mpbhms/rooms", "POST", "Room"));
+            permissions.add(new PermissionEntity("View Room", "/mpbhms/rooms", "GET", "Room"));
             //User
             permissions.add(new PermissionEntity("Create User", "/mpbhms/users", "POST", "User"));
             permissions.add(new PermissionEntity("Get User", "/mpbhms/users", "GET", "User"));
@@ -61,7 +62,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             adminRole.setRoleName("ADMIN");
             List<PermissionEntity> adminPermissions = permissionRepository.findAll()
                     .stream()
-                    .filter(p -> List.of("User", "Role", "Permission").contains(p.getModule())) // hoặc theo API cụ thể
+                    .filter(p ->
+                            List.of("User", "Role", "Permission").contains(p.getModule()) ||
+                                    (p.getModule().equals("Room") && p.getMethod().equals("GET"))
+                    )// hoặc theo API cụ thể
                     .toList();
 
             adminRole.setPermissionEntities(adminPermissions);
