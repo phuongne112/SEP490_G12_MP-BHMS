@@ -143,7 +143,7 @@ export default function Header() {
               Sign in
             </button>
             <button
-              onClick={() => navigate("/register")}
+              onClick={() => navigate("/signup")}
               style={{
                 padding: "6px 16px",
                 backgroundColor: "#1A1A1A",
