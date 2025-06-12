@@ -9,7 +9,6 @@
     "lint": "eslint .",
     "build-uat": "vite build --mode uat",
     "preview": "vite preview"
-
   },
   "dependencies": {
     "@ant-design/pro-components": "^2.8.7",

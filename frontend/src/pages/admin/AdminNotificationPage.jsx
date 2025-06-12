@@ -21,6 +21,7 @@ import EntrySelect from "../../components/common/EntrySelect";
 import NotificationFilterPopover from "../../components/admin/NotificationFilterPopover";
 import { FaBell } from "react-icons/fa";
 import { Badge, Tooltip } from "antd";
+import { sendNotification } from "../../services/notificationApi";
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -141,7 +142,29 @@ export default function AdminNotificationPage() {
             <Form
               layout="vertical"
               form={createForm}
-              onFinish={(values) => console.log("Notification:", values)}
+              onFinish={async (values) => {
+                try {
+                  const payload = {
+                    title: values.label,
+                    message: values.label,
+                    type: values.type,
+                    role: values.role,
+                    recipientId: 1,
+                    sendDate: values.date.format("YYYY-MM-DD"), // hoặc createdDate nếu backend yêu cầu
+                  };
+
+                  await sendNotification(payload); // ✅ gọi API gửi luôn
+                  message.success("Notification sent successfully!");
+                  setIsCreateModalOpen(false);
+                  createForm.resetFields();
+
+                  // Optional: nếu muốn reload bảng notification ngay
+                  // setRefreshKey((prev) => prev + 1); // cần thêm state refreshKey nếu dùng
+                } catch (err) {
+                  console.error("Send notification failed:", err);
+                  message.error("Failed to send notification");
+                }
+              }}
             >
               <Row gutter={16}>
                 <Col span={12}>
@@ -207,17 +230,19 @@ export default function AdminNotificationPage() {
             {selectedNotification && (
               <div>
                 <p>
-                  <strong>Email:</strong> {selectedNotification.email}
+                  <strong>Title:</strong> {selectedNotification.title}
                 </p>
                 <p>
-                  <strong>Event:</strong> {selectedNotification.event}
+                  <strong>Message:</strong> {selectedNotification.message}
                 </p>
                 <p>
-                  <strong>Description:</strong>{" "}
-                  {selectedNotification.description}
+                  <strong>Type:</strong> {selectedNotification.type}
                 </p>
                 <p>
-                  <strong>Date:</strong> {selectedNotification.date}
+                  <strong>Status:</strong> {selectedNotification.status}
+                </p>
+                <p>
+                  <strong>Created Date:</strong> {selectedNotification.date}
                 </p>
               </div>
             )}

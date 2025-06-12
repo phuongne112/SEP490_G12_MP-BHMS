@@ -16,6 +16,5 @@ public class UpdateUserDTO {
     private String email;
     private Boolean isActive;
     private Long roleId;
-    private Instant updatedDate;
 }
 

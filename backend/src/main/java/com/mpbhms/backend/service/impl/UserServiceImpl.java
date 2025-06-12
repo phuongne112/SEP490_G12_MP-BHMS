@@ -140,31 +140,43 @@ public class UserServiceImpl implements UserService {
             return this.userRepository.findById(id).get();
         return null;
     }
-        @Override
-        public UserEntity handleUpdateUser (UserEntity user){
-            Optional<UserEntity> optional = this.userRepository.findById(user.getId());
-            if (this.userRepository.existsByEmail(user.getEmail())) {
-                optional.get().setUsername(user.getUsername());
-                optional.get().setEmail(user.getEmail());
-                optional.get().setIsActive(user.getIsActive());
-                if (user.getRole() != null) {
-                    Optional<RoleEntity> optionalRole = this.roleService.fetchRoleById(user.getRole().getRoleId());
-                    optional.get().setRole(optionalRole.isEmpty() ? null : optionalRole.get());
-                }
+    @Override
+    public UserEntity handleUpdateUser(UserEntity user) {
+        Optional<UserEntity> optional = this.userRepository.findById(user.getId());
 
-                return this.userRepository.save(optional.get());
+        if (optional.isPresent()) {
+            UserEntity existingUser = optional.get();
+
+            // Kiểm tra nếu email bị đổi và đã bị người khác dùng thì không cho cập nhật
+            if (!existingUser.getEmail().equals(user.getEmail())
+                    && this.userRepository.existsByEmail(user.getEmail())) {
+                return null; // hoặc throw exception nếu muốn chi tiết hơn
             }
-            return null;
+
+            existingUser.setUsername(user.getUsername());
+            existingUser.setEmail(user.getEmail());
+            existingUser.setIsActive(user.getIsActive());
+
+            if (user.getRole() != null && user.getRole().getRoleId() != null) {
+                Optional<RoleEntity> optionalRole = this.roleService.fetchRoleById(user.getRole().getRoleId());
+                existingUser.setRole(optionalRole.orElse(null));
+            }
+
+            return this.userRepository.save(existingUser);
         }
-        @Override
-        public UpdateUserDTO convertResUpdateUserDTO (UserEntity user) {
-            UpdateUserDTO dto = new UpdateUserDTO();
-            dto.setUsername(user.getUsername());
-            dto.setEmail(user.getEmail());
-            dto.setIsActive(user.getIsActive());
-            dto.setUpdatedDate(user.getUpdatedDate());
-            return dto;
-        }
+
+        return null;
+    }
+
+    @Override
+    public UpdateUserDTO convertResUpdateUserDTO(UserEntity user) {
+        UpdateUserDTO dto = new UpdateUserDTO();
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+        dto.setIsActive(user.getIsActive());
+        dto.setRoleId(user.getRole() != null ? user.getRole().getRoleId() : null);
+        return dto;
+    }
             @Override
             public void updateUserStatus (Long userId,boolean isActive){
                 UserEntity user = userRepository.findById(userId)

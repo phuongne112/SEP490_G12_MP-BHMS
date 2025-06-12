@@ -1,68 +1,66 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Table, Button, Space, Tooltip } from "antd";
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
-
-const mockData = [
-  {
-    id: 1,
-    name: "Create user",
-    api: "/api/users",
-    method: "GET",
-    module: "User",
-    updatedAt: "26/09/2024",
-  },
-  {
-    id: 2,
-    name: "Create user",
-    api: "/api/users",
-    method: "DELETE",
-    module: "User",
-    updatedAt: "29/09/2024",
-  },
-  {
-    id: 3,
-    name: "Create user",
-    api: "/api/renters",
-    method: "POST",
-    module: "Renter",
-    updatedAt: "28/09/2024",
-  },
-  {
-    id: 4,
-    name: "Create user",
-    api: "/api/users",
-    method: "DELETE",
-    module: "User",
-    updatedAt: "29/09/2024",
-  },
-];
+import { getAllPermissions } from "../../services/permissionApi";
+import dayjs from "dayjs";
 
 export default function PermissionTable({
   pageSize,
+  currentPage,
+  onPageChange,
   search,
   filters,
   onEditPermission,
   onDeletePermission,
+  refreshKey,
 }) {
-  const filteredData = mockData
-    .filter((item) =>
-      item.name.toLowerCase().includes(search.name.toLowerCase())
-    )
-    .filter((item) => item.api.toLowerCase().includes(search.api.toLowerCase()))
-    .filter((item) =>
-      filters.module === "All" ? true : item.module === filters.module
-    )
-    .filter((item) =>
-      filters.method === "All" ? true : item.method === filters.method
-    );
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({ current: 1, total: 0 });
 
-  const columns = (onEditPermission) => [
+  const fetchData = async (page = 1, size = pageSize) => {
+    setLoading(true);
+    try {
+      const params = {
+        page: page - 1,
+        size: size, // <-- Đúng size tại thời điểm gọi
+        name: search.name || undefined,
+        api: search.api || undefined,
+        module: filters.module !== "All" ? filters.module : undefined,
+        method: filters.method !== "All" ? filters.method : undefined,
+      };
+
+      const res = await getAllPermissions(params);
+
+      const result = res?.data?.result || [];
+      const total = res?.data?.meta?.total || 0;
+      console.log("result[0] =", result[0]);
+
+      setData(result);
+      setPagination({ current: page, total, pageSize: size });
+    } catch (err) {
+      console.error("Error fetching permissions:", err);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData(currentPage, pageSize);
+  }, [pageSize, search, filters, refreshKey]);
+
+  const columns = [
     { title: "Id", dataIndex: "id", key: "id" },
     { title: "Name", dataIndex: "name", key: "name" },
-    { title: "API", dataIndex: "api", key: "api" },
+    { title: "API", dataIndex: "apiPath", key: "apiPath" },
     { title: "Method", dataIndex: "method", key: "method" },
     { title: "Module", dataIndex: "module", key: "module" },
-    { title: "UpdatedAt", dataIndex: "updatedAt", key: "updatedAt" },
+    {
+      title: "UpdatedAt",
+      dataIndex: "updatedDate",
+      key: "updatedDate",
+      render: (value) =>
+        value ? dayjs(value).format("DD-MM-YYYY HH:mm:ss") : "—",
+    },
     {
       title: "Actions",
       key: "actions",
@@ -88,10 +86,19 @@ export default function PermissionTable({
 
   return (
     <Table
-      columns={columns(onEditPermission)}
-      dataSource={filteredData}
+      columns={columns}
+      dataSource={data}
       rowKey="id"
-      pagination={{ pageSize }}
+      loading={loading}
+      pagination={{
+        current: pagination.current,
+        total: pagination.total,
+        pageSize: pagination.pageSize || pageSize,
+        onChange: (page, size) => {
+          onPageChange?.(page); // ✅ báo cho component cha biết page mới
+          fetchData(page, size); // ✅ gọi đúng page
+        },
+      }}
     />
   );
 }

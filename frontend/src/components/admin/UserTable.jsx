@@ -10,10 +10,13 @@ export default function UserTable({
   refreshKey,
 }) {
   const [data, setData] = useState([]);
-  const [pagination, setPagination] = useState({ current: 1, total: 0 });
+  const [pagination, setPagination] = useState({
+    current: 1,
+    total: 0,
+  });
   const [loading, setLoading] = useState(false);
 
-  const fetchData = async (page = 1) => {
+  const fetchData = async (page = 1, size = 5) => {
     setLoading(true);
     try {
       // Gọi API truyền tham số
@@ -30,17 +33,20 @@ export default function UserTable({
           : undefined,
       });
 
+      console.log("Gọi API: page =", page, ", size =", size);
+      console.log("Kết quả trả về:", res.data?.result);
+
       const result = res.data?.result || [];
       const total = res.data?.meta?.total || 0;
 
       // Duyet du lieu tra ve va day len bang
       setData(
         result.map((item, index) => ({
-          key: index + 1 + (page - 1) * pageSize,
+          key: item.id || index + 1 + (page - 1) * pageSize,
           email: item.email,
           createdAt: item.createdDate?.slice(0, 10),
           status: item.isActive ? "Active" : "Deactivate",
-          role: item.role?.roleName || "Unknown",
+          role: item.role?.roleName || "USER",
         }))
       );
       // Hien thi phan tu

@@ -10,4 +10,5 @@ public interface NotificationService {
     List<NotificationEntity> getUserNotifications(String email);
     void markAsRead(Long notificationId);
     void deleteNotification(Long notificationId);
+    List<NotificationEntity> getNotifications();
 }

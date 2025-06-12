@@ -23,11 +23,19 @@ import {
   FilterOutlined,
 } from "@ant-design/icons";
 
+import {
+  createPermission,
+  updatePermission,
+  deletePermission,
+} from "../../services/permissionApi";
+import { message } from "antd";
+
 const { Content } = Layout;
 const { Option } = Select;
 
 export default function AdminPermissionListPage() {
   const [pageSize, setPageSize] = useState(5);
+  const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState({ name: "", api: "" });
   const [filters, setFilters] = useState({ module: "All", method: "All" });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -35,27 +43,42 @@ export default function AdminPermissionListPage() {
   const [editingPermission, setEditingPermission] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedPermission, setSelectedPermission] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [form] = Form.useForm();
 
   const handleApplyFilter = (values) => {
     setFilters(values);
   };
 
-  const handleSubmitPermission = (values) => {
-    if (editingPermission) {
-      console.log("Updating permission:", {
-        id: editingPermission.id,
+  const handleSubmitPermission = async (values) => {
+    try {
+      const payload = {
         ...values,
-      });
-      // Gọi API PUT ở đây
-    } else {
-      console.log("Creating new permission:", values);
-      // Gọi API POST ở đây
-    }
+        apiPath: values.api,
+      };
+      delete payload.api;
 
-    setIsModalOpen(false);
-    form.resetFields();
-    setEditingPermission(null);
+      if (editingPermission) {
+        // ✅ Gọi API update
+        await updatePermission({
+          ...payload,
+          id: editingPermission.id,
+        });
+        message.success("Permission updated successfully!");
+      } else {
+        // ✅ Gọi API create
+        await createPermission(payload);
+        message.success("Permission created successfully!");
+      }
+
+      setIsModalOpen(false);
+      form.resetFields();
+      setEditingPermission(null);
+      setRefreshKey((prev) => prev + 1);
+    } catch (err) {
+      console.error("Failed to create permission:", err);
+      message.error("Failed to create permission");
+    }
   };
 
   const handleDeletePermission = (permission) => {
@@ -63,16 +86,28 @@ export default function AdminPermissionListPage() {
     setIsDeleteModalOpen(true);
   };
 
-  const handleConfirmDelete = () => {
-    console.log("Deleting permission:", selectedPermission);
-    // Gọi API DELETE ở đây nếu có
+  const handleConfirmDelete = async () => {
+    if (!selectedPermission) return;
+    try {
+      await deletePermission(selectedPermission.id); // ✅ Gọi API xóa
+      message.success("Permission deleted successfully!");
+      setRefreshKey((prev) => prev + 1); // ✅ reload bảng
+    } catch (err) {
+      console.error("Failed to delete permission:", err);
+      message.error("Failed to delete permission");
+    }
     setIsDeleteModalOpen(false);
     setSelectedPermission(null);
   };
 
   const handleEditPermission = (permission) => {
     setEditingPermission(permission);
-    form.setFieldsValue(permission);
+    form.setFieldsValue({
+      name: permission.name,
+      api: permission.apiPath, // ✅ Hiển thị đúng trong form
+      method: permission.method,
+      module: permission.module,
+    });
     setIsModalOpen(true);
   };
 
@@ -93,7 +128,11 @@ export default function AdminPermissionListPage() {
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                form.resetFields();
+                setEditingPermission(null);
+                setIsModalOpen(true);
+              }}
             >
               Add new Permission
             </Button>
@@ -158,10 +197,13 @@ export default function AdminPermissionListPage() {
           </div>
           <PermissionTable
             pageSize={pageSize}
+            currentPage={currentPage}
+            onPageChange={(page) => setCurrentPage(page)}
             search={search}
             filters={filters}
             onEditPermission={handleEditPermission}
             onDeletePermission={handleDeletePermission}
+            refreshKey={refreshKey}
           />
 
           <Modal

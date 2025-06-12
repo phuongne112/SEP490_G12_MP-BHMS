@@ -1,96 +1,7 @@
-import React from "react";
-import { Table, Button, Space } from "antd";
+import React, { useEffect, useState } from "react";
+import { Table, Button, Space, Tag, message } from "antd";
+import { getAllNotifications } from "../../services/notificationApi";
 
-const mockData = [
-  {
-    key: 1,
-    email: "minhphuong01@gmail.com",
-    role: "admin",
-    event: "Login Performed",
-    description: "User minhphuong01@gmail.com just logged in",
-    date: "2024-12-02 08:30:00",
-  },
-  {
-    key: 2,
-    email: "lethuha03@gmail.com",
-    role: "admin",
-    event: "Archiving Request",
-    description: "System Policy initiated archiving",
-    date: "2025-02-11 10:00:00",
-  },
-  {
-    key: 3,
-    email: "minhphuong01@gmail.com",
-    role: "admin",
-    event: "Login Performed",
-    description: "User minhphuong01@gmail.com just logged in",
-    date: "2024-12-02 08:30:00",
-  },
-  {
-    key: 4,
-    email: "lethuha03@gmail.com",
-    role: "renter",
-    event: "Archiving Request",
-    description: "System Policy initiated archiving",
-    date: "2025-02-11 10:00:00",
-  },
-  {
-    key: 5,
-    email: "minhphuong01@gmail.com",
-    role: "landlord",
-    event: "Login Performed",
-    description: "User minhphuong01@gmail.com just logged in",
-    date: "2024-12-02 08:30:00",
-  },
-  {
-    key: 6,
-    email: "lethuha03@gmail.com",
-    role: "admin",
-    event: "Archiving Request",
-    description: "System Policy initiated archiving",
-    date: "2025-02-11 10:00:00",
-  },
-  {
-    key: 7,
-    email: "minhphuong01@gmail.com",
-    role: "admin",
-    event: "Login Performed",
-    description: "User minhphuong01@gmail.com just logged in",
-    date: "2024-12-02 08:30:00",
-  },
-  {
-    key: 8,
-    email: "lethuha03@gmail.com",
-    role: "admin",
-    event: "Archiving Request",
-    description: "System Policy initiated archiving",
-    date: "2025-02-11 10:00:00",
-  },
-  {
-    key: 9,
-    email: "minhphuong01@gmail.com",
-    role: "admin",
-    event: "Login Performed",
-    description: "User minhphuong01@gmail.com just logged in",
-    date: "2024-12-02 08:30:00",
-  },
-  {
-    key: 10,
-    email: "lethuha03@gmail.com",
-    role: "admin",
-    event: "Archiving Request",
-    description: "System Policy initiated archiving",
-    date: "2025-02-11 10:00:00",
-  },
-  {
-    key: 11,
-    email: "minhphuong01@gmail.com",
-    role: "admin",
-    event: "Login Performed",
-    description: "User minhphuong01@gmail.com just logged in",
-    date: "2024-12-02 08:30:00",
-  },
-];
 export default function NotificationTable({
   pageSize,
   searchTerm,
@@ -98,22 +9,74 @@ export default function NotificationTable({
   onView,
   onDelete,
 }) {
-  const columns = (onView, onDelete) => [
-    { title: "No", dataIndex: "key", key: "key" },
-    { title: "Account(Email)", dataIndex: "email", key: "email" },
-    { title: "Role", dataIndex: "role", key: "role" },
-    { title: "Event", dataIndex: "event", key: "event" },
-    { title: "Description", dataIndex: "description", key: "description" },
-    { title: "Date", dataIndex: "date", key: "date" },
+  const [data, setData] = useState([]);
+  const [pagination, setPagination] = useState({ current: 1, total: 0 });
+  const [loading, setLoading] = useState(false);
+
+  const fetchData = async (page = 1) => {
+    setLoading(true);
+    try {
+      const res = await getAllNotifications({
+        page: page - 1,
+        size: pageSize,
+        search: searchTerm || "",
+      });
+
+      const result = res.data || [];
+
+      setData(
+        result.map((item) => ({
+          key: item.id,
+          title: item.title,
+          message: item.message,
+          type: item.type,
+          status: item.status,
+          date: item.createdDate,
+          readAt: item.readAt,
+        }))
+      );
+
+      setPagination({
+        current: page,
+        total: result.length, // Hoặc sửa nếu BE trả meta
+      });
+    } catch (err) {
+      message.error("Failed to load notifications");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData(1);
+  }, [searchTerm, filters, pageSize]);
+
+  const columns = [
+    { title: "Title", dataIndex: "title", key: "title" },
+    { title: "Message", dataIndex: "message", key: "message" },
+    { title: "Type", dataIndex: "type", key: "type" },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => (
+        <Tag color={status === "READ" ? "green" : "blue"}>{status}</Tag>
+      ),
+    },
+    {
+      title: "Created",
+      dataIndex: "date",
+      key: "date",
+    },
     {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
         <Space>
-          <Button size="medium" onClick={() => onView(record)}>
+          <Button size="small" onClick={() => onView(record)}>
             View
           </Button>
-          <Button size="medium" danger onClick={() => onDelete(record)}>
+          <Button size="small" danger onClick={() => onDelete(record)}>
             Delete
           </Button>
         </Space>
@@ -121,31 +84,17 @@ export default function NotificationTable({
     },
   ];
 
-  const filteredData = mockData
-    .filter((item) =>
-      item.email.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .filter((item) =>
-      filters.role === "All"
-        ? true
-        : item.role.toLowerCase() === filters.role.toLowerCase()
-    )
-    .filter((item) =>
-      filters.event === "All" ? true : item.event === filters.event
-    )
-    .filter((item) => {
-      if (!filters.dateRange) return true;
-      const date = new Date(item.date);
-      return (
-        date >= filters.dateRange[0].toDate() &&
-        date <= filters.dateRange[1].toDate()
-      );
-    });
   return (
     <Table
-      columns={columns(onView, onDelete)}
-      dataSource={filteredData}
-      pagination={{ pageSize }}
+      columns={columns}
+      dataSource={data}
+      loading={loading}
+      pagination={{
+        current: pagination.current,
+        total: pagination.total,
+        pageSize,
+        onChange: (page) => fetchData(page),
+      }}
     />
   );
 }
