@@ -49,6 +49,11 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new PermissionEntity("Update Role", "/mpbhms/roles", "PUT", "Role"));
             permissions.add(new PermissionEntity("Delete Role", "/mpbhms/roles/{id}", "DELETE", "Role"));
             permissions.add(new PermissionEntity("View Roles", "/mpbhms/roles", "GET", "Role"));
+            //Notification
+            permissions.add(new PermissionEntity("Create Notification", "/mpbhms/notifications", "POST", "Notification"));
+            permissions.add(new PermissionEntity("Update Notification", "/mpbhms/notifications", "PUT", "Notification"));
+            permissions.add(new PermissionEntity("Delete Notification", "/mpbhms/notifications/{id}", "DELETE", "Notification"));
+            permissions.add(new PermissionEntity("View Notification", "/mpbhms/notifications/all", "GET", "Notification"));
             //Permissions
             permissions.add(new PermissionEntity("Create Permission", "/mpbhms/permissions", "POST", "Permission"));
             permissions.add(new PermissionEntity("Update Permission", "/mpbhms/permissions", "PUT", "Permission"));
@@ -64,7 +69,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             List<PermissionEntity> adminPermissions = permissionRepository.findAll()
                     .stream()
                     .filter(p ->
-                            List.of("User", "Role", "Permission").contains(p.getModule()) ||
+                            List.of("User", "Role", "Permission", "Notification").contains(p.getModule()) ||
                                     (p.getModule().equals("Room") && p.getMethod().equals("GET"))
                     )// hoặc theo API cụ thể
                     .toList();

@@ -111,6 +111,23 @@ export default function RoomCard({ room }) {
         <div style={{ fontSize: 15, color: "#222", fontWeight: 600 }}>
           VND/month : {(room.price || room.pricePerMonth)?.toLocaleString()}
         </div>
+        <div
+          style={{
+            marginTop: 6,
+            fontSize: 13,
+            fontWeight: 500,
+            color:
+              (room.roomStatus || "").toLowerCase() === "available"
+                ? "green"
+                : (room.roomStatus || "").toLowerCase() === "occupied"
+                ? "#f56c6c"
+                : (room.roomStatus || "").toLowerCase() === "maintenance"
+                ? "#FFC700"
+                : "#999",
+          }}
+        >
+          Status: {room.roomStatus || "Unknown"}
+        </div>
       </div>
     </div>
   );

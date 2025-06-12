@@ -45,18 +45,23 @@ public class UserController {
     }
 
 
+
     @PutMapping()
     public ResponseEntity<UpdateUserDTO> updateUser(@RequestBody UserEntity user) throws IdInvalidException {
-        boolean isEmailExist = this.userService.isEmailExist(user.getEmail());
-        UserEntity user2 = this.userService.handleFetchUserById(user.getId());
-        if (user2 == null || !isEmailExist) {
-            throw new IdInvalidException("id hoặc email không tồn tại");
-        } else {
-            UserEntity user3 = this.userService.handleUpdateUser(user);
-            return ResponseEntity.status(HttpStatus.OK).body(this.userService.convertResUpdateUserDTO(user3));
+        UserEntity existingUser = this.userService.handleFetchUserById(user.getId());
 
+        if (existingUser == null) {
+            throw new IdInvalidException("User not found");
         }
 
+        UserEntity updatedUser = this.userService.handleUpdateUser(user);
+
+        if (updatedUser == null) {
+            throw new IdInvalidException("Email has been used");
+        }
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(this.userService.convertResUpdateUserDTO(updatedUser));
     }
     @PutMapping("/{id}/status")
     public ResponseEntity<Void> updateUserStatus(

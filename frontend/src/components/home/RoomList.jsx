@@ -14,44 +14,41 @@ export default function RoomList({ filter }) {
   });
   const [search, setSearch] = useState("");
 
-  const fetchRooms = async (page = 0, filterValue = filter) => {
+  const fetchRooms = async (page = 1) => {
     setLoading(true);
     const searchFilter = search ? `roomNumber~'${search}'` : "";
     const combinedFilter = [filter, searchFilter].filter(Boolean).join(" and ");
 
     const response = await getAllRooms(
-      page,
+      page - 1,
       pagination.pageSize,
       combinedFilter
     );
     setRooms(response.result || []);
     setPagination({
       ...pagination,
-      current: response.meta?.page ?? 0,
+      current: page, // ✅ CHANGED: đồng bộ current page đúng
       total: response.meta?.total ?? 0,
-      pages:
-        response.meta?.pages ??
-        Math.ceil((response.meta?.total ?? 0) / pagination.pageSize),
     });
     setLoading(false);
   };
 
   // Gọi API khi filter hoặc search đổi
   useEffect(() => {
-    fetchRooms(1, filter);
+    fetchRooms(1);
     // eslint-disable-next-line
   }, [filter, search]);
 
   const handlePrevPage = () => {
     if (pagination.current > 1) {
-      fetchRooms(pagination.current - 1, filter);
+      fetchRooms(pagination.current - 1);
     }
   };
 
   const handleNextPage = () => {
     const totalPages = Math.ceil(pagination.total / pagination.pageSize);
     if (pagination.current < totalPages) {
-      fetchRooms(pagination.current + 1, filter);
+      fetchRooms(pagination.current + 1);
     }
   };
 
@@ -77,9 +74,9 @@ export default function RoomList({ filter }) {
           enterButton
           style={{ maxWidth: 300 }}
         />
-        <Button type="primary" icon={<PlusOutlined />}>
+        {/* <Button type="primary" icon={<PlusOutlined />}>
           Thêm mới
-        </Button>
+        </Button> */}
       </div>
       <Row gutter={[24, 24]}>
         {rooms.map((room) => (

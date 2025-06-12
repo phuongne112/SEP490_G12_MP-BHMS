@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import Footer from "../components/layout/Footer";
 import Header from "../components/layout/Header";
 import RoomList from "../components/home/RoomList";
-import { Slider, Divider, Checkbox, Button } from "antd";
+import { Slider, Divider, Select, Button } from "antd";
+
+const { Option } = Select;
 
 export default function HomePage() {
   const [area, setArea] = useState([22, 27]);
   const [price, setPrice] = useState([0, 10000000]);
-
+  const [status, setStatus] = useState("All");
   const [appliedFilter, setAppliedFilter] = useState(""); // Chỉ filter khi user bấm nút
 
   // Hàm build filter DSL từ các filter hiện tại
@@ -16,7 +18,10 @@ export default function HomePage() {
     const priceFilter = price
       ? `pricePerMonth >: ${price[0]} and pricePerMonth <: ${price[1]}`
       : "";
-    return [priceFilter, areaFilter].filter(Boolean).join(" and ");
+    const statusFilter = status !== "All" ? `roomStatus =: ${status}` : "";
+    return [priceFilter, areaFilter, statusFilter]
+      .filter(Boolean)
+      .join(" and ");
   };
 
   const handleApplyFilter = () => {
@@ -49,14 +54,11 @@ export default function HomePage() {
             borderRadius: "12px 0 0 12px",
             borderRight: "1px solid #eee",
             minHeight: 600,
+            marginTop: 80,
           }}
         >
-          <div style={{ fontWeight: 600, marginBottom: 16 }}>Full Service</div>
-          <div style={{ color: "#888", fontSize: 13, marginBottom: 8 }}>
-            Water, Internet, Cleaning
-          </div>
           <Divider style={{ margin: "12px 0" }} />
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>Area</div>
+          <div style={{ fontWeight: 600, marginBottom: 8 }}>Area (m²)</div>
           <Slider
             range
             min={15}
@@ -65,15 +67,25 @@ export default function HomePage() {
             onChange={setArea}
             style={{ marginBottom: 16 }}
           />
-          <Divider style={{ margin: "12px 0" }} />
-          <Checkbox checked style={{ marginBottom: 8 }}>
-            Full Asset
-          </Checkbox>
-          <div style={{ color: "#888", fontSize: 13, marginBottom: 8 }}>
-            Fan, Bed, Wardrobe, ...
+
+          {/* ✅ Thêm lọc theo Room Status */}
+          <div style={{ fontWeight: 600, marginBottom: 8, marginTop: 30 }}>
+            Room Status
           </div>
+          <Select
+            value={status}
+            onChange={setStatus}
+            style={{ width: "100%", marginBottom: 16 }}
+          >
+            <Option value="All">All</Option>
+            <Option value="Available">Available</Option>
+            <Option value="Occupied">Occupied</Option>
+            <Option value="Maintenance">Maintenance</Option>
+            <Option value="Inactive">Inactive</Option>
+          </Select>
+
           <Divider style={{ margin: "12px 0" }} />
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>Price</div>
+          <div style={{ fontWeight: 600, marginBottom: 8 }}>Price(VND)</div>
           <Slider
             range
             min={0}

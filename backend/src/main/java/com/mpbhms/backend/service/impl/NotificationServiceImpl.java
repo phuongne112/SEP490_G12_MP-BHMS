@@ -61,4 +61,9 @@ public class NotificationServiceImpl implements NotificationService {
     public void deleteNotification(Long notificationId) {
         notificationRepository.findById(notificationId).ifPresent(notificationRepository::delete);
     }
+
+    @Override
+    public List<NotificationEntity> getNotifications() {
+        return notificationRepository.findAll();
+    }
 }
