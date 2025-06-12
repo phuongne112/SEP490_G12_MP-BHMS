@@ -2,7 +2,13 @@ import React, { useEffect, useState } from "react";
 import { Table, Tag, Button, Space, message } from "antd";
 import { getAllUsers } from "../../services/userApi";
 
-export default function UserTable({ pageSize, searchTerm, filters, onEdit }) {
+export default function UserTable({
+  pageSize,
+  searchTerm,
+  filters,
+  onEdit,
+  refreshKey,
+}) {
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ current: 1, total: 0 });
   const [loading, setLoading] = useState(false);
@@ -51,7 +57,7 @@ export default function UserTable({ pageSize, searchTerm, filters, onEdit }) {
 
   useEffect(() => {
     fetchData(1);
-  }, [searchTerm, filters.role, filters.dateRange, pageSize]);
+  }, [searchTerm, filters.role, filters.dateRange, pageSize, refreshKey]);
 
   const columns = [
     {

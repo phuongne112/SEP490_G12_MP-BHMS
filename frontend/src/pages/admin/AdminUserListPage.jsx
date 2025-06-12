@@ -27,6 +27,7 @@ export default function AdminUserListPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({ role: "All", dateRange: null });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -104,6 +105,7 @@ export default function AdminUserListPage() {
             searchTerm={searchTerm}
             filters={filters}
             onEdit={handleEditUser}
+            refreshKey={refreshKey}
           />
 
           <Modal
@@ -128,6 +130,7 @@ export default function AdminUserListPage() {
                   message.success("User created successfully");
                   setIsCreateModalOpen(false);
                   createForm.resetFields();
+                  setRefreshKey((prev) => prev + 1);
                 } catch (error) {
                   message.error("Failed to create user");
                 }
