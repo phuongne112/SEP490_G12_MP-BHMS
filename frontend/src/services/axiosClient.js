@@ -1,62 +1,61 @@
 import axios from "axios";
 
+// 👉 Lấy biến môi trường từ file .env
+const BASE_URL = `${import.meta.env.VITE_BACKEND_URL}/mpbhms/`;
+console.log("✅ Backend URL:", import.meta.env.VITE_BACKEND_URL);
+
+const REFRESH_URL = `${import.meta.env.VITE_BACKEND_URL}/mpbhms/auth/refresh`;
+
+
 const axiosClient = axios.create({
-  baseURL: "http://localhost:8080/mpbhms/",
+  baseURL: BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true, // để gửi cookie(refreshToken)
+  withCredentials: true, // ⬅️ gửi cookie (refreshToken)
 });
 
-// Request interceptor: gắn accessToken
+// ✅ Request interceptor: gắn accessToken nếu không phải public endpoint
 axiosClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
     const publicEndpoints = ["/auth/login", "/auth/register", "/auth/refresh"];
-    if (
-      token &&
-      !publicEndpoints.some((endpoint) => config.url.includes(endpoint))
-    ) {
+
+    const isPublic = publicEndpoints.some((endpoint) => config.url.includes(endpoint));
+
+    if (token && !isPublic) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Interceptor: xử lý lỗi 401 → gọi refresh → retry lại request
+// ✅ Response interceptor: xử lý 401 → gọi refresh → retry
 axiosClient.interceptors.response.use(
   (response) => response.data,
   async (error) => {
     const originalRequest = error.config;
 
-    // ✅ Luôn cho phép retry nếu là lỗi 401, chưa retry và không phải chính refresh
-    const is401 = error.response?.status === 401; // Bị lỗi 401
-    const isNotRefresh = !originalRequest.url.includes("/auth/refresh"); // request lỗi có phải là /auth/refresh không
-    const isNotRetried = !originalRequest._retry; //request này chưa từng được retry bằng access token mới
+    const is401 = error.response?.status === 401;
+    const isNotRefresh = !originalRequest.url.includes("/auth/refresh");
+    const isNotRetried = !originalRequest._retry;
 
     if (is401 && isNotRefresh && isNotRetried) {
       originalRequest._retry = true;
 
       try {
-        // ✅ gọi refresh dù token không có
-        const res = await axios.get(
-          "http://localhost:8080/mpbhms/auth/refresh",
-          {
-            withCredentials: true, // ⬅️ bắt buộc để gửi cookie refresh
-          }
-        );
+        const res = await axios.get(REFRESH_URL, {
+          withCredentials: true,
+        });
 
         const newToken = res.data?.data?.access_token;
         if (!newToken) throw new Error("Không có token mới từ /auth/refresh");
 
-        // ✅ Lưu và kích hoạt App.jsx
         localStorage.setItem("token", newToken);
         window.dispatchEvent(new Event("token-changed"));
 
-        // ✅ Retry request cũ với token mới
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return axiosClient(originalRequest);
       } catch (refreshErr) {
