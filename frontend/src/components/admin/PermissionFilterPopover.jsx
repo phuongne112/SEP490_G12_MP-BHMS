@@ -10,21 +10,23 @@ export default function PermissionFilterPopover({ onApply }) {
   const handleApply = () => {
     onApply({ module, method });
   };
+
   return (
     <div>
-      <div style={{ marginBottom: 8, fontWeight: "bold" }}>
-        Filters Permissions
-      </div>
+      <div style={{ marginBottom: 8, fontWeight: "bold" }}>Filter Permissions</div>
+
       <div style={{ marginBottom: 12 }}>
         <div style={{ fontSize: 13, marginBottom: 4 }}>Module</div>
         <Select style={{ width: "100%" }} value={module} onChange={setModule}>
           <Option value="All">All</Option>
-          <Option value="Admin">Admin</Option>
           <Option value="User">User</Option>
-          <Option value="Renter">Renter</Option>
-          <Option value="Landlord">Landlord</Option>
+          <Option value="Role">Role</Option>
+          <Option value="Notification">Notification</Option>
+          <Option value="Permission">Permission</Option>
+          <Option value="Room">Room</Option>
         </Select>
       </div>
+
       <div style={{ marginBottom: 12 }}>
         <div style={{ fontSize: 13, marginBottom: 4 }}>Method</div>
         <Select style={{ width: "100%" }} value={method} onChange={setMethod}>
@@ -35,6 +37,7 @@ export default function PermissionFilterPopover({ onApply }) {
           <Option value="DELETE">DELETE</Option>
         </Select>
       </div>
+
       <div style={{ textAlign: "right" }}>
         <Button type="primary" onClick={handleApply}>
           Apply

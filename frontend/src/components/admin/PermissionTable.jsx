@@ -1,8 +1,31 @@
 import React, { useEffect, useState } from "react";
-import { Table, Button, Space, Tooltip } from "antd";
+import { Table, Button, Space, Tooltip, message } from "antd";
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
-import { getAllPermissions } from "../../services/permissionApi";
 import dayjs from "dayjs";
+import { getAllPermissions } from "../../services/permissionApi";
+
+// ✅ Hàm tạo DSL cho filter và search
+const buildFilterDSL = (search, filters) => {
+  const dsl = [];
+
+  if (search.name?.trim()) {
+    dsl.push(`name~'${search.name.trim()}'`);
+  }
+
+  if (search.api?.trim()) {
+    dsl.push(`apiPath~'${search.api.trim()}'`);
+  }
+
+  if (filters.method && filters.method !== "All") {
+    dsl.push(`method = '${filters.method}'`);
+  }
+
+  if (filters.module && filters.module !== "All") {
+    dsl.push(`module = '${filters.module}'`);
+  }
+
+  return dsl.join(" and ");
+};
 
 export default function PermissionTable({
   pageSize,
@@ -16,54 +39,66 @@ export default function PermissionTable({
 }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, total: 0 });
+  const [pagination, setPagination] = useState({
+    current: currentPage || 1,
+    total: 0,
+  });
 
-  const fetchData = async (page = 1, size = pageSize) => {
+  const fetchData = async (page = 1) => {
     setLoading(true);
     try {
-      const params = {
-        page: page - 1,
-        size: size, // <-- Đúng size tại thời điểm gọi
-        name: search.name || undefined,
-        api: search.api || undefined,
-        module: filters.module !== "All" ? filters.module : undefined,
-        method: filters.method !== "All" ? filters.method : undefined,
-      };
+      const filterDSL = buildFilterDSL(search, filters);
+      const res = await getAllPermissions(page - 1, pageSize, filterDSL);
 
-      const res = await getAllPermissions(params);
-
-      const result = res?.data?.result || [];
-      const total = res?.data?.meta?.total || 0;
-      console.log("result[0] =", result[0]);
+      const result = res?.result || [];
+      const total = res?.meta?.total || 0;
 
       setData(result);
-      setPagination({ current: page, total, pageSize: size });
+      setPagination({ current: page, total, pageSize });
+      if (onPageChange) onPageChange(page);
     } catch (err) {
       console.error("Error fetching permissions:", err);
+      message.error("Failed to load permissions");
     }
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchData(currentPage, pageSize);
+    fetchData(currentPage || 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageSize, search, filters, refreshKey]);
 
   const columns = [
-    { title: "Id", dataIndex: "id", key: "id" },
-    { title: "Name", dataIndex: "name", key: "name" },
-    { title: "API", dataIndex: "apiPath", key: "apiPath" },
-    { title: "Method", dataIndex: "method", key: "method" },
-    { title: "Module", dataIndex: "module", key: "module" },
     {
-      title: "UpdatedAt",
+      title: "No.",
+      dataIndex: "id",
+      render: (_, __, index) =>
+        (pagination.current - 1) * pageSize + index + 1,
+    },
+    {
+      title: "Name",
+      dataIndex: "name",
+    },
+    {
+      title: "API",
+      dataIndex: "apiPath",
+    },
+    {
+      title: "Method",
+      dataIndex: "method",
+    },
+    {
+      title: "Module",
+      dataIndex: "module",
+    },
+    {
+      title: "Updated At",
       dataIndex: "updatedDate",
-      key: "updatedDate",
-      render: (value) =>
-        value ? dayjs(value).format("DD-MM-YYYY HH:mm:ss") : "—",
+      render: (val) =>
+        val ? dayjs(val).format("YYYY-MM-DD HH:mm:ss") : "—",
     },
     {
       title: "Actions",
-      key: "actions",
       render: (_, record) => (
         <Space>
           <Tooltip title="Edit">
@@ -86,18 +121,15 @@ export default function PermissionTable({
 
   return (
     <Table
+      rowKey="id"
       columns={columns}
       dataSource={data}
-      rowKey="id"
       loading={loading}
       pagination={{
         current: pagination.current,
         total: pagination.total,
-        pageSize: pagination.pageSize || pageSize,
-        onChange: (page, size) => {
-          onPageChange?.(page); // ✅ báo cho component cha biết page mới
-          fetchData(page, size); // ✅ gọi đúng page
-        },
+        pageSize,
+        onChange: (page) => fetchData(page),
       }}
     />
   );
