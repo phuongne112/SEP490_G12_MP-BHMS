@@ -48,7 +48,10 @@ export default function UserTable({
           isActive: item.isActive, // 🆕 Lưu lại isActive để biết trạng thái hiện tại
           createdAt: item.createdDate?.slice(0, 10),
           status: item.isActive ? "Active" : "Deactivate",
-          role: item.role?.roleName || "USER",
+          role: {
+            roleName: item.role?.roleName || "USER",
+            roleId: item.role?.roleId || null,
+          },
         }))
       );
       // Hien thi phan tu
@@ -129,13 +132,14 @@ export default function UserTable({
     {
       title: "Role",
       dataIndex: "role",
+      render: (role) => role?.roleName || "USER",
     },
     {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
         <Space>
-          <Button size="medium" onClick={() => onEdit(record.email)}>
+          <Button size="medium" onClick={() => onEdit(record)}>
             Edit
           </Button>
         </Space>

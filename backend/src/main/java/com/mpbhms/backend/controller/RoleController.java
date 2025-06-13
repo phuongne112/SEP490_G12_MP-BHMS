@@ -38,14 +38,14 @@ public class RoleController {
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(this.roleService.updateRole(roleEntity));
     }
-    @DeleteMapping("/id")
-    public ResponseEntity<Void> deleteRole(@PathVariable("id") Long id) {
-        // Kiểm tra tồn tại trước khi xóa
-        if (!roleService.existsById(id)) {
-            throw new IdInvalidException("Role với id = " + id + " không tồn tại.");
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteRole(@PathVariable("id") long id) throws IdInvalidException {
+        //Check exist with id
+        if (this.roleService.getById(id) == null){
+            throw new IdInvalidException("Role with id " + id + " does not exist");
         }
-        roleService.deleteRole(id);
-        return ResponseEntity.noContent().build(); // ✅ Trả về 204 No Content
+        this.roleService.deleteRole(id);
+        return ResponseEntity.ok().body(null);
     }
     @GetMapping
     public ResponseEntity<ResultPaginationDTO> getAllRoles(

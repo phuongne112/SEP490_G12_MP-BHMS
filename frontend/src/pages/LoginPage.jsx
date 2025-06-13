@@ -4,6 +4,8 @@ import { login } from "../services/authService";
 import SystemLogo from "../components/SystemLogo";
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
 import { Link } from "react-router-dom";
+import { useDispatch } from "react-redux"; // ✅ thêm dòng này
+import { setUser } from "../store/accountSlice"; // ✅ thêm dòng này
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -11,18 +13,28 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const dispatch = useDispatch(); // ✅ khai báo
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError(null);
     try {
       const user = await login(email, password);
+
+      // ✅ Lưu user vào Redux + localStorage
+      dispatch(
+        setUser({
+          id: user.id,
+          fullName: user.name,
+          role: user.role?.roleName,
+          permissions: user.role?.permissionEntities?.map((p) => p.name) || [],
+        })
+      );
+
       localStorage.setItem("showWelcome", "true");
 
       const roleName = user?.role?.roleName?.toUpperCase();
-
       if (!roleName) {
-        // ✅ Nếu chưa có role, chuyển về /home
         navigate("/home");
         return;
       }

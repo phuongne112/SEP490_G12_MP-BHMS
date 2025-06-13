@@ -1,0 +1,25 @@
+// Import useSelector để lấy dữ liệu từ Redux store
+import { useSelector } from "react-redux";
+
+// Component Access: kiểm soát quyền truy cập vào phần giao diện con (children)
+export default function Access({ children, requiredPermissions = [] }) {
+  // Lấy thông tin user (bao gồm permission) từ Redux store
+  const user = useSelector((state) => state.account.user);
+
+  // Kiểm tra biến môi trường để biết có bật kiểm tra quyền không (ACL: Access Control List)
+  const aclEnabled = import.meta.env.VITE_ACL_ENABLE === "true";
+
+  // Nếu không bật kiểm soát quyền, cho phép hiển thị mọi thứ
+  if (!aclEnabled) return children;
+
+  // Nếu chưa đăng nhập hoặc không có danh sách permission → không hiển thị gì
+  if (!user || !user.permissions) return null;
+
+  // Kiểm tra xem user có đầy đủ các quyền yêu cầu không
+  const hasPermission = requiredPermissions.every((perm) =>
+    user.permissions.includes(perm)
+  );
+
+  // Nếu có đủ quyền thì hiển thị children, ngược lại ẩn đi
+  return hasPermission ? children : null;
+}

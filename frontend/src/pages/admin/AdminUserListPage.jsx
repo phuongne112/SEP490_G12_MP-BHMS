@@ -17,8 +17,10 @@ import SearchBox from "../../components/common/SearchBox";
 import EntrySelect from "../../components/common/EntrySelect";
 import { FilterOutlined } from "@ant-design/icons";
 import UserFilterPopover from "../../components/admin/UserFilterPopover";
-import { createUser } from "../../services/userApi";
+import { createUser, updateUser } from "../../services/userApi";
 import { message } from "antd";
+import { Select } from "antd";
+import Access from "../../components/common/Access";
 
 const { Content } = Layout;
 
@@ -28,6 +30,8 @@ export default function AdminUserListPage() {
   const [filters, setFilters] = useState({ role: "All", dateRange: null });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [updateUserId, setUpdateUserId] = useState(null);
+  const [roles, setRoles] = useState([]);
 
   // Modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -40,8 +44,14 @@ export default function AdminUserListPage() {
   const handleApplyFilter = (values) => {
     setFilters(values); // { role: 'Landlord', dateRange: [start, end] }
   };
-  const handleEditUser = (email) => {
-    setUpdateEmail(email); // gán email cho ô Old Email
+  const handleEditUser = (user) => {
+    setUpdateEmail(user.email); // gán email cho ô Old Email
+    setUpdateUserId(user.id);
+    updateForm.setFieldsValue({
+      newEmail: user.email,
+      username: user.username,
+      roleId: user.role.roleId || null,
+    });
     setIsUpdateModalOpen(true); // mở modal
   };
 
@@ -59,9 +69,11 @@ export default function AdminUserListPage() {
             }}
           >
             <PageHeader title="📋 List User Account" />
-            <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
-              Add User
-            </Button>
+            <Access requiredPermissions={["Create User"]}>
+              <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
+                Add User
+              </Button>
+            </Access>
           </div>
 
           <div
@@ -104,7 +116,7 @@ export default function AdminUserListPage() {
             pageSize={pageSize}
             searchTerm={searchTerm}
             filters={filters}
-            onEdit={handleEditUser}
+            onEdit={(user) => handleEditUser(user)}
             refreshKey={refreshKey}
           />
 
@@ -208,7 +220,25 @@ export default function AdminUserListPage() {
             <Form
               layout="vertical"
               form={updateForm}
-              onFinish={(values) => console.log("Update:", values)}
+              onFinish={async (values) => {
+                try {
+                  const payload = {
+                    id: updateUserId,
+                    username: values.username,
+                    email: values.newEmail,
+                    role: { roleId: values.roleId },
+                  };
+
+                  await updateUser(payload);
+                  message.success("User updated successfully");
+                  setIsUpdateModalOpen(false);
+                  updateForm.resetFields();
+                  setRefreshKey((prev) => prev + 1);
+                } catch (err) {
+                  console.error("Update failed:", err);
+                  message.error("Failed to update user");
+                }
+              }}
             >
               <Row gutter={16}>
                 <Col span={12}>
@@ -220,39 +250,33 @@ export default function AdminUserListPage() {
                   <Form.Item
                     name="newEmail"
                     label="New Email"
+                    rules={[{ required: true, type: "email" }]}
+                  >
+                    <Input />
+                  </Form.Item>
+                </Col>
+
+                <Col span={12}>
+                  <Form.Item
+                    name="username"
+                    label="Username"
                     rules={[{ required: true }]}
                   >
                     <Input />
                   </Form.Item>
                 </Col>
+
                 <Col span={12}>
                   <Form.Item
-                    name="password"
-                    label="Password"
+                    name="roleId"
+                    label="Role"
                     rules={[{ required: true }]}
                   >
-                    <Input.Password />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="confirmPassword"
-                    label="Re-enter Password"
-                    dependencies={["password"]}
-                    rules={[
-                      { required: true },
-                      ({ getFieldValue }) => ({
-                        validator(_, value) {
-                          return value === getFieldValue("password")
-                            ? Promise.resolve()
-                            : Promise.reject(
-                                new Error("Passwords do not match")
-                              );
-                        },
-                      }),
-                    ]}
-                  >
-                    <Input.Password />
+                    <Select placeholder="Select Role">
+                      <Select.Option value={1}>ADMIN</Select.Option>
+                      <Select.Option value={2}>RENTER</Select.Option>
+                      <Select.Option value={3}>LANDLORD</Select.Option>
+                    </Select>
                   </Form.Item>
                 </Col>
               </Row>

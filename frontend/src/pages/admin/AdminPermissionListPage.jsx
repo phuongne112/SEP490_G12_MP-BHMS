@@ -281,6 +281,9 @@ export default function AdminPermissionListPage() {
                       <Option value="User">User</Option>
                       <Option value="Renter">Renter</Option>
                       <Option value="Room">Room</Option>
+                      <Option value="Notification">Notification</Option>
+                      <Option value="Role">Role</Option>
+                      <Option value="Permission">Permission</Option>
                     </Select>
                   </Form.Item>
                 </Col>

@@ -11,6 +11,8 @@ import AdminNotificationPage from "../pages/admin/AdminNotificationPage";
 import AdminRoleListPage from "../pages/admin/AdminRoleListPage";
 import AdminPermissionListPage from "../pages/admin/AdminPermissionListPage";
 import RoomSection from "../components/home/RoomSection";
+import Error403 from "../pages/Error403";
+import AdminRoute from "./AdminRoute";
 
 export default function AppRouter() {
   return (
@@ -23,10 +25,18 @@ export default function AppRouter() {
       <Route path="/layout/adminSidebar" element={<AdminSidebar />} />
       <Route path="/admin/users" element={<AdminUserListPage />} />
       <Route path="/admin/notification" element={<AdminNotificationPage />} />
-      <Route path="/admin/roles" element={<AdminRoleListPage />} />
+      <Route
+        path="/admin/roles"
+        element={
+          <AdminRoute>
+            <AdminRoleListPage />
+          </AdminRoute>
+        }
+      />
       <Route path="/admin/permissions" element={<AdminPermissionListPage />} />
       <Route path="*" element={<LoginPage />} />
       <Route path="/room" element={<RoomSection />} />
+      <Route path="/403" element={<Error403 />} />
     </Routes>
   );
 }
