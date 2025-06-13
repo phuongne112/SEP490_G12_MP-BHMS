@@ -26,3 +26,8 @@ export const updateRole = async (id, data) => {
 export const deleteRole = async (id) => {
   return axiosClient.delete(`/roles/${id}`);
 };
+
+export const getAllRoles = async () => {
+  const response = await axiosClient.get("/roles"); // hoặc URL tùy bạn
+  return response.data;
+};

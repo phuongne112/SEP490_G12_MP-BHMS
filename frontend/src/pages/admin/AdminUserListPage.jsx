@@ -2,47 +2,51 @@ import React, { useState } from "react";
 import {
   Layout,
   Button,
-  Space,
-  Popover,
   Modal,
   Form,
   Input,
   Row,
   Col,
+  message,
+  Popover,
+  Space,
 } from "antd";
+import {
+  PlusOutlined,
+  FilterOutlined
+} from "@ant-design/icons";
+
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import PageHeader from "../../components/common/PageHeader";
-import UserTable from "../../components/admin/UserTable";
-import SearchBox from "../../components/common/SearchBox";
 import EntrySelect from "../../components/common/EntrySelect";
-import { FilterOutlined } from "@ant-design/icons";
+import SearchBox from "../../components/common/SearchBox";
+import UserTable from "../../components/admin/UserTable";
 import UserFilterPopover from "../../components/admin/UserFilterPopover";
-import { createUser } from "../../services/userApi";
-import { message } from "antd";
+import { createUser, updateUser } from "../../services/userApi";
 
 const { Content } = Layout;
 
 export default function AdminUserListPage() {
   const [pageSize, setPageSize] = useState(5);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState({ role: "All", dateRange: null });
+  const [filters, setFilters] = useState({ role: "none", dateRange: null });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [updateEmail, setUpdateEmail] = useState("nguyenvana02@gmail.com");
+  const [updateEmail, setUpdateEmail] = useState("");
 
   const [createForm] = Form.useForm();
   const [updateForm] = Form.useForm();
 
   const handleApplyFilter = (values) => {
-    setFilters(values); // { role: 'Landlord', dateRange: [start, end] }
+    setFilters(values);
   };
+
   const handleEditUser = (email) => {
-    setUpdateEmail(email); // gán email cho ô Old Email
-    setIsUpdateModalOpen(true); // mở modal
+    setUpdateEmail(email);
+    setIsUpdateModalOpen(true);
   };
 
   return (
@@ -100,6 +104,7 @@ export default function AdminUserListPage() {
               </Popover>
             </Space>
           </div>
+
           <UserTable
             pageSize={pageSize}
             searchTerm={searchTerm}
@@ -108,6 +113,7 @@ export default function AdminUserListPage() {
             refreshKey={refreshKey}
           />
 
+          {/* Modal tạo user */}
           <Modal
             title="Create User Account"
             open={isCreateModalOpen}
@@ -120,12 +126,10 @@ export default function AdminUserListPage() {
               form={createForm}
               onFinish={async (values) => {
                 try {
-                  // Gán roleId mặc định (ví dụ: RENTER)
                   const payload = {
                     ...values,
-                    roleId: 4, // hoặc lấy từ Select, hoặc xử lý logic
+                    roleId: 4 // giả sử role Renter mặc định
                   };
-
                   await createUser(payload);
                   message.success("User created successfully");
                   setIsCreateModalOpen(false);
@@ -198,6 +202,7 @@ export default function AdminUserListPage() {
             </Form>
           </Modal>
 
+          {/* Modal cập nhật user */}
           <Modal
             title="Update User Account"
             open={isUpdateModalOpen}
@@ -208,7 +213,17 @@ export default function AdminUserListPage() {
             <Form
               layout="vertical"
               form={updateForm}
-              onFinish={(values) => console.log("Update:", values)}
+              onFinish={async (values) => {
+                try {
+                  await updateUser(updateEmail, values);
+                  message.success("User updated successfully");
+                  setIsUpdateModalOpen(false);
+                  updateForm.resetFields();
+                  setRefreshKey((prev) => prev + 1);
+                } catch (error) {
+                  message.error("Failed to update user");
+                }
+              }}
             >
               <Row gutter={16}>
                 <Col span={12}>

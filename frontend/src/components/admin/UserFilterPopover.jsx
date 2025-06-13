@@ -1,15 +1,34 @@
-import React, { useState } from "react";
-import { DatePicker, Select, Button } from "antd";
+import React, { useEffect, useState } from "react";
+import { DatePicker, Select, Button, Spin } from "antd";
+import { getAllRoles } from "../../services/roleApi";
+
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 export default function UserFilterPopover({ onApply }) {
-  const [role, setRole] = useState("All");
+  const [role, setRole] = useState("none"); // ✅ mặc định là "All"
   const [dateRange, setDateRange] = useState(null);
+  const [roles, setRoles] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const handleApply = () => {
-    onApply({ role, dateRange }); // gửi lên cha
+    onApply({ role, dateRange });
   };
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      setLoading(true);
+      try {
+        const res = await getAllRoles();
+        setRoles(res.result || []);
+      } catch (err) {
+        console.error("Failed to load roles", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRoles();
+  }, []);
 
   return (
     <div>
@@ -25,15 +44,24 @@ export default function UserFilterPopover({ onApply }) {
 
       <div>
         <div style={{ fontSize: 13, marginBottom: 4 }}>Role</div>
-        <Select
-          style={{ width: "100%" }}
-          defaultValue="All"
-          onChange={(val) => setRole(val)}
-        >
-          <Option value="All">All</Option>
-          <Option value="Landlord">Landlord</Option>
-          <Option value="Renter">Renter</Option>
-        </Select>
+        {loading ? (
+          <Spin />
+        ) : (
+          <Select
+            style={{ width: "100%" }}
+            value={role}
+            onChange={(val) => setRole(val)}
+            placeholder="Select role"
+          >
+            <Option value="none">-- All --</Option> {/* Không filter theo role */}
+            <Option value="null">User (No Role)</Option> {/* role IS NULL */}
+            {roles.map((r) => (
+              <Option key={r.roleId} value={r.roleId}>
+                {r.roleName}
+              </Option>
+            ))}
+          </Select>
+        )}
       </div>
 
       <div style={{ marginTop: 16, textAlign: "right" }}>

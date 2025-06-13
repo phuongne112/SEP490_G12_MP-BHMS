@@ -22,8 +22,6 @@ public class RoleEntity {
     @Column(nullable = false, unique = true)
     private String roleName;
 
-    private boolean active;
-
     @ManyToMany(fetch = FetchType.LAZY)
     @JsonIgnoreProperties(value = { "roles" })
     @JoinTable(name = "role_permission", joinColumns = @JoinColumn(name = "role_id"),
