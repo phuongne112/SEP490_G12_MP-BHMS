@@ -15,7 +15,7 @@ import {
   PlusOutlined,
   FilterOutlined
 } from "@ant-design/icons";
-
+import { Select } from "antd";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import EntrySelect from "../../components/common/EntrySelect";
@@ -23,9 +23,6 @@ import SearchBox from "../../components/common/SearchBox";
 import UserTable from "../../components/admin/UserTable";
 import UserFilterPopover from "../../components/admin/UserFilterPopover";
 import { createUser, updateUser } from "../../services/userApi";
-
-import { message } from "antd";
-import { Select } from "antd";
 import Access from "../../components/common/Access";
 
 
@@ -38,7 +35,6 @@ export default function AdminUserListPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [updateUserId, setUpdateUserId] = useState(null);
-  const [roles, setRoles] = useState([]);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);

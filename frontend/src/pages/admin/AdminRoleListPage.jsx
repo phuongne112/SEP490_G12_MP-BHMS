@@ -27,8 +27,6 @@ import {
   updateRole,
   deleteRole,
 } from "../../services/roleApi";
-import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
 
 const { Content } = Layout;
 const { Panel } = Collapse;

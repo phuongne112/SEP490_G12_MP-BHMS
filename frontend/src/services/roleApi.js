@@ -26,9 +26,11 @@ export const deleteRole = async (id) => {
   return axiosClient.delete(`/roles/${id}`);
 };
 
-
-export const getAllRoles = async () => {
-  const response = await axiosClient.get("/roles"); // hoặc URL tùy bạn
-  return response.data;
+export const getAllRoles = async (page = 0, size = 5, filter = "") => {
+  let url = `/roles?page=${page}&size=${size}`;
+  if (filter) {
+    url += `&filter=${encodeURIComponent(filter)}`;
+  }
+  const response = await axiosClient.get(url);
+  return response.data; // ✅ TRẢ RA DATA!
 };
-

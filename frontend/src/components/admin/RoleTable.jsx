@@ -3,55 +3,75 @@ import { Table, Button, Space, Tooltip, message } from "antd";
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { getAllRoles } from "../../services/roleApi";
 
+// ✅ Tạo filter DSL chuẩn
+const buildFilterDSL = (searchTerm) => {
+  const dsl = [];
+  if (searchTerm?.trim()) {
+    dsl.push(`roleName~'${searchTerm.trim()}'`);
+  }
+  return dsl.join(" and ");
+};
+
 export default function RoleTable({
   pageSize,
   searchTerm,
-  filters,
   onEditRole,
   onDeleteRole,
   refreshKey,
 }) {
   const [data, setData] = useState([]);
+  const [pagination, setPagination] = useState({ current: 1, total: 0 });
   const [loading, setLoading] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = async (page = 1) => {
     setLoading(true);
     try {
-      const res = await getAllRoles({
-        page: 0,
-        size: pageSize,
-        name: searchTerm || undefined,
-        status: filters.status !== "All" ? filters.status : undefined,
-        startDate: filters.dateRange?.[0]?.format("YYYY-MM-DD"),
-        endDate: filters.dateRange?.[1]?.format("YYYY-MM-DD"),
-      });
+      const filterDSL = buildFilterDSL(searchTerm);
+      const res = await getAllRoles(page - 1, pageSize, filterDSL);
 
-      setData(res.data?.result || []);
+      const result = res.result || [];
+      const total = res.meta?.total || 0;
+
+      setData(
+        result.map((item, index) => ({
+          key: item.roleId || index + 1 + (page - 1) * pageSize,
+          ...item,
+        }))
+      );
+
+      setPagination({ current: page, total });
     } catch (err) {
-      message.error("Failed to fetch role data");
+      message.error("Failed to load role data");
+      console.error("Role fetch error:", err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
-  }, [searchTerm, filters, pageSize, refreshKey]);
+    fetchData(1);
+  }, [searchTerm, pageSize, refreshKey]);
 
   const columns = [
-    { title: "Id", dataIndex: "roleId", key: "roleId" },
-    { title: "Name", dataIndex: "roleName", key: "roleName" },
     {
-      title: "Status",
-      dataIndex: "active",
-      key: "active",
-      render: (value) => (value ? "Active" : "Inactive"),
+      title: "No.",
+      dataIndex: "key",
+      align: "center",
+      width: 80,
+      render: (_, __, index) =>
+        (pagination.current - 1) * pageSize + index + 1,
     },
-    { title: "Created At", dataIndex: "createdDate", key: "createdDate" },
-    { title: "Updated At", dataIndex: "updatedDate", key: "updatedDate" },
+    {
+      title: "Role Name",
+      dataIndex: "roleName",
+      width: "60%",
+      render: (text) => <span style={{ fontWeight: 500 }}>{text}</span>,
+    },
     {
       title: "Actions",
       key: "actions",
+      align: "center",
+      width: 120,
       render: (_, record) => (
         <Space>
           <Tooltip title="Edit">
@@ -76,9 +96,15 @@ export default function RoleTable({
     <Table
       columns={columns}
       dataSource={data}
-      rowKey="roleId"
-      pagination={{ pageSize }}
       loading={loading}
+      pagination={{
+        current: pagination.current,
+        total: pagination.total,
+        pageSize,
+        onChange: (page) => fetchData(page),
+      }}
+      bordered
+      rowKey="roleId"
     />
   );
 }
