@@ -41,6 +41,7 @@ export default function AdminRoleListPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
   const [groupedPermissions, setGroupedPermissions] = useState({});
+  const [refreshKey, setRefreshKey] = useState(0);
   const [form] = Form.useForm();
 
   // 🆕 Load permissions
@@ -90,10 +91,16 @@ export default function AdminRoleListPage() {
 
   const handleEditRole = (role) => {
     setEditingRole(role);
+    // map permissions thành object { id: true }
+    const permissionsMap = {};
+    role.permissionEntities?.forEach((p) => {
+      permissionsMap[p.id] = true;
+    });
+
     form.setFieldsValue({
-      name: role.name,
-      status: role.status === "ACTIVE",
-      permissions: role.permissions,
+      name: role.roleName,
+      status: role.active,
+      permissions: permissionsMap,
     });
     setIsModalOpen(true);
   };
@@ -102,6 +109,7 @@ export default function AdminRoleListPage() {
     try {
       await deleteRole(selectedRole.id); // 🆕 gọi API xóa
       message.success("Role deleted successfully");
+      setRefreshKey((prev) => prev + 1);
     } catch {
       message.error("Failed to delete role");
     } finally {
@@ -123,10 +131,12 @@ export default function AdminRoleListPage() {
       if (editingRole) {
         await updateRole(editingRole.id, payload);
         message.success("Role updated successfully");
+        setRefreshKey((prev) => prev + 1);
       } else {
         console.log("🟢 Payload gửi lên:", payload); // Thêm dòng này
         await createRole(payload);
         message.success("Role created successfully");
+        setRefreshKey((prev) => prev + 1);
       }
     } catch (err) {
       message.error("Failed to save role");
@@ -201,6 +211,7 @@ export default function AdminRoleListPage() {
             pageSize={pageSize}
             searchTerm={searchTerm}
             filters={filters}
+            refreshKey={refreshKey}
             onEditRole={handleEditRole}
             onDeleteRole={(role) => {
               setSelectedRole(role);
