@@ -107,7 +107,7 @@ export default function AdminRoleListPage() {
 
   const handleDeleteRole = async () => {
     try {
-      await deleteRole(selectedRole.id); // 🆕 gọi API xóa
+      await deleteRole(selectedRole.roleId); // 🆕 gọi API xóa
       message.success("Role deleted successfully");
       setRefreshKey((prev) => prev + 1);
     } catch {
@@ -129,7 +129,7 @@ export default function AdminRoleListPage() {
       };
 
       if (editingRole) {
-        await updateRole(editingRole.id, payload);
+        await updateRole({ roleId: editingRole.roleId, ...payload });
         message.success("Role updated successfully");
         setRefreshKey((prev) => prev + 1);
       } else {
@@ -231,13 +231,13 @@ export default function AdminRoleListPage() {
             centered
           >
             <Form
+              key={editingRole?.roleId || "new"}
               form={form}
               layout="vertical"
               onFinish={(values) => {
                 console.log("✅ Form submitted:", values);
                 handleSubmitRole(values);
               }}
-              initialValues={{ status: true }}
             >
               <Row gutter={16}>
                 <Col span={12}>
