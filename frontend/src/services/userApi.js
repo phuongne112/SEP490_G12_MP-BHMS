@@ -11,3 +11,7 @@ export const createUser = async (userData) => {
 export const updateUser = async (oldEmail, updatedData) => {
   return axiosClient.put(`/users/${oldEmail}`, updatedData);
 };
+
+export const updateUserStatus = (id, body) => {
+  return axiosClient.put(`/users/${id}/status`, body);
+};

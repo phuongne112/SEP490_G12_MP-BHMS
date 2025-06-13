@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Table, Tag, Button, Space, message } from "antd";
-import { getAllUsers } from "../../services/userApi";
+import { Table, Tag, Button, Space, message, Modal, Popconfirm } from "antd";
+import { getAllUsers, updateUserStatus } from "../../services/userApi";
 
 export default function UserTable({
   pageSize,
@@ -43,7 +43,9 @@ export default function UserTable({
       setData(
         result.map((item, index) => ({
           key: item.id || index + 1 + (page - 1) * pageSize,
+          id: item.id,
           email: item.email,
+          isActive: item.isActive, // 🆕 Lưu lại isActive để biết trạng thái hiện tại
           createdAt: item.createdDate?.slice(0, 10),
           status: item.isActive ? "Active" : "Deactivate",
           role: item.role?.roleName || "USER",
@@ -65,11 +67,34 @@ export default function UserTable({
     fetchData(1);
   }, [searchTerm, filters.role, filters.dateRange, pageSize, refreshKey]);
 
+  // ✅ Sửa: cập nhật trực tiếp state thay vì fetch lại
+  const handleToggleStatus = async (user) => {
+    try {
+      await updateUserStatus(user.id, { active: !user.isActive }); // ✅ sửa lại key cho đúng
+      message.success("Status updated successfully");
+
+      setData((prevData) =>
+        prevData.map((item) =>
+          item.id === user.id
+            ? {
+                ...item,
+                isActive: !item.isActive,
+                status: !item.isActive ? "Active" : "Deactivate", // ✅ cập nhật lại status hiển thị
+              }
+            : item
+        )
+      );
+    } catch (err) {
+      message.error("Failed to update status");
+    }
+  };
+
   const columns = [
     {
       title: "No.",
       dataIndex: "key",
       width: 60,
+      render: (_, __, index) => (pagination.current - 1) * pageSize + index + 1,
     },
     {
       title: "Account(Email)",
@@ -82,8 +107,23 @@ export default function UserTable({
     {
       title: "Status",
       dataIndex: "status",
-      render: (status) => (
-        <Tag color={status === "Active" ? "green" : "red"}>{status}</Tag>
+      render: (_, record) => (
+        <Popconfirm
+          title={`Do you want to ${
+            record.isActive ? "deactivate" : "activate"
+          } this user?`}
+          onConfirm={() => handleToggleStatus(record)}
+          okText="Yes"
+          cancelText="No"
+          placement="top"
+        >
+          <Tag
+            color={record.status === "Active" ? "green" : "red"}
+            style={{ cursor: "pointer" }}
+          >
+            {record.status}
+          </Tag>
+        </Popconfirm>
       ),
     },
     {

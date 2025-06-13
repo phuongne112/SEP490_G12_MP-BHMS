@@ -1,63 +1,35 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import {
+  Layout,
+  Button,
+  Modal,
+  Form,
+  Input,
+  Switch,
+  Collapse,
+  Row,
+  Col,
+  Tag,
+  Space,
+  Popover,
+  message,
+} from "antd";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import EntrySelect from "../../components/common/EntrySelect";
 import SearchBox from "../../components/common/SearchBox";
 import RoleTable from "../../components/admin/RoleTable";
 import RoleFilterPopover from "../../components/admin/RoleFilterPopover";
+import { PlusOutlined, FilterOutlined } from "@ant-design/icons";
 import {
-  PlusOutlined,
-  ReloadOutlined,
-  FilterOutlined,
-} from "@ant-design/icons";
-import {
-  Layout,
-  Button,
-  Space,
-  Popover,
-  Modal,
-  Form,
-  Input,
-  Switch,
-  Row,
-  Col,
-  Collapse,
-  Tag,
-} from "antd";
+  getAllPermissions,
+  createRole,
+  updateRole,
+  deleteRole,
+} from "../../services/roleApi";
 
 const { Content } = Layout;
 const { Panel } = Collapse;
-
-const permissionsData = {
-  USERS: [
-    {
-      key: "create_user",
-      label: "Create User",
-      method: "POST",
-      endpoint: "/api/v1/users",
-    },
-    {
-      key: "update_user",
-      label: "Update User",
-      method: "PUT",
-      endpoint: "/api/v1/users",
-    },
-  ],
-  RESUMES: [
-    {
-      key: "create_user",
-      label: "Create User",
-      method: "POST",
-      endpoint: "/api/v1/users",
-    },
-    {
-      key: "update_user",
-      label: "Update User",
-      method: "PUT",
-      endpoint: "/api/v1/users",
-    },
-  ],
-};
 
 export default function AdminRoleListPage() {
   const [pageSize, setPageSize] = useState(5);
@@ -68,7 +40,39 @@ export default function AdminRoleListPage() {
   const [editingRole, setEditingRole] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
+  const [groupedPermissions, setGroupedPermissions] = useState({});
   const [form] = Form.useForm();
+
+  // 🆕 Load permissions
+  useEffect(() => {
+    const fetchPermissions = async () => {
+      try {
+        const res = await getAllPermissions();
+        const data = res.data?.result || [];
+        console.log("✅ Data from API:", data);
+
+        const grouped = {};
+        data.forEach((perm) => {
+          const group = perm.module?.toUpperCase() || "OTHER";
+          if (!grouped[group]) grouped[group] = [];
+
+          grouped[group].push({
+            id: perm.id,
+            name: perm.name, // ✅ tên gốc
+            method: perm.method,
+            apiPath: perm.apiPath,
+            module: perm.module,
+          });
+        });
+
+        setGroupedPermissions(grouped); // ✅ Lưu lại đầy đủ
+      } catch (err) {
+        message.error("Failed to load permissions");
+      }
+    };
+
+    fetchPermissions();
+  }, []);
 
   const handleApplyFilter = (values) => {
     setFilters(values);
@@ -76,7 +80,11 @@ export default function AdminRoleListPage() {
 
   const openAddModal = () => {
     setEditingRole(null);
-    form.resetFields();
+    form.setFieldsValue({
+      name: "",
+      status: true,
+      permissions: {},
+    });
     setIsModalOpen(true);
   };
 
@@ -84,29 +92,49 @@ export default function AdminRoleListPage() {
     setEditingRole(role);
     form.setFieldsValue({
       name: role.name,
-      description: role.description,
       status: role.status === "ACTIVE",
       permissions: role.permissions,
     });
     setIsModalOpen(true);
   };
 
-  const handleDeleteRole = (role) => {
-    setSelectedRole(role);
-    setIsDeleteModalOpen(true);
+  const handleDeleteRole = async () => {
+    try {
+      await deleteRole(selectedRole.id); // 🆕 gọi API xóa
+      message.success("Role deleted successfully");
+    } catch {
+      message.error("Failed to delete role");
+    } finally {
+      setIsDeleteModalOpen(false);
+    }
   };
 
-  const handleSubmitRole = (values) => {
-    if (editingRole) {
-      console.log("Updating role:", { id: editingRole.id, ...values });
-      // Gọi API PUT
-    } else {
-      console.log("Creating new role:", values);
-      // Gọi API POST
+  const handleSubmitRole = async (values) => {
+    try {
+      // Chuyển trạng thái và permission thành định dạng backend yêu cầu
+      const payload = {
+        roleName: values.name,
+        active: values.status,
+        permissionEntities: Object.entries(values.permissions || {})
+          .filter(([_, isChecked]) => isChecked)
+          .map(([id]) => ({ id: parseInt(id) })),
+      };
+
+      if (editingRole) {
+        await updateRole(editingRole.id, payload);
+        message.success("Role updated successfully");
+      } else {
+        console.log("🟢 Payload gửi lên:", payload); // Thêm dòng này
+        await createRole(payload);
+        message.success("Role created successfully");
+      }
+    } catch (err) {
+      message.error("Failed to save role");
+    } finally {
+      setIsModalOpen(false);
+      setEditingRole(null);
+      form.resetFields();
     }
-    setIsModalOpen(false);
-    setEditingRole(null);
-    form.resetFields();
   };
 
   return (
@@ -174,7 +202,10 @@ export default function AdminRoleListPage() {
             searchTerm={searchTerm}
             filters={filters}
             onEditRole={handleEditRole}
-            onDeleteRole={handleDeleteRole}
+            onDeleteRole={(role) => {
+              setSelectedRole(role);
+              setIsDeleteModalOpen(true);
+            }}
           />
           <Modal
             title={editingRole ? "Update Role" : "Add New Role"}
@@ -191,10 +222,11 @@ export default function AdminRoleListPage() {
             <Form
               form={form}
               layout="vertical"
-              onFinish={handleSubmitRole}
-              initialValues={{
-                status: true,
+              onFinish={(values) => {
+                console.log("✅ Form submitted:", values);
+                handleSubmitRole(values);
               }}
+              initialValues={{ status: true }}
             >
               <Row gutter={16}>
                 <Col span={12}>
@@ -203,9 +235,15 @@ export default function AdminRoleListPage() {
                     label="Role Name"
                     rules={[
                       { required: true, message: "Please enter role name" },
+                      {
+                        validator: (_, value) =>
+                          value && value.trim() !== ""
+                            ? Promise.resolve()
+                            : Promise.reject("Please enter role name"),
+                      },
                     ]}
                   >
-                    <Input />
+                    <Input allowClear />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
@@ -222,64 +260,64 @@ export default function AdminRoleListPage() {
                 </Col>
               </Row>
 
-              <Form.Item name="description" label="Description">
-                <Input.TextArea rows={2} placeholder="Enter description..." />
-              </Form.Item>
-
               <Form.Item label="Permissions">
-                <Collapse defaultActiveKey={["USERS"]}>
-                  {Object.entries(permissionsData).map(
-                    ([group, permissions]) => (
-                      <Panel header={group} key={group}>
-                        <Row gutter={[16, 16]}>
-                          {permissions.map((perm) => (
-                            <Col span={12} key={perm.key}>
+                <Collapse defaultActiveKey={Object.keys(groupedPermissions)}>
+                  {Object.entries(groupedPermissions).map(([module, perms]) => (
+                    <Panel header={module} key={module}>
+                      <Row gutter={[16, 16]}>
+                        {perms.map((perm) => (
+                          <Col span={12} key={perm.id}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                border: "1px solid #eee",
+                                padding: "8px 12px",
+                                borderRadius: 6,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                }}
+                              >
+                                <span>{perm.name}</span>
+                                <span>
+                                  <Tag
+                                    color={
+                                      perm.method === "POST"
+                                        ? "green"
+                                        : perm.method === "PUT"
+                                        ? "orange"
+                                        : perm.method === "DELETE"
+                                        ? "red"
+                                        : "blue"
+                                    }
+                                  >
+                                    {perm.method}
+                                  </Tag>{" "}
+                                  <span style={{ color: "#999" }}>
+                                    {perm.apiPath || "N/A"}
+                                  </span>
+                                </span>
+                              </div>
+
+                              {/* ✅ Switch bọc TRỰC TIẾP trong Form.Item */}
                               <Form.Item
-                                name={["permissions", perm.key]}
+                                name={["permissions", perm.id]}
                                 valuePropName="checked"
                                 noStyle
                               >
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "space-between",
-                                    border: "1px solid #eee",
-                                    padding: "8px 12px",
-                                    borderRadius: 6,
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      flexDirection: "column",
-                                    }}
-                                  >
-                                    <span>{perm.label}</span>
-                                    <span>
-                                      <Tag
-                                        color={
-                                          perm.method === "POST"
-                                            ? "green"
-                                            : "orange"
-                                        }
-                                      >
-                                        {perm.method}
-                                      </Tag>{" "}
-                                      <span style={{ color: "#999" }}>
-                                        {perm.endpoint}
-                                      </span>
-                                    </span>
-                                  </div>
-                                  <Switch />
-                                </div>
+                                <Switch />
                               </Form.Item>
-                            </Col>
-                          ))}
-                        </Row>
-                      </Panel>
-                    )
-                  )}
+                            </div>
+                          </Col>
+                        ))}
+                      </Row>
+                    </Panel>
+                  ))}
                 </Collapse>
               </Form.Item>
 
@@ -304,10 +342,7 @@ export default function AdminRoleListPage() {
           <Modal
             title="Are you sure you want to delete this role?"
             open={isDeleteModalOpen}
-            onOk={() => {
-              console.log("Deleting role:", selectedRole);
-              setIsDeleteModalOpen(false);
-            }}
+            onOk={handleDeleteRole} // 🆕 dùng hàm API xóa
             onCancel={() => setIsDeleteModalOpen(false)}
             okText="Yes"
             cancelText="Cancel"
