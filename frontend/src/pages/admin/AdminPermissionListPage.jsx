@@ -2,15 +2,21 @@ import React, { useState } from "react";
 import {
   Layout,
   Button,
-  Space,
-  Popover,
   Modal,
   Form,
   Input,
   Select,
   Row,
   Col,
+  Space,
+  Popover,
+  message,
 } from "antd";
+import {
+  PlusOutlined,
+  FilterOutlined,
+} from "@ant-design/icons";
+
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import EntrySelect from "../../components/common/EntrySelect";
@@ -18,17 +24,10 @@ import SearchBox from "../../components/common/SearchBox";
 import PermissionTable from "../../components/admin/PermissionTable";
 import PermissionFilterPopover from "../../components/admin/PermissionFilterPopover";
 import {
-  PlusOutlined,
-  ReloadOutlined,
-  FilterOutlined,
-} from "@ant-design/icons";
-
-import {
   createPermission,
   updatePermission,
   deletePermission,
 } from "../../services/permissionApi";
-import { message } from "antd";
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -39,15 +38,28 @@ export default function AdminPermissionListPage() {
   const [search, setSearch] = useState({ name: "", api: "" });
   const [filters, setFilters] = useState({ module: "All", method: "All" });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPermission, setEditingPermission] = useState(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedPermission, setSelectedPermission] = useState(null);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [form] = Form.useForm();
+
+  const [selectedPermission, setSelectedPermission] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const handleApplyFilter = (values) => {
     setFilters(values);
+  };
+
+  const handleEditPermission = (permission) => {
+    setEditingPermission(permission);
+    form.setFieldsValue({
+      name: permission.name,
+      api: permission.apiPath,
+      method: permission.method,
+      module: permission.module,
+    });
+    setIsModalOpen(true);
   };
 
   const handleSubmitPermission = async (values) => {
@@ -59,14 +71,12 @@ export default function AdminPermissionListPage() {
       delete payload.api;
 
       if (editingPermission) {
-        // ✅ Gọi API update
         await updatePermission({
           ...payload,
           id: editingPermission.id,
         });
         message.success("Permission updated successfully!");
       } else {
-        // ✅ Gọi API create
         await createPermission(payload);
         message.success("Permission created successfully!");
       }
@@ -76,8 +86,8 @@ export default function AdminPermissionListPage() {
       setEditingPermission(null);
       setRefreshKey((prev) => prev + 1);
     } catch (err) {
-      console.error("Failed to create permission:", err);
-      message.error("Failed to create permission");
+      console.error("Failed to create/update permission:", err);
+      message.error("Failed to process permission");
     }
   };
 
@@ -89,26 +99,14 @@ export default function AdminPermissionListPage() {
   const handleConfirmDelete = async () => {
     if (!selectedPermission) return;
     try {
-      await deletePermission(selectedPermission.id); // ✅ Gọi API xóa
+      await deletePermission(selectedPermission.id);
       message.success("Permission deleted successfully!");
-      setRefreshKey((prev) => prev + 1); // ✅ reload bảng
+      setRefreshKey((prev) => prev + 1);
     } catch (err) {
-      console.error("Failed to delete permission:", err);
       message.error("Failed to delete permission");
     }
     setIsDeleteModalOpen(false);
     setSelectedPermission(null);
-  };
-
-  const handleEditPermission = (permission) => {
-    setEditingPermission(permission);
-    form.setFieldsValue({
-      name: permission.name,
-      api: permission.apiPath, // ✅ Hiển thị đúng trong form
-      method: permission.method,
-      module: permission.module,
-    });
-    setIsModalOpen(true);
   };
 
   return (
@@ -124,7 +122,7 @@ export default function AdminPermissionListPage() {
               marginBottom: 24,
             }}
           >
-            <PageHeader title="List Permission" />
+            <PageHeader title="🔐 Permission Management" />
             <Button
               type="primary"
               icon={<PlusOutlined />}
@@ -134,7 +132,7 @@ export default function AdminPermissionListPage() {
                 setIsModalOpen(true);
               }}
             >
-              Add new Permission
+              Add Permission
             </Button>
           </div>
 
@@ -143,15 +141,16 @@ export default function AdminPermissionListPage() {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: 24,
               flexWrap: "wrap",
+              marginBottom: 24,
               marginTop: 30,
             }}
           >
             <EntrySelect value={pageSize} onChange={setPageSize} />
+
             <Space direction="horizontal" style={{ gap: 30 }}>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <label style={{ fontSize: 13, marginBottom: 4 }}>Name</label>
+              <div>
+                <label style={{ fontSize: 13 }}>Name</label>
                 <SearchBox
                   placeholder="Enter name..."
                   onSearch={(val) =>
@@ -159,8 +158,8 @@ export default function AdminPermissionListPage() {
                   }
                 />
               </div>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <label style={{ fontSize: 13, marginBottom: 4 }}>API</label>
+              <div>
+                <label style={{ fontSize: 13 }}>API</label>
                 <SearchBox
                   placeholder="Enter API..."
                   onSearch={(val) =>
@@ -184,21 +183,18 @@ export default function AdminPermissionListPage() {
               >
                 <Button
                   icon={<FilterOutlined />}
-                  style={{
-                    backgroundColor: "#40a9ff",
-                    color: "white",
-                    marginTop: 25,
-                  }}
+                  style={{ backgroundColor: "#40a9ff", color: "white" }}
                 >
                   Filter
                 </Button>
               </Popover>
             </Space>
           </div>
+
           <PermissionTable
             pageSize={pageSize}
             currentPage={currentPage}
-            onPageChange={(page) => setCurrentPage(page)}
+            onPageChange={setCurrentPage}
             search={search}
             filters={filters}
             onEditPermission={handleEditPermission}
@@ -206,10 +202,9 @@ export default function AdminPermissionListPage() {
             refreshKey={refreshKey}
           />
 
+          {/* Modal Add/Edit */}
           <Modal
-            title={
-              editingPermission ? "Update Permission" : "Add new Permission"
-            }
+            title={editingPermission ? "Update Permission" : "Create Permission"}
             open={isModalOpen}
             onCancel={() => {
               setIsModalOpen(false);
@@ -228,13 +223,8 @@ export default function AdminPermissionListPage() {
                 <Col span={12}>
                   <Form.Item
                     name="name"
-                    label="Permission name"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Please enter permission name",
-                      },
-                    ]}
+                    label="Permission Name"
+                    rules={[{ required: true, message: "Enter permission name" }]}
                   >
                     <Input placeholder="Enter here..." />
                   </Form.Item>
@@ -243,9 +233,7 @@ export default function AdminPermissionListPage() {
                   <Form.Item
                     name="api"
                     label="API Path"
-                    rules={[
-                      { required: true, message: "Please enter API path" },
-                    ]}
+                    rules={[{ required: true, message: "Enter API path" }]}
                   >
                     <Input placeholder="Enter here..." />
                   </Form.Item>
@@ -257,11 +245,9 @@ export default function AdminPermissionListPage() {
                   <Form.Item
                     name="method"
                     label="Method"
-                    rules={[
-                      { required: true, message: "Please select method" },
-                    ]}
+                    rules={[{ required: true, message: "Select method" }]}
                   >
-                    <Select placeholder="Select a method...">
+                    <Select placeholder="Select a method">
                       <Option value="GET">GET</Option>
                       <Option value="POST">POST</Option>
                       <Option value="PUT">PUT</Option>
@@ -273,10 +259,9 @@ export default function AdminPermissionListPage() {
                   <Form.Item
                     name="module"
                     label="Module"
-                    rules={[
-                      { required: true, message: "Please select module" },
-                    ]}
+                    rules={[{ required: true, message: "Select module" }]}
                   >
+
                     <Select placeholder="Select a module...">
                       <Option value="User">User</Option>
                       <Option value="Renter">Renter</Option>
@@ -284,27 +269,26 @@ export default function AdminPermissionListPage() {
                       <Option value="Notification">Notification</Option>
                       <Option value="Role">Role</Option>
                       <Option value="Permission">Permission</Option>
+
                     </Select>
                   </Form.Item>
                 </Col>
               </Row>
 
               <div style={{ textAlign: "right" }}>
-                <Button
-                  onClick={() => setIsModalOpen(false)}
-                  style={{ marginRight: 8 }}
-                >
+                <Button onClick={() => setIsModalOpen(false)} style={{ marginRight: 8 }}>
                   Cancel
                 </Button>
                 <Button type="primary" htmlType="submit">
-                  {editingPermission ? "Update" : "Create new"}
+                  {editingPermission ? "Update" : "Create"}
                 </Button>
               </div>
             </Form>
           </Modal>
 
+          {/* Delete Confirmation */}
           <Modal
-            title="Are you sure you want to delete this permission?"
+            title="Confirm delete this permission?"
             open={isDeleteModalOpen}
             onOk={handleConfirmDelete}
             onCancel={() => setIsDeleteModalOpen(false)}

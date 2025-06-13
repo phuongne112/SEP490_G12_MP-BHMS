@@ -1,6 +1,34 @@
 import React, { useEffect, useState } from "react";
-import { Table, Tag, Button, Space, message, Modal, Popconfirm } from "antd";
+import { Table, Tag, Button, Space, message, Popconfirm } from "antd";
 import { getAllUsers, updateUserStatus } from "../../services/userApi";
+
+// Hàm tạo filter DSL
+const buildFilterDSL = (searchTerm, filters) => {
+  const dsl = [];
+
+  if (searchTerm?.trim()) {
+    dsl.push(`email~'${searchTerm.trim()}'`);
+  }
+
+  if (filters.role !== undefined && filters.role !== "none") {
+    if (filters.role === "null") {
+      dsl.push("role IS NULL");
+    } else {
+      dsl.push(`role.id = ${filters.role}`);
+    }
+  }
+
+
+  if (filters.dateRange && filters.dateRange.length === 2) {
+    const [start, end] = filters.dateRange;
+    if (start && end) {
+    dsl.push(`createdDate >: '${start.format("YYYY-MM-DD")}'`);
+    dsl.push(`createdDate <: '${end.format("YYYY-MM-DD")}'`);
+    }
+  }
+
+  return dsl.join(" and ");
+};
 
 export default function UserTable({
   pageSize,
@@ -16,36 +44,22 @@ export default function UserTable({
   });
   const [loading, setLoading] = useState(false);
 
-  const fetchData = async (page = 1, size = 5) => {
+  const fetchData = async (page = 1) => {
     setLoading(true);
     try {
-      // Gọi API truyền tham số
-      const res = await getAllUsers({
-        page: page - 1,
-        size: pageSize,
-        search: searchTerm || "",
-        role: filters.role !== "All" ? filters.role : undefined,
-        startDate: filters.dateRange
-          ? filters.dateRange[0].format("YYYY-MM-DD")
-          : undefined,
-        endDate: filters.dateRange
-          ? filters.dateRange[1].format("YYYY-MM-DD")
-          : undefined,
-      });
+      const filterDSL = buildFilterDSL(searchTerm, filters);
+      const res = await getAllUsers(page - 1, pageSize, filterDSL);
 
-      console.log("Gọi API: page =", page, ", size =", size);
-      console.log("Kết quả trả về:", res.data?.result);
+      // ✅ Fix chỗ lấy dữ liệu
+      const result = res.result || [];
+      const total = res.meta?.total || 0;
 
-      const result = res.data?.result || [];
-      const total = res.data?.meta?.total || 0;
-
-      // Duyet du lieu tra ve va day len bang
       setData(
         result.map((item, index) => ({
           key: item.id || index + 1 + (page - 1) * pageSize,
           id: item.id,
           email: item.email,
-          isActive: item.isActive, // 🆕 Lưu lại isActive để biết trạng thái hiện tại
+          isActive: item.isActive,
           createdAt: item.createdDate?.slice(0, 10),
           status: item.isActive ? "Active" : "Deactivate",
           role: {
@@ -54,7 +68,7 @@ export default function UserTable({
           },
         }))
       );
-      // Hien thi phan tu
+
       setPagination({
         current: page,
         total: total,
@@ -70,10 +84,9 @@ export default function UserTable({
     fetchData(1);
   }, [searchTerm, filters.role, filters.dateRange, pageSize, refreshKey]);
 
-  // ✅ Sửa: cập nhật trực tiếp state thay vì fetch lại
   const handleToggleStatus = async (user) => {
     try {
-      await updateUserStatus(user.id, { active: !user.isActive }); // ✅ sửa lại key cho đúng
+      await updateUserStatus(user.id, { active: !user.isActive });
       message.success("Status updated successfully");
 
       setData((prevData) =>
@@ -82,7 +95,7 @@ export default function UserTable({
             ? {
                 ...item,
                 isActive: !item.isActive,
-                status: !item.isActive ? "Active" : "Deactivate", // ✅ cập nhật lại status hiển thị
+                status: !item.isActive ? "Active" : "Deactivate",
               }
             : item
         )

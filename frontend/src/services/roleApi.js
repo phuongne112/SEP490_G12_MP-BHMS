@@ -26,6 +26,9 @@ export const deleteRole = async (id) => {
   return axiosClient.delete(`/roles/${id}`);
 };
 
-export const getAllRoles = async (params) => {
-  return axiosClient.get("/roles", { params });
+
+export const getAllRoles = async () => {
+  const response = await axiosClient.get("/roles"); // hoặc URL tùy bạn
+  return response.data;
 };
+

@@ -38,6 +38,7 @@ public class RoleController {
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(this.roleService.updateRole(roleEntity));
     }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteRole(@PathVariable("id") long id) throws IdInvalidException {
         //Check exist with id

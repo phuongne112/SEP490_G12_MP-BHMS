@@ -66,7 +66,6 @@ public class RoleServiceImpl implements RoleService {
 
         // Cập nhật các trường cơ bản
         roleDB.setRoleName(roleEntity.getRoleName());
-
         return roleRepository.save(roleDB);
     }
 
