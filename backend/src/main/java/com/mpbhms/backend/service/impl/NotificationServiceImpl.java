@@ -29,15 +29,23 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setType(request.getType());
         notification.setRecipientId(request.getRecipientId());
         notification.setMetadata(request.getMetadata());
+        notification.setStatus(NotificationStatus.SENT);
 
         NotificationEntity saved = notificationRepository.save(notification);
 
-        // Real-time push
-        messagingTemplate.convertAndSendToUser(
-                userRepository.findById(request.getRecipientId()).get().getUsername(),
-                "/queue/notifications",
-                saved
-        );
+        // Gửi WebSocket: nếu có recipientId thì gửi riêng, ngược lại gửi broadcast
+        if (request.getRecipientId() != null) {
+            userRepository.findById(request.getRecipientId()).ifPresent(user -> {
+                messagingTemplate.convertAndSendToUser(
+                        user.getUsername(), // username là định danh cho user trong websocket
+                        "/queue/notifications",
+                        saved
+                );
+            });
+        } else {
+            // Gửi toàn hệ thống (broadcast)
+            messagingTemplate.convertAndSend("/topic/notifications", saved);
+        }
 
         return saved;
     }

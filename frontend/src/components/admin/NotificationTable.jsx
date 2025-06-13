@@ -8,6 +8,7 @@ export default function NotificationTable({
   filters,
   onView,
   onDelete,
+  refreshKey,
 }) {
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ current: 1, total: 0 });
@@ -27,6 +28,7 @@ export default function NotificationTable({
       setData(
         result.map((item) => ({
           key: item.id,
+          id: item.id,
           title: item.title,
           message: item.message,
           type: item.type,
@@ -49,7 +51,7 @@ export default function NotificationTable({
 
   useEffect(() => {
     fetchData(1);
-  }, [searchTerm, filters, pageSize]);
+  }, [searchTerm, filters, pageSize, refreshKey]);
 
   const columns = [
     { title: "Title", dataIndex: "title", key: "title" },

@@ -19,15 +19,16 @@ export const createRole = async (data) => {
   return axiosClient.post("/roles", data);
 };
 
-export const updateRole = async (id, data) => {
-  return axiosClient.put(`/roles/${id}`, data);
+export const updateRole = async (data) => {
+  return axiosClient.put(`/roles`, data);
 };
-
 export const deleteRole = async (id) => {
   return axiosClient.delete(`/roles/${id}`);
 };
+
 
 export const getAllRoles = async () => {
   const response = await axiosClient.get("/roles"); // hoặc URL tùy bạn
   return response.data;
 };
+

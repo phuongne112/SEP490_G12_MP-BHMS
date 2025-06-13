@@ -1,30 +1,7 @@
-import React from "react";
-import { Table, Button, Space, Tooltip } from "antd";
+import React, { useEffect, useState } from "react";
+import { Table, Button, Space, Tooltip, message } from "antd";
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
-
-const mockData = [
-  {
-    id: 1,
-    name: "Landlord",
-    status: "Active",
-    createdAt: "26/01/2024",
-    updatedAt: "---",
-  },
-  {
-    id: 2,
-    name: "Renter",
-    status: "Inactive",
-    createdAt: "26/03/2024",
-    updatedAt: "---",
-  },
-  {
-    id: 3,
-    name: "User",
-    status: "Active",
-    createdAt: "26/01/2024",
-    updatedAt: "---",
-  },
-];
+import { getAllRoles } from "../../services/roleApi";
 
 export default function RoleTable({
   pageSize,
@@ -32,29 +9,46 @@ export default function RoleTable({
   filters,
   onEditRole,
   onDeleteRole,
+  refreshKey,
 }) {
-  const filteredData = mockData
-    .filter((item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .filter((item) =>
-      filters.status === "All" ? true : item.status === filters.status
-    )
-    .filter((item) => {
-      if (!filters.dateRange) return true;
-      const created = new Date(item.createdAt);
-      return (
-        created >= filters.dateRange[0].toDate() &&
-        created <= filters.dateRange[1].toDate()
-      );
-    });
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await getAllRoles({
+        page: 0,
+        size: pageSize,
+        name: searchTerm || undefined,
+        status: filters.status !== "All" ? filters.status : undefined,
+        startDate: filters.dateRange?.[0]?.format("YYYY-MM-DD"),
+        endDate: filters.dateRange?.[1]?.format("YYYY-MM-DD"),
+      });
+
+      setData(res.data?.result || []);
+    } catch (err) {
+      message.error("Failed to fetch role data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [searchTerm, filters, pageSize, refreshKey]);
 
   const columns = [
-    { title: "Id", dataIndex: "id", key: "id" },
-    { title: "Name", dataIndex: "name", key: "name" },
-    { title: "Status", dataIndex: "status", key: "status" },
-    { title: "Created At", dataIndex: "createdAt", key: "createdAt" },
-    { title: "Updated At", dataIndex: "updatedAt", key: "updatedAt" },
+    { title: "Id", dataIndex: "roleId", key: "roleId" },
+    { title: "Name", dataIndex: "roleName", key: "roleName" },
+    {
+      title: "Status",
+      dataIndex: "active",
+      key: "active",
+      render: (value) => (value ? "Active" : "Inactive"),
+    },
+    { title: "Created At", dataIndex: "createdDate", key: "createdDate" },
+    { title: "Updated At", dataIndex: "updatedDate", key: "updatedDate" },
     {
       title: "Actions",
       key: "actions",
@@ -81,9 +75,10 @@ export default function RoleTable({
   return (
     <Table
       columns={columns}
-      dataSource={filteredData}
-      rowKey="id"
+      dataSource={data}
+      rowKey="roleId"
       pagination={{ pageSize }}
+      loading={loading}
     />
   );
 }

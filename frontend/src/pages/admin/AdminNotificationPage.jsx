@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Layout,
   Button,
@@ -21,7 +21,12 @@ import EntrySelect from "../../components/common/EntrySelect";
 import NotificationFilterPopover from "../../components/admin/NotificationFilterPopover";
 import { FaBell } from "react-icons/fa";
 import { Badge, Tooltip } from "antd";
-import { sendNotification } from "../../services/notificationApi";
+import {
+  sendNotification,
+  deleteNotification,
+} from "../../services/notificationApi";
+import { getAllUsers } from "../../services/userApi"; // ✅ Thêm API lấy danh sách user
+import { message } from "antd";
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -40,6 +45,21 @@ export default function AdminNotificationPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [createForm] = Form.useForm();
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [sendMode, setSendMode] = useState("role");
+  const [userList, setUserList] = useState([]); // ✅ Danh sách user
+
+  useEffect(() => {
+    if (isCreateModalOpen) {
+      getAllUsers({ page: 0, size: 1000 })
+        .then((res) => {
+          setUserList(res.data.result || []);
+        })
+        .catch(() => {
+          message.error("Failed to load user list");
+        });
+    }
+  }, [isCreateModalOpen]);
 
   const handleApplyFilter = (values) => {
     setFilters(values);
@@ -129,37 +149,57 @@ export default function AdminNotificationPage() {
             filters={filters}
             onView={handleView}
             onDelete={handleDelete}
+            refreshKey={refreshKey}
           />
 
           {/* Create Notification Modal */}
           <Modal
             title="Create Notification"
             open={isCreateModalOpen}
-            onCancel={() => setIsCreateModalOpen(false)}
+            onCancel={() => {
+              setIsCreateModalOpen(false);
+              createForm.resetFields();
+              setSendMode("role"); // Reset lại mode
+            }}
             footer={null}
             width={600}
           >
             <Form
               layout="vertical"
               form={createForm}
+              initialValues={{ mode: "role" }}
               onFinish={async (values) => {
                 try {
-                  const payload = {
+                  const payloadBase = {
                     title: values.label,
                     message: values.label,
                     type: values.type,
-                    role: values.role,
-                    recipientId: 1,
-                    sendDate: values.date.format("YYYY-MM-DD"), // hoặc createdDate nếu backend yêu cầu
+                    sendDate: values.date.format("YYYY-MM-DD"),
+                    metadata: null,
                   };
 
-                  await sendNotification(payload); // ✅ gọi API gửi luôn
-                  message.success("Notification sent successfully!");
+                  if (values.mode === "individual") {
+                    // Gửi cho 1 người
+                    const payload = {
+                      ...payloadBase,
+                      recipientId: values.recipientId,
+                    };
+                    await sendNotification(payload);
+                  } else {
+                    // Gửi cho tất cả user
+                    const promises = userList.map((user) => {
+                      const payload = { ...payloadBase, recipientId: user.id };
+                      return sendNotification(payload);
+                    });
+
+                    await Promise.all(promises);
+                  }
+
+                  message.success("Notification(s) sent successfully!");
                   setIsCreateModalOpen(false);
                   createForm.resetFields();
-
-                  // Optional: nếu muốn reload bảng notification ngay
-                  // setRefreshKey((prev) => prev + 1); // cần thêm state refreshKey nếu dùng
+                  setSendMode("role");
+                  setRefreshKey((prev) => prev + 1);
                 } catch (err) {
                   console.error("Send notification failed:", err);
                   message.error("Failed to send notification");
@@ -167,49 +207,97 @@ export default function AdminNotificationPage() {
               }}
             >
               <Row gutter={16}>
-                <Col span={12}>
+                {/* Send Mode */}
+                <Col span={24}>
                   <Form.Item
-                    name="role"
-                    label="Send to Role"
+                    name="mode"
+                    label="Send Mode"
                     rules={[{ required: true }]}
                   >
-                    <Select>
-                      <Option value="Renter">Renter</Option>
-                      <Option value="Landlord">Landlord</Option>
+                    <Select
+                      onChange={(value) => {
+                        setSendMode(value);
+                        createForm.setFieldsValue({
+                          recipientId: undefined,
+                        });
+                      }}
+                    >
+                      <Option value="role">To Role (All Users)</Option>
+                      <Option value="individual">To Individual</Option>
                     </Select>
                   </Form.Item>
                 </Col>
+
+                {/* Only show when mode is individual */}
+                {sendMode === "individual" && (
+                  <Col span={24}>
+                    <Form.Item
+                      name="recipientId"
+                      label="Send to User"
+                      rules={[
+                        { required: true, message: "Please select a user" },
+                      ]}
+                    >
+                      <Select placeholder="Select a user">
+                        {userList.map((user) => (
+                          <Option key={user.id} value={user.id}>
+                            {user.fullName || user.email}
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                )}
+
+                {/* Send Date */}
                 <Col span={12}>
                   <Form.Item
                     name="date"
                     label="Send date"
-                    rules={[{ required: true }]}
+                    rules={[
+                      { required: true, message: "Please select a date" },
+                    ]}
                   >
                     <DatePicker style={{ width: "100%" }} />
                   </Form.Item>
                 </Col>
-                <Col span={24}>
+
+                {/* Type */}
+                <Col span={12}>
                   <Form.Item
                     name="type"
                     label="Type notification"
-                    rules={[{ required: true }]}
+                    rules={[
+                      { required: true, message: "Please select a type" },
+                    ]}
                   >
-                    <Select>
-                      <Option value="Bill">Bill</Option>
-                      <Option value="Reminder">Reminder</Option>
+                    <Select placeholder="Select a type">
+                      <Option value="RENT_REMINDER">Rent Reminder</Option>
+                      <Option value="MAINTENANCE">Maintenance</Option>
+                      <Option value="BOOKING_STATUS">Booking Status</Option>
+                      <Option value="ANNOUNCEMENT">Announcement</Option>
+                      <Option value="PAYMENT_SUCCESS">Payment Success</Option>
+                      <Option value="PAYMENT_FAILED">Payment Failed</Option>
+                      <Option value="CUSTOM">Custom</Option>
                     </Select>
                   </Form.Item>
                 </Col>
+
+                {/* Label */}
                 <Col span={24}>
                   <Form.Item
                     name="label"
                     label="Label"
-                    rules={[{ required: true }]}
+                    rules={[{ required: true, message: "Please enter label" }]}
                   >
-                    <Input.TextArea rows={3} />
+                    <Input.TextArea
+                      rows={3}
+                      placeholder="Enter notification content"
+                    />
                   </Form.Item>
                 </Col>
               </Row>
+
               <Button type="primary" htmlType="submit" block>
                 Create and send
               </Button>
@@ -252,9 +340,17 @@ export default function AdminNotificationPage() {
           <Modal
             title="Are you sure you want to delete this notification?"
             open={isDeleteModalOpen}
-            onOk={() => {
-              console.log("Deleting:", selectedNotification);
-              setIsDeleteModalOpen(false);
+            onOk={async () => {
+              try {
+                await deleteNotification(selectedNotification.id);
+                message.success("Notification deleted successfully");
+                setIsDeleteModalOpen(false);
+                setSelectedNotification(null);
+                setRefreshKey((prev) => prev + 1);
+              } catch (error) {
+                console.error("Delete failed:", error);
+                message.error("Failed to delete notification");
+              }
             }}
             onCancel={() => setIsDeleteModalOpen(false)}
             okText="Yes"

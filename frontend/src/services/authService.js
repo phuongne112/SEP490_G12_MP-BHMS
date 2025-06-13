@@ -12,6 +12,7 @@ export const login = async (email, password) => {
 
   localStorage.setItem("token", accessToken);
   localStorage.setItem("user", JSON.stringify(user));
+  console.log("🔥 User from API:", res.data.user);
 
   return user;
 };

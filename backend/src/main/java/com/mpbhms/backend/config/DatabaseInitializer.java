@@ -54,6 +54,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new PermissionEntity("Update Notification", "/mpbhms/notifications", "PUT", "Notification"));
             permissions.add(new PermissionEntity("Delete Notification", "/mpbhms/notifications/{id}", "DELETE", "Notification"));
             permissions.add(new PermissionEntity("View Notification", "/mpbhms/notifications/all", "GET", "Notification"));
+            permissions.add(new PermissionEntity("Create Notification Send", "/mpbhms/notifications/send", "POST", "Notification"));
             //Permissions
             permissions.add(new PermissionEntity("Create Permission", "/mpbhms/permissions", "POST", "Permission"));
             permissions.add(new PermissionEntity("Update Permission", "/mpbhms/permissions", "PUT", "Permission"));
