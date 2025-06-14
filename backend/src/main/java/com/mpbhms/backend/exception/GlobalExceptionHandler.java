@@ -71,10 +71,11 @@ public class GlobalExceptionHandler {
                 ex.getStatus().value(),
                 ex.getErrorCode(),
                 ex.getMessage(),
-                null
+                ex.getData() // ✅ trả về data nếu có
         );
         return ResponseEntity.status(ex.getStatus()).body(response);
     }
+
 
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ApiResponse<?>> handleValidationException(ValidationException ex) {

@@ -47,27 +47,12 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.convertToCreateUserDTO(saved));
     }
 
-    @PutMapping()
+    @PutMapping
     public ResponseEntity<UpdateUserDTO> updateUser(@Valid @RequestBody UserEntity user) {
-        UserEntity existingUser = userService.handleFetchUserById(user.getId());
-        if (existingUser == null) {
-            throw new BusinessException("User with ID '" + user.getId() + "' not found");
-        }
-
-        // Check if new email is already used
-        if (!existingUser.getEmail().equals(user.getEmail()) && userService.isEmailExist(user.getEmail())) {
-            throw new BusinessException("Email '" + user.getEmail() + "' already exists, please use another email");
-        }
-
-        // Check if new username is already used
-        if (!user.getUsername().equals(existingUser.getUsername())
-                && userService.isUsernameExist(user.getUsername())) {
-            throw new BusinessException("Username '" + user.getUsername() + "' already exists, please choose another username");
-        }
-
         UserEntity updatedUser = userService.handleUpdateUser(user);
         return ResponseEntity.ok(userService.convertResUpdateUserDTO(updatedUser));
     }
+
 
     @PutMapping("/{id}/status")
     public ResponseEntity<Void> updateUserStatus(

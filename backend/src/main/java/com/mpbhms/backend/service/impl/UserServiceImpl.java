@@ -2,6 +2,7 @@ package com.mpbhms.backend.service.impl;
 
 import com.mpbhms.backend.dto.*;
 import com.mpbhms.backend.entity.*;
+import com.mpbhms.backend.exception.BusinessException;
 import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.service.EmailService;
@@ -17,7 +18,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -123,7 +126,7 @@ public class UserServiceImpl implements UserService {
         if (user.getRole() != null) {
             Optional<RoleEntity> optional = roleService.fetchRoleById(user.getRole().getId());
             if (optional.isEmpty()) {
-                throw new IdInvalidException("Role với ID " + user.getRole().getId() + " không tồn tại.");
+                throw new IdInvalidException("Role with ID " + user.getRole().getId() + " not found.");
             }
             user.setRole(optional.get());
         }
@@ -142,31 +145,39 @@ public class UserServiceImpl implements UserService {
     }
     @Override
     public UserEntity handleUpdateUser(UserEntity user) {
-        Optional<UserEntity> optional = this.userRepository.findById(user.getId());
+        UserEntity existingUser = this.userRepository.findById(user.getId())
+                .orElseThrow(() -> new BusinessException("User with ID '" + user.getId() + "' not found"));
 
-        if (optional.isPresent()) {
-            UserEntity existingUser = optional.get();
+        Map<String, String> errors = new HashMap<>();
 
-            // Kiểm tra nếu email bị đổi và đã bị người khác dùng thì không cho cập nhật
-            if (!existingUser.getEmail().equals(user.getEmail())
-                    && this.userRepository.existsByEmail(user.getEmail())) {
-                return null; // hoặc throw exception nếu muốn chi tiết hơn
-            }
-
-            existingUser.setUsername(user.getUsername());
-            existingUser.setEmail(user.getEmail());
-            existingUser.setIsActive(user.getIsActive());
-
-            if (user.getRole() != null && user.getRole().getId() != null) {
-                Optional<RoleEntity> optionalRole = this.roleService.fetchRoleById(user.getRole().getId());
-                existingUser.setRole(optionalRole.orElse(null));
-            }
-
-            return this.userRepository.save(existingUser);
+        // Kiểm tra email
+        if (!existingUser.getEmail().equals(user.getEmail())
+                && this.userRepository.existsByEmail(user.getEmail())) {
+            errors.put("newEmail", "Email '" + user.getEmail() + "' already exists");
         }
 
-        return null;
+        // Kiểm tra username
+        if (!existingUser.getUsername().equals(user.getUsername())
+                && this.userRepository.existsByUsername(user.getUsername())) {
+            errors.put("username", "Username '" + user.getUsername() + "' already exists");
+        }
+
+        if (!errors.isEmpty()) {
+            throw new BusinessException("Update failed", errors);
+        }
+
+        existingUser.setUsername(user.getUsername());
+        existingUser.setEmail(user.getEmail());
+        existingUser.setIsActive(user.getIsActive());
+
+        if (user.getRole() != null && user.getRole().getId() != null) {
+            Optional<RoleEntity> optionalRole = this.roleService.fetchRoleById(user.getRole().getId());
+            existingUser.setRole(optionalRole.orElse(null));
+        }
+
+        return this.userRepository.save(existingUser);
     }
+
 
     @Override
     public UpdateUserDTO convertResUpdateUserDTO(UserEntity user) {
