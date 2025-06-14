@@ -165,12 +165,15 @@ const handleEditUser = (user) => {
             >
               <Row gutter={16}>
                 <Col span={12}>
-                  <Form.Item name="username" label="Username">
+                  <Form.Item name="username" 
+                  label="Username"
+                   rules={[{ required: true }]}>
                     <Input />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item name="fullName" label="Full Name">
+                  <Form.Item name="fullName" label="Full Name"
+                   rules={[{ required: true }]}>
                     <Input />
                   </Form.Item>
                 </Col>
@@ -245,7 +248,7 @@ const handleEditUser = (user) => {
           id: updateUserId,
           username: values.username,
           email: values.newEmail,
-          role: { roleId: values.roleId },
+          role: { id: values.roleId },
         };
 
         await updateUser(payload);
@@ -253,11 +256,22 @@ const handleEditUser = (user) => {
         setIsUpdateModalOpen(false);
         updateForm.resetFields();
         setRefreshKey((prev) => prev + 1);
-      } catch (err) {
-        console.error("Update failed:", err);
-        message.error("Failed to update user");
-      }
-    }}
+      }  catch (error) {
+                const res = error.response?.data;
+
+                if (res?.data && typeof res.data === "object") {
+                  // ✅ set lỗi từng trường
+                  const fieldErrors = Object.entries(res.data).map(([field, message]) => ({
+                    name: field,
+                    errors: [message],
+                  }));
+                  updateForm.setFields(fieldErrors);
+                } else {
+                  message.error("Failed to update user");
+                }
+              }
+            }}
+
   >
     <Row gutter={16}>
       <Col span={12}>
