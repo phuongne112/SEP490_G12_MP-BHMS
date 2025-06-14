@@ -21,7 +21,7 @@ public class CreateUserRequest {
     @Email(message = "Invalid email format")
     private String email;
 
-    @Pattern(regexp = "^\\d{10}$", message = "Phone number must be 10 digits")
+    @Pattern(regexp = "^0\\d{9}$", message = "Phone number must start with 0 and be 10 digits long")
     private String phone;
 
     @NotBlank(message = "Password must not be empty")

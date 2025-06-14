@@ -20,18 +20,11 @@ import java.util.List;
 @Setter
 @Table(name = "Users")
 public class UserEntity extends BaseEntity {
-    @NotBlank(message = "Username must not be empty")
-    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
-    @Column(nullable = false, unique = true)
+
     private String username;
 
-    @NotBlank(message = "Password must not be empty")
-    @Password
     private String password;
 
-    @Email(message = "Invalid email format")
-    @NotBlank(message = "Email must not be empty")
-    @Column(unique = true)
     private String email;
 
     private Boolean isActive = true;

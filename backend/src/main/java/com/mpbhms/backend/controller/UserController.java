@@ -60,7 +60,8 @@ public class UserController {
         }
 
         // Check if new username is already used
-        if (!existingUser.getUsername().equals(user.getUsername()) && userService.isUsernameExist(user.getUsername())) {
+        if (!user.getUsername().equals(existingUser.getUsername())
+                && userService.isUsernameExist(user.getUsername())) {
             throw new BusinessException("Username '" + user.getUsername() + "' already exists, please choose another username");
         }
 

@@ -59,6 +59,7 @@ export default function UserTable({
           key: item.id || index + 1 + (page - 1) * pageSize,
           id: item.id,
           email: item.email,
+          username: item.username,
           isActive: item.isActive,
           createdAt: item.createdDate?.slice(0, 10),
           status: item.isActive ? "Active" : "Deactivate",
@@ -115,6 +116,10 @@ export default function UserTable({
     {
       title: "Account(Email)",
       dataIndex: "email",
+    },
+    {
+      title: "Username",
+      dataIndex: "username",
     },
     {
       title: "Created Date",

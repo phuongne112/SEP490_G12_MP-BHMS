@@ -56,7 +56,7 @@ export default function UserFilterPopover({ onApply }) {
             <Option value="none">-- All --</Option> {/* Không filter theo role */}
             <Option value="null">User (No Role)</Option> {/* role IS NULL */}
             {roles.map((r) => (
-              <Option key={r.roleId} value={r.roleId}>
+              <Option key={r.id} value={r.id}>
                 {r.roleName}
               </Option>
             ))}
