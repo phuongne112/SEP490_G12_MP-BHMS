@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table, Button, Space, Tooltip, message } from "antd";
+import { Table, Button, Space, Tooltip, message, Alert } from "antd";
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { getAllRoles } from "../../services/roleApi";
 
@@ -9,11 +9,11 @@ const buildFilterDSL = (searchTerm, filters) => {
   if (searchTerm?.trim()) {
     dsl.push(`roleName~'${searchTerm.trim()}'`);
   }
-    if (filters.dateRange && filters.dateRange.length === 2) {
+  if (filters.dateRange && filters.dateRange.length === 2) {
     const [start, end] = filters.dateRange;
     if (start && end) {
-    dsl.push(`createdDate >: '${start.format("YYYY-MM-DD")}'`);
-    dsl.push(`createdDate <: '${end.format("YYYY-MM-DD")}'`);
+      dsl.push(`createdDate >: '${start.format("YYYY-MM-DD")}'`);
+      dsl.push(`createdDate <: '${end.format("YYYY-MM-DD")}'`);
     }
   }
   return dsl.join(" and ");
@@ -25,11 +25,13 @@ export default function RoleTable({
   onEditRole,
   onDeleteRole,
   refreshKey,
-  filters
+  filters,
+  deleteError, // 🆕 truyền từ cha để hiển thị lỗi khi delete
 }) {
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ current: 1, total: 0 });
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
 
   const fetchData = async (page = 1) => {
     setLoading(true);
@@ -58,8 +60,16 @@ export default function RoleTable({
   };
 
   useEffect(() => {
+    setErrorMsg(null);
     fetchData(1);
-  }, [searchTerm,filters.dateRange, pageSize, refreshKey]);
+  }, [searchTerm, filters.dateRange, pageSize, refreshKey]);
+
+  // 🆕 nếu có lỗi xóa từ cha, hiển thị ra Alert
+  useEffect(() => {
+    if (deleteError) {
+      setErrorMsg(deleteError);
+    }
+  }, [deleteError]);
 
   const columns = [
     {
@@ -76,7 +86,7 @@ export default function RoleTable({
       width: "60%",
       render: (text) => <span style={{ fontWeight: 500 }}>{text}</span>,
     },
-      {
+    {
       title: "Created At",
       dataIndex: "createdAt",
     },
@@ -106,18 +116,32 @@ export default function RoleTable({
   ];
 
   return (
-    <Table
-      columns={columns}
-      dataSource={data}
-      loading={loading}
-      pagination={{
-        current: pagination.current,
-        total: pagination.total,
-        pageSize,
-        onChange: (page) => fetchData(page),
-      }}
-      bordered
-      rowKey="id"
-    />
+    <>
+      {/* 🔴 Hiển thị lỗi nếu có */}
+      {errorMsg && (
+        <Alert
+          message={errorMsg}
+          type="error"
+          showIcon
+          closable
+          onClose={() => setErrorMsg(null)}
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
+      <Table
+        columns={columns}
+        dataSource={data}
+        loading={loading}
+        pagination={{
+          current: pagination.current,
+          total: pagination.total,
+          pageSize,
+          onChange: (page) => fetchData(page),
+        }}
+        bordered
+        rowKey="id"
+      />
+    </>
   );
 }

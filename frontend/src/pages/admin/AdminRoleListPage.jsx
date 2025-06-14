@@ -13,6 +13,7 @@ import {
   Space,
   Popover,
   message,
+  Alert,
 } from "antd";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import PageHeader from "../../components/common/PageHeader";
@@ -43,35 +44,31 @@ export default function AdminRoleListPage() {
   const [groupedPermissions, setGroupedPermissions] = useState({});
   const [refreshKey, setRefreshKey] = useState(0);
   const [form] = Form.useForm();
+  const [formError, setFormError] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
 
-  // 🆕 Load permissions
   useEffect(() => {
     const fetchPermissions = async () => {
       try {
         const res = await getAllPermissions();
         const data = res.data?.result || [];
-        console.log("✅ Data from API:", data);
-
         const grouped = {};
         data.forEach((perm) => {
           const group = perm.module?.toUpperCase() || "OTHER";
           if (!grouped[group]) grouped[group] = [];
-
           grouped[group].push({
             id: perm.id,
-            name: perm.name, // ✅ tên gốc
+            name: perm.name,
             method: perm.method,
             apiPath: perm.apiPath,
             module: perm.module,
           });
         });
-
-        setGroupedPermissions(grouped); // ✅ Lưu lại đầy đủ
+        setGroupedPermissions(grouped);
       } catch (err) {
         message.error("Failed to load permissions");
       }
     };
-
     fetchPermissions();
   }, []);
 
@@ -81,66 +78,70 @@ export default function AdminRoleListPage() {
 
   const openAddModal = () => {
     setEditingRole(null);
-    form.setFieldsValue({
-      name: "",
-      permissions: {},
-    });
+    form.setFieldsValue({ name: "", permissions: {} });
     setIsModalOpen(true);
   };
 
   const handleEditRole = (role) => {
     setEditingRole(role);
-    // map permissions thành object { id: true }
     const permissionsMap = {};
     role.permissionEntities?.forEach((p) => {
       permissionsMap[p.id] = true;
     });
-
-    form.setFieldsValue({
-      name: role.roleName,
-      permissions: permissionsMap,
-    });
+    form.setFieldsValue({ name: role.roleName, permissions: permissionsMap });
     setIsModalOpen(true);
   };
 
-  const handleDeleteRole = async () => {
-    try {
-      await deleteRole(selectedRole.id); // 🆕 gọi API xóa
-      message.success("Role deleted successfully");
-      setRefreshKey((prev) => prev + 1);
-    } catch {
-      message.error("Failed to delete role");
-    } finally {
-      setIsDeleteModalOpen(false);
-    }
-  };
+const handleDeleteRole = async () => {
+  try {
+    await deleteRole(selectedRole.id);
+    message.success("Role deleted successfully"); // ✅ dòng này đã đúng
+    setRefreshKey((prev) => prev + 1);
+    setDeleteError(null);
+  } catch (err) {
+    const msg =
+      err?.response?.data?.message ||
+      "Failed to delete role due to constraint violation";
+    setDeleteError(msg);
+  } finally {
+    setIsDeleteModalOpen(false);
+  }
+};
+
 
   const handleSubmitRole = async (values) => {
     try {
-      // Chuyển trạng thái và permission thành định dạng backend yêu cầu
+      setFormError(null);
       const payload = {
         roleName: values.name,
         permissionEntities: Object.entries(values.permissions || {})
           .filter(([_, isChecked]) => isChecked)
           .map(([id]) => ({ id: parseInt(id) })),
       };
-
       if (editingRole) {
         await updateRole({ id: editingRole.id, ...payload });
         message.success("Role updated successfully");
-        setRefreshKey((prev) => prev + 1);
       } else {
-        console.log("🟢 Payload gửi lên:", payload); // Thêm dòng này
         await createRole(payload);
         message.success("Role created successfully");
-        setRefreshKey((prev) => prev + 1);
       }
-    } catch (err) {
-      message.error("Failed to save role");
-    } finally {
       setIsModalOpen(false);
-      setEditingRole(null);
       form.resetFields();
+      setEditingRole(null);
+      setRefreshKey((prev) => prev + 1);
+    } catch (error) {
+      const res = error.response?.data;
+      setFormError(null);
+      if (res?.data && typeof res.data === "object") {
+        const fieldMap = { roleName: "name" };
+        const fieldErrors = Object.entries(res.data).map(([field, msg]) => ({
+          name: fieldMap[field] || field,
+          errors: [msg],
+        }));
+        form.setFields(fieldErrors);
+      } else {
+        setFormError(res?.message || "Failed to save role");
+      }
     }
   };
 
@@ -148,81 +149,52 @@ export default function AdminRoleListPage() {
     <Layout>
       <AdminSidebar />
       <Layout style={{ marginLeft: 220 }}>
-        <Content style={{ padding: "32px", backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 24,
-            }}
-          >
+        <Content style={{ padding: 32, backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
             <PageHeader title="List Role" />
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={openAddModal}
-            >
-              Add new role
-            </Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={openAddModal}>Add new role</Button>
           </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 24,
-              flexWrap: "wrap",
-            }}
-          >
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap" }}>
             <EntrySelect value={pageSize} onChange={setPageSize} />
             <Space style={{ gap: 100 }}>
-              <SearchBox
-                onSearch={setSearchTerm}
-                placeholder="Enter role name..."
-              />
+              <SearchBox onSearch={setSearchTerm} placeholder="Enter role name..." />
               <Popover
                 open={isFilterOpen}
                 onOpenChange={setIsFilterOpen}
-                content={
-                  <RoleFilterPopover
-                    onApply={(values) => {
-                      handleApplyFilter(values);
-                      setIsFilterOpen(false);
-                    }}
-                  />
-                }
+                content={<RoleFilterPopover onApply={(values) => { handleApplyFilter(values); setIsFilterOpen(false); }} />}
                 trigger="click"
                 placement="bottomRight"
               >
-                <Button
-                  icon={<FilterOutlined />}
-                  style={{ backgroundColor: "#40a9ff", color: "white" }}
-                >
-                  Filter
-                </Button>
+                <Button icon={<FilterOutlined />} style={{ backgroundColor: "#40a9ff", color: "white" }}>Filter</Button>
               </Popover>
             </Space>
           </div>
+
+          {deleteError && (
+            <Alert
+              message={deleteError}
+              type="error"
+              showIcon
+              closable
+              onClose={() => setDeleteError(null)}
+              style={{ marginBottom: 16 }}
+            />
+          )}
+
           <RoleTable
             pageSize={pageSize}
             searchTerm={searchTerm}
             filters={filters}
             refreshKey={refreshKey}
             onEditRole={handleEditRole}
-            onDeleteRole={(role) => {
-              setSelectedRole(role);
-              setIsDeleteModalOpen(true);
-            }}
+            onDeleteRole={(role) => { setSelectedRole(role); setIsDeleteModalOpen(true); }}
           />
+
           <Modal
             title={editingRole ? "Update Role" : "Add New Role"}
             open={isModalOpen}
-            onCancel={() => {
-              setIsModalOpen(false);
-              setEditingRole(null);
-              form.resetFields();
-            }}
+            onCancel={() => { setIsModalOpen(false); setEditingRole(null); form.resetFields(); setFormError(null); }}
             footer={null}
             width={700}
             centered
@@ -231,30 +203,18 @@ export default function AdminRoleListPage() {
               key={editingRole?.id || "new"}
               form={form}
               layout="vertical"
-              onFinish={(values) => {
-                console.log("✅ Form submitted:", values);
-                handleSubmitRole(values);
-              }}
+              onFinish={handleSubmitRole}
             >
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item
                     name="name"
                     label="Role Name"
-                    rules={[
-                      { required: true, message: "Please enter role name" },
-                      {
-                        validator: (_, value) =>
-                          value && value.trim() !== ""
-                            ? Promise.resolve()
-                            : Promise.reject("Please enter role name"),
-                      },
-                    ]}
+                    rules={[{ required: true, message: "Please enter role name" }]}
                   >
                     <Input allowClear />
                   </Form.Item>
                 </Col>
-              
               </Row>
 
               <Form.Item label="Permissions">
@@ -264,49 +224,15 @@ export default function AdminRoleListPage() {
                       <Row gutter={[16, 16]}>
                         {perms.map((perm) => (
                           <Col span={12} key={perm.id}>
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                border: "1px solid #eee",
-                                padding: "8px 12px",
-                                borderRadius: 6,
-                              }}
-                            >
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexDirection: "column",
-                                }}
-                              >
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", border: "1px solid #eee", padding: "8px 12px", borderRadius: 6 }}>
+                              <div style={{ display: "flex", flexDirection: "column" }}>
                                 <span>{perm.name}</span>
                                 <span>
-                                  <Tag
-                                    color={
-                                      perm.method === "POST"
-                                        ? "green"
-                                        : perm.method === "PUT"
-                                        ? "orange"
-                                        : perm.method === "DELETE"
-                                        ? "red"
-                                        : "blue"
-                                    }
-                                  >
-                                    {perm.method}
-                                  </Tag>{" "}
-                                  <span style={{ color: "#999" }}>
-                                    {perm.apiPath || "N/A"}
-                                  </span>
+                                  <Tag color={perm.method === "POST" ? "green" : perm.method === "PUT" ? "orange" : perm.method === "DELETE" ? "red" : "blue"}>{perm.method}</Tag>
+                                  <span style={{ color: "#999" }}>{perm.apiPath || "N/A"}</span>
                                 </span>
                               </div>
-
-                              {/* ✅ Switch bọc TRỰC TIẾP trong Form.Item */}
-                              <Form.Item
-                                name={["permissions", perm.id]}
-                                valuePropName="checked"
-                                noStyle
-                              >
+                              <Form.Item name={["permissions", perm.id]} valuePropName="checked" noStyle>
                                 <Switch />
                               </Form.Item>
                             </div>
@@ -318,20 +244,12 @@ export default function AdminRoleListPage() {
                 </Collapse>
               </Form.Item>
 
-              <div style={{ textAlign: "right" }}>
-                <Button
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setEditingRole(null);
-                    form.resetFields();
-                  }}
-                  style={{ marginRight: 8 }}
-                >
-                  Cancel
-                </Button>
-                <Button type="primary" htmlType="submit">
-                  {editingRole ? "Update" : "Save"}
-                </Button>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: 16, gap: 16 }}>
+                <div style={{ color: formError ? "red" : "transparent", fontSize: 13, minHeight: 20, maxWidth: "75%", whiteSpace: "normal", flex: 1 }}>{formError || "\u00A0"}</div>
+                <div style={{ whiteSpace: "nowrap" }}>
+                  <Button onClick={() => { setIsModalOpen(false); setEditingRole(null); form.resetFields(); setFormError(null); }} style={{ marginRight: 8 }}>Cancel</Button>
+                  <Button type="primary" htmlType="submit">{editingRole ? "Update" : "Save"}</Button>
+                </div>
               </div>
             </Form>
           </Modal>
@@ -339,7 +257,7 @@ export default function AdminRoleListPage() {
           <Modal
             title="Are you sure you want to delete this role?"
             open={isDeleteModalOpen}
-            onOk={handleDeleteRole} // 🆕 dùng hàm API xóa
+            onOk={handleDeleteRole}
             onCancel={() => setIsDeleteModalOpen(false)}
             okText="Yes"
             cancelText="Cancel"

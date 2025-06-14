@@ -43,6 +43,7 @@ export default function AdminPermissionListPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPermission, setEditingPermission] = useState(null);
   const [form] = Form.useForm();
+  const [formError, setFormError] = useState(null);
 
   const [selectedPermission, setSelectedPermission] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -53,6 +54,7 @@ export default function AdminPermissionListPage() {
 
   const handleEditPermission = (permission) => {
     setEditingPermission(permission);
+    setFormError(null);
     form.setFieldsValue({
       name: permission.name,
       api: permission.apiPath,
@@ -84,10 +86,35 @@ export default function AdminPermissionListPage() {
       setIsModalOpen(false);
       form.resetFields();
       setEditingPermission(null);
+      setFormError(null);
       setRefreshKey((prev) => prev + 1);
-    } catch (err) {
-      console.error("Failed to create/update permission:", err);
-      message.error("Failed to process permission");
+    } catch (error) {
+      const res = error.response?.data;
+      setFormError(null);
+
+      if (res?.data && typeof res.data === "object") {
+        const fieldMap = {
+          apiPath: "api",
+          method: "method",
+          module: "module",
+        };
+
+        const fieldErrors = [];
+        Object.entries(res.data).forEach(([field, msg]) => {
+          if (fieldMap[field]) {
+            fieldErrors.push({
+              name: fieldMap[field],
+              errors: [msg],
+            });
+          } else {
+            setFormError(msg); // lỗi chung như "permission"
+          }
+        });
+
+        form.setFields(fieldErrors);
+      } else {
+        setFormError(res?.message || "Failed to process permission");
+      }
     }
   };
 
@@ -114,14 +141,7 @@ export default function AdminPermissionListPage() {
       <AdminSidebar />
       <Layout style={{ marginLeft: 220 }}>
         <Content style={{ padding: "32px" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 24,
-            }}
-          >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
             <PageHeader title="Permission Management" />
             <Button
               type="primary"
@@ -129,6 +149,7 @@ export default function AdminPermissionListPage() {
               onClick={() => {
                 form.resetFields();
                 setEditingPermission(null);
+                setFormError(null);
                 setIsModalOpen(true);
               }}
             >
@@ -136,34 +157,28 @@ export default function AdminPermissionListPage() {
             </Button>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              marginBottom: 24,
-              marginTop: 30,
-            }}
-          >
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            marginBottom: 24,
+            marginTop: 30,
+          }}>
             <EntrySelect value={pageSize} onChange={setPageSize} />
             <Space align="start" size={30}>
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <label style={{ fontSize: 13, marginBottom: 4 }}>Name</label>
                 <SearchBox
                   placeholder="Enter name..."
-                  onSearch={(val) =>
-                    setSearch((prev) => ({ ...prev, name: val }))
-                  }
+                  onSearch={(val) => setSearch((prev) => ({ ...prev, name: val }))}
                 />
               </div>
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <label style={{ fontSize: 13, marginBottom: 4 }}>API</label>
                 <SearchBox
                   placeholder="Enter API..."
-                  onSearch={(val) =>
-                    setSearch((prev) => ({ ...prev, api: val }))
-                  }
+                  onSearch={(val) => setSearch((prev) => ({ ...prev, api: val }))}
                 />
               </div>
               <div style={{ marginTop: 22 }}>
@@ -181,16 +196,12 @@ export default function AdminPermissionListPage() {
                   trigger="click"
                   placement="bottomRight"
                 >
-                  <Button
-                    icon={<FilterOutlined />}
-                    style={{ backgroundColor: "#40a9ff", color: "white" }}
-                  >
+                  <Button icon={<FilterOutlined />} style={{ backgroundColor: "#40a9ff", color: "white" }}>
                     Filter
                   </Button>
                 </Popover>
               </div>
             </Space>
-
           </div>
 
           <PermissionTable
@@ -212,6 +223,7 @@ export default function AdminPermissionListPage() {
               setIsModalOpen(false);
               form.resetFields();
               setEditingPermission(null);
+              setFormError(null);
             }}
             footer={null}
             width={600}
@@ -263,7 +275,6 @@ export default function AdminPermissionListPage() {
                     label="Module"
                     rules={[{ required: true, message: "Select module" }]}
                   >
-
                     <Select placeholder="Select a module...">
                       <Option value="User">User</Option>
                       <Option value="Renter">Renter</Option>
@@ -271,20 +282,46 @@ export default function AdminPermissionListPage() {
                       <Option value="Notification">Notification</Option>
                       <Option value="Role">Role</Option>
                       <Option value="Permission">Permission</Option>
-
                     </Select>
                   </Form.Item>
                 </Col>
               </Row>
 
-              <div style={{ textAlign: "right" }}>
-                <Button onClick={() => setIsModalOpen(false)} style={{ marginRight: 8 }}>
-                  Cancel
-                </Button>
-                <Button type="primary" htmlType="submit">
-                  {editingPermission ? "Update" : "Create"}
-                </Button>
-              </div>
+              {/* Hiển thị lỗi permission ở đây */}
+           <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start", // để lỗi có thể xuống dòng
+              marginTop: 16,
+              gap: 16, // thêm khoảng cách giữa lỗi và nút
+            }}
+          >
+            {/* Lỗi nằm bên trái, không đè nút */}
+            <div
+              style={{
+                color: formError ? "red" : "transparent",
+                fontSize: 13,
+                minHeight: 20,
+                maxWidth: "75%", // giới hạn bề ngang lỗi
+                whiteSpace: "normal",
+                flex: 1,
+              }}
+            >
+              {formError || "\u00A0"}
+            </div>
+
+            {/* Nút bên phải */}
+            <div style={{ whiteSpace: "nowrap" }}>
+              <Button onClick={() => setIsModalOpen(false)} style={{ marginRight: 8 }}>
+                Cancel
+              </Button>
+              <Button type="primary" htmlType="submit">
+                {editingPermission ? "Update" : "Create"}
+              </Button>
+            </div>
+          </div>
+
             </Form>
           </Modal>
 
