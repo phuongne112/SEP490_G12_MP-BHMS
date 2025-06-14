@@ -122,7 +122,7 @@ export default function AdminPermissionListPage() {
               marginBottom: 24,
             }}
           >
-            <PageHeader title="🔐 Permission Management" />
+            <PageHeader title="Permission Management" />
             <Button
               type="primary"
               icon={<PlusOutlined />}
@@ -147,10 +147,9 @@ export default function AdminPermissionListPage() {
             }}
           >
             <EntrySelect value={pageSize} onChange={setPageSize} />
-
-            <Space direction="horizontal" style={{ gap: 30 }}>
-              <div>
-                <label style={{ fontSize: 13 }}>Name</label>
+            <Space align="start" size={30}>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ fontSize: 13, marginBottom: 4 }}>Name</label>
                 <SearchBox
                   placeholder="Enter name..."
                   onSearch={(val) =>
@@ -158,8 +157,8 @@ export default function AdminPermissionListPage() {
                   }
                 />
               </div>
-              <div>
-                <label style={{ fontSize: 13 }}>API</label>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ fontSize: 13, marginBottom: 4 }}>API</label>
                 <SearchBox
                   placeholder="Enter API..."
                   onSearch={(val) =>
@@ -167,28 +166,31 @@ export default function AdminPermissionListPage() {
                   }
                 />
               </div>
-              <Popover
-                open={isFilterOpen}
-                onOpenChange={setIsFilterOpen}
-                content={
-                  <PermissionFilterPopover
-                    onApply={(values) => {
-                      handleApplyFilter(values);
-                      setIsFilterOpen(false);
-                    }}
-                  />
-                }
-                trigger="click"
-                placement="bottomRight"
-              >
-                <Button
-                  icon={<FilterOutlined />}
-                  style={{ backgroundColor: "#40a9ff", color: "white" }}
+              <div style={{ marginTop: 22 }}>
+                <Popover
+                  open={isFilterOpen}
+                  onOpenChange={setIsFilterOpen}
+                  content={
+                    <PermissionFilterPopover
+                      onApply={(values) => {
+                        handleApplyFilter(values);
+                        setIsFilterOpen(false);
+                      }}
+                    />
+                  }
+                  trigger="click"
+                  placement="bottomRight"
                 >
-                  Filter
-                </Button>
-              </Popover>
+                  <Button
+                    icon={<FilterOutlined />}
+                    style={{ backgroundColor: "#40a9ff", color: "white" }}
+                  >
+                    Filter
+                  </Button>
+                </Popover>
+              </div>
             </Space>
+
           </div>
 
           <PermissionTable

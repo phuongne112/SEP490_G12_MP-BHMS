@@ -2,6 +2,39 @@ import React, { useEffect, useState } from "react";
 import { Table, Button, Space, Tag, message } from "antd";
 import { getAllNotifications } from "../../services/notificationApi";
 
+// Build filter params from UI
+// Hàm tạo filter DSL cho notification
+const buildFilterDSL = (searchTerm, filters) => {
+  const dsl = [];
+
+  // Tìm theo tiêu đề
+  if (searchTerm?.trim()) {
+    dsl.push(`title~'${searchTerm.trim()}'`);
+  }
+
+  // Filter theo type (nếu không phải "All")
+  if (filters.type && filters.type !== "All") {
+    dsl.push(`type = '${filters.type}'`);
+  }
+
+  // Filter theo status (nếu không phải "All")
+  if (filters.status && filters.status !== "All") {
+    dsl.push(`status = '${filters.status}'`);
+  }
+
+  // Filter theo khoảng ngày tạo
+  if (filters.dateRange?.length === 2) {
+    const [start, end] = filters.dateRange;
+    if (start && end) {
+      dsl.push(`createdDate >: '${start.format("YYYY-MM-DD")}'`);
+      dsl.push(`createdDate <: '${end.format("YYYY-MM-DD")}'`);
+    }
+  }
+
+  return dsl.join(" and ");
+};
+
+
 export default function NotificationTable({
   pageSize,
   searchTerm,
@@ -14,61 +47,63 @@ export default function NotificationTable({
   const [pagination, setPagination] = useState({ current: 1, total: 0 });
   const [loading, setLoading] = useState(false);
 
-  const fetchData = async (page = 1) => {
-    setLoading(true);
-    try {
-      const res = await getAllNotifications({
-        page: page - 1,
-        size: pageSize,
-        search: searchTerm || "",
-      });
+const fetchData = async (page = 1) => {
+  setLoading(true);
+  try {
+    const filterDSL = buildFilterDSL(searchTerm, filters);
+    const res = await getAllNotifications(page - 1, pageSize, filterDSL);
 
-      const result = res.data || [];
+    const result = res.result || [];
+    const total = res.meta?.total || 0;
 
-      setData(
-        result.map((item) => ({
-          key: item.id,
-          id: item.id,
-          title: item.title,
-          message: item.message,
-          type: item.type,
-          status: item.status,
-          date: item.createdDate,
-          readAt: item.readAt,
-        }))
-      );
+    setData(
+      result.map((item, index) => ({
+        key: item.id || index + 1 + (page - 1) * pageSize,
+        ...item,
+        createdAt: item.createdDate?.slice(0, 10),
+        recipient: item.recipient?.fullName || item.recipient?.email || "Unknown",
+      }))
+    );
 
-      setPagination({
-        current: page,
-        total: result.length, // Hoặc sửa nếu BE trả meta
-      });
-    } catch (err) {
-      message.error("Failed to load notifications");
-    } finally {
-      setLoading(false);
-    }
-  };
+    setPagination({ current: page, total });
+  } catch (err) {
+    message.error("Failed to load notification data");
+    console.error("Notification fetch error:", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     fetchData(1);
   }, [searchTerm, filters, pageSize, refreshKey]);
 
   const columns = [
-    { title: "Title", dataIndex: "title", key: "title" },
-    { title: "Message", dataIndex: "message", key: "message" },
-    { title: "Type", dataIndex: "type", key: "type" },
+    {
+      title: "No.",
+      render: (_, __, index) => (pagination.current - 1) * pageSize + index + 1,
+      width: 60,
+    },
+    { title: "Title", dataIndex: "title" },
+    { title: "Message", dataIndex: "message" },
+    { title: "Type", dataIndex: "type" },
     {
       title: "Status",
       dataIndex: "status",
-      key: "status",
       render: (status) => (
-        <Tag color={status === "READ" ? "green" : "blue"}>{status}</Tag>
+        <Tag color={status === "READ" ? "green" : status === "DELIVERED" ? "orange" : "blue"}>
+          {status}
+        </Tag>
       ),
     },
     {
-      title: "Created",
-      dataIndex: "date",
-      key: "date",
+      title: "Recipient",
+      dataIndex: "recipient",
+    },
+    {
+      title: "Created At",
+      dataIndex: "createdAt",
     },
     {
       title: "Actions",
@@ -97,6 +132,7 @@ export default function NotificationTable({
         pageSize,
         onChange: (page) => fetchData(page),
       }}
+      bordered
     />
   );
 }

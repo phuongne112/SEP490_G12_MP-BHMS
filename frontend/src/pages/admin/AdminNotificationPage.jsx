@@ -11,22 +11,24 @@ import {
   Col,
   Select,
   DatePicker,
+  Badge,
+  message,
 } from "antd";
 import { FilterOutlined, PlusOutlined } from "@ant-design/icons";
+import { FaBell } from "react-icons/fa";
+
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import NotificationTable from "../../components/admin/NotificationTable";
 import SearchBox from "../../components/common/SearchBox";
 import EntrySelect from "../../components/common/EntrySelect";
 import NotificationFilterPopover from "../../components/admin/NotificationFilterPopover";
-import { FaBell } from "react-icons/fa";
-import { Badge, Tooltip } from "antd";
+
 import {
   sendNotification,
   deleteNotification,
 } from "../../services/notificationApi";
-import { getAllUsers } from "../../services/userApi"; // ✅ Thêm API lấy danh sách user
-import { message } from "antd";
+import { getAllUsers } from "../../services/userApi";
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -35,8 +37,8 @@ export default function AdminNotificationPage() {
   const [pageSize, setPageSize] = useState(5);
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({
-    role: "All",
-    event: "All",
+    type: "All",
+    status: "All",
     dateRange: null,
   });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -47,7 +49,7 @@ export default function AdminNotificationPage() {
   const [createForm] = Form.useForm();
   const [refreshKey, setRefreshKey] = useState(0);
   const [sendMode, setSendMode] = useState("role");
-  const [userList, setUserList] = useState([]); // ✅ Danh sách user
+  const [userList, setUserList] = useState([]);
 
   useEffect(() => {
     if (isCreateModalOpen) {
@@ -62,7 +64,11 @@ export default function AdminNotificationPage() {
   }, [isCreateModalOpen]);
 
   const handleApplyFilter = (values) => {
-    setFilters(values);
+    setFilters({
+      type: values.type || "All",
+      status: values.status || "All",
+      dateRange: values.dateRange || null,
+    });
   };
 
   const handleView = (record) => {
@@ -159,7 +165,7 @@ export default function AdminNotificationPage() {
             onCancel={() => {
               setIsCreateModalOpen(false);
               createForm.resetFields();
-              setSendMode("role"); // Reset lại mode
+              setSendMode("role");
             }}
             footer={null}
             width={600}
@@ -179,19 +185,19 @@ export default function AdminNotificationPage() {
                   };
 
                   if (values.mode === "individual") {
-                    // Gửi cho 1 người
                     const payload = {
                       ...payloadBase,
                       recipientId: values.recipientId,
                     };
                     await sendNotification(payload);
                   } else {
-                    // Gửi cho tất cả user
                     const promises = userList.map((user) => {
-                      const payload = { ...payloadBase, recipientId: user.id };
+                      const payload = {
+                        ...payloadBase,
+                        recipientId: user.id,
+                      };
                       return sendNotification(payload);
                     });
-
                     await Promise.all(promises);
                   }
 
@@ -207,7 +213,6 @@ export default function AdminNotificationPage() {
               }}
             >
               <Row gutter={16}>
-                {/* Send Mode */}
                 <Col span={24}>
                   <Form.Item
                     name="mode"
@@ -217,9 +222,7 @@ export default function AdminNotificationPage() {
                     <Select
                       onChange={(value) => {
                         setSendMode(value);
-                        createForm.setFieldsValue({
-                          recipientId: undefined,
-                        });
+                        createForm.setFieldsValue({ recipientId: undefined });
                       }}
                     >
                       <Option value="role">To Role (All Users)</Option>
@@ -228,15 +231,12 @@ export default function AdminNotificationPage() {
                   </Form.Item>
                 </Col>
 
-                {/* Only show when mode is individual */}
                 {sendMode === "individual" && (
                   <Col span={24}>
                     <Form.Item
                       name="recipientId"
                       label="Send to User"
-                      rules={[
-                        { required: true, message: "Please select a user" },
-                      ]}
+                      rules={[{ required: true }]}
                     >
                       <Select placeholder="Select a user">
                         {userList.map((user) => (
@@ -249,27 +249,21 @@ export default function AdminNotificationPage() {
                   </Col>
                 )}
 
-                {/* Send Date */}
                 <Col span={12}>
                   <Form.Item
                     name="date"
                     label="Send date"
-                    rules={[
-                      { required: true, message: "Please select a date" },
-                    ]}
+                    rules={[{ required: true }]}
                   >
                     <DatePicker style={{ width: "100%" }} />
                   </Form.Item>
                 </Col>
 
-                {/* Type */}
                 <Col span={12}>
                   <Form.Item
                     name="type"
                     label="Type notification"
-                    rules={[
-                      { required: true, message: "Please select a type" },
-                    ]}
+                    rules={[{ required: true }]}
                   >
                     <Select placeholder="Select a type">
                       <Option value="RENT_REMINDER">Rent Reminder</Option>
@@ -283,17 +277,13 @@ export default function AdminNotificationPage() {
                   </Form.Item>
                 </Col>
 
-                {/* Label */}
                 <Col span={24}>
                   <Form.Item
                     name="label"
                     label="Label"
-                    rules={[{ required: true, message: "Please enter label" }]}
+                    rules={[{ required: true }]}
                   >
-                    <Input.TextArea
-                      rows={3}
-                      placeholder="Enter notification content"
-                    />
+                    <Input.TextArea rows={3} placeholder="Enter notification content" />
                   </Form.Item>
                 </Col>
               </Row>
@@ -317,21 +307,11 @@ export default function AdminNotificationPage() {
           >
             {selectedNotification && (
               <div>
-                <p>
-                  <strong>Title:</strong> {selectedNotification.title}
-                </p>
-                <p>
-                  <strong>Message:</strong> {selectedNotification.message}
-                </p>
-                <p>
-                  <strong>Type:</strong> {selectedNotification.type}
-                </p>
-                <p>
-                  <strong>Status:</strong> {selectedNotification.status}
-                </p>
-                <p>
-                  <strong>Created Date:</strong> {selectedNotification.date}
-                </p>
+                <p><strong>Title:</strong> {selectedNotification.title}</p>
+                <p><strong>Message:</strong> {selectedNotification.message}</p>
+                <p><strong>Type:</strong> {selectedNotification.type}</p>
+                <p><strong>Status:</strong> {selectedNotification.status}</p>
+                <p><strong>Created Date:</strong> {selectedNotification.createdAt}</p>
               </div>
             )}
           </Modal>

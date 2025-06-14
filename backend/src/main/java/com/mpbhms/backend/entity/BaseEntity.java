@@ -16,6 +16,7 @@ public abstract class BaseEntity {
     private Long id;
 
     private String createdBy;
+
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss a",timezone = "GMT+7")
     private Instant createdDate;
 

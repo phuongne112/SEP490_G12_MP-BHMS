@@ -1,9 +1,13 @@
 package com.mpbhms.backend.controller;
 
 import com.mpbhms.backend.dto.NotificationDTO;
+import com.mpbhms.backend.dto.ResultPaginationDTO;
 import com.mpbhms.backend.entity.NotificationEntity;
 import com.mpbhms.backend.service.NotificationService;
+import com.turkraft.springfilter.boot.Filter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,9 +32,13 @@ public class NotificationController {
     }
 
     @GetMapping("/all")
-    public ResponseEntity<List<NotificationEntity>> getAllNotifications(){
-        return ResponseEntity.ok(notificationService.getNotifications());
+    public ResponseEntity<ResultPaginationDTO> getAllNotifications(
+            @Filter Specification<NotificationEntity> spec,
+            Pageable pageable
+    ) {
+        return ResponseEntity.ok(notificationService.getAllNotifications(spec, pageable));
     }
+
 
     @PutMapping("/{id}/read")
     public ResponseEntity<Void> markAsRead(@PathVariable Long id) {

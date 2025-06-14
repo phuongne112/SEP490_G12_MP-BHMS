@@ -51,8 +51,8 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public RoleEntity updateRole(RoleEntity roleEntity) {
         // Lấy role từ DB
-        RoleEntity roleDB = roleRepository.findById(roleEntity.getRoleId())
-                .orElseThrow(() -> new IdInvalidException("Role với id = " + roleEntity.getRoleId() + " không tồn tại."));
+        RoleEntity roleDB = roleRepository.findById(roleEntity.getId())
+                .orElseThrow(() -> new IdInvalidException("Role với id = " + roleEntity.getId() + " không tồn tại."));
 
         // Kiểm tra và cập nhật danh sách permission
         if (roleEntity.getPermissionEntities() != null && !roleEntity.getPermissionEntities().isEmpty()) {
@@ -73,6 +73,7 @@ public class RoleServiceImpl implements RoleService {
     public void deleteRole(Long id) {
         roleRepository.deleteById(id);
     }
+
     @Override
     public ResultPaginationDTO getAllRoles(Specification<RoleEntity> spec, Pageable pageable) {
         Page<RoleEntity> page = roleRepository.findAll(spec, pageable);

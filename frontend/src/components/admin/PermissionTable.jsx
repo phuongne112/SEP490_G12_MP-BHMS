@@ -92,12 +92,6 @@ export default function PermissionTable({
       dataIndex: "module",
     },
     {
-      title: "Updated At",
-      dataIndex: "updatedDate",
-      render: (val) =>
-        val ? dayjs(val).format("YYYY-MM-DD HH:mm:ss") : "—",
-    },
-    {
       title: "Actions",
       render: (_, record) => (
         <Space>

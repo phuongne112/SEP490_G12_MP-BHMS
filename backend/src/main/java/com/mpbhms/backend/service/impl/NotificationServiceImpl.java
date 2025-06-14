@@ -1,12 +1,17 @@
 package com.mpbhms.backend.service.impl;
 
+import com.mpbhms.backend.dto.Meta;
 import com.mpbhms.backend.dto.NotificationDTO;
+import com.mpbhms.backend.dto.ResultPaginationDTO;
 import com.mpbhms.backend.entity.NotificationEntity;
 import com.mpbhms.backend.enums.NotificationStatus;
 import com.mpbhms.backend.repository.NotificationRepository;
 import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.service.NotificationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -74,4 +79,23 @@ public class NotificationServiceImpl implements NotificationService {
     public List<NotificationEntity> getNotifications() {
         return notificationRepository.findAll();
     }
+
+    @Override
+    public ResultPaginationDTO getAllNotifications(Specification<NotificationEntity> spec, Pageable pageable) {
+        Page<NotificationEntity> page = notificationRepository.findAll(spec, pageable);
+
+        Meta meta = new Meta();
+        meta.setPage(page.getNumber() + 1);
+        meta.setPageSize(page.getSize());
+        meta.setPages(page.getTotalPages());
+        meta.setTotal(page.getTotalElements());
+
+        ResultPaginationDTO result = new ResultPaginationDTO();
+        result.setMeta(meta);
+        result.setResult(page.getContent());
+
+        return result;
+    }
+
+
 }

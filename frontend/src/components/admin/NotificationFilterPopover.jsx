@@ -1,11 +1,13 @@
 import React from "react";
-import { Form, Select, DatePicker, Button } from "antd";
+import { Form, Select, DatePicker, Button, Space } from "antd";
 
+const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 export default function NotificationFilterPopover({ onApply }) {
   const [form] = Form.useForm();
-  const handleSubmit = () => {
+
+  const handleApply = () => {
     form.validateFields().then((values) => {
       onApply(values);
     });
@@ -13,31 +15,37 @@ export default function NotificationFilterPopover({ onApply }) {
 
   return (
     <Form form={form} layout="vertical">
-      <div style={{ marginBottom: 8, fontWeight: "bold" }}>Advanced Filter</div>
-      <Form.Item name="dateRange" label="Date Range">
+      <Form.Item label="Status" name="status" initialValue="All">
+        <Select>
+          <Option value="All">All</Option>
+          <Option value="SENT">Sent</Option>
+          <Option value="DELIVERED">Delivered</Option>
+          <Option value="READ">Read</Option>
+        </Select>
+      </Form.Item>
+
+      <Form.Item label="Type" name="type" initialValue="All">
+        <Select>
+          <Option value="All">All</Option>
+          <Option value="RENT_REMINDER">Rent Reminder</Option>
+          <Option value="MAINTENANCE">Maintenance</Option>
+          <Option value="BOOKING_STATUS">Booking Status</Option>
+          <Option value="ANNOUNCEMENT">Announcement</Option>
+          <Option value="PAYMENT_SUCCESS">Payment Success</Option>
+          <Option value="PAYMENT_FAILED">Payment Failed</Option>
+          <Option value="CUSTOM">Custom</Option>
+        </Select>
+      </Form.Item>
+
+      <Form.Item label="Date Range" name="dateRange">
         <RangePicker />
       </Form.Item>
-      <Form.Item name="role" label="Role" initialValue="All">
-        <Select>
-          <Select.Option value="All">All</Select.Option>
-          <Select.Option value="Admin">Admin</Select.Option>
-          <Select.Option value="Renter">Renter</Select.Option>
-          <Select.Option value="Landlord">Landlord</Select.Option>
-        </Select>
+
+      <Form.Item>
+        <Button type="primary" block onClick={handleApply}>
+          Apply Filter
+        </Button>
       </Form.Item>
-      <Form.Item name="event" label="Event" initialValue="All">
-        <Select>
-          <Select.Option value="All">All</Select.Option>
-          <Select.Option value="Login Performed">Login Performed</Select.Option>
-          <Select.Option value="Archiving Request">
-            Archiving Request
-          </Select.Option>
-          <Select.Option value="Policy Executed">Policy Executed</Select.Option>
-        </Select>
-      </Form.Item>
-      <Button type="primary" onClick={handleSubmit} block>
-        Apply Filter
-      </Button>
     </Form>
   );
 }

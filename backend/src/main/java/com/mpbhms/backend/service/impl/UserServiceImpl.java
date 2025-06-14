@@ -83,7 +83,7 @@ public class UserServiceImpl implements UserService {
         UserDTO dto = new UserDTO();
         UserDTO.RoleUser role = new UserDTO.RoleUser();
         if (user.getRole() != null) {
-            role.setRoleId(user.getRole().getRoleId());
+            role.setRoleId(user.getRole().getId());
             role.setRoleName(user.getRole().getRoleName());
             dto.setRole(role);
         }
@@ -121,9 +121,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserEntity Register(UserEntity user) {
         if (user.getRole() != null) {
-            Optional<RoleEntity> optional = roleService.fetchRoleById(user.getRole().getRoleId());
+            Optional<RoleEntity> optional = roleService.fetchRoleById(user.getRole().getId());
             if (optional.isEmpty()) {
-                throw new IdInvalidException("Role với ID " + user.getRole().getRoleId() + " không tồn tại.");
+                throw new IdInvalidException("Role với ID " + user.getRole().getId() + " không tồn tại.");
             }
             user.setRole(optional.get());
         }
@@ -157,8 +157,8 @@ public class UserServiceImpl implements UserService {
             existingUser.setEmail(user.getEmail());
             existingUser.setIsActive(user.getIsActive());
 
-            if (user.getRole() != null && user.getRole().getRoleId() != null) {
-                Optional<RoleEntity> optionalRole = this.roleService.fetchRoleById(user.getRole().getRoleId());
+            if (user.getRole() != null && user.getRole().getId() != null) {
+                Optional<RoleEntity> optionalRole = this.roleService.fetchRoleById(user.getRole().getId());
                 existingUser.setRole(optionalRole.orElse(null));
             }
 
@@ -174,7 +174,7 @@ public class UserServiceImpl implements UserService {
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
         dto.setIsActive(user.getIsActive());
-        dto.setRoleId(user.getRole() != null ? user.getRole().getRoleId() : null);
+        dto.setRoleId(user.getRole() != null ? user.getRole().getId() : null);
         return dto;
     }
             @Override

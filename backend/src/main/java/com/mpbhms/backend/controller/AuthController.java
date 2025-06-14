@@ -170,7 +170,7 @@ public class AuthController {
         public ResponseEntity<CreateUserResponse> signUp(@Valid @RequestBody CreateUserRequest request) {
             // Kiểm tra trùng email
             if (userService.isEmailExist(request.getEmail())) {
-                throw new IdInvalidException("Email " + request.getEmail() + " đã tồn tại, vui lòng sử dụng email khác");
+                throw new IdInvalidException("Email " + request.getEmail() + " is exist, please use another email");
             }
             // Gọi service để tạo
             UserEntity saved = userService.CreateUser(request);

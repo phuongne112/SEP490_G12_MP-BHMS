@@ -33,8 +33,8 @@ public class RoleController {
     @PutMapping()
     public ResponseEntity<RoleEntity> updateRole(@Valid @RequestBody RoleEntity roleEntity) throws IdInvalidException {
         // Check id exist
-        if (this.roleService.getById(roleEntity.getRoleId()) == null){
-            throw new IdInvalidException("Role with id " + roleEntity.getRoleId() + " does not exist");
+        if (this.roleService.getById(roleEntity.getId()) == null){
+            throw new IdInvalidException("Role with id " + roleEntity.getId() + " does not exist");
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(this.roleService.updateRole(roleEntity));
     }

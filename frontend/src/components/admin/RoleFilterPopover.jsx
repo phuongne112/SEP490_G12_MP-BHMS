@@ -22,16 +22,6 @@ export default function RoleFilterPopover({ onApply }) {
           onChange={(dates) => setDateRange(dates)}
         />
       </div>
-
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 13, marginBottom: 4 }}>Status</div>
-        <Select style={{ width: "100%" }} value={status} onChange={setStatus}>
-          <Option value="All">All</Option>
-          <Option value="Active">Active</Option>
-          <Option value="Inactive">Inactive</Option>
-        </Select>
-      </div>
-
       <div style={{ textAlign: "right" }}>
         <Button type="primary" onClick={handleApply}>
           Apply

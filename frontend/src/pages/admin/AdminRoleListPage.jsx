@@ -83,7 +83,6 @@ export default function AdminRoleListPage() {
     setEditingRole(null);
     form.setFieldsValue({
       name: "",
-      status: true,
       permissions: {},
     });
     setIsModalOpen(true);
@@ -99,7 +98,6 @@ export default function AdminRoleListPage() {
 
     form.setFieldsValue({
       name: role.roleName,
-      status: role.active,
       permissions: permissionsMap,
     });
     setIsModalOpen(true);
@@ -107,7 +105,7 @@ export default function AdminRoleListPage() {
 
   const handleDeleteRole = async () => {
     try {
-      await deleteRole(selectedRole.roleId); // 🆕 gọi API xóa
+      await deleteRole(selectedRole.id); // 🆕 gọi API xóa
       message.success("Role deleted successfully");
       setRefreshKey((prev) => prev + 1);
     } catch {
@@ -122,14 +120,13 @@ export default function AdminRoleListPage() {
       // Chuyển trạng thái và permission thành định dạng backend yêu cầu
       const payload = {
         roleName: values.name,
-        active: values.status,
         permissionEntities: Object.entries(values.permissions || {})
           .filter(([_, isChecked]) => isChecked)
           .map(([id]) => ({ id: parseInt(id) })),
       };
 
       if (editingRole) {
-        await updateRole({ roleId: editingRole.roleId, ...payload });
+        await updateRole({ id: editingRole.id, ...payload });
         message.success("Role updated successfully");
         setRefreshKey((prev) => prev + 1);
       } else {
@@ -151,7 +148,7 @@ export default function AdminRoleListPage() {
     <Layout>
       <AdminSidebar />
       <Layout style={{ marginLeft: 220 }}>
-        <Content style={{ padding: "32px" }}>
+        <Content style={{ padding: "32px", backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
           <div
             style={{
               display: "flex",
@@ -160,7 +157,7 @@ export default function AdminRoleListPage() {
               marginBottom: 24,
             }}
           >
-            <PageHeader title="- List Role -" />
+            <PageHeader title="List Role" />
             <Button
               type="primary"
               icon={<PlusOutlined />}
@@ -231,7 +228,7 @@ export default function AdminRoleListPage() {
             centered
           >
             <Form
-              key={editingRole?.roleId || "new"}
+              key={editingRole?.id || "new"}
               form={form}
               layout="vertical"
               onFinish={(values) => {
@@ -257,18 +254,7 @@ export default function AdminRoleListPage() {
                     <Input allowClear />
                   </Form.Item>
                 </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="status"
-                    label="Status"
-                    valuePropName="checked"
-                  >
-                    <Switch
-                      checkedChildren="ACTIVE"
-                      unCheckedChildren="INACTIVE"
-                    />
-                  </Form.Item>
-                </Col>
+              
               </Row>
 
               <Form.Item label="Permissions">

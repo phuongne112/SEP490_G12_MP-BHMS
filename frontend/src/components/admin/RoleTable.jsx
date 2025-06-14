@@ -4,10 +4,17 @@ import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { getAllRoles } from "../../services/roleApi";
 
 // ✅ Tạo filter DSL chuẩn
-const buildFilterDSL = (searchTerm) => {
+const buildFilterDSL = (searchTerm, filters) => {
   const dsl = [];
   if (searchTerm?.trim()) {
     dsl.push(`roleName~'${searchTerm.trim()}'`);
+  }
+    if (filters.dateRange && filters.dateRange.length === 2) {
+    const [start, end] = filters.dateRange;
+    if (start && end) {
+    dsl.push(`createdDate >: '${start.format("YYYY-MM-DD")}'`);
+    dsl.push(`createdDate <: '${end.format("YYYY-MM-DD")}'`);
+    }
   }
   return dsl.join(" and ");
 };
@@ -18,6 +25,7 @@ export default function RoleTable({
   onEditRole,
   onDeleteRole,
   refreshKey,
+  filters
 }) {
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ current: 1, total: 0 });
@@ -26,7 +34,7 @@ export default function RoleTable({
   const fetchData = async (page = 1) => {
     setLoading(true);
     try {
-      const filterDSL = buildFilterDSL(searchTerm);
+      const filterDSL = buildFilterDSL(searchTerm, filters);
       const res = await getAllRoles(page - 1, pageSize, filterDSL);
 
       const result = res.result || [];
@@ -34,8 +42,9 @@ export default function RoleTable({
 
       setData(
         result.map((item, index) => ({
-          key: item.roleId || index + 1 + (page - 1) * pageSize,
+          key: item.id || index + 1 + (page - 1) * pageSize,
           ...item,
+          createdAt: item.createdDate?.slice(0, 10),
         }))
       );
 
@@ -50,7 +59,7 @@ export default function RoleTable({
 
   useEffect(() => {
     fetchData(1);
-  }, [searchTerm, pageSize, refreshKey]);
+  }, [searchTerm,filters.dateRange, pageSize, refreshKey]);
 
   const columns = [
     {
@@ -66,6 +75,10 @@ export default function RoleTable({
       dataIndex: "roleName",
       width: "60%",
       render: (text) => <span style={{ fontWeight: 500 }}>{text}</span>,
+    },
+      {
+      title: "Created At",
+      dataIndex: "createdAt",
     },
     {
       title: "Actions",
@@ -104,7 +117,7 @@ export default function RoleTable({
         onChange: (page) => fetchData(page),
       }}
       bordered
-      rowKey="roleId"
+      rowKey="id"
     />
   );
 }

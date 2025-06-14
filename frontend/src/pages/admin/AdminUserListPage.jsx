@@ -71,7 +71,7 @@ const handleEditUser = (user) => {
               marginBottom: 24,
             }}
           >
-            <PageHeader title="📋 List User Account" />
+            <PageHeader title="List User Account" />
             <Access requiredPermissions={["Create User"]}>
               <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
                 Add User
