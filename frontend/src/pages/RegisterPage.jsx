@@ -38,13 +38,19 @@ export default function Register() {
       phone: form.phone,
       password: form.password,
     };
-    try {
+     try {
       await register(registerData);
       navigate("/login");
     } catch (err) {
-      const errorMsg =
-        err.response?.data?.message || err.message || "Registration failed";
-      setError(errorMsg);
+      const res = err.response?.data;
+
+      if (res?.data && typeof res.data === "object") {
+        const mergedErrors = Object.values(res.data).join(" ");
+        setError(mergedErrors);
+      } else {
+        const fallbackMsg = res?.message || err.message || "Registration failed";
+        setError(fallbackMsg);
+      }
     }
   };
 

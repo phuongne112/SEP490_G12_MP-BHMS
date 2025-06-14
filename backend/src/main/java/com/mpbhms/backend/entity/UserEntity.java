@@ -4,10 +4,12 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.mpbhms.backend.validation.Password;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,19 +20,18 @@ import java.util.List;
 @Setter
 @Table(name = "Users")
 public class UserEntity extends BaseEntity {
-    @Column( nullable = false, unique = true)
+    @NotBlank(message = "Username must not be empty")
+    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+    @Column(nullable = false, unique = true)
     private String username;
 
-    @NotBlank
-    @Pattern(
-            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=!]).{8,}$",
-            message = "Mật khẩu phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt"
-    )
+    @NotBlank(message = "Password must not be empty")
+    @Password
     private String password;
 
-    @Email(message = "Email không hợp lệ")
-    @NotBlank(message = "Email không được để trống")
-    @Column( unique = true)
+    @Email(message = "Invalid email format")
+    @NotBlank(message = "Email must not be empty")
+    @Column(unique = true)
     private String email;
 
     private Boolean isActive = true;
@@ -38,11 +39,9 @@ public class UserEntity extends BaseEntity {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private UserInfoEntity userInfo;
 
-
     @ManyToOne
     @JoinColumn(name = "role_id")
     private RoleEntity role;
-
 
     @Column(columnDefinition = "MEDIUMTEXT")
     private String refreshToken;

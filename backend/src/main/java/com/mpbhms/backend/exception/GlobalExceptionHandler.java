@@ -5,9 +5,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.hibernate.exception.ConstraintViolationException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -39,6 +42,7 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<?>> handleIllegalArgument(IllegalArgumentException ex) {
         ApiResponse<?> response = new ApiResponse<>(
@@ -49,6 +53,7 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
+
     @ExceptionHandler(NullPointerException.class)
     public ResponseEntity<ApiResponse<?>> handleNullPointer(NullPointerException ex) {
         ApiResponse<?> response = new ApiResponse<>(
@@ -58,6 +63,46 @@ public class GlobalExceptionHandler {
                 null
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ApiResponse<?>> handleBusinessException(BusinessException ex) {
+        ApiResponse<?> response = new ApiResponse<>(
+                ex.getStatus().value(),
+                ex.getErrorCode(),
+                ex.getMessage(),
+                null
+        );
+        return ResponseEntity.status(ex.getStatus()).body(response);
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ApiResponse<?>> handleValidationException(ValidationException ex) {
+        ApiResponse<?> response = new ApiResponse<>(
+                ex.getStatus().value(),
+                "VALIDATION_ERROR",
+                ex.getMessage(),
+                ex.getErrors()
+        );
+        return ResponseEntity.status(ex.getStatus()).body(response);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<?>> handleValidationErrors(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+
+        ApiResponse<?> response = new ApiResponse<>(
+                HttpStatus.BAD_REQUEST.value(),
+                "VALIDATION_ERROR",
+                "Validation failed",
+                errors
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     @ExceptionHandler(Exception.class)
@@ -70,26 +115,29 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
-    @ExceptionHandler(IdInvalidException.class)
-    public ResponseEntity<ApiResponse<?>> handleIdInvalid(IdInvalidException ex) {
+
+    @ExceptionHandler({DataIntegrityViolationException.class, ConstraintViolationException.class})
+    public ResponseEntity<ApiResponse<?>> handleDataIntegrityViolation(Exception ex) {
+        String message = "Duplicate entry or constraint violation";
+        Throwable cause = ex.getCause();
+        if (cause != null && cause.getMessage() != null) {
+            String causeMsg = cause.getMessage();
+            if (causeMsg.contains("Duplicate entry")) {
+                if (causeMsg.contains("username")) {
+                    message = "Username already exists";
+                } else if (causeMsg.contains("email")) {
+                    message = "Email already exists";
+                } else {
+                    message = "Duplicate entry";
+                }
+            }
+        }
         ApiResponse<?> response = new ApiResponse<>(
                 HttpStatus.BAD_REQUEST.value(),
-                "IdInvalidException",
-                ex.getMessage(),
+                "DATA_INTEGRITY_ERROR",
+                message,
                 null
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-    }
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationErrors(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
-
-        ex.getBindingResult().getFieldErrors().forEach(error -> {
-            String field = error.getField(); // ví dụ: password
-            String message = error.getDefaultMessage(); // thông báo cụ thể
-            errors.put(field, message);
-        });
-
-        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
     }
 }

@@ -23,4 +23,5 @@ public interface UserService {
     void resetPassword(String token, String newPassword);
     UserEntity handleGetUserByUsername(String username);
     void updateUserStatus(Long userId, boolean isActive);
+    boolean isUsernameExist(String username);
 }

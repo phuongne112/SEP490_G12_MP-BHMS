@@ -1,6 +1,7 @@
 package com.mpbhms.backend.controller;
 
 import com.mpbhms.backend.dto.*;
+import com.mpbhms.backend.entity.ApiResponse;
 import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.response.ChangePasswordDTOResponse;
 import com.mpbhms.backend.response.LoginDTOResponse;
@@ -188,8 +189,23 @@ public class AuthController {
 
         @PostMapping("/request-reset")
         public ResponseEntity<?> requestReset(@RequestBody ResetRequestDTO request) {
+            if (!userService.isEmailExist(request.getEmail())) {
+                ApiResponse<Object> response = new ApiResponse<>(
+                    400,
+                    "EMAIL_NOT_FOUND",
+                    "Email not found in the system.",
+                    null
+                );
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
             userService.sendResetPasswordToken(request.getEmail());
-            return ResponseEntity.ok("Reset link sent if email is registered.");
+            ApiResponse<Object> response = new ApiResponse<>(
+                200,
+                "",
+                "Reset link sent if email is registered.",
+                null
+            );
+            return ResponseEntity.ok(response);
         }
 
         @PostMapping("/reset-password")

@@ -1,27 +1,28 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { login } from "../services/authService";
-import SystemLogo from "../components/SystemLogo";
+import { useNavigate, Link } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
-import { Link } from "react-router-dom";
-import { useDispatch } from "react-redux"; // ✅ thêm dòng này
-import { setUser } from "../store/accountSlice"; // ✅ thêm dòng này
+
+import { login } from "../services/authService";
+import { setUser } from "../store/accountSlice";
+import SystemLogo from "../components/SystemLogo";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState({});
+
   const navigate = useNavigate();
-  const dispatch = useDispatch(); // ✅ khai báo
+  const dispatch = useDispatch();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError(null);
+    setError({});
     try {
       const user = await login(email, password);
 
-      // ✅ Lưu user vào Redux + localStorage
+      // Lưu user vào Redux + localStorage
       dispatch(
         setUser({
           id: user.id,
@@ -46,15 +47,18 @@ export default function Login() {
         case "RENTER":
           navigate("/room");
           break;
-        case "USER":
         default:
           navigate("/home");
           break;
       }
     } catch (err) {
-      const errorMsg =
-        err.response?.data?.message || err.message || "Login failed";
-      setError(errorMsg);
+      const response = err.response?.data;
+      if (response?.data && typeof response.data === "object") {
+        setError(response.data);
+      } else {
+        const fallbackMsg = response?.message || err.message || "Login failed";
+        setError({ general: fallbackMsg });
+      }
     }
   };
 
@@ -102,8 +106,11 @@ export default function Login() {
           >
             <SystemLogo />
           </div>
+
           <div style={{ flex: 1, padding: 40, backgroundColor: "#f8f8f8" }}>
-            {error && <p style={{ color: "red" }}>{error}</p>}
+            {error.general && (
+              <p style={{ color: "red", marginBottom: 16 }}>{error.general}</p>
+            )}
             <form onSubmit={handleLogin}>
               <div style={{ marginBottom: 16 }}>
                 <label>Email</label>
@@ -120,36 +127,45 @@ export default function Login() {
                   }}
                   required
                 />
+                {error.email && (
+                  <p style={{ color: "red", marginTop: 4 }}>{error.email}</p>
+                )}
               </div>
-              <div style={{ position: "relative", marginBottom: 16 }}>
-                <label>Password</label>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  style={{
-                    width: "100%",
-                    padding: 10,
-                    borderRadius: 6,
-                    border: "1px solid #ccc",
-                  }}
-                  required
-                />
-                <span
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  style={{
-                    position: "absolute",
-                    right: 0,
-                    top: 30,
-                    cursor: "pointer",
-                    fontSize: 16,
-                    color: "#666",
-                  }}
-                >
-                  {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
-                </span>
-              </div>
+
+             <div style={{ position: "relative", marginBottom: 16 }}>
+              <label>Password</label>
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                style={{
+                  width: "100%",
+                  padding: "10px 36px 10px 10px", // 👈 chừa khoảng phải cho icon
+                  borderRadius: 6,
+                  border: "1px solid #ccc",
+                }}
+                required
+              />
+              {error.password && (
+                <p style={{ color: "red", marginTop: 4 }}>{error.password}</p>
+              )}
+              <span
+                onClick={() => setShowPassword((prev) => !prev)}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "70%",
+                  transform: "translateY(-50%)",
+                  cursor: "pointer",
+                  fontSize: 18,
+                  color: "#666",
+                }}
+              >
+                {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
+              </span>
+            </div>
+
               <button
                 type="submit"
                 style={{
@@ -166,11 +182,9 @@ export default function Login() {
                 Sign In
               </button>
             </form>
+
             <div style={{ marginTop: 12, textAlign: "left" }}>
-              <Link
-                to="/forgotPassword"
-                style={{ color: "#0A2342", fontSize: 16 }}
-              >
+              <Link to="/forgotPassword" style={{ color: "#0A2342", fontSize: 16 }}>
                 Forgot password?
               </Link>
             </div>

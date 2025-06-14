@@ -135,21 +135,33 @@ const handleEditUser = (user) => {
             <Form
               layout="vertical"
               form={createForm}
-              onFinish={async (values) => {
-                try {
-                  const payload = {
-                    ...values,
-                    roleId: 4 // giả sử role Renter mặc định
-                  };
-                  await createUser(payload);
-                  message.success("User created successfully");
-                  setIsCreateModalOpen(false);
-                  createForm.resetFields();
-                  setRefreshKey((prev) => prev + 1);
-                } catch (error) {
+             onFinish={async (values) => {
+              try {
+                const payload = {
+                  ...values,
+                  roleId: 4,
+                };
+                await createUser(payload);
+                message.success("User created successfully");
+                setIsCreateModalOpen(false);
+                createForm.resetFields();
+                setRefreshKey((prev) => prev + 1);
+              } catch (error) {
+                const res = error.response?.data;
+
+                if (res?.data && typeof res.data === "object") {
+                  // ✅ set lỗi từng trường
+                  const fieldErrors = Object.entries(res.data).map(([field, message]) => ({
+                    name: field,
+                    errors: [message],
+                  }));
+                  createForm.setFields(fieldErrors);
+                } else {
                   message.error("Failed to create user");
                 }
-              }}
+              }
+            }}
+
             >
               <Row gutter={16}>
                 <Col span={12}>

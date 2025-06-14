@@ -8,23 +8,33 @@ export default function ForgotPasswordPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
+
     if (!email.includes("@")) {
+      setLoading(false);
       return setError("Please enter a valid email address.");
     }
+
     try {
-      await sendResetEmail(email); //CallAPI
-      console.log("Sending reset link to: ", email);
-      navigate("/login");
+      await sendResetEmail(email);
+      setSuccess(true); // Hiện thông báo
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000); // Chờ 2 giây rồi chuyển hướng
     } catch (err) {
       const errorMsg =
         err.response?.data?.message ||
         err.message ||
         "Failed to send reset link.";
       setError(errorMsg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -78,6 +88,22 @@ export default function ForgotPasswordPage() {
               </div>
             )}
 
+            {success && (
+              <div
+                style={{
+                  marginTop: 16,
+                  padding: "12px 20px",
+                  backgroundColor: "#e6ffe6",
+                  color: "#1a7f1a",
+                  borderRadius: 6,
+                  fontWeight: "bold",
+                  textAlign: "center",
+                }}
+              >
+                ✅ Reset link has been sent to your email.
+              </div>
+            )}
+
             <div
               style={{
                 display: "flex",
@@ -96,12 +122,15 @@ export default function ForgotPasswordPage() {
                   cursor: "pointer",
                   fontWeight: "bold",
                   color: "#fff",
+                  padding: "6px 16px",
+                  borderRadius: 6,
                 }}
               >
                 Cancel
               </button>
               <button
                 type="submit"
+                disabled={loading}
                 style={{
                   padding: "6px 16px",
                   backgroundColor: "green",
@@ -111,23 +140,29 @@ export default function ForgotPasswordPage() {
                   fontSize: 14,
                   fontWeight: "bold",
                   cursor: "pointer",
+                  opacity: loading ? 0.7 : 1,
                 }}
               >
-                Send
+                {loading ? "Sending..." : "Send"}
               </button>
             </div>
           </form>
 
-          <div
-            style={{
-              boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
-              width: "80%", // ✅ chiếm 80 chiều ngang div cha
-              textAlign: "center",
-              marginTop: 24,
-            }}
-          >
-            <SystemLogo />
-          </div>
+              <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: 16,
+            borderRadius: 12,
+            backgroundColor: "#fff",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+            marginTop: 32,
+            width: "100%",
+          }}
+        >
+          <SystemLogo />
+        </div>
         </div>
       </div>
     </div>
