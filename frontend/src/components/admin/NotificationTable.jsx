@@ -1,28 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { Table, Button, Space, Tag, message } from "antd";
+import { Table, Button, Space, Tag, Alert } from "antd";
 import { getAllNotifications } from "../../services/notificationApi";
 
-// Build filter params from UI
 // Hàm tạo filter DSL cho notification
 const buildFilterDSL = (searchTerm, filters) => {
   const dsl = [];
 
-  // Tìm theo tiêu đề
   if (searchTerm?.trim()) {
     dsl.push(`title~'${searchTerm.trim()}'`);
   }
 
-  // Filter theo type (nếu không phải "All")
   if (filters.type && filters.type !== "All") {
     dsl.push(`type = '${filters.type}'`);
   }
 
-  // Filter theo status (nếu không phải "All")
   if (filters.status && filters.status !== "All") {
     dsl.push(`status = '${filters.status}'`);
   }
 
-  // Filter theo khoảng ngày tạo
   if (filters.dateRange?.length === 2) {
     const [start, end] = filters.dateRange;
     if (start && end) {
@@ -33,7 +28,6 @@ const buildFilterDSL = (searchTerm, filters) => {
 
   return dsl.join(" and ");
 };
-
 
 export default function NotificationTable({
   pageSize,
@@ -46,34 +40,35 @@ export default function NotificationTable({
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ current: 1, total: 0 });
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null); // ✅ Lỗi bảng
 
-const fetchData = async (page = 1) => {
-  setLoading(true);
-  try {
-    const filterDSL = buildFilterDSL(searchTerm, filters);
-    const res = await getAllNotifications(page - 1, pageSize, filterDSL);
+  const fetchData = async (page = 1) => {
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      const filterDSL = buildFilterDSL(searchTerm, filters);
+      const res = await getAllNotifications(page - 1, pageSize, filterDSL);
 
-    const result = res.result || [];
-    const total = res.meta?.total || 0;
+      const result = res.result || [];
+      const total = res.meta?.total || 0;
 
-    setData(
-      result.map((item, index) => ({
-        key: item.id || index + 1 + (page - 1) * pageSize,
-        ...item,
-        createdAt: item.createdDate?.slice(0, 10),
-        recipient: item.recipient?.fullName || item.recipient?.email || "Unknown",
-      }))
-    );
+      setData(
+        result.map((item, index) => ({
+          key: item.id || index + 1 + (page - 1) * pageSize,
+          ...item,
+          createdAt: item.createdDate?.slice(0, 10),
+          recipient: item.recipient?.fullName || item.recipient?.email || "Unknown",
+        }))
+      );
 
-    setPagination({ current: page, total });
-  } catch (err) {
-    message.error("Failed to load notification data");
-    console.error("Notification fetch error:", err);
-  } finally {
-    setLoading(false);
-  }
-};
-
+      setPagination({ current: page, total });
+    } catch (err) {
+      console.error("Notification fetch error:", err);
+      setErrorMsg("❌ Failed to load notification data. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchData(1);
@@ -92,7 +87,13 @@ const fetchData = async (page = 1) => {
       title: "Status",
       dataIndex: "status",
       render: (status) => (
-        <Tag color={status === "READ" ? "green" : status === "DELIVERED" ? "orange" : "blue"}>
+        <Tag color={
+          status === "READ"
+            ? "green"
+            : status === "DELIVERED"
+            ? "orange"
+            : "blue"
+        }>
           {status}
         </Tag>
       ),
@@ -122,17 +123,32 @@ const fetchData = async (page = 1) => {
   ];
 
   return (
-    <Table
-      columns={columns}
-      dataSource={data}
-      loading={loading}
-      pagination={{
-        current: pagination.current,
-        total: pagination.total,
-        pageSize,
-        onChange: (page) => fetchData(page),
-      }}
-      bordered
-    />
+    <>
+      {/* ✅ Hiển thị lỗi nếu có */}
+      {errorMsg && (
+        <Alert
+          message={errorMsg}
+          type="error"
+          showIcon
+          closable
+          onClose={() => setErrorMsg(null)}
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
+      <Table
+        columns={columns}
+        dataSource={data}
+        loading={loading}
+        pagination={{
+          current: pagination.current,
+          total: pagination.total,
+          pageSize,
+          onChange: (page) => fetchData(page),
+        }}
+        bordered
+        rowKey="id"
+      />
+    </>
   );
 }

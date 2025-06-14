@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Layout,
   Button,
@@ -11,6 +11,7 @@ import {
   Space,
   Popover,
   message,
+  Alert,
 } from "antd";
 import {
   PlusOutlined,
@@ -47,6 +48,7 @@ export default function AdminPermissionListPage() {
 
   const [selectedPermission, setSelectedPermission] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteMessage, setDeleteMessage] = useState(null);
 
   const handleApplyFilter = (values) => {
     setFilters(values);
@@ -107,7 +109,7 @@ export default function AdminPermissionListPage() {
               errors: [msg],
             });
           } else {
-            setFormError(msg); // lỗi chung như "permission"
+            setFormError(msg);
           }
         });
 
@@ -121,20 +123,29 @@ export default function AdminPermissionListPage() {
   const handleDeletePermission = (permission) => {
     setSelectedPermission(permission);
     setIsDeleteModalOpen(true);
+    setDeleteMessage(null);
   };
 
   const handleConfirmDelete = async () => {
     if (!selectedPermission) return;
     try {
       await deletePermission(selectedPermission.id);
-      message.success("Permission deleted successfully!");
+      setDeleteMessage("✅ Permission deleted successfully");
       setRefreshKey((prev) => prev + 1);
     } catch (err) {
-      message.error("Failed to delete permission");
+      setDeleteMessage("❌ Failed to delete permission");
     }
     setIsDeleteModalOpen(false);
     setSelectedPermission(null);
   };
+
+  // ✅ Tự động ẩn thông báo sau 3 giây
+  useEffect(() => {
+    if (deleteMessage) {
+      const timer = setTimeout(() => setDeleteMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [deleteMessage]);
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -203,6 +214,18 @@ export default function AdminPermissionListPage() {
               </div>
             </Space>
           </div>
+
+          {/* ✅ Alert khi xóa */}
+          {deleteMessage && (
+            <Alert
+              message={deleteMessage}
+              type={deleteMessage.includes("✅") ? "info" : "error"}
+              showIcon
+              closable
+              onClose={() => setDeleteMessage(null)}
+              style={{ marginBottom: 16 }}
+            />
+          )}
 
           <PermissionTable
             pageSize={pageSize}
@@ -287,41 +310,37 @@ export default function AdminPermissionListPage() {
                 </Col>
               </Row>
 
-              {/* Hiển thị lỗi permission ở đây */}
-           <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start", // để lỗi có thể xuống dòng
-              marginTop: 16,
-              gap: 16, // thêm khoảng cách giữa lỗi và nút
-            }}
-          >
-            {/* Lỗi nằm bên trái, không đè nút */}
-            <div
-              style={{
-                color: formError ? "red" : "transparent",
-                fontSize: 13,
-                minHeight: 20,
-                maxWidth: "75%", // giới hạn bề ngang lỗi
-                whiteSpace: "normal",
-                flex: 1,
-              }}
-            >
-              {formError || "\u00A0"}
-            </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  marginTop: 16,
+                  gap: 16,
+                }}
+              >
+                <div
+                  style={{
+                    color: formError ? "red" : "transparent",
+                    fontSize: 13,
+                    minHeight: 20,
+                    maxWidth: "75%",
+                    whiteSpace: "normal",
+                    flex: 1,
+                  }}
+                >
+                  {formError || "\u00A0"}
+                </div>
 
-            {/* Nút bên phải */}
-            <div style={{ whiteSpace: "nowrap" }}>
-              <Button onClick={() => setIsModalOpen(false)} style={{ marginRight: 8 }}>
-                Cancel
-              </Button>
-              <Button type="primary" htmlType="submit">
-                {editingPermission ? "Update" : "Create"}
-              </Button>
-            </div>
-          </div>
-
+                <div style={{ whiteSpace: "nowrap" }}>
+                  <Button onClick={() => setIsModalOpen(false)} style={{ marginRight: 8 }}>
+                    Cancel
+                  </Button>
+                  <Button type="primary" htmlType="submit">
+                    {editingPermission ? "Update" : "Create"}
+                  </Button>
+                </div>
+              </div>
             </Form>
           </Modal>
 

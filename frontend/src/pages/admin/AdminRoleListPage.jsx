@@ -46,6 +46,7 @@ export default function AdminRoleListPage() {
   const [form] = Form.useForm();
   const [formError, setFormError] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
+  const [deleteMessage, setDeleteMessage] = useState(null);
 
   useEffect(() => {
     const fetchPermissions = async () => {
@@ -72,6 +73,20 @@ export default function AdminRoleListPage() {
     fetchPermissions();
   }, []);
 
+  useEffect(() => {
+    if (deleteMessage) {
+      const timer = setTimeout(() => setDeleteMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [deleteMessage]);
+
+  useEffect(() => {
+    if (deleteError) {
+      const timer = setTimeout(() => setDeleteError(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [deleteError]);
+
   const handleApplyFilter = (values) => {
     setFilters(values);
   };
@@ -92,22 +107,21 @@ export default function AdminRoleListPage() {
     setIsModalOpen(true);
   };
 
-const handleDeleteRole = async () => {
-  try {
-    await deleteRole(selectedRole.id);
-    message.success("Role deleted successfully"); // ✅ dòng này đã đúng
-    setRefreshKey((prev) => prev + 1);
-    setDeleteError(null);
-  } catch (err) {
-    const msg =
-      err?.response?.data?.message ||
-      "Failed to delete role due to constraint violation";
-    setDeleteError(msg);
-  } finally {
-    setIsDeleteModalOpen(false);
-  }
-};
-
+  const handleDeleteRole = async () => {
+    if (!selectedRole) return;
+    try {
+      await deleteRole(selectedRole.id);
+      setDeleteMessage("✅ Role deleted successfully");
+      setDeleteError(null);
+      setRefreshKey((prev) => prev + 1);
+    } catch (err) {
+      setDeleteError("❌ Failed to delete role due to constraint violation");
+      setDeleteMessage(null);
+    } finally {
+      setIsDeleteModalOpen(false);
+      setSelectedRole(null);
+    }
+  };
 
   const handleSubmitRole = async (values) => {
     try {
@@ -152,7 +166,9 @@ const handleDeleteRole = async () => {
         <Content style={{ padding: 32, backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
             <PageHeader title="List Role" />
-            <Button type="primary" icon={<PlusOutlined />} onClick={openAddModal}>Add new role</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={openAddModal}>
+              Add new role
+            </Button>
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap" }}>
@@ -166,11 +182,23 @@ const handleDeleteRole = async () => {
                 trigger="click"
                 placement="bottomRight"
               >
-                <Button icon={<FilterOutlined />} style={{ backgroundColor: "#40a9ff", color: "white" }}>Filter</Button>
+                <Button icon={<FilterOutlined />} style={{ backgroundColor: "#40a9ff", color: "white" }}>
+                  Filter
+                </Button>
               </Popover>
             </Space>
           </div>
 
+          {deleteMessage && (
+            <Alert
+              message={deleteMessage}
+              type="info"
+              showIcon
+              closable
+              onClose={() => setDeleteMessage(null)}
+              style={{ marginBottom: 16 }}
+            />
+          )}
           {deleteError && (
             <Alert
               message={deleteError}
@@ -188,13 +216,21 @@ const handleDeleteRole = async () => {
             filters={filters}
             refreshKey={refreshKey}
             onEditRole={handleEditRole}
-            onDeleteRole={(role) => { setSelectedRole(role); setIsDeleteModalOpen(true); }}
+            onDeleteRole={(role) => {
+              setSelectedRole(role);
+              setIsDeleteModalOpen(true);
+            }}
           />
 
           <Modal
             title={editingRole ? "Update Role" : "Add New Role"}
             open={isModalOpen}
-            onCancel={() => { setIsModalOpen(false); setEditingRole(null); form.resetFields(); setFormError(null); }}
+            onCancel={() => {
+              setIsModalOpen(false);
+              setEditingRole(null);
+              form.resetFields();
+              setFormError(null);
+            }}
             footer={null}
             width={700}
             centered
@@ -228,7 +264,13 @@ const handleDeleteRole = async () => {
                               <div style={{ display: "flex", flexDirection: "column" }}>
                                 <span>{perm.name}</span>
                                 <span>
-                                  <Tag color={perm.method === "POST" ? "green" : perm.method === "PUT" ? "orange" : perm.method === "DELETE" ? "red" : "blue"}>{perm.method}</Tag>
+                                  <Tag color={
+                                    perm.method === "POST" ? "green" :
+                                      perm.method === "PUT" ? "orange" :
+                                        perm.method === "DELETE" ? "red" : "blue"
+                                  }>
+                                    {perm.method}
+                                  </Tag>
                                   <span style={{ color: "#999" }}>{perm.apiPath || "N/A"}</span>
                                 </span>
                               </div>
@@ -245,10 +287,21 @@ const handleDeleteRole = async () => {
               </Form.Item>
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: 16, gap: 16 }}>
-                <div style={{ color: formError ? "red" : "transparent", fontSize: 13, minHeight: 20, maxWidth: "75%", whiteSpace: "normal", flex: 1 }}>{formError || "\u00A0"}</div>
+                <div style={{ color: formError ? "red" : "transparent", fontSize: 13, minHeight: 20, maxWidth: "75%", whiteSpace: "normal", flex: 1 }}>
+                  {formError || "\u00A0"}
+                </div>
                 <div style={{ whiteSpace: "nowrap" }}>
-                  <Button onClick={() => { setIsModalOpen(false); setEditingRole(null); form.resetFields(); setFormError(null); }} style={{ marginRight: 8 }}>Cancel</Button>
-                  <Button type="primary" htmlType="submit">{editingRole ? "Update" : "Save"}</Button>
+                  <Button onClick={() => {
+                    setIsModalOpen(false);
+                    setEditingRole(null);
+                    form.resetFields();
+                    setFormError(null);
+                  }} style={{ marginRight: 8 }}>
+                    Cancel
+                  </Button>
+                  <Button type="primary" htmlType="submit">
+                    {editingRole ? "Update" : "Save"}
+                  </Button>
                 </div>
               </div>
             </Form>
