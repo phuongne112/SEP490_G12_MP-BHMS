@@ -13,6 +13,7 @@ import {
   DatePicker,
   Badge,
   message,
+  Alert,
 } from "antd";
 import { FilterOutlined, PlusOutlined } from "@ant-design/icons";
 import { FaBell } from "react-icons/fa";
@@ -50,6 +51,8 @@ export default function AdminNotificationPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [sendMode, setSendMode] = useState("role");
   const [userList, setUserList] = useState([]);
+  const [deleteMessage, setDeleteMessage] = useState(null); // ✅ Thông báo thành công
+  const [deleteError, setDeleteError] = useState(null);     // ✅ Thông báo lỗi
 
   useEffect(() => {
     if (isCreateModalOpen) {
@@ -62,6 +65,20 @@ export default function AdminNotificationPage() {
         });
     }
   }, [isCreateModalOpen]);
+
+  useEffect(() => {
+    if (deleteMessage) {
+      const timer = setTimeout(() => setDeleteMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [deleteMessage]);
+
+  useEffect(() => {
+    if (deleteError) {
+      const timer = setTimeout(() => setDeleteError(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [deleteError]);
 
   const handleApplyFilter = (values) => {
     setFilters({
@@ -148,6 +165,28 @@ export default function AdminNotificationPage() {
               </Popover>
             </Space>
           </div>
+
+          {/* ✅ Alert xóa thành công / thất bại */}
+          {deleteMessage && (
+            <Alert
+              message={deleteMessage}
+              type="info"
+              showIcon
+              closable
+              onClose={() => setDeleteMessage(null)}
+              style={{ marginBottom: 16 }}
+            />
+          )}
+          {deleteError && (
+            <Alert
+              message={deleteError}
+              type="error"
+              showIcon
+              closable
+              onClose={() => setDeleteError(null)}
+              style={{ marginBottom: 16 }}
+            />
+          )}
 
           <NotificationTable
             pageSize={pageSize}
@@ -323,13 +362,16 @@ export default function AdminNotificationPage() {
             onOk={async () => {
               try {
                 await deleteNotification(selectedNotification.id);
-                message.success("Notification deleted successfully");
-                setIsDeleteModalOpen(false);
-                setSelectedNotification(null);
+                setDeleteMessage("✅ Notification deleted successfully");
+                setDeleteError(null);
                 setRefreshKey((prev) => prev + 1);
               } catch (error) {
                 console.error("Delete failed:", error);
-                message.error("Failed to delete notification");
+                setDeleteError("❌ Failed to delete notification");
+                setDeleteMessage(null);
+              } finally {
+                setIsDeleteModalOpen(false);
+                setSelectedNotification(null);
               }
             }}
             onCancel={() => setIsDeleteModalOpen(false)}
