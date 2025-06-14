@@ -29,7 +29,6 @@ public class UserInfoEntity {
     @Size(min = 2, max = 100, message = "Full name must be between 2 and 100 characters")
     private String fullName;
 
-    @Pattern(regexp = "^\\d{10}$", message = "Phone number must be 10 digits")
     private String phoneNumber;
 
     @Pattern(regexp = "^\\d{10}$", message = "Phone number must be 10 digits")

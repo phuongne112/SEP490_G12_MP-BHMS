@@ -1,6 +1,7 @@
 package com.mpbhms.backend.exception;
 
 import com.mpbhms.backend.entity.ApiResponse;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -9,7 +10,6 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.hibernate.exception.ConstraintViolationException;
 
 import java.util.HashMap;
@@ -18,75 +18,49 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private ResponseEntity<ApiResponse<?>> buildResponse(HttpStatus status, String errorCode, String message, Object data) {
+        ApiResponse<?> response = new ApiResponse<>(
+                status.value(),
+                errorCode,
+                message,
+                data
+        );
+        return ResponseEntity.status(status).body(response);
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<?>> handleResourceNotFound(ResourceNotFoundException ex) {
-        ApiResponse<?> response = new ApiResponse<>(
-                HttpStatus.NOT_FOUND.value(),
-                "ResourceNotFoundException",
-                ex.getMessage(),
-                null
-        );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        return buildResponse(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", ex.getMessage(), null);
     }
 
     @ExceptionHandler({
             UsernameNotFoundException.class,
             BadCredentialsException.class
     })
-    public ResponseEntity<Object> handleAuthenticationException(Exception ex) {
-        ApiResponse<Object> response = new ApiResponse<>(
-                HttpStatus.UNAUTHORIZED.value(),
-                ex.getMessage(),
-                "Invalid username or password",
-                null
-        );
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    public ResponseEntity<ApiResponse<?>> handleAuthenticationException(Exception ex) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, "AUTH_FAILED", "Invalid username or password", null);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<?>> handleIllegalArgument(IllegalArgumentException ex) {
-        ApiResponse<?> response = new ApiResponse<>(
-                HttpStatus.BAD_REQUEST.value(),
-                "IllegalArgumentException",
-                ex.getMessage(),
-                null
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        return buildResponse(HttpStatus.BAD_REQUEST, "ILLEGAL_ARGUMENT", ex.getMessage(), null);
     }
 
     @ExceptionHandler(NullPointerException.class)
     public ResponseEntity<ApiResponse<?>> handleNullPointer(NullPointerException ex) {
-        ApiResponse<?> response = new ApiResponse<>(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "NullPointerException",
-                ex.getMessage(),
-                null
-        );
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "NULL_POINTER", ex.getMessage(), null);
     }
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<?>> handleBusinessException(BusinessException ex) {
-        ApiResponse<?> response = new ApiResponse<>(
-                ex.getStatus().value(),
-                ex.getErrorCode(),
-                ex.getMessage(),
-                ex.getData() // ✅ trả về data nếu có
-        );
-        return ResponseEntity.status(ex.getStatus()).body(response);
+        return buildResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), ex.getData());
     }
-
 
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ApiResponse<?>> handleValidationException(ValidationException ex) {
-        ApiResponse<?> response = new ApiResponse<>(
-                ex.getStatus().value(),
-                "VALIDATION_ERROR",
-                ex.getMessage(),
-                ex.getErrors()
-        );
-        return ResponseEntity.status(ex.getStatus()).body(response);
+        return buildResponse(ex.getStatus(), "VALIDATION_ERROR", ex.getMessage(), ex.getErrors());
     }
+
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<?>> handleValidationErrors(MethodArgumentNotValidException ex) {
@@ -97,24 +71,7 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
-        ApiResponse<?> response = new ApiResponse<>(
-                HttpStatus.BAD_REQUEST.value(),
-                "VALIDATION_ERROR",
-                "Validation failed",
-                errors
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<?>> handleGlobalException(Exception ex) {
-        ApiResponse<?> response = new ApiResponse<>(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                ex.getClass().getSimpleName(),
-                ex.getMessage(),
-                null
-        );
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Validation failed", errors);
     }
 
     @ExceptionHandler({DataIntegrityViolationException.class, ConstraintViolationException.class})
@@ -133,12 +90,11 @@ public class GlobalExceptionHandler {
                 }
             }
         }
-        ApiResponse<?> response = new ApiResponse<>(
-                HttpStatus.BAD_REQUEST.value(),
-                "DATA_INTEGRITY_ERROR",
-                message,
-                null
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        return buildResponse(HttpStatus.BAD_REQUEST, "DATA_INTEGRITY_ERROR", message, null);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<?>> handleGlobalException(Exception ex) {
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getClass().getSimpleName(), ex.getMessage(), null);
     }
 }

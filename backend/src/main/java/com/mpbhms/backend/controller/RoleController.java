@@ -20,33 +20,21 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RoleController {
     private final RoleService roleService;
-    @PostMapping()
-    public ResponseEntity<RoleEntity> createRole(@Valid @RequestBody RoleEntity roleEntity) throws IdInvalidException {
-        // Check name exist
-        if (roleService.existByName(roleEntity.getRoleName())) {
-            throw new IdInvalidException("Role with name = \"" + roleEntity.getRoleName() + "\"not exist.");
-        }
-
+    @PostMapping
+    public ResponseEntity<RoleEntity> createRole(@Valid @RequestBody RoleEntity roleEntity) {
         RoleEntity savedRole = roleService.createRole(roleEntity);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedRole);
     }
-    @PutMapping()
-    public ResponseEntity<RoleEntity> updateRole(@Valid @RequestBody RoleEntity roleEntity) throws IdInvalidException {
-        // Check id exist
-        if (this.roleService.getById(roleEntity.getId()) == null){
-            throw new IdInvalidException("Role with id " + roleEntity.getId() + " does not exist");
-        }
-        return ResponseEntity.status(HttpStatus.CREATED).body(this.roleService.updateRole(roleEntity));
+    @PutMapping
+    public ResponseEntity<RoleEntity> updateRole(@Valid @RequestBody RoleEntity roleEntity) {
+        RoleEntity updatedRole = roleService.updateRole(roleEntity);
+        return ResponseEntity.ok(updatedRole);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteRole(@PathVariable("id") long id) throws IdInvalidException {
-        //Check exist with id
-        if (this.roleService.getById(id) == null){
-            throw new IdInvalidException("Role with id " + id + " does not exist");
-        }
-        this.roleService.deleteRole(id);
-        return ResponseEntity.ok().body(null);
+    public ResponseEntity<Void> deleteRole(@PathVariable("id") long id) {
+        roleService.deleteRole(id);
+        return ResponseEntity.ok().build(); // dùng build() gọn hơn body(null)
     }
     @GetMapping
     public ResponseEntity<ResultPaginationDTO> getAllRoles(

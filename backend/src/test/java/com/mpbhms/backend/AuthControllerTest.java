@@ -84,7 +84,7 @@ class AuthControllerTest {
         loginDTO.setPassword("password123");
 
         RoleEntity role = new RoleEntity();
-        role.setRoleId(1L);
+        role.setId(1L);
         role.setRoleName("RENTER");
 
         UserEntity mockUser = new UserEntity();
@@ -151,7 +151,7 @@ class AuthControllerTest {
         // Arrange
         String userEmail = "test@example.com";
         RoleEntity role = new RoleEntity();
-        role.setRoleId(1L);
+        role.setId(1L);
         role.setRoleName("RENTER");
 
         UserEntity mockUser = new UserEntity();
@@ -197,7 +197,7 @@ class AuthControllerTest {
         String userEmail = "test@example.com";
         String refreshToken = "valid.refresh.token";
         RoleEntity role = new RoleEntity();
-        role.setRoleId(1L);
+        role.setId(1L);
         role.setRoleName("RENTER");
 
         UserEntity mockUser = new UserEntity();
@@ -281,7 +281,7 @@ class AuthControllerTest {
         savedUser.setUsername(request.getUsername());
 
         when(userService.isEmailExist(request.getEmail())).thenReturn(false);
-        when(userService.CreateUser(request)).thenReturn(savedUser);
+        when(userService.signUp(request)).thenReturn(savedUser);
         when(userService.convertToCreateUserDTO(savedUser)).thenReturn(new CreateUserResponse());
 
         // Act

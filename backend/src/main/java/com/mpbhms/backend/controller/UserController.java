@@ -31,21 +31,12 @@ public class UserController {
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping()
-    public ResponseEntity<CreateUserResponse> createNewUser(
-            @Valid @RequestBody CreateUserRequest userEntity
-    ) {
-        if (userService.isEmailExist(userEntity.getEmail())) {
-            throw new BusinessException("Email '" + userEntity.getEmail() + "' already exists, please use another email");
-        }
-
-        if (userService.isUsernameExist(userEntity.getUsername())) {
-            throw new BusinessException("Username '" + userEntity.getUsername() + "' already exists, please choose another username");
-        }
-
-        UserEntity saved = userService.CreateUser(userEntity);
-        return ResponseEntity.status(HttpStatus.CREATED).body(userService.convertToCreateUserDTO(saved));
+    @PostMapping
+    public ResponseEntity<CreateUserResponse> createNewUser(@Valid @RequestBody CreateUserRequest request) {
+        UserEntity savedUser = userService.createUser(request); // đã bao gồm logic kiểm tra
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.convertToCreateUserDTO(savedUser));
     }
+
 
     @PutMapping
     public ResponseEntity<UpdateUserDTO> updateUser(@Valid @RequestBody UserEntity user) {

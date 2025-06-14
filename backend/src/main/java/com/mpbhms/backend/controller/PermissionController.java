@@ -20,41 +20,23 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PermissionController {
     private final PermissionService permissionService;
-     @PostMapping
-    public ResponseEntity<PermissionEntity> create(@RequestBody PermissionEntity permission) throws IdInvalidException {
-          //Check exist
-         if (this.permissionService.isPermission(permission)){
-             throw new IdInvalidException("Permission already exists");
-         }
-          //Create New
-         return ResponseEntity.status(HttpStatus.CREATED).body(this.permissionService.addPermission(permission));
-     }
-     @PutMapping()
-    public ResponseEntity<PermissionEntity> update(@RequestBody PermissionEntity permission) throws IdInvalidException {
-         //Check exist with id
-         if (this.permissionService.getById(permission.getId()) == null){
-             throw new IdInvalidException("Permission with id " + permission.getId() + " does not exist");
-         }
-         //Check exist by module, apiPath and method
-         if (this.permissionService.isPermission(permission)) {
-             //Check name
-             if (this.permissionService.isSameName(permission)) {
-                 throw new IdInvalidException("Permission already exists");
-             }
-         }
-         //Update permission
-         return ResponseEntity.status(HttpStatus.OK).body(this.permissionService.updatePermission(permission));
-     }
-     @DeleteMapping("/{id}")
-     public ResponseEntity<Void> delete(@PathVariable("id") long id) throws IdInvalidException {
-         //Check exist with id
-         if (this.permissionService.getById(id) == null){
-             throw new IdInvalidException("Permission with id " + id + " does not exist");
-         }
-         this.permissionService.deletePermission(id);
-         return ResponseEntity.ok().body(null);
-     }
-     @GetMapping()
+    @PostMapping
+    public ResponseEntity<PermissionEntity> create(@RequestBody PermissionEntity permission) {
+        PermissionEntity created = permissionService.createPermission(permission);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PutMapping
+    public ResponseEntity<PermissionEntity> update(@RequestBody PermissionEntity permission) {
+        return ResponseEntity.ok(permissionService.updatePermission(permission));
+    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable("id") long id) {
+        permissionService.deletePermission(id);
+        return ResponseEntity.ok().build(); // build() gọn hơn body(null)
+    }
+
+    @GetMapping()
      public ResponseEntity<ResultPaginationDTO> getAllPermissions(
              @Filter Specification<PermissionEntity> spec,
              Pageable pageable

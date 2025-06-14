@@ -102,15 +102,60 @@ public class UserServiceImpl implements UserService {
         return dto;
     }
     @Override
-    public UserEntity CreateUser(CreateUserRequest dto) {
-        // 2. Tạo UserEntity
+    public UserEntity createUser(CreateUserRequest dto) {
+        Map<String, String> errors = new HashMap<>();
+
+        // 1. Kiểm tra email đã tồn tại
+        if (userRepository.existsByEmail(dto.getEmail())) {
+            errors.put("email", "Email '" + dto.getEmail() + "' already exists");
+        }
+
+        // 2. Kiểm tra username đã tồn tại
+        if (userRepository.existsByUsername(dto.getUsername())) {
+            errors.put("username", "Username '" + dto.getUsername() + "' already exists");
+        }
+
+        if (!errors.isEmpty()) {
+            throw new BusinessException("Create user failed", errors);
+        }
+
+        // 3. Tạo UserEntity
         UserEntity user = new UserEntity();
         user.setEmail(dto.getEmail());
         user.setUsername(dto.getUsername());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setIsActive(true);
 
-        // 3. Tạo UserInfoEntity
+        // 4. Tạo UserInfoEntity
+        UserInfoEntity info = new UserInfoEntity();
+        info.setFullName(dto.getFullName());
+        info.setPhoneNumber(dto.getPhone());
+        info.setUser(user);         // liên kết ngược
+        user.setUserInfo(info);     // gán userInfo vào user
+
+        // 5. Lưu DB (cascade userInfo)
+        return userRepository.save(user);
+    }
+
+    public UserEntity signUp(CreateUserRequest dto) {
+        // 1. Kiểm tra email đã tồn tại
+        if (isEmailExist(dto.getEmail())) {
+            throw new BusinessException("Email '" + dto.getEmail() + "' already exists, please use another email");
+        }
+
+        // 2. Kiểm tra username đã tồn tại
+        if (isUsernameExist(dto.getUsername())) {
+            throw new BusinessException("Username '" + dto.getUsername() + "' already exists, please choose another username");
+        }
+
+        // 3. Tạo UserEntity
+        UserEntity user = new UserEntity();
+        user.setEmail(dto.getEmail());
+        user.setUsername(dto.getUsername());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        user.setIsActive(true);
+
+        // 4. Tạo UserInfoEntity
         UserInfoEntity info = new UserInfoEntity();
         info.setFullName(dto.getFullName());
         info.setPhoneNumber(dto.getPhone());
@@ -118,21 +163,11 @@ public class UserServiceImpl implements UserService {
 
         user.setUserInfo(info);     // gán userInfo vào user
 
-        // 4. Lưu DB (cascade userInfo)
+        // 5. Lưu DB (cascade userInfo)
         return userRepository.save(user);
     }
-    @Override
-    public UserEntity Register(UserEntity user) {
-        if (user.getRole() != null) {
-            Optional<RoleEntity> optional = roleService.fetchRoleById(user.getRole().getId());
-            if (optional.isEmpty()) {
-                throw new IdInvalidException("Role with ID " + user.getRole().getId() + " not found.");
-            }
-            user.setRole(optional.get());
-        }
 
-        return userRepository.save(user);
-    }
+
     @Override
     public boolean isEmailExist(String email) {
         return userRepository.existsByEmail(email);

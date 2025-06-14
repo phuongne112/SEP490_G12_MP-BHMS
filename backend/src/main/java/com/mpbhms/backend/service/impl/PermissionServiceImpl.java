@@ -5,6 +5,8 @@ import com.mpbhms.backend.dto.PermissionDTO;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
 import com.mpbhms.backend.entity.PermissionEntity;
 import com.mpbhms.backend.entity.RoleEntity;
+import com.mpbhms.backend.exception.BusinessException;
+import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.exception.ResourceNotFoundException;
 import com.mpbhms.backend.repository.PermissionRepository;
 import com.mpbhms.backend.service.PermissionService;
@@ -16,7 +18,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.security.Permission;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -34,9 +38,24 @@ public class PermissionServiceImpl implements PermissionService {
     }
 
     @Override
-    public PermissionEntity addPermission(PermissionEntity permission) {
-        return this.permissionRepository.save(permission);
+    public PermissionEntity createPermission(PermissionEntity permission) {
+        Map<String, String> errors = new HashMap<>();
+
+        if (permissionRepository.existsByModuleAndApiPathAndMethod(
+                permission.getModule(),
+                permission.getApiPath(),
+                permission.getMethod()
+        )) {
+            errors.put("permission", "Permission already exists for this module + path + method combination");
+        }
+
+        if (!errors.isEmpty()) {
+            throw new BusinessException("Permission creation failed", errors);
+        }
+
+        return permissionRepository.save(permission);
     }
+
 
     @Override
     public PermissionEntity getById(Long Id) {
@@ -46,26 +65,34 @@ public class PermissionServiceImpl implements PermissionService {
         }
         return null;
     }
-
     @Override
     public PermissionEntity updatePermission(PermissionEntity permission) {
-        PermissionEntity permissionEntityDB = this.getById(permission.getId());
-        if (permissionEntityDB != null) {
-            permissionEntityDB.setName(permission.getName());
-            permissionEntityDB.setApiPath(permission.getApiPath());
-            permissionEntityDB.setMethod(permission.getMethod());
-            permissionEntityDB.setModule(permission.getModule());
-
-            permissionEntityDB = this.permissionRepository.save(permissionEntityDB);
-            return permissionEntityDB;
+        // Validate logic ở đầu hàm
+        PermissionEntity existing = getById(permission.getId());
+        if (existing == null) {
+            throw new IdInvalidException("Permission with id " + permission.getId() + " does not exist");
         }
-        return null;
-    }
 
+        PermissionEntity duplicate = permissionRepository.findByModuleAndApiPathAndMethod(
+                permission.getModule(), permission.getApiPath(), permission.getMethod()
+        );
+
+        if (duplicate != null && !duplicate.getId().equals(permission.getId())) {
+            throw new BusinessException("Permission already exists with the same module + path + method");
+        }
+
+        // Cập nhật
+        existing.setName(permission.getName());
+        existing.setApiPath(permission.getApiPath());
+        existing.setMethod(permission.getMethod());
+        existing.setModule(permission.getModule());
+
+        return permissionRepository.save(existing);
+    }
     @Override
-    public void deletePermission(Long Id) {
-        PermissionEntity permission = permissionRepository.findById(Id)
-                .orElseThrow(() -> new ResourceNotFoundException("Permission không tồn tại với ID: " + Id));
+    public void deletePermission(Long id) {
+        PermissionEntity permission = permissionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Permission không tồn tại với ID: " + id));
 
         // Xóa quan hệ giữa permission và role
         for (RoleEntity role : permission.getRoleEntities()) {

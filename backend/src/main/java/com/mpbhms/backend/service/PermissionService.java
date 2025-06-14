@@ -9,7 +9,7 @@ import java.security.Permission;
 
 public interface PermissionService {
     boolean isPermission(PermissionEntity permission);
-    PermissionEntity addPermission(PermissionEntity permission);
+    PermissionEntity createPermission(PermissionEntity permission);
     PermissionEntity getById(Long Id);
     PermissionEntity updatePermission(PermissionEntity permission);
      void deletePermission(Long Id);

@@ -12,8 +12,8 @@ public interface UserService {
     void updateUserToken(String token, String email);
     UserEntity getUserByRefreshTokenAndEmail(String refreshToken, String email);
     ResultPaginationDTO getAllUsers(Specification<UserEntity> spec, Pageable pageable);
-    UserEntity CreateUser(CreateUserRequest userDTO);
-    UserEntity Register(UserEntity userDTO);
+    UserEntity createUser(CreateUserRequest userDTO);
+    UserEntity signUp(CreateUserRequest userDTO);
     boolean isEmailExist(String email);
     UserEntity handleFetchUserById(long id);
     UserEntity handleUpdateUser(UserEntity user);

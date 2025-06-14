@@ -174,7 +174,7 @@ public class AuthController {
                 throw new IdInvalidException("Email " + request.getEmail() + " is exist, please use another email");
             }
             // Gọi service để tạo
-            UserEntity saved = userService.CreateUser(request);
+            UserEntity saved = userService.signUp(request);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(userService.convertToCreateUserDTO(saved));
         }
