@@ -25,7 +25,6 @@ public class RoomEntity extends BaseEntity {
     private Double pricePerMonth;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private RoomStatus roomStatus;
 
     private Integer numberOfBedrooms;
@@ -35,7 +34,6 @@ public class RoomEntity extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false)
     private Boolean isActive = true;
 
     @ManyToMany(mappedBy = "rooms", fetch = FetchType.LAZY)
@@ -55,6 +53,9 @@ public class RoomEntity extends BaseEntity {
     @JsonManagedReference
     private List<RoomImageEntity> images = new ArrayList<>();
 
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private List<AssetEntity> assets = new ArrayList<>();
 
     // ===== Enum for RoomStatus =====
     public enum RoomStatus {

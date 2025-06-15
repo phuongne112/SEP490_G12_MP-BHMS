@@ -1,5 +1,6 @@
 package com.mpbhms.backend.dto;
 
+import com.mpbhms.backend.entity.RoomEntity;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -10,10 +11,14 @@ public class RoomDTO {
     private Long id;
     private String roomNumber;
     private BigDecimal area;
+    private String roomStatus;
     private Double pricePerMonth;
-    private String roomStatus; // Enum: Available, Occupied, Maintenance, Inactive
     private Integer numberOfBedrooms;
     private Integer numberOfBathrooms;
     private String description;
-    private List<RoomImageDTO> images;
+
+    private List<RoomImageDTO> images;  // ✅ cần thiết
+    private List<ServiceDTO> services;  // ✅ cần thiết
+    private List<AssetDTO> assets;      // ✅ cần thiết
 }
+

@@ -79,31 +79,58 @@ public class RoomServiceImpl implements RoomService {
     }
 
 
+    @Override
     public List<RoomDTO> convertToRoomDTOList(List<RoomEntity> rooms) {
         return rooms.stream().map(this::convertToRoomDTO).toList();
     }
+
     public RoomDTO convertToRoomDTO(RoomEntity roomEntity) {
         RoomDTO dto = new RoomDTO();
         dto.setId(roomEntity.getId());
         dto.setRoomNumber(roomEntity.getRoomNumber());
         dto.setArea(roomEntity.getArea());
-        dto.setRoomStatus(roomEntity.getRoomStatus() != null ? roomEntity.getRoomStatus().name() : null); // ✅ fix tại đây
+        dto.setRoomStatus(roomEntity.getRoomStatus() != null ? roomEntity.getRoomStatus().name() : null);
         dto.setPricePerMonth(roomEntity.getPricePerMonth());
         dto.setNumberOfBedrooms(roomEntity.getNumberOfBedrooms());
         dto.setNumberOfBathrooms(roomEntity.getNumberOfBathrooms());
         dto.setDescription(roomEntity.getDescription());
 
+        // Convert images
         List<RoomImageDTO> imageDTOs = roomEntity.getImages().stream().map(image -> {
             RoomImageDTO img = new RoomImageDTO();
             img.setId(image.getId());
             img.setImageUrl(image.getImageURL());
             return img;
         }).toList();
+        dto.setImages(imageDTOs); // ✅ đảm bảo RoomDTO có setter
 
-        dto.setImages(imageDTOs);
+        // Convert services
+        List<ServiceDTO> serviceDTOs = roomEntity.getServices().stream().map(service -> {
+            ServiceDTO s = new ServiceDTO();
+            s.setId(service.getId());
+            s.setServiceName(service.getServiceName());
+            s.setUnit(service.getUnit());
+            s.setUnitPrice(service.getUnitPrice());
+            s.setServiceType(service.getServiceType().name());
+            return s;
+        }).toList();
+        dto.setServices(serviceDTOs);
+
+        // Convert assets
+        List<AssetDTO> assetDTOs = roomEntity.getAssets().stream().map(asset -> {
+            AssetDTO a = new AssetDTO();
+            a.setId(asset.getId());
+            a.setAssetName(asset.getAssetName());
+            a.setQuantity(asset.getQuantity());
+            a.setConditionNote(asset.getConditionNote());
+            a.setAssetStatus(asset.getAssetStatus().name());
+            a.setAssetImage(asset.getAssetImage());
+            return a;
+        }).toList();
+        dto.setAssets(assetDTOs);
+
         return dto;
     }
-
 
     @Override
     public RoomEntity updateRoom(Long id, AddRoomDTO request) {
