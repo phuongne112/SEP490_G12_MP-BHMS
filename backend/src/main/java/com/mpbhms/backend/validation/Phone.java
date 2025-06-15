@@ -10,7 +10,7 @@ import java.lang.annotation.*;
 @Target({ ElementType.FIELD, ElementType.PARAMETER })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Phone {
-    String message() default "Số điện thoại không hợp lệ. Phải bắt đầu bằng 0 và có 10 chữ số.";
+    String message() default "Invalid phone number. It must start with 0 and contain exactly 10 digits with a valid Vietnamese prefix.";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 }

@@ -2,6 +2,7 @@ package com.mpbhms.backend.dto;
 
 import com.mpbhms.backend.validation.Gmail;
 import com.mpbhms.backend.validation.Password;
+import com.mpbhms.backend.validation.Phone;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -19,7 +20,7 @@ public class CreateUserRequest {
     @Gmail
     private String email;
 
-    @Pattern(regexp = "^0\\d{9}$", message = "Phone number must start with 0 and be 10 digits long")
+    @Phone
     private String phone;
 
     @Password
