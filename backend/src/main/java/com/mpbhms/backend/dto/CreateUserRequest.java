@@ -1,5 +1,6 @@
 package com.mpbhms.backend.dto;
 
+import com.mpbhms.backend.validation.Gmail;
 import com.mpbhms.backend.validation.Password;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -15,7 +16,7 @@ public class CreateUserRequest {
     @Size(min = 2, max = 100, message = "Full name must be between 2 and 100 characters")
     private String fullName;
 
-    @Email
+    @Gmail
     private String email;
 
     @Pattern(regexp = "^0\\d{9}$", message = "Phone number must start with 0 and be 10 digits long")
