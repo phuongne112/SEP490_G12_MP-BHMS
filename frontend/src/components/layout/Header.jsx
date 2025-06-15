@@ -1,17 +1,26 @@
 import React, { useEffect, useState } from "react";
 import logo from "../../assets/logo.png";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { logout } from "../../store/accountSlice";
 
 export default function Header() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [token, setToken] = useState(localStorage.getItem("token"));
   const [user, setUser] = useState(
     JSON.parse(localStorage.getItem("user") || "null")
   );
   const handleLogout = () => {
+    navigate("/login", { replace: true }); // 👉 Điều hướng NGAY lập tức
+
+    // Xoá thông tin user + token
+    dispatch(logout());
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    navigate("/login");
+
+    // Tùy chọn: Trigger sự kiện global để các tab khác sync
+    window.dispatchEvent(new Event("token-changed"));
   };
 
   useEffect(() => {
