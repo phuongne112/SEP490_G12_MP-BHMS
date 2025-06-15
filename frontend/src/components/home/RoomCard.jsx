@@ -51,9 +51,6 @@ const statusIcon = {
 };
 
 export default function RoomCard({ room }) {
-  // 👉 Log kiểm tra
-  console.log("🧩 room.images", room.images);
-
   const getImageUrl = (img) => {
     if (!img) return null;
     if (typeof img === "string")
@@ -65,9 +62,9 @@ export default function RoomCard({ room }) {
     return null;
   };
 
-  // 👉 Lấy ảnh từ room.images nếu có, fallback về ảnh mặc định
   const img0 = getImageUrl(room.images?.[0]) || image1;
   const img1 = getImageUrl(room.images?.[1]) || image2;
+  const hasAsset = room.assets && room.assets.length > 0;
 
   return (
     <div
@@ -104,38 +101,49 @@ export default function RoomCard({ room }) {
           {statusIcon[room.status || room.roomStatus]}
         </div>
       </div>
-    <div style={{ padding: 16, textAlign: "center" }}>
-  <div style={{ fontWeight: 500, fontSize: 17, marginBottom: 6 }}>
-    {room.name || room.roomNumber || "Phòng"}
-  </div>
 
-  <div style={{ fontSize: 15, color: "#222", fontWeight: 600 }}>
-    VND/month: {(room.price || room.pricePerMonth)?.toLocaleString()}
-  </div>
+      <div style={{ padding: 16, textAlign: "center" }}>
+        <div style={{ fontWeight: 500, fontSize: 17, marginBottom: 6 }}>
+          {room.name || room.roomNumber || "Phòng"}
+        </div>
 
-  {/* ✅ Diện tích */}
-  <div style={{ fontSize: 14, color: "#555", marginTop: 4 }}>
-    Area: {room.area ? `${room.area} m²` : "N/A"}
-  </div>
+        <div style={{ fontSize: 15, color: "#222", fontWeight: 600 }}>
+          VND/month: {(room.price || room.pricePerMonth)?.toLocaleString()}
+        </div>
 
-  <div
-    style={{
-      marginTop: 6,
-      fontSize: 13,
-      fontWeight: 500,
-      color:
-        (room.roomStatus || "").toLowerCase() === "available"
-          ? "green"
-          : (room.roomStatus || "").toLowerCase() === "occupied"
-          ? "#f56c6c"
-          : (room.roomStatus || "").toLowerCase() === "maintenance"
-          ? "#FFC700"
-          : "#999",
-    }}
-  >
-    Status: {room.roomStatus || "Unknown"}
-  </div>
-</div>
+        <div style={{ fontSize: 14, color: "#555", marginTop: 4 }}>
+          Area: {room.area ? `${room.area} m²` : "N/A"}
+        </div>
+
+        <div style={{ fontSize: 14, color: "#555", marginTop: 4 }}>
+          Nội thất:{" "}
+          <span style={{ fontWeight: 600, color: hasAsset ? "#1BC700" : "#999" }}>
+            {hasAsset ? "Có" : "Không"}
+          </span>
+        </div>
+
+        <div style={{ fontSize: 14, color: "#555", marginTop: 4 }}>
+          Bedrooms: {room.numberOfBedrooms ?? "N/A"} | Bathrooms: {room.numberOfBathrooms ?? "N/A"}
+        </div>
+
+        <div
+          style={{
+            marginTop: 6,
+            fontSize: 13,
+            fontWeight: 500,
+            color:
+              (room.roomStatus || "").toLowerCase() === "available"
+                ? "green"
+                : (room.roomStatus || "").toLowerCase() === "occupied"
+                ? "#f56c6c"
+                : (room.roomStatus || "").toLowerCase() === "maintenance"
+                ? "#FFC700"
+                : "#999",
+          }}
+        >
+          Status: {room.roomStatus || "Unknown"}
+        </div>
+      </div>
     </div>
   );
 }

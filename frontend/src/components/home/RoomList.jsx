@@ -15,10 +15,12 @@ export default function RoomList({ filter }) {
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState(""); // "asc" | "desc"
 
-  const fetchRooms = async (page = 1, sort = sortOrder) => {
+  const fetchRooms = async (page = 1, sort = sortOrder, keyword = search) => {
     setLoading(true);
 
-    const searchFilter = search ? `roomNumber~'${search}'` : "";
+    const trimmed = keyword.trim();
+    const searchFilter = trimmed ? `roomNumber ~ '${trimmed}'` : "";
+
     const combinedFilter = [filter, searchFilter].filter(Boolean).join(" and ");
     const sortParam = sort ? `pricePerMonth,${sort}` : "";
 
@@ -38,10 +40,11 @@ export default function RoomList({ filter }) {
     setLoading(false);
   };
 
+  // Chỉ fetch lại khi filter hoặc sortOrder thay đổi
   useEffect(() => {
     fetchRooms(1);
     // eslint-disable-next-line
-  }, [filter, search, sortOrder]);
+  }, [filter, sortOrder]);
 
   const handlePrevPage = () => {
     if (pagination.current > 1) {
@@ -56,7 +59,7 @@ export default function RoomList({ filter }) {
     }
   };
 
-  if (loading && !rooms.length) {
+  if (loading) {
     return (
       <div style={{ textAlign: "center", padding: "50px" }}>
         <Spin size="large" />
@@ -64,51 +67,58 @@ export default function RoomList({ filter }) {
     );
   }
 
+  if (!loading && rooms.length === 0) {
+    return (
+      <div style={{ textAlign: "center", padding: "50px 20px" }}>
+        <img
+          src="https://cdn-icons-png.flaticon.com/512/2748/2748558.png"
+          alt="No result"
+          style={{ width: 120, marginBottom: 24 }}
+        />
+        <h3 style={{ fontWeight: 600, marginBottom: 8 }}>
+          No matching rooms found
+        </h3>
+        <p style={{ color: "#666", maxWidth: 400, margin: "0 auto 16px" }}>
+          Please make sure all keywords are spelled correctly. Try different or more general terms.
+        </p>
+        <Button type="primary" onClick={() => {
+          setSearch("");
+          fetchRooms(1, sortOrder, ""); // Clear search manually
+        }}>
+          Clear search
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: "40px 20px" }}>
-      <h2 style={{ textAlign: "center", marginBottom: "30px" }}>Room List</h2>
-
-      {/* Search */}
-      <div
-        style={{
-          marginBottom: 12,
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 8,
-          alignItems: "center",
-        }}
-      >
+      {/* Title + Search + Sort trong 1 khối */}
+      <div style={{ textAlign: "center", marginBottom: "30px" }}>
         <Input.Search
-          placeholder="Searching Room..."
+          placeholder="Search room number..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          onSearch={(value) => setSearch(value)}
+          onSearch={(value) => fetchRooms(1, sortOrder, value)}
           enterButton
-          style={{ maxWidth: 300 }}
+          style={{ maxWidth: 300, marginBottom: 12 }}
         />
-      </div>
 
-      {/* Sort buttons */}
-      <div
-        style={{
-          marginBottom: 20,
-          display: "flex",
-          gap: 8,
-          flexWrap: "wrap",
-        }}
-      >
-        <Button
-          type={sortOrder === "asc" ? "primary" : "default"}
-          onClick={() => setSortOrder("asc")}
-        >
-          Price ascending
-        </Button>
-        <Button
-          type={sortOrder === "desc" ? "primary" : "default"}
-          onClick={() => setSortOrder("desc")}
-        >
-          Price descending
-        </Button>
+        <div style={{ marginTop: 8 }}>
+          <Button
+            type={sortOrder === "asc" ? "primary" : "default"}
+            onClick={() => setSortOrder("asc")}
+            style={{ marginRight: 8 }}
+          >
+            Price ascending
+          </Button>
+          <Button
+            type={sortOrder === "desc" ? "primary" : "default"}
+            onClick={() => setSortOrder("desc")}
+          >
+            Price descending
+          </Button>
+        </div>
       </div>
 
       {/* Room cards */}

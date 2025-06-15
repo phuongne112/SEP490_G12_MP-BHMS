@@ -1,19 +1,36 @@
-// ✅ HomePage.jsx
+// ✅ HomePage.jsx - có filter theo asset
 import React, { useState } from "react";
 import Footer from "../components/layout/Footer";
 import Header from "../components/layout/Header";
 import RoomList from "../components/home/RoomList";
-import { Slider, Divider, Select, Button } from "antd";
+import { Slider, Select, Button } from "antd";
 
 const { Option } = Select;
+
+const FilterBox = ({ title, children }) => (
+  <div
+    style={{
+      border: "1px solid #eee",
+      borderRadius: 10,
+      padding: 16,
+      background: "#fafafa",
+      marginBottom: 20,
+    }}
+  >
+    <div style={{ fontWeight: 600, marginBottom: 10 }}>{title}</div>
+    {children}
+  </div>
+);
 
 export default function HomePage() {
   const [area, setArea] = useState([22, 27]);
   const [price, setPrice] = useState([0, 10000000]);
   const [status, setStatus] = useState("All");
+  const [bedrooms, setBedrooms] = useState([1, 3]);
+  const [bathrooms, setBathrooms] = useState([1, 2]);
+  const [hasAsset, setHasAsset] = useState("All");
   const [appliedFilter, setAppliedFilter] = useState("");
 
-  // ✅ Filter DSL chuẩn - escape giá trị bằng dấu nháy đơn nếu cần
   const buildRoomFilter = () => {
     const dsl = [];
     if (area?.length === 2) {
@@ -24,15 +41,28 @@ export default function HomePage() {
       dsl.push(`pricePerMonth >= ${price[0]}`);
       dsl.push(`pricePerMonth <= ${price[1]}`);
     }
+    if (bedrooms?.length === 2) {
+      dsl.push(`numberOfBedrooms >= ${bedrooms[0]}`);
+      dsl.push(`numberOfBedrooms <= ${bedrooms[1]}`);
+    }
+    if (bathrooms?.length === 2) {
+      dsl.push(`numberOfBathrooms >= ${bathrooms[0]}`);
+      dsl.push(`numberOfBathrooms <= ${bathrooms[1]}`);
+    }
     if (status !== "All") {
-      dsl.push(`roomStatus = '${status}'`); // ✅ đúng cú pháp
+      dsl.push(`roomStatus = '${status}'`);
+    }
+    // ✅ Đã chỉnh đúng
+    if (hasAsset === "true") {
+      dsl.push("assets IS NOT EMPTY");
+    } else if (hasAsset === "false") {
+      dsl.push("assets IS EMPTY");
     }
     return dsl.join(" and ");
   };
 
   const handleApplyFilter = () => {
     const dsl = buildRoomFilter().trim();
-    console.log("🔍 Applying filter:", dsl);
     setAppliedFilter(dsl);
   };
 
@@ -48,52 +78,65 @@ export default function HomePage() {
           boxShadow: "0 2px 8px #0001",
           display: "flex",
           alignItems: "flex-start",
-          minHeight: 600,
           padding: 0,
         }}
       >
-        {/* Sidebar */}
         <div
           style={{
-            width: 260,
+            width: 300,
             background: "#fff",
             padding: 24,
-            borderRadius: "12px 0 0 12px",
             borderRight: "1px solid #eee",
+            marginTop: 60,
             minHeight: 600,
-            marginTop: 80,
           }}
         >
-          <Divider style={{ margin: "12px 0" }} />
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>Area (m²)</div>
-          <Slider range min={15} max={40} value={area} onChange={setArea} style={{ marginBottom: 16 }} />
+          <FilterBox title="Area (m²)">
+            <Slider range min={15} max={40} value={area} onChange={setArea} />
+          </FilterBox>
 
-          <div style={{ fontWeight: 600, marginBottom: 8, marginTop: 30 }}>Room Status</div>
-          <Select value={status} onChange={setStatus} style={{ width: "100%", marginBottom: 16 }}>
-            <Option value="All">All</Option>
-            <Option value="Available">Available</Option>
-            <Option value="Occupied">Occupied</Option>
-            <Option value="Maintenance">Maintenance</Option>
-            <Option value="Inactive">Inactive</Option>
-          </Select>
+          <FilterBox title="Room Status">
+            <Select value={status} onChange={setStatus} style={{ width: "100%" }}>
+              <Option value="All">All</Option>
+              <Option value="Available">Available</Option>
+              <Option value="Occupied">Occupied</Option>
+              <Option value="Maintenance">Maintenance</Option>
+              <Option value="Inactive">Inactive</Option>
+            </Select>
+          </FilterBox>
 
-          <Divider style={{ margin: "12px 0" }} />
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>Price (VND)</div>
-          <Slider
-            range
-            min={0}
-            max={10000000}
-            value={price}
-            onChange={setPrice}
-            tipFormatter={(v) => v.toLocaleString()}
-            style={{ marginBottom: 16 }}
-          />
+          <FilterBox title="Bedrooms">
+            <Slider range min={0} max={5} value={bedrooms} onChange={setBedrooms} />
+          </FilterBox>
 
-          <Divider style={{ margin: "12px 0" }} />
-          <Button type="primary" block onClick={handleApplyFilter}>Apply Filter</Button>
+          <FilterBox title="Bathrooms">
+            <Slider range min={0} max={5} value={bathrooms} onChange={setBathrooms} />
+          </FilterBox>
+
+          <FilterBox title="Price (VND)">
+            <Slider
+              range
+              min={0}
+              max={10000000}
+              value={price}
+              onChange={setPrice}
+              tipFormatter={(v) => v.toLocaleString()}
+            />
+          </FilterBox>
+
+          <FilterBox title="Has Asset">
+            <Select value={hasAsset} onChange={setHasAsset} style={{ width: "100%" }}>
+              <Option value="All">All</Option>
+              <Option value="true">Có nội thất</Option>
+              <Option value="false">Không có</Option>
+            </Select>
+          </FilterBox>
+
+          <Button type="primary" block onClick={handleApplyFilter}>
+            Apply Filter
+          </Button>
         </div>
 
-        {/* Main Content */}
         <div
           style={{
             flex: 1,
