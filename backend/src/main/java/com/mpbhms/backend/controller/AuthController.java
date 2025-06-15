@@ -147,6 +147,7 @@ public class AuthController {
         }
 
         @PostMapping("/logout")
+        @ApiMessage("Logout with valid credential")
         public ResponseEntity<Void> logout() {
             String email = securityUtil.getCurrentUserLogin().orElse("");
             if (email.isBlank()) {
@@ -170,6 +171,7 @@ public class AuthController {
         }
 
         @PostMapping("/signup")
+        @ApiMessage("Register a new user account")
         public ResponseEntity<CreateUserResponse> signUp(@Valid @RequestBody CreateUserRequest request) {
             // Kiểm tra trùng email
             if (userService.isEmailExist(request.getEmail())) {
@@ -182,6 +184,7 @@ public class AuthController {
         }
 
         @PutMapping("/change-password")
+        @ApiMessage("Change user password")
         public ResponseEntity<ChangePasswordDTOResponse> changePassword(@Valid @RequestBody ChangePasswordDTO
                                                                                 request,
                                                                         Principal principal) {
@@ -190,6 +193,7 @@ public class AuthController {
         }
 
         @PostMapping("/request-reset")
+        @ApiMessage("Request password reset link via email")
         public ResponseEntity<?> requestReset(@RequestBody ResetRequestDTO request) {
             if (!userService.isEmailExist(request.getEmail())) {
                 ApiResponse<Object> response = new ApiResponse<>(
@@ -211,6 +215,7 @@ public class AuthController {
         }
 
         @PostMapping("/reset-password")
+        @ApiMessage("Reset password using token")
         public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordDTO request) {
             userService.resetPassword(request.getToken(), request.getNewPassword());
             return ResponseEntity.ok("Password reset successful.");

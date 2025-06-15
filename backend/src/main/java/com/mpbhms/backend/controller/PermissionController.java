@@ -4,6 +4,7 @@ import com.mpbhms.backend.dto.ResultPaginationDTO;
 import com.mpbhms.backend.entity.PermissionEntity;
 import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.service.PermissionService;
+import com.mpbhms.backend.util.ApiMessage;
 import com.turkraft.springfilter.boot.Filter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -21,22 +22,26 @@ import java.util.List;
 public class PermissionController {
     private final PermissionService permissionService;
     @PostMapping
+    @ApiMessage("Create a new permission")
     public ResponseEntity<PermissionEntity> create(@RequestBody PermissionEntity permission) {
         PermissionEntity created = permissionService.createPermission(permission);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping
+    @ApiMessage("Update an existing permission")
     public ResponseEntity<PermissionEntity> update(@RequestBody PermissionEntity permission) {
         return ResponseEntity.ok(permissionService.updatePermission(permission));
     }
     @DeleteMapping("/{id}")
+    @ApiMessage("Delete a permission by ID")
     public ResponseEntity<Void> delete(@PathVariable("id") long id) {
         permissionService.deletePermission(id);
         return ResponseEntity.ok().build(); // build() gọn hơn body(null)
     }
 
     @GetMapping()
+    @ApiMessage("Get all permissions with filters and pagination")
      public ResponseEntity<ResultPaginationDTO> getAllPermissions(
              @Filter Specification<PermissionEntity> spec,
              Pageable pageable
