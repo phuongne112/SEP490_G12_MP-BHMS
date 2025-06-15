@@ -133,39 +133,39 @@ export default function Login() {
                 )}
               </div>
 
-             <div style={{ position: "relative", marginBottom: 16 }}>
-              <label>Password</label>
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                style={{
-                  width: "100%",
-                  padding: "10px 36px 10px 10px", // 👈 chừa khoảng phải cho icon
-                  borderRadius: 6,
-                  border: "1px solid #ccc",
-                }}
-                required
-              />
-              {error.password && (
-                <p style={{ color: "red", marginTop: 4 }}>{error.password}</p>
-              )}
-              <span
-                onClick={() => setShowPassword((prev) => !prev)}
-                style={{
-                  position: "absolute",
-                  right: 10,
-                  top: "70%",
-                  transform: "translateY(-50%)",
-                  cursor: "pointer",
-                  fontSize: 18,
-                  color: "#666",
-                }}
-              >
-                {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
-              </span>
-            </div>
+              <div style={{ position: "relative", marginBottom: 16 }}>
+                <label>Password</label>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  style={{
+                    width: "100%",
+                    padding: "10px 36px 10px 10px", // 👈 chừa khoảng phải cho icon
+                    borderRadius: 6,
+                    border: "1px solid #ccc",
+                  }}
+                  required
+                />
+                {error.password && (
+                  <p style={{ color: "red", marginTop: 4 }}>{error.password}</p>
+                )}
+                <span
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  style={{
+                    position: "absolute",
+                    right: 10,
+                    top: "70%",
+                    transform: "translateY(-50%)",
+                    cursor: "pointer",
+                    fontSize: 18,
+                    color: "#666",
+                  }}
+                >
+                  {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
+                </span>
+              </div>
 
               <button
                 type="submit"
@@ -185,7 +185,10 @@ export default function Login() {
             </form>
 
             <div style={{ marginTop: 12, textAlign: "left" }}>
-              <Link to="/forgotPassword" style={{ color: "#0A2342", fontSize: 16 }}>
+              <Link
+                to="/forgotPassword"
+                style={{ color: "#0A2342", fontSize: 16 }}
+              >
                 Forgot password?
               </Link>
             </div>

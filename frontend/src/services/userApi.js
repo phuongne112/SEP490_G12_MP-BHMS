@@ -15,7 +15,7 @@ export const createUser = async (userData) => {
 };
 
 export const updateUser = (data) => {
-  return axiosClient.put("/users", data); // ✅ đúng vì ID nằm trong body
+  return axiosClient.put("/users", data);
 };
 
 export const updateUserStatus = (id, body) => {
@@ -23,5 +23,5 @@ export const updateUserStatus = (id, body) => {
 };
 
 export const deleteNotification = async (id) => {
-  return axiosClient.delete(`/notifications/${id}`); // ✅ đúng cú pháp
+  return axiosClient.delete(`/notifications/${id}`);
 };

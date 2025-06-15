@@ -36,6 +36,7 @@ export default function NotificationTable({
   onView,
   onDelete,
   refreshKey,
+  userList,
 }) {
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ current: 1, total: 0 });
@@ -53,12 +54,15 @@ export default function NotificationTable({
       const total = res.meta?.total || 0;
 
       setData(
-        result.map((item, index) => ({
-          key: item.id || index + 1 + (page - 1) * pageSize,
-          ...item,
-          createdAt: item.createdDate?.slice(0, 10),
-          recipient: item.recipient?.fullName || item.recipient?.email || "Unknown",
-        }))
+        result.map((item, index) => {
+          const user = userList.find((u) => u.id === item.recipientId);
+          return {
+            key: item.id || index + 1 + (page - 1) * pageSize,
+            ...item,
+            createdAt: item.createdDate?.slice(0, 10),
+            recipient: user?.fullName || user?.email || "Unknown",
+          };
+        })
       );
 
       setPagination({ current: page, total });
@@ -87,13 +91,15 @@ export default function NotificationTable({
       title: "Status",
       dataIndex: "status",
       render: (status) => (
-        <Tag color={
-          status === "READ"
-            ? "green"
-            : status === "DELIVERED"
-            ? "orange"
-            : "blue"
-        }>
+        <Tag
+          color={
+            status === "READ"
+              ? "green"
+              : status === "DELIVERED"
+              ? "orange"
+              : "blue"
+          }
+        >
           {status}
         </Tag>
       ),

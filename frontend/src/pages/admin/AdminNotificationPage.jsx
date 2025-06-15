@@ -52,13 +52,18 @@ export default function AdminNotificationPage() {
   const [sendMode, setSendMode] = useState("role");
   const [userList, setUserList] = useState([]);
   const [deleteMessage, setDeleteMessage] = useState(null); // ✅ Thông báo thành công
-  const [deleteError, setDeleteError] = useState(null);     // ✅ Thông báo lỗi
+  const [deleteError, setDeleteError] = useState(null); // ✅ Thông báo lỗi
+  const currentUserId = parseInt(localStorage.getItem("userId"));
 
   useEffect(() => {
     if (isCreateModalOpen) {
-      getAllUsers({ page: 0, size: 1000 })
+      getAllUsers(0, 1000)
         .then((res) => {
-          setUserList(res.data.result || []);
+          const allUsers = res.result || [];
+          const filtered = allUsers.filter((u) => u.id !== currentUserId); // ✅ bỏ chính mình
+          setUserList(filtered);
+          console.log("✅ Filtered userList:", filtered);
+          console.log("❌ Current admin userId:", currentUserId);
         })
         .catch(() => {
           message.error("Failed to load user list");
@@ -195,6 +200,7 @@ export default function AdminNotificationPage() {
             onView={handleView}
             onDelete={handleDelete}
             refreshKey={refreshKey}
+            userList={userList}
           />
 
           {/* Create Notification Modal */}
@@ -219,7 +225,7 @@ export default function AdminNotificationPage() {
                     title: values.label,
                     message: values.label,
                     type: values.type,
-                    sendDate: values.date.format("YYYY-MM-DD"),
+                    // sendDate: values.date.format("YYYY-MM-DD"),
                     metadata: null,
                   };
 
@@ -288,7 +294,7 @@ export default function AdminNotificationPage() {
                   </Col>
                 )}
 
-                <Col span={12}>
+                {/* <Col span={12}>
                   <Form.Item
                     name="date"
                     label="Send date"
@@ -296,9 +302,9 @@ export default function AdminNotificationPage() {
                   >
                     <DatePicker style={{ width: "100%" }} />
                   </Form.Item>
-                </Col>
+                </Col> */}
 
-                <Col span={12}>
+                <Col span={24}>
                   <Form.Item
                     name="type"
                     label="Type notification"
@@ -322,7 +328,10 @@ export default function AdminNotificationPage() {
                     label="Label"
                     rules={[{ required: true }]}
                   >
-                    <Input.TextArea rows={3} placeholder="Enter notification content" />
+                    <Input.TextArea
+                      rows={3}
+                      placeholder="Enter notification content"
+                    />
                   </Form.Item>
                 </Col>
               </Row>
@@ -346,11 +355,22 @@ export default function AdminNotificationPage() {
           >
             {selectedNotification && (
               <div>
-                <p><strong>Title:</strong> {selectedNotification.title}</p>
-                <p><strong>Message:</strong> {selectedNotification.message}</p>
-                <p><strong>Type:</strong> {selectedNotification.type}</p>
-                <p><strong>Status:</strong> {selectedNotification.status}</p>
-                <p><strong>Created Date:</strong> {selectedNotification.createdAt}</p>
+                <p>
+                  <strong>Title:</strong> {selectedNotification.title}
+                </p>
+                <p>
+                  <strong>Message:</strong> {selectedNotification.message}
+                </p>
+                <p>
+                  <strong>Type:</strong> {selectedNotification.type}
+                </p>
+                <p>
+                  <strong>Status:</strong> {selectedNotification.status}
+                </p>
+                <p>
+                  <strong>Created Date:</strong>{" "}
+                  {selectedNotification.createdAt}
+                </p>
               </div>
             )}
           </Modal>
