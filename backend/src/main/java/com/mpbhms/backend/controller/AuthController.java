@@ -8,6 +8,7 @@ import com.mpbhms.backend.response.LoginDTOResponse;
 import com.mpbhms.backend.entity.UserEntity;
 import com.mpbhms.backend.response.SignUpDTOResponse;
 import com.mpbhms.backend.service.UserService;
+import com.mpbhms.backend.util.ApiMessage;
 import com.mpbhms.backend.util.SecurityUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ public class AuthController {
         private long refreshTokenExpiration;
 
         @PostMapping("/login")
+        @ApiMessage("Login by credential")
         public ResponseEntity<LoginDTOResponse> login(@RequestBody LoginDTO login) {
             //Nap input gom email/password vao security
             UsernamePasswordAuthenticationToken authenticationToken =
