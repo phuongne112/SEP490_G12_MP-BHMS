@@ -6,7 +6,7 @@ import jakarta.validation.ConstraintValidatorContext;
 public class PhoneValidator implements ConstraintValidator<Phone, String> {
 
     // Regex kiểm tra số điện thoại di động Việt Nam hợp lệ
-    private static final String VN_PHONE_REGEX = "^(03[2-9]|05[6|8|9]|07[0|6-9]|08[1-5|8]|09\\d)\\d{7}$";
+    private static final String VN_PHONE_REGEX = "^(03[2-9]|05[689]|07[06-9]|08[1-6|8|9]|09\\d)\\d{7}$";
 
     @Override
     public boolean isValid(String phone, ConstraintValidatorContext context) {
