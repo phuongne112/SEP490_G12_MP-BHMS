@@ -12,6 +12,8 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState({});
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -118,7 +120,16 @@ export default function Login() {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.length <= 50) {
+                      setEmail(value);
+                      setEmailError("");
+                    } else {
+                      setEmailError("Không được nhập quá 50 ký tự");
+                    }
+                  }}
+                  // maxLength={100}
                   placeholder="Enter your email"
                   style={{
                     width: "100%",
@@ -128,43 +139,61 @@ export default function Login() {
                   }}
                   required
                 />
-                {error.email && (
-                  <p style={{ color: "red", marginTop: 4 }}>{error.email}</p>
+                {(error.email || emailError) && (
+                  <p style={{ color: "red", marginTop: 4 }}>
+                    {emailError || error.email}
+                  </p>
                 )}
               </div>
 
               <div style={{ position: "relative", marginBottom: 16 }}>
                 <label>Password</label>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  style={{
-                    width: "100%",
-                    padding: "10px 36px 10px 10px", // 👈 chừa khoảng phải cho icon
-                    borderRadius: 6,
-                    border: "1px solid #ccc",
-                  }}
-                  required
-                />
-                {error.password && (
-                  <p style={{ color: "red", marginTop: 4 }}>{error.password}</p>
+
+                {/* wrapper input + icon */}
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value.length <= 20) {
+                        setPassword(value);
+                        setPasswordError("");
+                      } else {
+                        setPasswordError("Không được nhập quá 20 ký tự");
+                      }
+                    }}
+                    placeholder="Enter your password"
+                    style={{
+                      width: "100%",
+                      padding: "10px 36px 10px 10px",
+                      borderRadius: 6,
+                      border: "1px solid #ccc",
+                    }}
+                    required
+                  />
+
+                  <span
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    style={{
+                      position: "absolute",
+                      right: 10,
+                      top: "50%", // ✅ luôn căn giữa
+                      transform: "translateY(-50%)",
+                      cursor: "pointer",
+                      fontSize: 18,
+                      color: "#666",
+                    }}
+                  >
+                    {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
+                  </span>
+                </div>
+
+                {(error.password || passwordError) && (
+                  <p style={{ color: "red", marginTop: 4 }}>
+                    {passwordError || error.password}
+                  </p>
                 )}
-                <span
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  style={{
-                    position: "absolute",
-                    right: 10,
-                    top: "70%",
-                    transform: "translateY(-50%)",
-                    cursor: "pointer",
-                    fontSize: 18,
-                    color: "#666",
-                  }}
-                >
-                  {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
-                </span>
               </div>
 
               <button

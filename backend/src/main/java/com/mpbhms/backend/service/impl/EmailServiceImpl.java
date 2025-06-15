@@ -17,7 +17,7 @@ public class EmailServiceImpl implements EmailService {
 
     //@Value("${app.frontend.reset-url}")
     //private String resetUrl;
-    private String resetUrl = "http://localhost:8080/mpbhms/auth/reset-password";
+    private String resetUrl = "http://localhost:5173/resetPassword";
 
     @Override
     public void sendPasswordResetLink(String toEmail, String token) {

@@ -28,6 +28,9 @@ import {
   updateRole,
   deleteRole,
 } from "../../services/roleApi";
+import { useDispatch } from "react-redux";
+import { setUser } from "../../store/accountSlice";
+import { getCurrentUser } from "../../services/authService";
 
 const { Content } = Layout;
 const { Panel } = Collapse;
@@ -47,6 +50,7 @@ export default function AdminRoleListPage() {
   const [formError, setFormError] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
   const [deleteMessage, setDeleteMessage] = useState(null);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const fetchPermissions = async () => {
@@ -133,8 +137,26 @@ export default function AdminRoleListPage() {
           .map(([id]) => ({ id: parseInt(id) })),
       };
       if (editingRole) {
+        console.log("📤 Payload gửi backend:", {
+          id: editingRole?.id,
+          ...payload,
+        });
+
         await updateRole({ id: editingRole.id, ...payload });
         message.success("Role updated successfully");
+
+        const updatedUser = await getCurrentUser();
+        console.log("✅ Payload gửi backend:", payload);
+        console.log("⛔ updatedUser:", updatedUser); // <- sẽ thấy undefined ở đây
+        dispatch(
+          setUser({
+            id: updatedUser.id,
+            fullName: updatedUser.name,
+            role: updatedUser.role?.roleName,
+            permissions:
+              updatedUser.role?.permissionEntities?.map((p) => p.name) || [],
+          })
+        );
       } else {
         await createRole(payload);
         message.success("Role created successfully");
@@ -144,6 +166,8 @@ export default function AdminRoleListPage() {
       setEditingRole(null);
       setRefreshKey((prev) => prev + 1);
     } catch (error) {
+      console.error("❌ Lỗi từ backend:", error); // ✅ THÊM DÒNG NÀY
+
       const res = error.response?.data;
       setFormError(null);
       if (res?.data && typeof res.data === "object") {
@@ -163,26 +187,64 @@ export default function AdminRoleListPage() {
     <Layout>
       <AdminSidebar />
       <Layout style={{ marginLeft: 220 }}>
-        <Content style={{ padding: 32, backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <Content
+          style={{
+            padding: 32,
+            backgroundColor: "#f5f5f5",
+            minHeight: "100vh",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 24,
+            }}
+          >
             <PageHeader title="List Role" />
-            <Button type="primary" icon={<PlusOutlined />} onClick={openAddModal}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openAddModal}
+            >
               Add new role
             </Button>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 24,
+              flexWrap: "wrap",
+            }}
+          >
             <EntrySelect value={pageSize} onChange={setPageSize} />
             <Space style={{ gap: 100 }}>
-              <SearchBox onSearch={setSearchTerm} placeholder="Enter role name..." />
+              <SearchBox
+                onSearch={setSearchTerm}
+                placeholder="Enter role name..."
+              />
               <Popover
                 open={isFilterOpen}
                 onOpenChange={setIsFilterOpen}
-                content={<RoleFilterPopover onApply={(values) => { handleApplyFilter(values); setIsFilterOpen(false); }} />}
+                content={
+                  <RoleFilterPopover
+                    onApply={(values) => {
+                      handleApplyFilter(values);
+                      setIsFilterOpen(false);
+                    }}
+                  />
+                }
                 trigger="click"
                 placement="bottomRight"
               >
-                <Button icon={<FilterOutlined />} style={{ backgroundColor: "#40a9ff", color: "white" }}>
+                <Button
+                  icon={<FilterOutlined />}
+                  style={{ backgroundColor: "#40a9ff", color: "white" }}
+                >
                   Filter
                 </Button>
               </Popover>
@@ -246,7 +308,9 @@ export default function AdminRoleListPage() {
                   <Form.Item
                     name="name"
                     label="Role Name"
-                    rules={[{ required: true, message: "Please enter role name" }]}
+                    rules={[
+                      { required: true, message: "Please enter role name" },
+                    ]}
                   >
                     <Input allowClear />
                   </Form.Item>
@@ -260,21 +324,47 @@ export default function AdminRoleListPage() {
                       <Row gutter={[16, 16]}>
                         {perms.map((perm) => (
                           <Col span={12} key={perm.id}>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", border: "1px solid #eee", padding: "8px 12px", borderRadius: 6 }}>
-                              <div style={{ display: "flex", flexDirection: "column" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                border: "1px solid #eee",
+                                padding: "8px 12px",
+                                borderRadius: 6,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                }}
+                              >
                                 <span>{perm.name}</span>
                                 <span>
-                                  <Tag color={
-                                    perm.method === "POST" ? "green" :
-                                      perm.method === "PUT" ? "orange" :
-                                        perm.method === "DELETE" ? "red" : "blue"
-                                  }>
+                                  <Tag
+                                    color={
+                                      perm.method === "POST"
+                                        ? "green"
+                                        : perm.method === "PUT"
+                                        ? "orange"
+                                        : perm.method === "DELETE"
+                                        ? "red"
+                                        : "blue"
+                                    }
+                                  >
                                     {perm.method}
                                   </Tag>
-                                  <span style={{ color: "#999" }}>{perm.apiPath || "N/A"}</span>
+                                  <span style={{ color: "#999" }}>
+                                    {perm.apiPath || "N/A"}
+                                  </span>
                                 </span>
                               </div>
-                              <Form.Item name={["permissions", perm.id]} valuePropName="checked" noStyle>
+                              <Form.Item
+                                name={["permissions", perm.id]}
+                                valuePropName="checked"
+                                noStyle
+                              >
                                 <Switch />
                               </Form.Item>
                             </div>
@@ -286,17 +376,37 @@ export default function AdminRoleListPage() {
                 </Collapse>
               </Form.Item>
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: 16, gap: 16 }}>
-                <div style={{ color: formError ? "red" : "transparent", fontSize: 13, minHeight: 20, maxWidth: "75%", whiteSpace: "normal", flex: 1 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  marginTop: 16,
+                  gap: 16,
+                }}
+              >
+                <div
+                  style={{
+                    color: formError ? "red" : "transparent",
+                    fontSize: 13,
+                    minHeight: 20,
+                    maxWidth: "75%",
+                    whiteSpace: "normal",
+                    flex: 1,
+                  }}
+                >
                   {formError || "\u00A0"}
                 </div>
                 <div style={{ whiteSpace: "nowrap" }}>
-                  <Button onClick={() => {
-                    setIsModalOpen(false);
-                    setEditingRole(null);
-                    form.resetFields();
-                    setFormError(null);
-                  }} style={{ marginRight: 8 }}>
+                  <Button
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      setEditingRole(null);
+                      form.resetFields();
+                      setFormError(null);
+                    }}
+                    style={{ marginRight: 8 }}
+                  >
                     Cancel
                   </Button>
                   <Button type="primary" htmlType="submit">

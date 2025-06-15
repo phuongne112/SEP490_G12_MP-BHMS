@@ -216,7 +216,7 @@ public class AuthController {
 
         @PostMapping("/reset-password")
         @ApiMessage("Reset password using token")
-        public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordDTO request) {
+        public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordDTO request) {
             userService.resetPassword(request.getToken(), request.getNewPassword());
             return ResponseEntity.ok("Password reset successful.");
         }

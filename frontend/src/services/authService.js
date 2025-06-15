@@ -39,3 +39,9 @@ export const sendResetEmail = async (email) => {
   const res = await axiosClient.post("/auth/request-reset", { email });
   return res.data;
 };
+
+export const getCurrentUser = async () => {
+  const res = await axiosClient.get("/auth/account");
+  console.log("🔥 getCurrentUser response:", res.data);
+  return res.data?.data?.user;
+};
