@@ -35,14 +35,7 @@ export default function AppRouter() {
         }
       />
       <Route path="/home" element={<HomePage />} />
-      <Route
-        path="/forgotPassword"
-        element={
-          <GuestRoute>
-            <ForgotPasswordPage />
-          </GuestRoute>
-        }
-      />
+      <Route path="/forgotPassword" element={<ForgotPasswordPage />} />
       <Route path="/resetPassword" element={<ResetPasswordPage />} />
       <Route path="/layout/adminSidebar" element={<AdminSidebar />} />
       <Route

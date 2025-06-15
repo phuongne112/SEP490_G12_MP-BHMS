@@ -10,6 +10,6 @@ public class LoginDTO {
     @Gmail
     public String username;
 
-    @Size(max = 20)
+    @Size(max = 20, message="Pass word must 20")
     public String password;
 }

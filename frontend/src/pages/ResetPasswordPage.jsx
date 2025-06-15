@@ -41,9 +41,16 @@ export default function ResetPasswordPage() {
       await resetPassword({ token, newPassword: form.newPassword });
       setSuccess(true);
     } catch (err) {
-      const errorMsg =
-        err.response?.data?.message || err.message || "Password reset failed";
-      setError(errorMsg);
+      const res = err.response?.data;
+
+      if (res?.data && typeof res.data === "object") {
+        const mergedErrors = Object.values(res.data).join(" ");
+        setError(mergedErrors);
+      } else {
+        const fallbackMsg =
+          res?.message || err.message || "Password reset failed";
+        setError(fallbackMsg);
+      }
     }
   };
 
