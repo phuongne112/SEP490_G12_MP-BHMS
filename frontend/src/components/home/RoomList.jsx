@@ -20,7 +20,7 @@ export default function RoomList({ filter }) {
 
     const searchFilter = search ? `roomNumber~'${search}'` : "";
     const combinedFilter = [filter, searchFilter].filter(Boolean).join(" and ");
-    const sortParam = sort ? `price_per_month ${sort}` : "";
+    const sortParam = sort ? `pricePerMonth,${sort}` : "";
 
     const response = await getAllRooms(
       page - 1,
