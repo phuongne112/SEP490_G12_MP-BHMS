@@ -82,18 +82,17 @@ public class RoomServiceImpl implements RoomService {
     public List<RoomDTO> convertToRoomDTOList(List<RoomEntity> rooms) {
         return rooms.stream().map(this::convertToRoomDTO).toList();
     }
-
     public RoomDTO convertToRoomDTO(RoomEntity roomEntity) {
         RoomDTO dto = new RoomDTO();
         dto.setId(roomEntity.getId());
         dto.setRoomNumber(roomEntity.getRoomNumber());
         dto.setArea(roomEntity.getArea());
+        dto.setRoomStatus(roomEntity.getRoomStatus() != null ? roomEntity.getRoomStatus().name() : null); // ✅ fix tại đây
         dto.setPricePerMonth(roomEntity.getPricePerMonth());
         dto.setNumberOfBedrooms(roomEntity.getNumberOfBedrooms());
         dto.setNumberOfBathrooms(roomEntity.getNumberOfBathrooms());
         dto.setDescription(roomEntity.getDescription());
 
-        // Set danh sách ảnh
         List<RoomImageDTO> imageDTOs = roomEntity.getImages().stream().map(image -> {
             RoomImageDTO img = new RoomImageDTO();
             img.setId(image.getId());
@@ -104,6 +103,7 @@ public class RoomServiceImpl implements RoomService {
         dto.setImages(imageDTOs);
         return dto;
     }
+
 
     @Override
     public RoomEntity updateRoom(Long id, AddRoomDTO request) {

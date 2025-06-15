@@ -1,3 +1,4 @@
+// ✅ HomePage.jsx
 import React, { useState } from "react";
 import Footer from "../components/layout/Footer";
 import Header from "../components/layout/Header";
@@ -10,28 +11,34 @@ export default function HomePage() {
   const [area, setArea] = useState([22, 27]);
   const [price, setPrice] = useState([0, 10000000]);
   const [status, setStatus] = useState("All");
-  const [appliedFilter, setAppliedFilter] = useState(""); // Chỉ filter khi user bấm nút
+  const [appliedFilter, setAppliedFilter] = useState("");
 
-  // Hàm build filter DSL từ các filter hiện tại
+  // ✅ Filter DSL chuẩn - escape giá trị bằng dấu nháy đơn nếu cần
   const buildRoomFilter = () => {
-    const areaFilter = area ? `area >: ${area[0]} and area <: ${area[1]}` : "";
-    const priceFilter = price
-      ? `pricePerMonth >: ${price[0]} and pricePerMonth <: ${price[1]}`
-      : "";
-    const statusFilter = status !== "All" ? `roomStatus =: ${status}` : "";
-    return [priceFilter, areaFilter, statusFilter]
-      .filter(Boolean)
-      .join(" and ");
+    const dsl = [];
+    if (area?.length === 2) {
+      dsl.push(`area >= ${area[0]}`);
+      dsl.push(`area <= ${area[1]}`);
+    }
+    if (price?.length === 2) {
+      dsl.push(`pricePerMonth >= ${price[0]}`);
+      dsl.push(`pricePerMonth <= ${price[1]}`);
+    }
+    if (status !== "All") {
+      dsl.push(`roomStatus = '${status}'`); // ✅ đúng cú pháp
+    }
+    return dsl.join(" and ");
   };
 
   const handleApplyFilter = () => {
-    setAppliedFilter(buildRoomFilter());
+    const dsl = buildRoomFilter().trim();
+    console.log("🔍 Applying filter:", dsl);
+    setAppliedFilter(dsl);
   };
 
   return (
     <div style={{ minHeight: "100vh", background: "#f5f5f5" }}>
       <Header />
-
       <div
         style={{
           maxWidth: 1300,
@@ -59,24 +66,10 @@ export default function HomePage() {
         >
           <Divider style={{ margin: "12px 0" }} />
           <div style={{ fontWeight: 600, marginBottom: 8 }}>Area (m²)</div>
-          <Slider
-            range
-            min={15}
-            max={40}
-            value={area}
-            onChange={setArea}
-            style={{ marginBottom: 16 }}
-          />
+          <Slider range min={15} max={40} value={area} onChange={setArea} style={{ marginBottom: 16 }} />
 
-          {/* ✅ Thêm lọc theo Room Status */}
-          <div style={{ fontWeight: 600, marginBottom: 8, marginTop: 30 }}>
-            Room Status
-          </div>
-          <Select
-            value={status}
-            onChange={setStatus}
-            style={{ width: "100%", marginBottom: 16 }}
-          >
+          <div style={{ fontWeight: 600, marginBottom: 8, marginTop: 30 }}>Room Status</div>
+          <Select value={status} onChange={setStatus} style={{ width: "100%", marginBottom: 16 }}>
             <Option value="All">All</Option>
             <Option value="Available">Available</Option>
             <Option value="Occupied">Occupied</Option>
@@ -85,7 +78,7 @@ export default function HomePage() {
           </Select>
 
           <Divider style={{ margin: "12px 0" }} />
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>Price(VND)</div>
+          <div style={{ fontWeight: 600, marginBottom: 8 }}>Price (VND)</div>
           <Slider
             range
             min={0}
@@ -95,14 +88,12 @@ export default function HomePage() {
             tipFormatter={(v) => v.toLocaleString()}
             style={{ marginBottom: 16 }}
           />
-          <Divider style={{ margin: "12px 0" }} />
 
-          <Button type="primary" block onClick={handleApplyFilter}>
-            Lọc
-          </Button>
+          <Divider style={{ margin: "12px 0" }} />
+          <Button type="primary" block onClick={handleApplyFilter}>Apply Filter</Button>
         </div>
 
-        {/* Main content */}
+        {/* Main Content */}
         <div
           style={{
             flex: 1,
@@ -115,7 +106,6 @@ export default function HomePage() {
           <RoomList filter={appliedFilter} />
         </div>
       </div>
-
       <Footer />
     </div>
   );

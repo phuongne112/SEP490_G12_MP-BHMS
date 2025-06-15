@@ -25,11 +25,11 @@ public class UserDetailCustom implements UserDetailsService {
         if (user == null) {
             throw new UsernameNotFoundException("User not found with email: " + username);
         }
-        System.out.println("Tìm thấy user: " + user.getEmail());
+        System.out.println("Finded user: " + user.getEmail());
         System.out.println("Password hash: " + user.getPassword());
         // Bổ sung kiểm tra trạng thái tài khoản
         if (!user.getIsActive()) {
-            throw new DisabledException("Tài khoản đã bị vô hiệu hóa");
+            throw new DisabledException("User has been de-activated");
         }
 
         String role = user.getRole() != null ? user.getRole().getRoleName() : "ROLE_GUEST";

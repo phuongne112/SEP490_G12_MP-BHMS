@@ -312,7 +312,6 @@ const handleEditUser = (user) => {
         <Form.Item
           name="roleId"
           label="Role"
-          rules={[{ required: true }]}
         >
           <Select placeholder="Select Role">
             <Select.Option value={1}>ADMIN</Select.Option>

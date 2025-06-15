@@ -45,7 +45,7 @@ class RoleControllerTest {
         // Arrange
         RoleEntity roleEntity = new RoleEntity();
         roleEntity.setRoleName("TEST_ROLE");
-        roleEntity.setRoleId(1L);
+        roleEntity.setId(1L);
 
         when(roleService.existByName(roleEntity.getRoleName())).thenReturn(false);
         when(roleService.createRole(any(RoleEntity.class))).thenReturn(roleEntity);
@@ -58,7 +58,7 @@ class RoleControllerTest {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(roleEntity.getRoleName(), response.getBody().getRoleName());
-        assertEquals(roleEntity.getRoleId(), response.getBody().getRoleId());
+        assertEquals(roleEntity.getId(), response.getBody().getId());
 
         // Verify
         verify(roleService).existByName(roleEntity.getRoleName());
@@ -85,10 +85,10 @@ class RoleControllerTest {
     void updateRole_Success() {
         // Arrange
         RoleEntity roleEntity = new RoleEntity();
-        roleEntity.setRoleId(1L);
+        roleEntity.setId(1L);
         roleEntity.setRoleName("UPDATED_ROLE");
 
-        when(roleService.getById(roleEntity.getRoleId())).thenReturn(roleEntity);
+        when(roleService.getById(roleEntity.getId())).thenReturn(roleEntity);
         when(roleService.updateRole(any(RoleEntity.class))).thenReturn(roleEntity);
 
         // Act
@@ -99,10 +99,10 @@ class RoleControllerTest {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(roleEntity.getRoleName(), response.getBody().getRoleName());
-        assertEquals(roleEntity.getRoleId(), response.getBody().getRoleId());
+        assertEquals(roleEntity.getId(), response.getBody().getId());
 
         // Verify
-        verify(roleService).getById(roleEntity.getRoleId());
+        verify(roleService).getById(roleEntity.getId());
         verify(roleService).updateRole(roleEntity);
     }
 
@@ -110,15 +110,15 @@ class RoleControllerTest {
     void updateRole_NotFound() {
         // Arrange
         RoleEntity roleEntity = new RoleEntity();
-        roleEntity.setRoleId(999L);
+        roleEntity.setId(999L);
 
-        when(roleService.getById(roleEntity.getRoleId())).thenReturn(null);
+        when(roleService.getById(roleEntity.getId())).thenReturn(null);
 
         // Act & Assert
         assertThrows(IdInvalidException.class, () -> roleController.updateRole(roleEntity));
 
         // Verify
-        verify(roleService).getById(roleEntity.getRoleId());
+        verify(roleService).getById(roleEntity.getId());
         verify(roleService, never()).updateRole(any(RoleEntity.class));
     }
 
@@ -159,11 +159,11 @@ class RoleControllerTest {
     void getAllRoles_Success() {
         // Arrange
         RoleEntity role1 = new RoleEntity();
-        role1.setRoleId(1L);
+        role1.setId(1L);
         role1.setRoleName("ROLE_1");
 
         RoleEntity role2 = new RoleEntity();
-        role2.setRoleId(2L);
+        role2.setId(2L);
         role2.setRoleName("ROLE_2");
 
         List<RoleEntity> roles = Arrays.asList(role1, role2);
