@@ -185,13 +185,27 @@ public class UserServiceImpl implements UserService {
 
         Map<String, String> errors = new HashMap<>();
 
-        // Kiểm tra email
+        // Regex kiểm tra email theo các domain cho phép
+        String allowedEmailRegex = "^[A-Za-z0-9._%+-]+@(gmail\\.com(\\.vn)?"
+                + "|fpt\\.edu\\.vn"
+                + "|student\\.hust\\.edu\\.vn"
+                + "|hcmut\\.edu\\.vn"
+                + "|stu\\.edu\\.vn"
+                + "|vnuit\\.edu\\.vn"
+                + "|[A-Za-z0-9.-]+\\.edu\\.vn"
+                + ")$";
+
+        if (!user.getEmail().matches(allowedEmailRegex)) {
+            errors.put("newEmail", "Email must belong to an accepted domain (e.g., gmail.com, fpt.edu.vn, etc.)");
+        }
+
+        // Kiểm tra email đã tồn tại
         if (!existingUser.getEmail().equals(user.getEmail())
                 && this.userRepository.existsByEmail(user.getEmail())) {
             errors.put("newEmail", "Email '" + user.getEmail() + "' already exists");
         }
 
-        // Kiểm tra username
+        // Kiểm tra username đã tồn tại
         if (!existingUser.getUsername().equals(user.getUsername())
                 && this.userRepository.existsByUsername(user.getUsername())) {
             errors.put("username", "Username '" + user.getUsername() + "' already exists");
@@ -212,6 +226,7 @@ public class UserServiceImpl implements UserService {
 
         return this.userRepository.save(existingUser);
     }
+
 
 
     @Override
