@@ -6,7 +6,7 @@ import axiosClient from "./axiosClient";
  * @param {number} size - Kích thước trang.
  * @param {string} filter - Chuỗi filter DSL.
  */
-export const getAllRooms = async (page = 0, size = 5, filter = "") => {
+export const getAllRooms = async (page = 0, size = 9, filter = "") => {
   let url = `/rooms?page=${page}&size=${size}`;
   if (filter) {
     url += `&filter=${encodeURIComponent(filter)}`;
