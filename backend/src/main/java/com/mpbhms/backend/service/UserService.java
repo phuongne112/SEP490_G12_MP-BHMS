@@ -16,7 +16,7 @@ public interface UserService {
     UserEntity signUp(CreateUserRequest userDTO);
     boolean isEmailExist(String email);
     UserEntity handleFetchUserById(long id);
-    UserEntity handleUpdateUser(UserEntity user);
+    UserEntity handleUpdateUser(UpdateUserDTO dto);
     UpdateUserDTO convertResUpdateUserDTO(UserEntity user);
     String changePasswordUser(String username, String currentPassword, String newPassword);
     void sendResetPasswordToken(String email);

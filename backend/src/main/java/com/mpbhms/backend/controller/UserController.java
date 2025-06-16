@@ -45,8 +45,8 @@ public class UserController {
 
     @PutMapping
     @ApiMessage("Update an existing user account")
-    public ResponseEntity<UpdateUserDTO> updateUser(@Valid @RequestBody UserEntity user) {
-        UserEntity updatedUser = userService.handleUpdateUser(user);
+    public ResponseEntity<UpdateUserDTO> updateUser(@Valid @RequestBody UpdateUserDTO dto) {
+        UserEntity updatedUser = userService.handleUpdateUser(dto);
         return ResponseEntity.ok(userService.convertResUpdateUserDTO(updatedUser));
     }
 
