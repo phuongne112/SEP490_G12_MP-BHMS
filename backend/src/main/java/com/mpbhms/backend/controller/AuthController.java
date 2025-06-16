@@ -201,10 +201,6 @@ public class AuthController {
         @PostMapping("/signup")
         @ApiMessage("Register a new user account")
         public ResponseEntity<CreateUserResponse> signUp(@Valid @RequestBody CreateUserRequest request) {
-            // Kiểm tra trùng email
-            if (userService.isEmailExist(request.getEmail())) {
-                throw new IdInvalidException("Email " + request.getEmail() + " is exist, please use another email");
-            }
             // Gọi service để tạo
             UserEntity saved = userService.signUp(request);
             return ResponseEntity.status(HttpStatus.CREATED)

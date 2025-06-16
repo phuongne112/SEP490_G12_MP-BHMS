@@ -24,4 +24,8 @@ public interface UserService {
     UserEntity handleGetUserByUsername(String username);
     void updateUserStatus(Long userId, boolean isActive);
     boolean isUsernameExist(String username);
+    UserAccountDtoResponse getUserAccountById(Long id);
+    UserInfoDtoResponse getUserInfoById(Long userId);
+    void updateUserInfo(Long userId, UserInfoDtoRequest request);
+    void updateUserAccount(Long userId, UserAccountDtoRequest request);
 }

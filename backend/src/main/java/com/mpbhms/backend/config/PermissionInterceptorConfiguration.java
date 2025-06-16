@@ -24,7 +24,9 @@ public class PermissionInterceptorConfiguration implements WebMvcConfigurer {
                 "/mpbhms/auth/change-password",
                 "/mpbhms/auth/request-reset",
                 "/mpbhms/auth/reset-password",
-                "/mpbhms/auth/signup"
+                "/mpbhms/auth/signup",
+                "/mpbhms/users/me/account",
+                "/mpbhms/users/me/info"
 
         };
 

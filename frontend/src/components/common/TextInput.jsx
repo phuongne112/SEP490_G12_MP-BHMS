@@ -1,5 +1,4 @@
-import react from "react";
-
+import React from "react";
 const inputStyle = {
   width: "100%",
   padding: "10px 12px",
@@ -8,6 +7,7 @@ const inputStyle = {
   marginTop: 4,
   boxSizing: "border-box",
 };
+
 export default function TextInput({
   label,
   name,
@@ -15,9 +15,10 @@ export default function TextInput({
   onChange,
   type = "text",
   required = true,
+  error, // 👉 thêm prop error
 }) {
   return (
-    <div>
+    <div style={{ marginBottom: 16 }}>
       <label>{label}</label>
       <input
         type={type}
@@ -26,8 +27,14 @@ export default function TextInput({
         onChange={onChange}
         placeholder="Enter here..."
         required={required}
-        style={inputStyle}
+        style={{
+          ...inputStyle,
+          border: error ? "1px solid red" : inputStyle.border,
+        }}
       />
+      {error && (
+        <p style={{ color: "red", marginTop: 4, fontSize: 14 }}>{error}</p>
+      )}
     </div>
   );
 }
