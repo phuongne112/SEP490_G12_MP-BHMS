@@ -17,7 +17,6 @@ import {
 } from "antd";
 import { FilterOutlined, PlusOutlined } from "@ant-design/icons";
 import { FaBell } from "react-icons/fa";
-
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import NotificationTable from "../../components/admin/NotificationTable";
@@ -25,12 +24,15 @@ import SearchBox from "../../components/common/SearchBox";
 import EntrySelect from "../../components/common/EntrySelect";
 import NotificationFilterPopover from "../../components/admin/NotificationFilterPopover";
 import Access from "../../components/common/Access";
-
 import {
   sendNotification,
   deleteNotification,
 } from "../../services/notificationApi";
 import { getAllUsers } from "../../services/userApi";
+import { getCurrentUser } from "../../services/authService";
+import { useDispatch } from "react-redux";
+import { setUser } from "../../store/accountSlice";
+import { useSelector } from "react-redux";
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -55,7 +57,29 @@ export default function AdminNotificationPage() {
   const [deleteMessage, setDeleteMessage] = useState(null); // ✅ Thông báo thành công
   const [deleteError, setDeleteError] = useState(null); // ✅ Thông báo lỗi
   const currentUserId = parseInt(localStorage.getItem("userId"));
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.account.user);
 
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const updatedUser = await getCurrentUser();
+        dispatch(
+          setUser({
+            id: updatedUser.id,
+            fullName: updatedUser.name,
+            role: updatedUser.role,
+            permissions:
+              updatedUser.role?.permissionEntities?.map((p) => p.name) || [],
+          })
+        );
+      } catch (err) {
+        console.error("Failed to refresh user permissions:", err);
+      }
+    };
+
+    fetchUser();
+  }, []);
   useEffect(() => {
     if (isCreateModalOpen) {
       getAllUsers(0, 1000)
@@ -106,7 +130,7 @@ export default function AdminNotificationPage() {
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <AdminSidebar />
+      <AdminSidebar key={user?.permissions?.join(",")} />
       <Layout style={{ marginLeft: 220 }}>
         <Content style={{ padding: "32px" }}>
           <div

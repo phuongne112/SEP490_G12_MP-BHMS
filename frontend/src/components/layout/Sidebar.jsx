@@ -51,10 +51,21 @@ export default function Sidebar({
           }}
         >
           <div>
-            <div style={{ fontWeight: "bold", fontSize: 14, color: "white" }}>
+            <div style={{ fontWeight: 500, fontSize: 12, color: "white" }}>
               Hello
             </div>
-            <div style={{ fontWeight: "bold", color: "White", fontSize: 16 }}>
+            <div
+              style={{
+                fontWeight: 600,
+                fontSize: 13,
+                color: "white",
+                maxWidth: 100, // hoặc 120 tùy theo layout
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+                textOverflow: "ellipsis",
+              }}
+              title={name} // để hover vẫn xem đầy đủ tên
+            >
               {name}
             </div>
           </div>

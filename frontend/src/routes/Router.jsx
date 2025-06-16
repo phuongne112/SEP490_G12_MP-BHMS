@@ -46,7 +46,14 @@ export default function AppRouter() {
           </AdminRoute>
         }
       />
-      <Route path="/admin/notification" element={<AdminNotificationPage />} />
+      <Route
+        path="/admin/notification"
+        element={
+          <AdminRoute>
+            <AdminNotificationPage />
+          </AdminRoute>
+        }
+      />
       <Route
         path="/admin/roles"
         element={
@@ -55,7 +62,14 @@ export default function AppRouter() {
           </AdminRoute>
         }
       />
-      <Route path="/admin/permissions" element={<AdminPermissionListPage />} />
+      <Route
+        path="/admin/permissions"
+        element={
+          <AdminRoute>
+            <AdminPermissionListPage />
+          </AdminRoute>
+        }
+      />
       <Route path="*" element={<Error403 />} />
       <Route path="/room" element={<RoomSection />} />
       <Route path="/403" element={<Error403 />} />

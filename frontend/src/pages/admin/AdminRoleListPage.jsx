@@ -28,6 +28,7 @@ import {
   updateRole,
   deleteRole,
 } from "../../services/roleApi";
+import Access from "../../components/common/Access";
 import { useDispatch } from "react-redux";
 import { setUser } from "../../store/accountSlice";
 import { getCurrentUser } from "../../services/authService";
@@ -150,7 +151,7 @@ export default function AdminRoleListPage() {
           setUser({
             id: updatedUser.id,
             fullName: updatedUser.name,
-            role: updatedUser.role?.roleName,
+            role: updatedUser.role,
             permissions:
               updatedUser.role?.permissionEntities?.map((p) => p.name) || [],
           })
@@ -199,13 +200,15 @@ export default function AdminRoleListPage() {
             }}
           >
             <PageHeader title="List Role" />
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={openAddModal}
-            >
-              Add new role
-            </Button>
+            <Access requiredPermissions={["Create Role"]}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={openAddModal}
+              >
+                Add new role
+              </Button>
+            </Access>
           </div>
 
           <div
