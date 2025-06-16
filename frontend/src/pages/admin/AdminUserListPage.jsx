@@ -11,7 +11,7 @@ import {
   Popover,
   Space,
 } from "antd";
-import { PlusOutlined, FilterOutlined } from "@ant-design/icons";
+import { FilterOutlined } from "@ant-design/icons";
 import { Select } from "antd";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import PageHeader from "../../components/common/PageHeader";
@@ -42,32 +42,24 @@ export default function AdminUserListPage() {
   const handleApplyFilter = (values) => {
     setFilters(values);
   };
+
   const handleEditUser = (user) => {
-  setUpdateEmail(user.email);
-  setUpdateUserId(user.id);
-
-  updateForm.setFieldsValue({
-    newEmail: user.email,
-    username: user.username,
-    roleId: user.role?.roleId ?? null, // ✅ đảm bảo lấy đúng roleId
-  });
-
-  setIsUpdateModalOpen(true);
-};
+    setUpdateEmail(user.email);
+    setUpdateUserId(user.id);
+    updateForm.setFieldsValue({
+      newEmail: user.email,
+      username: user.username,
+      roleId: user.role?.roleId ?? null,
+    });
+    setIsUpdateModalOpen(true);
+  };
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <AdminSidebar />
       <Layout style={{ marginLeft: 220 }}>
         <Content style={{ padding: "32px" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 24,
-            }}
-          >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
             <PageHeader title="List User Account" />
             <Access requiredPermissions={["Create User"]}>
               <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
@@ -76,23 +68,13 @@ export default function AdminUserListPage() {
             </Access>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 24,
-              flexWrap: "wrap",
-              marginTop: 30,
-            }}
-          >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", marginTop: 30 }}>
             <EntrySelect value={pageSize} onChange={setPageSize} />
             <Space style={{ gap: 100 }}>
               <SearchBox
                 onSearch={setSearchTerm}
                 placeholder="Search by email, username or role"
               />
-
               <Popover
                 open={isFilterOpen}
                 onOpenChange={setIsFilterOpen}
@@ -121,104 +103,186 @@ export default function AdminUserListPage() {
             pageSize={pageSize}
             searchTerm={searchTerm}
             filters={filters}
-            onEdit={(user) => handleEditUser(user)}
+            onEdit={handleEditUser}
             refreshKey={refreshKey}
           />
+
           {/* Modal tạo user */}
           <Modal
-  title="Update User Account"
-  open={isUpdateModalOpen}
-  onCancel={() => {
-    setIsUpdateModalOpen(false);
-    updateForm.resetFields();
-  }}
-  footer={null}
-  width={700}
->
-  <Form
-    layout="vertical"
-    form={updateForm}
-    onFinish={async (values) => {
-      try {
-        const payload = {
-          id: updateUserId,
-          username: values.username,
-          email: values.newEmail,
-          role: {
-            roleId: values.roleId, // ✅ đồng bộ với DTO backend
-          },
-        };
+            title="Create User Account"
+            open={isCreateModalOpen}
+            onCancel={() => setIsCreateModalOpen(false)}
+            footer={null}
+            width={700}
+          >
+            <Form
+              layout="vertical"
+              form={createForm}
+              onFinish={async (values) => {
+                try {
+                  const payload = { ...values, roleId: 4 };
+                  await createUser(payload);
+                  message.success("User created successfully");
+                  setIsCreateModalOpen(false);
+                  createForm.resetFields();
+                  setRefreshKey((prev) => prev + 1);
+                } catch (error) {
+                  const res = error.response?.data;
+                  if (res?.data && typeof res.data === "object") {
+                    const fieldMap = {
+                      emailAddress: "email",
+                      userName: "username",
+                    };
+                    const fieldErrors = Object.entries(res.data).map(
+                      ([field, message]) => ({
+                        name: fieldMap[field] || field,
+                        errors: [message],
+                      })
+                    );
+                    createForm.setFields(fieldErrors);
+                  } else {
+                    message.error(res?.message || "Failed to create user");
+                  }
+                }
+              }}
+            >
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="username" label="Username" rules={[{ required: true }]}>
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="fullName" label="Full Name" rules={[{ required: true }]}>
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="email" label="Email" rules={[{ required: true, type: "email" }]}>
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="phone" label="Phone" rules={[{ required: true }]}>
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="password" label="Password" rules={[{ required: true }]}>
+                    <Input.Password />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="confirmPassword"
+                    label="Re-enter Password"
+                    dependencies={["password"]}
+                    rules={[
+                      { required: true },
+                      ({ getFieldValue }) => ({
+                        validator(_, value) {
+                          return value === getFieldValue("password")
+                            ? Promise.resolve()
+                            : Promise.reject(new Error("Passwords do not match"));
+                        },
+                      }),
+                    ]}
+                  >
+                    <Input.Password />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Button type="primary" htmlType="submit" block>
+                Create User
+              </Button>
+            </Form>
+          </Modal>
 
-        await updateUser(payload);
-        message.success("User updated successfully");
-        setIsUpdateModalOpen(false);
-        updateForm.resetFields();
-        setRefreshKey((prev) => prev + 1);
-      } catch (error) {
-        const res = error.response?.data;
-
-        if (res?.data && typeof res.data === "object") {
-          const fieldErrors = Object.entries(res.data).map(
-            ([field, message]) => ({
-              name: field,
-              errors: [message],
-            })
-          );
-          updateForm.setFields(fieldErrors);
-        } else {
-          message.error("Failed to update user");
-        }
-      }
-    }}
-  >
-    <Row gutter={16}>
-      <Col span={12}>
-        <Form.Item label="Old Email">
-          <Input value={updateEmail} disabled />
-        </Form.Item>
-      </Col>
-
-      <Col span={12}>
-        <Form.Item
-          name="newEmail"
-          label="New Email"
-          rules={[{ required: true, type: "email", message: "Enter a valid email" }]}
-        >
-          <Input />
-        </Form.Item>
-      </Col>
-
-      <Col span={12}>
-        <Form.Item
-          name="username"
-          label="Username"
-          rules={[{ required: true, message: "Enter username" }]}
-        >
-          <Input />
-        </Form.Item>
-      </Col>
-
-      <Col span={12}>
-        <Form.Item
-          name="roleId"
-          label="Role"
-          rules={[{ required: true, message: "Select role" }]}
-        >
-          <Select placeholder="Select Role">
-            <Select.Option value={1}>ADMIN</Select.Option>
-            <Select.Option value={2}>RENTER</Select.Option>
-            <Select.Option value={3}>LANDLORD</Select.Option>
-          </Select>
-        </Form.Item>
-      </Col>
-    </Row>
-
-    <Button type="primary" htmlType="submit" block>
-      Update User
-    </Button>
-  </Form>
-</Modal>
-
+          {/* Modal cập nhật user */}
+          <Modal
+            title="Update User Account"
+            open={isUpdateModalOpen}
+            onCancel={() => {
+              setIsUpdateModalOpen(false);
+              updateForm.resetFields();
+            }}
+            footer={null}
+            width={700}
+          >
+            <Form
+              layout="vertical"
+              form={updateForm}
+              onFinish={async (values) => {
+                try {
+                  const payload = {
+                    id: updateUserId,
+                    username: values.username,
+                    email: values.newEmail,
+                    role: {
+                      roleId: values.roleId,
+                    },
+                  };
+                  await updateUser(payload);
+                  message.success("User updated successfully");
+                  setIsUpdateModalOpen(false);
+                  updateForm.resetFields();
+                  setRefreshKey((prev) => prev + 1);
+                } catch (error) {
+                  const res = error.response?.data;
+                  if (res?.data && typeof res.data === "object") {
+                    const fieldMap = {
+                      email: "newEmail",
+                      userName: "username",
+                      role: "roleId",
+                    };
+                    const fieldErrors = Object.entries(res.data).map(
+                      ([field, message]) => ({
+                        name: fieldMap[field] || field,
+                        errors: [message],
+                      })
+                    );
+                    updateForm.setFields(fieldErrors);
+                  } else {
+                    message.error(res?.message || "Failed to update user");
+                  }
+                }
+              }}
+            >
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Old Email">
+                    <Input value={updateEmail} disabled />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="newEmail"
+                    label="New Email"
+                    rules={[{ required: true, type: "email" }]}
+                  >
+                    <Input maxLength={50} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="username" label="Username" rules={[{ required: true }]}>
+                    <Input maxLength={20} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="roleId" label="Role" rules={[{ required: true }]}>
+                    <Select placeholder="Select Role">
+                      <Select.Option value={1}>ADMIN</Select.Option>
+                      <Select.Option value={2}>RENTER</Select.Option>
+                      <Select.Option value={3}>LANDLORD</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Button type="primary" htmlType="submit" block>
+                Update User
+              </Button>
+            </Form>
+          </Modal>
         </Content>
       </Layout>
     </Layout>

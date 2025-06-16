@@ -3,6 +3,8 @@ import logo from "../../assets/logo.png";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logout } from "../../store/accountSlice";
+import { Dropdown, Menu, Avatar } from "antd";
+import { UserOutlined } from "@ant-design/icons";
 
 export default function Header() {
   const navigate = useNavigate();
@@ -49,53 +51,89 @@ export default function Header() {
       }}
     >
       {/* Logo */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={() => navigate("/")}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          cursor: "pointer",
+        }}
+        onClick={() => navigate("/")}
+      >
         <img src={logo} alt="Logo" style={{ height: 40 }} />
         <h2 style={{ margin: 0, fontSize: 20 }}>MinhPhuong</h2>
       </div>
 
       {/* Navigation Links */}
       <nav style={{ display: "flex", gap: 24 }}>
-        {["Products", "Solutions", "Community", "Contact", "About"].map((label, idx) => (
-          <span
-            key={idx}
-            style={{
-              color: "#cbd5e1", // slate-300
-              fontSize: 15,
-              cursor: "pointer",
-              transition: "color 0.2s",
-            }}
-            onMouseOver={(e) => (e.target.style.color = "#fff")}
-            onMouseOut={(e) => (e.target.style.color = "#cbd5e1")}
-          >
-            {label}
-          </span>
-        ))}
+        {["Products", "Solutions", "Community", "Contact", "About"].map(
+          (label, idx) => (
+            <span
+              key={idx}
+              style={{
+                color: "#cbd5e1", // slate-300
+                fontSize: 15,
+                cursor: "pointer",
+                transition: "color 0.2s",
+              }}
+              onMouseOver={(e) => (e.target.style.color = "#fff")}
+              onMouseOut={(e) => (e.target.style.color = "#cbd5e1")}
+            >
+              {label}
+            </span>
+          )
+        )}
       </nav>
 
       {/* User Action */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         {token && user ? (
-          <>
-            <span style={{ fontSize: 15, color: "#e2e8f0" }}>👤 {user.username}</span>
-            <button
-              onClick={handleLogout}
+            <Dropdown
+          overlay={
+            <Menu onClick={({ key }) => {
+              if (key === "account") navigate("/account");
+              else if (key === "profile") navigate("/profile");
+              else if (key === "logout") handleLogout();
+            }}>
+              <Menu.Item key="account">Thông tin tài khoản</Menu.Item>
+              <Menu.Item key="profile">Thông tin cá nhân</Menu.Item>
+              <Menu.Divider />
+              <Menu.Item key="logout" danger>Đăng xuất</Menu.Item>
+            </Menu>
+          }
+          trigger={["click"]}
+          placement="bottomRight"
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              cursor: "pointer",
+            }}
+          >
+            <Avatar
+              icon={<UserOutlined />}
               style={{
-                padding: "6px 14px",
-                backgroundColor: "#ef4444", // red-500
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                fontWeight: 500,
-                cursor: "pointer",
-                transition: "background 0.2s",
+                backgroundColor: "#6d28d9",
               }}
-              onMouseOver={(e) => (e.target.style.backgroundColor = "#dc2626")}
-              onMouseOut={(e) => (e.target.style.backgroundColor = "#ef4444")}
+            />
+            <span
+              style={{
+                color: "#e2e8f0",
+                fontSize: 15,
+                fontWeight: 500,
+                maxWidth: 120,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
             >
-              Sign out
-            </button>
-          </>
+              {user?.name || "No name"}
+            </span>
+          </div>
+        </Dropdown>
+
         ) : (
           <>
             <button
@@ -103,7 +141,7 @@ export default function Header() {
               style={{
                 padding: "6px 14px",
                 backgroundColor: "#e2e8f0",
-                color: "#1e293b", // slate-800
+                color: "#1e293b",
                 border: "none",
                 borderRadius: 8,
                 fontWeight: 500,
@@ -116,7 +154,7 @@ export default function Header() {
               onClick={() => navigate("/signup")}
               style={{
                 padding: "6px 14px",
-                backgroundColor: "#1e40af", // blue-800
+                backgroundColor: "#1e40af",
                 color: "#fff",
                 border: "none",
                 borderRadius: 8,
