@@ -24,6 +24,7 @@ import NotificationTable from "../../components/admin/NotificationTable";
 import SearchBox from "../../components/common/SearchBox";
 import EntrySelect from "../../components/common/EntrySelect";
 import NotificationFilterPopover from "../../components/admin/NotificationFilterPopover";
+import Access from "../../components/common/Access";
 
 import {
   sendNotification,
@@ -125,13 +126,15 @@ export default function AdminNotificationPage() {
                   title="New notifications"
                 />
               </Badge>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setIsCreateModalOpen(true)}
-              >
-                Add New
-              </Button>
+              <Access requiredPermissions={["Create Notification Send"]}>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setIsCreateModalOpen(true)}
+                >
+                  Add New
+                </Button>
+              </Access>
             </Space>
           </div>
 

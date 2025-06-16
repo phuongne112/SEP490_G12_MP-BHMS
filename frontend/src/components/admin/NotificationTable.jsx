@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Table, Button, Space, Tag, Alert } from "antd";
 import { getAllNotifications } from "../../services/notificationApi";
-
+import Access from "../common/Access";
 // Hàm tạo filter DSL cho notification
 const buildFilterDSL = (searchTerm, filters) => {
   const dsl = [];
@@ -120,9 +120,11 @@ export default function NotificationTable({
           <Button size="small" onClick={() => onView(record)}>
             View
           </Button>
-          <Button size="small" danger onClick={() => onDelete(record)}>
-            Delete
-          </Button>
+          <Access requiredPermissions={["Delete Notification"]}>
+            <Button size="small" danger onClick={() => onDelete(record)}>
+              Delete
+            </Button>
+          </Access>
         </Space>
       ),
     },
