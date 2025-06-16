@@ -4,8 +4,10 @@ import com.mpbhms.backend.dto.*;
 import com.mpbhms.backend.entity.UserEntity;
 import com.mpbhms.backend.entity.UserInfoEntity;
 import com.mpbhms.backend.exception.BusinessException;
+import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.service.UserService;
 import com.mpbhms.backend.util.ApiMessage;
+import com.mpbhms.backend.util.SecurityUtil;
 import com.turkraft.springfilter.boot.Filter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
-
+   private final SecurityUtil securityUtil;
     @GetMapping
     @ApiMessage("Get all users with filters and pagination")
     public ResponseEntity<ResultPaginationDTO> getAllUsers(
@@ -62,4 +64,45 @@ public class UserController {
         userService.updateUserStatus(id, request.isActive());
         return ResponseEntity.noContent().build();
     }
+    @GetMapping("/me/info")
+    @ApiMessage("Get user info")
+    public ResponseEntity<UserInfoDtoResponse> getUserInfoById() {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        if (currentUserId == null) {
+            throw new IdInvalidException("You do not have permission to access this endpoint!!!");
+        }
+        return ResponseEntity.ok(userService.getUserInfoById(currentUserId));
+    }
+    @GetMapping("/me/account")
+    public ResponseEntity<UserAccountDtoResponse> getMyAccount() {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        if (currentUserId == null) {
+            throw new IdInvalidException("You do not have permission to access this endpoint!!!");
+        }
+        return ResponseEntity.ok(userService.getUserAccountById(currentUserId));
+    }
+    @PutMapping("/me/info")
+    @ApiMessage("Update user info")
+    public ResponseEntity<Void> updateUserInfoByMe(@RequestBody @Valid UserInfoDtoRequest request) {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        if (currentUserId == null) {
+            throw new IdInvalidException("You do not have permission to access this endpoint!!!");
+        }
+
+        userService.updateUserInfo(currentUserId, request);
+        return ResponseEntity.noContent().build();
+    }
+    @PutMapping("/me/account")
+    @ApiMessage("Update user account")
+    public ResponseEntity<Void> updateUserAccountByMe(@RequestBody @Valid UserAccountDtoRequest request) {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        if (currentUserId == null) {
+            throw new IdInvalidException("You do not have permission to access this endpoint!!!");
+        }
+
+        userService.updateUserAccount(currentUserId, request);
+        return ResponseEntity.noContent().build();
+    }
+
+
 }

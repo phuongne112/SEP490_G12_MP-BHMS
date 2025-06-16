@@ -138,6 +138,7 @@ public class UserServiceImpl implements UserService {
     }
 
     public UserEntity signUp(CreateUserRequest dto) {
+        Map<String, String> errors = new HashMap<>();
         // 1. Kiểm tra email đã tồn tại
         if (isEmailExist(dto.getEmail())) {
             throw new BusinessException("Email '" + dto.getEmail() + "' already exists, please use another email");
@@ -282,5 +283,103 @@ public class UserServiceImpl implements UserService {
                 return userRepository.existsByUsername(username);
             }
 
+    @Override
+    public UserAccountDtoResponse getUserAccountById(Long id) {
+        UserEntity user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        UserAccountDtoResponse dto = new UserAccountDtoResponse();
+        dto.setId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+
+        // 👉 Lấy fullName từ userInfo nếu có
+        if (user.getUserInfo() != null) {
+            dto.setFullName(user.getUserInfo().getFullName());
         }
+
+        return dto;
+    }
+
+    @Override
+    public UserInfoDtoResponse getUserInfoById(Long userId) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        UserInfoEntity info = user.getUserInfo();
+        if (info == null) {
+            throw new RuntimeException("User info not found");
+        }
+
+        UserInfoDtoResponse dto = new UserInfoDtoResponse();
+        dto.setFullName(info.getFullName());
+        dto.setPhoneNumber(info.getPhoneNumber());
+        dto.setPhoneNumber2(info.getPhoneNumber2());
+        dto.setGender(info.getGender() != null ? info.getGender().name() : null);
+        dto.setBirthDate(info.getBirthDate());
+        dto.setBirthPlace(info.getBirthPlace());
+        dto.setNationalID(info.getNationalID());
+        dto.setNationalIDIssuePlace(info.getNationalIDIssuePlace());
+        dto.setPermanentAddress(info.getPermanentAddress());
+
+        return dto;
+    }
+    public void updateUserInfo(Long userId, UserInfoDtoRequest request) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        UserInfoEntity info = user.getUserInfo();
+        if (info == null) {
+            info = new UserInfoEntity();
+            info.setUser(user);
+        }
+
+        info.setFullName(request.getFullName());
+        info.setPhoneNumber(request.getPhoneNumber());
+        info.setPhoneNumber2(request.getPhoneNumber2());
+        info.setGender(request.getGender() != null ? UserInfoEntity.Gender.valueOf(request.getGender()) : null);
+        info.setBirthDate(request.getBirthDate());
+        info.setBirthPlace(request.getBirthPlace());
+        info.setNationalID(request.getNationalID());
+        info.setNationalIDIssuePlace(request.getNationalIDIssuePlace());
+        info.setPermanentAddress(request.getPermanentAddress());
+
+        user.setUserInfo(info); // nếu cascade thì sẽ tự lưu info khi lưu user
+        userRepository.save(user);
+    }
+
+    public void updateUserAccount(Long userId, UserAccountDtoRequest request) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Map<String, String> errors = new HashMap<>();
+
+        // Kiểm tra email trùng (nếu có thay đổi)
+        if (!user.getEmail().equals(request.getEmail())
+                && userRepository.existsByEmail(request.getEmail())) {
+            errors.put("email", "Email already exists");
+        }
+
+        // Kiểm tra username trùng (nếu có thay đổi)
+        if (!user.getUsername().equals(request.getUsername())
+                && userRepository.existsByUsername(request.getUsername())) {
+            errors.put("username", "Username already exists");
+        }
+
+        if (!errors.isEmpty()) {
+            throw new BusinessException("Update account failed", errors);
+        }
+
+        user.setEmail(request.getEmail());
+        user.setUsername(request.getUsername());
+
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+
+        userRepository.save(user);
+    }
+
+
+}
 

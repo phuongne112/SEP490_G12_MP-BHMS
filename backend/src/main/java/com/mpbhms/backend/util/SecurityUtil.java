@@ -17,6 +17,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 import java.util.Optional;
 
 
@@ -149,6 +150,16 @@ public class SecurityUtil {
             throw new IllegalArgumentException("Invalid token type");
         }
         return decoded.getSubject();
+    }
+    public static Long getCurrentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof Jwt jwt) {
+            Map<String, Object> userMap = jwt.getClaim("user");
+            if (userMap != null && userMap.get("id") != null) {
+                return Long.valueOf(userMap.get("id").toString());
+            }
+        }
+        return null;
     }
 
 }
