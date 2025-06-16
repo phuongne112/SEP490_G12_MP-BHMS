@@ -56,7 +56,7 @@ export default function AppRouter() {
         }
       />
       <Route path="/admin/permissions" element={<AdminPermissionListPage />} />
-      <Route path="*" element={<LoginPage />} />
+      <Route path="*" element={<Error403 />} />
       <Route path="/room" element={<RoomSection />} />
       <Route path="/403" element={<Error403 />} />
     </Routes>
