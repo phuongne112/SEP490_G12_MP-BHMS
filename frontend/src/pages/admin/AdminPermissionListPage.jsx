@@ -13,10 +13,7 @@ import {
   message,
   Alert,
 } from "antd";
-import {
-  PlusOutlined,
-  FilterOutlined,
-} from "@ant-design/icons";
+import { PlusOutlined, FilterOutlined } from "@ant-design/icons";
 
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import PageHeader from "../../components/common/PageHeader";
@@ -29,6 +26,7 @@ import {
   updatePermission,
   deletePermission,
 } from "../../services/permissionApi";
+import { useSelector } from "react-redux";
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -49,6 +47,9 @@ export default function AdminPermissionListPage() {
   const [selectedPermission, setSelectedPermission] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState(null);
+
+  const user = useSelector((state) => state.account.user);
+  const hasCreatePermission = user?.permissions?.includes("Create Permission");
 
   const handleApplyFilter = (values) => {
     setFilters(values);
@@ -152,24 +153,48 @@ export default function AdminPermissionListPage() {
       <AdminSidebar />
       <Layout style={{ marginLeft: 220 }}>
         <Content style={{ padding: "32px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 24,
+            }}
+          >
             <PageHeader title="Permission Management" />
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => {
-                form.resetFields();
-                setEditingPermission(null);
-                setFormError(null);
-                setIsModalOpen(true);
-              }}
-            >
-              Add Permission
-            </Button>
+            {hasCreatePermission && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  form.resetFields();
+                  setEditingPermission(null);
+                  setFormError(null);
+                  setIsModalOpen(true);
+                }}
+              >
+                Add Permission
+              </Button>
+            )}
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", marginBottom: 24, marginTop: 30 }}>
-            <EntrySelect value={pageSize} onChange={(val) => { setPageSize(val); setCurrentPage(1); }} />
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              marginBottom: 24,
+              marginTop: 30,
+            }}
+          >
+            <EntrySelect
+              value={pageSize}
+              onChange={(val) => {
+                setPageSize(val);
+                setCurrentPage(1);
+              }}
+            />
             <Space align="start" size={30}>
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <label style={{ fontSize: 13, marginBottom: 4 }}>Name</label>
@@ -206,7 +231,10 @@ export default function AdminPermissionListPage() {
                   trigger="click"
                   placement="bottomRight"
                 >
-                  <Button icon={<FilterOutlined />} style={{ backgroundColor: "#40a9ff", color: "white" }}>
+                  <Button
+                    icon={<FilterOutlined />}
+                    style={{ backgroundColor: "#40a9ff", color: "white" }}
+                  >
                     Filter
                   </Button>
                 </Popover>
@@ -237,7 +265,9 @@ export default function AdminPermissionListPage() {
           />
 
           <Modal
-            title={editingPermission ? "Update Permission" : "Create Permission"}
+            title={
+              editingPermission ? "Update Permission" : "Create Permission"
+            }
             open={isModalOpen}
             onCancel={() => {
               setIsModalOpen(false);
@@ -248,28 +278,101 @@ export default function AdminPermissionListPage() {
             footer={null}
             width={600}
           >
-            <Form form={form} layout="vertical" onFinish={handleSubmitPermission}>
+            <Form
+              form={form}
+              layout="vertical"
+              onFinish={handleSubmitPermission}
+            >
               <Row gutter={16}>
                 <Col span={12}>
-                  <Form.Item name="name" label="Permission Name" rules={[{ required: true, message: "Enter permission name" }]}> <Input placeholder="Enter here..." /> </Form.Item>
+                  <Form.Item
+                    name="name"
+                    label="Permission Name"
+                    rules={[
+                      { required: true, message: "Enter permission name" },
+                    ]}
+                  >
+                    <Input placeholder="Enter here..." />
+                  </Form.Item>
                 </Col>
+
                 <Col span={12}>
-                  <Form.Item name="api" label="API Path" rules={[{ required: true, message: "Enter API path" }]}> <Input placeholder="Enter here..." /> </Form.Item>
+                  <Form.Item
+                    name="api"
+                    label="API Path"
+                    rules={[{ required: true, message: "Enter API path" }]}
+                  >
+                    <Input placeholder="Enter here..." />
+                  </Form.Item>
                 </Col>
               </Row>
+
               <Row gutter={16}>
                 <Col span={12}>
-                  <Form.Item name="method" label="Method" rules={[{ required: true, message: "Select method" }]}> <Select placeholder="Select a method"> <Option value="GET">GET</Option> <Option value="POST">POST</Option> <Option value="PUT">PUT</Option> <Option value="DELETE">DELETE</Option> </Select> </Form.Item>
+                  <Form.Item
+                    name="method"
+                    label="Method"
+                    rules={[{ required: true, message: "Select method" }]}
+                  >
+                    <Select placeholder="Select a method">
+                      <Option value="GET">GET</Option>
+                      <Option value="POST">POST</Option>
+                      <Option value="PUT">PUT</Option>
+                      <Option value="DELETE">DELETE</Option>
+                    </Select>
+                  </Form.Item>
                 </Col>
+
                 <Col span={12}>
-                  <Form.Item name="module" label="Module" rules={[{ required: true, message: "Select module" }]}> <Select placeholder="Select a module..."> <Option value="User">User</Option> <Option value="Renter">Renter</Option> <Option value="Room">Room</Option> <Option value="Notification">Notification</Option> <Option value="Role">Role</Option> <Option value="Permission">Permission</Option> </Select> </Form.Item>
+                  <Form.Item
+                    name="module"
+                    label="Module"
+                    rules={[{ required: true, message: "Select module" }]}
+                  >
+                    <Select placeholder="Select a module...">
+                      <Option value="User">User</Option>
+                      <Option value="Renter">Renter</Option>
+                      <Option value="Room">Room</Option>
+                      <Option value="Notification">Notification</Option>
+                      <Option value="Role">Role</Option>
+                      <Option value="Permission">Permission</Option>
+                    </Select>
+                  </Form.Item>
                 </Col>
               </Row>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: 16, gap: 16 }}>
-                <div style={{ color: formError ? "red" : "transparent", fontSize: 13, minHeight: 20, maxWidth: "75%", whiteSpace: "normal", flex: 1 }}>{formError || "\u00A0"}</div>
+
+              {/* Submit & error */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  marginTop: 16,
+                  gap: 16,
+                }}
+              >
+                <div
+                  style={{
+                    color: formError ? "red" : "transparent",
+                    fontSize: 13,
+                    minHeight: 20,
+                    maxWidth: "75%",
+                    whiteSpace: "normal",
+                    flex: 1,
+                  }}
+                >
+                  {formError || "\u00A0"}
+                </div>
                 <div style={{ whiteSpace: "nowrap" }}>
-                  <Button onClick={() => setIsModalOpen(false)} style={{ marginRight: 8 }}>Cancel</Button>
-                  <Button type="primary" htmlType="submit">{editingPermission ? "Update" : "Create"}</Button>
+                  <Button
+                    onClick={() => setIsModalOpen(false)}
+                    style={{ marginRight: 8 }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="primary" htmlType="submit">
+                    {editingPermission ? "Update" : "Create"}
+                  </Button>
                 </div>
               </div>
             </Form>

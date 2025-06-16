@@ -3,6 +3,7 @@ import { Table, Button, Space, Tooltip, message } from "antd";
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { getAllPermissions } from "../../services/permissionApi";
+import { useSelector } from "react-redux";
 
 // ✅ Hàm tạo DSL cho filter và search
 const buildFilterDSL = (search, filters) => {
@@ -43,6 +44,11 @@ export default function PermissionTable({
     current: currentPage || 1,
     total: 0,
   });
+  const user = useSelector((state) => state.account.user);
+  const permissions = user?.permissions || [];
+
+  const hasEdit = permissions.includes("Update Permission");
+  const hasDelete = permissions.includes("Delete Permission");
 
   const fetchData = async (page = 1) => {
     setLoading(true);
@@ -72,8 +78,7 @@ export default function PermissionTable({
     {
       title: "No.",
       dataIndex: "id",
-      render: (_, __, index) =>
-        (pagination.current - 1) * pageSize + index + 1,
+      render: (_, __, index) => (pagination.current - 1) * pageSize + index + 1,
     },
     {
       title: "Name",
@@ -91,27 +96,34 @@ export default function PermissionTable({
       title: "Module",
       dataIndex: "module",
     },
-    {
+  ];
+  // ✅ Thêm cột Actions nếu còn ít nhất 1 quyền
+  if (hasEdit || hasDelete) {
+    columns.push({
       title: "Actions",
       render: (_, record) => (
         <Space>
-          <Tooltip title="Edit">
-            <Button
-              icon={<EditOutlined />}
-              onClick={() => onEditPermission(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Button
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => onDeletePermission(record)}
-            />
-          </Tooltip>
+          {hasEdit && (
+            <Tooltip title="Edit">
+              <Button
+                icon={<EditOutlined />}
+                onClick={() => onEditPermission(record)}
+              />
+            </Tooltip>
+          )}
+          {hasDelete && (
+            <Tooltip title="Delete">
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => onDeletePermission(record)}
+              />
+            </Tooltip>
+          )}
         </Space>
       ),
-    },
-  ];
+    });
+  }
 
   return (
     <Table

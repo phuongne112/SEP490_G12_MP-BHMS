@@ -29,7 +29,7 @@ export default function Login() {
         setUser({
           id: user.id,
           fullName: user.name,
-          role: user.role?.roleName,
+          role: user.role,
           permissions: user.role?.permissionEntities?.map((p) => p.name) || [],
         })
       );
@@ -44,6 +44,9 @@ export default function Login() {
 
       switch (roleName) {
         case "ADMIN":
+          navigate("/admin/users");
+          break;
+        case "SUBADMIN":
           navigate("/admin/users");
           break;
         case "RENTER":
@@ -205,17 +208,25 @@ export default function Login() {
               >
                 Sign In
               </button>
-                </form>
+            </form>
 
-            <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between" }}>
-              <Link to="/forgotPassword" style={{ color: "#0A2342", fontSize: 16 }}>
+            <div
+              style={{
+                marginTop: 12,
+                display: "flex",
+                justifyContent: "space-between",
+              }}
+            >
+              <Link
+                to="/forgotPassword"
+                style={{ color: "#0A2342", fontSize: 16 }}
+              >
                 Forgot password?
               </Link>
               <Link to="/signUp" style={{ color: "#0A2342", fontSize: 16 }}>
                 Sign Up
               </Link>
             </div>
-
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Table, Button, Space, Tag, Alert } from "antd";
 import { getAllNotifications } from "../../services/notificationApi";
 import Access from "../common/Access";
+import { useSelector } from "react-redux";
 // Hàm tạo filter DSL cho notification
 const buildFilterDSL = (searchTerm, filters) => {
   const dsl = [];
@@ -42,6 +43,11 @@ export default function NotificationTable({
   const [pagination, setPagination] = useState({ current: 1, total: 0 });
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null); // ✅ Lỗi bảng
+  const user = useSelector((state) => state.account.user);
+  const hasDeletePermission = user?.permissions?.includes(
+    "Delete Notification"
+  );
+  const hasViewPermission = true;
 
   const fetchData = async (page = 1) => {
     setLoading(true);
@@ -112,22 +118,32 @@ export default function NotificationTable({
       title: "Created At",
       dataIndex: "createdAt",
     },
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_, record) => (
-        <Space>
-          <Button size="small" onClick={() => onView(record)}>
-            View
-          </Button>
-          <Access requiredPermissions={["Delete Notification"]}>
-            <Button size="small" danger onClick={() => onDelete(record)}>
-              Delete
-            </Button>
-          </Access>
-        </Space>
-      ),
-    },
+    ...(hasDeletePermission || hasViewPermission
+      ? [
+          {
+            title: "Actions",
+            key: "actions",
+            render: (_, record) => (
+              <Space>
+                <Button size="small" onClick={() => onView(record)}>
+                  View
+                </Button>
+                {hasDeletePermission && (
+                  <Access requiredPermissions={["Delete Notification"]}>
+                    <Button
+                      size="small"
+                      danger
+                      onClick={() => onDelete(record)}
+                    >
+                      Delete
+                    </Button>
+                  </Access>
+                )}
+              </Space>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (

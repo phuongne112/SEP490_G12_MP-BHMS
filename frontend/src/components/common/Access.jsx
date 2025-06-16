@@ -15,8 +15,6 @@ export default function Access({ children, requiredPermissions = [] }) {
   // Nếu chưa đăng nhập hoặc không có danh sách permission → không hiển thị gì
   if (!user || !user.permissions) return null;
 
-  console.log("🔍 [Access Debug] requiredPermissions:", requiredPermissions);
-  console.log("🔍 [Access Debug] user.permissions:", user?.permissions);
   // Kiểm tra xem user có đầy đủ các quyền yêu cầu không
   const hasPermission = requiredPermissions.every((perm) =>
     user.permissions.some((p) => {

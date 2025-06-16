@@ -10,9 +10,9 @@ import {
   message,
   Popover,
   Space,
+  Select,
 } from "antd";
 import { FilterOutlined } from "@ant-design/icons";
-import { Select } from "antd";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import EntrySelect from "../../components/common/EntrySelect";
@@ -31,17 +31,15 @@ export default function AdminUserListPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [updateUserId, setUpdateUserId] = useState(null);
+  const [updateEmail, setUpdateEmail] = useState("");
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [updateEmail, setUpdateEmail] = useState("");
 
   const [createForm] = Form.useForm();
   const [updateForm] = Form.useForm();
 
-  const handleApplyFilter = (values) => {
-    setFilters(values);
-  };
+  const handleApplyFilter = (values) => setFilters(values);
 
   const handleEditUser = (user) => {
     setUpdateEmail(user.email);
@@ -59,7 +57,7 @@ export default function AdminUserListPage() {
       <AdminSidebar />
       <Layout style={{ marginLeft: 220 }}>
         <Content style={{ padding: "32px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
             <PageHeader title="List User Account" />
             <Access requiredPermissions={["Create User"]}>
               <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
@@ -68,7 +66,7 @@ export default function AdminUserListPage() {
             </Access>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", marginTop: 30 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", marginTop: 30 }}>
             <EntrySelect value={pageSize} onChange={setPageSize} />
             <Space style={{ gap: 100 }}>
               <SearchBox
@@ -89,10 +87,7 @@ export default function AdminUserListPage() {
                 trigger="click"
                 placement="bottomRight"
               >
-                <Button
-                  icon={<FilterOutlined />}
-                  style={{ backgroundColor: "#40a9ff", color: "white" }}
-                >
+                <Button icon={<FilterOutlined />} style={{ backgroundColor: "#40a9ff", color: "white" }}>
                   Filter
                 </Button>
               </Popover>
@@ -107,7 +102,7 @@ export default function AdminUserListPage() {
             refreshKey={refreshKey}
           />
 
-          {/* Modal tạo user */}
+          {/* Modal Create */}
           <Modal
             title="Create User Account"
             open={isCreateModalOpen}
@@ -133,12 +128,10 @@ export default function AdminUserListPage() {
                       emailAddress: "email",
                       userName: "username",
                     };
-                    const fieldErrors = Object.entries(res.data).map(
-                      ([field, message]) => ({
-                        name: fieldMap[field] || field,
-                        errors: [message],
-                      })
-                    );
+                    const fieldErrors = Object.entries(res.data).map(([field, msg]) => ({
+                      name: fieldMap[field] || field,
+                      errors: [msg],
+                    }));
                     createForm.setFields(fieldErrors);
                   } else {
                     message.error(res?.message || "Failed to create user");
@@ -149,7 +142,7 @@ export default function AdminUserListPage() {
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item name="username" label="Username" rules={[{ required: true }]}>
-                    <Input />
+                    <Input maxLength={20} />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
@@ -159,7 +152,7 @@ export default function AdminUserListPage() {
                 </Col>
                 <Col span={12}>
                   <Form.Item name="email" label="Email" rules={[{ required: true, type: "email" }]}>
-                    <Input />
+                    <Input maxLength={50} />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
@@ -198,7 +191,7 @@ export default function AdminUserListPage() {
             </Form>
           </Modal>
 
-          {/* Modal cập nhật user */}
+          {/* Modal Update */}
           <Modal
             title="Update User Account"
             open={isUpdateModalOpen}
@@ -218,9 +211,7 @@ export default function AdminUserListPage() {
                     id: updateUserId,
                     username: values.username,
                     email: values.newEmail,
-                    role: {
-                      roleId: values.roleId,
-                    },
+                    role: { roleId: values.roleId },
                   };
                   await updateUser(payload);
                   message.success("User updated successfully");
@@ -235,12 +226,10 @@ export default function AdminUserListPage() {
                       userName: "username",
                       role: "roleId",
                     };
-                    const fieldErrors = Object.entries(res.data).map(
-                      ([field, message]) => ({
-                        name: fieldMap[field] || field,
-                        errors: [message],
-                      })
-                    );
+                    const fieldErrors = Object.entries(res.data).map(([field, msg]) => ({
+                      name: fieldMap[field] || field,
+                      errors: [msg],
+                    }));
                     updateForm.setFields(fieldErrors);
                   } else {
                     message.error(res?.message || "Failed to update user");
@@ -255,11 +244,7 @@ export default function AdminUserListPage() {
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item
-                    name="newEmail"
-                    label="New Email"
-                    rules={[{ required: true, type: "email" }]}
-                  >
+                  <Form.Item name="newEmail" label="New Email" rules={[{ required: true, type: "email" }]}>
                     <Input maxLength={50} />
                   </Form.Item>
                 </Col>
@@ -274,6 +259,7 @@ export default function AdminUserListPage() {
                       <Select.Option value={1}>ADMIN</Select.Option>
                       <Select.Option value={2}>RENTER</Select.Option>
                       <Select.Option value={3}>LANDLORD</Select.Option>
+                      <Select.Option value={4}>SUBADMIN</Select.Option>
                     </Select>
                   </Form.Item>
                 </Col>
