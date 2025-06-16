@@ -4,11 +4,13 @@ import com.mpbhms.backend.dto.*;
 import com.mpbhms.backend.entity.*;
 import com.mpbhms.backend.exception.BusinessException;
 import com.mpbhms.backend.exception.IdInvalidException;
+import com.mpbhms.backend.repository.PasswordResetTokenRepository;
 import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.service.EmailService;
 import com.mpbhms.backend.service.RoleService;
 import com.mpbhms.backend.service.UserService;
 import com.mpbhms.backend.util.SecurityUtil;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +20,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +36,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final SecurityUtil securityUtil;
     private final EmailService emailService;
-
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     @Override
     public UserEntity getUserWithEmail(String email) {
     return this.userRepository.findByEmail(email);
@@ -180,13 +185,12 @@ public class UserServiceImpl implements UserService {
         return null;
     }
     @Override
-    public UserEntity handleUpdateUser(UserEntity user) {
-        UserEntity existingUser = this.userRepository.findById(user.getId())
-                .orElseThrow(() -> new BusinessException("User with ID '" + user.getId() + "' not found"));
+    public UserEntity handleUpdateUser(UpdateUserDTO dto) {
+        UserEntity existingUser = this.userRepository.findById(dto.getId())
+                .orElseThrow(() -> new BusinessException("User with ID '" + dto.getId() + "' not found"));
 
         Map<String, String> errors = new HashMap<>();
 
-        // Regex kiểm tra email theo các domain cho phép
         String allowedEmailRegex = "^[A-Za-z0-9._%+-]+@(gmail\\.com(\\.vn)?"
                 + "|fpt\\.edu\\.vn"
                 + "|student\\.hust\\.edu\\.vn"
@@ -196,50 +200,52 @@ public class UserServiceImpl implements UserService {
                 + "|[A-Za-z0-9.-]+\\.edu\\.vn"
                 + ")$";
 
-        if (!user.getEmail().matches(allowedEmailRegex)) {
-            errors.put("newEmail", "Email must belong to an accepted domain (e.g., gmail.com, fpt.edu.vn, etc.)");
+        if (!dto.getEmail().matches(allowedEmailRegex)) {
+            errors.put("email", "Email must belong to an accepted domain");
         }
 
-        // Kiểm tra email đã tồn tại
-        if (!existingUser.getEmail().equals(user.getEmail())
-                && this.userRepository.existsByEmail(user.getEmail())) {
-            errors.put("newEmail", "Email '" + user.getEmail() + "' already exists");
+        if (!existingUser.getEmail().equals(dto.getEmail())
+                && userRepository.existsByEmail(dto.getEmail())) {
+            errors.put("email", "Email '" + dto.getEmail() + "' already exists");
         }
 
-        // Kiểm tra username đã tồn tại
-        if (!existingUser.getUsername().equals(user.getUsername())
-                && this.userRepository.existsByUsername(user.getUsername())) {
-            errors.put("username", "Username '" + user.getUsername() + "' already exists");
+        if (!existingUser.getUsername().equals(dto.getUsername())
+                && userRepository.existsByUsername(dto.getUsername())) {
+            errors.put("username", "Username '" + dto.getUsername() + "' already exists");
         }
 
         if (!errors.isEmpty()) {
             throw new BusinessException("Update failed", errors);
         }
 
-        existingUser.setUsername(user.getUsername());
-        existingUser.setEmail(user.getEmail());
-        existingUser.setIsActive(user.getIsActive());
+        existingUser.setUsername(dto.getUsername());
+        existingUser.setEmail(dto.getEmail());
 
-        if (user.getRole() != null && user.getRole().getId() != null) {
-            Optional<RoleEntity> optionalRole = this.roleService.fetchRoleById(user.getRole().getId());
-            existingUser.setRole(optionalRole.orElse(null));
+        if (dto.getRole() != null && dto.getRole().getRoleId() != null) {
+            RoleEntity role = roleService.fetchRoleById(dto.getRole().getRoleId())
+                    .orElseThrow(() -> new BusinessException("Role not found"));
+            existingUser.setRole(role);
         }
 
-        return this.userRepository.save(existingUser);
+        return userRepository.save(existingUser);
     }
-
-
 
     @Override
     public UpdateUserDTO convertResUpdateUserDTO(UserEntity user) {
         UpdateUserDTO dto = new UpdateUserDTO();
+        dto.setId(user.getId());
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
-        dto.setIsActive(user.getIsActive());
-        dto.setRoleId(user.getRole() != null ? user.getRole().getId() : null);
+        if (user.getRole() != null) {
+            UpdateUserDTO.RoleDTO roleDTO = new UpdateUserDTO.RoleDTO();
+            roleDTO.setRoleId(user.getRole().getId());
+            dto.setRole(roleDTO);
+        }
+
         return dto;
     }
-            @Override
+
+    @Override
             public void updateUserStatus (Long userId,boolean isActive){
                 UserEntity user = userRepository.findById(userId)
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -261,22 +267,68 @@ public class UserServiceImpl implements UserService {
                 return "Cập nhật mật khẩu thành công.";
             }
 
-            @Override
-            public void sendResetPasswordToken (String email){
-
-                String token = securityUtil.generateResetToken(email);
-                emailService.sendPasswordResetLink(email, token);
+        @Override
+        @Transactional
+        public void sendResetPasswordToken(String email) {
+            UserEntity user = userRepository.findByEmail(email);
+            if (user == null) {
+                throw new RuntimeException("User not found");
             }
 
-            @Override
-            public void resetPassword (String token, String newPassword){
-                String email = securityUtil.extractEmailFromResetToken(token);
+            Instant expiry = Instant.now().plus(Duration.ofSeconds(30));
+            String token = securityUtil.generateResetToken(email, expiry);
 
-                UserEntity user = userRepository.findByEmail(email);
-
-                user.setPassword(passwordEncoder.encode(newPassword));
-                userRepository.save(user);
+            LocalDate today = LocalDate.now();
+            PasswordResetToken resetToken = passwordResetTokenRepository.findByUser_Id(user.getId()).orElse(null);
+            if (resetToken != null) {
+                if (today.equals(resetToken.getLastRequestDate())) {
+                    if (resetToken.getRequestCount() >= 3) {
+                        throw new RuntimeException("Bạn đã yêu cầu quá 3 lần trong ngày. Vui lòng thử lại vào ngày mai.");
+                    }
+                    resetToken.setRequestCount(resetToken.getRequestCount() + 1);
+                } else {
+                    resetToken.setRequestCount(1);
+                    resetToken.setLastRequestDate(today);
+                }
+                resetToken.setToken(token);
+                resetToken.setExpiryDate(expiry);
+                resetToken.setUsed(false);
+            } else {
+                resetToken = new PasswordResetToken();
+                resetToken.setUser(user);
+                resetToken.setToken(token);
+                resetToken.setExpiryDate(expiry);
+                resetToken.setUsed(false);
+                resetToken.setRequestCount(1);
+                resetToken.setLastRequestDate(today);
             }
+            passwordResetTokenRepository.save(resetToken);
+            emailService.sendPasswordResetLink(email, token);
+        }
+
+        @Override
+        @Transactional
+        public void resetPassword(String token, String newPassword) {
+            PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+                    .orElseThrow(() -> new RuntimeException("Invalid token"));
+
+            if (resetToken.isUsed()) {
+                throw new RuntimeException("Token has already been used");
+            }
+
+            if (resetToken.getExpiryDate().isBefore(Instant.now())) {
+                throw new RuntimeException("Token has expired");
+            }
+
+            UserEntity user = resetToken.getUser();
+            user.setPassword(passwordEncoder.encode(newPassword));
+            userRepository.save(user);
+
+            // Mark token as used
+            resetToken.setUsed(true);
+            passwordResetTokenRepository.save(resetToken);
+        }
+
 
             @Override
             public boolean isUsernameExist(String username) {

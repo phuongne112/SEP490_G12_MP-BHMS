@@ -128,20 +128,18 @@ public class SecurityUtil {
                 .map(authentication -> (String) authentication.getCredentials());
     }
 
-    public String generateResetToken(String email) {
+    public String generateResetToken(String email, Instant expiry) {
         Instant now = Instant.now();
-        Instant expiry = now.plus(Duration.ofMinutes(15));
-
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .subject(email)
                 .issuedAt(now)
                 .expiresAt(expiry)
                 .claim("type", "RESET")
                 .build();
-
         JwsHeader jwsHeader = JwsHeader.with(JWT_MAC_ALGORITHM).build();
         return this.jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader,claims)).getTokenValue();
     }
+
 
     public String extractEmailFromResetToken(String token) {
         Jwt decoded = jwtDecoder.decode(token);

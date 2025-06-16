@@ -10,9 +10,9 @@ import {
   message,
   Popover,
   Space,
+  Select,
 } from "antd";
-import { PlusOutlined, FilterOutlined } from "@ant-design/icons";
-import { Select } from "antd";
+import { FilterOutlined } from "@ant-design/icons";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import EntrySelect from "../../components/common/EntrySelect";
@@ -21,11 +21,6 @@ import UserTable from "../../components/admin/UserTable";
 import UserFilterPopover from "../../components/admin/UserFilterPopover";
 import { createUser, updateUser } from "../../services/userApi";
 import Access from "../../components/common/Access";
-import { useDispatch } from "react-redux";
-import { useEffect } from "react";
-import { setUser } from "../../store/accountSlice";
-import { getCurrentUser } from "../../services/authService";
-import { useSelector } from "react-redux";
 
 const { Content } = Layout;
 
@@ -36,63 +31,33 @@ export default function AdminUserListPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [updateUserId, setUpdateUserId] = useState(null);
+  const [updateEmail, setUpdateEmail] = useState("");
+
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [updateEmail, setUpdateEmail] = useState("");
+
   const [createForm] = Form.useForm();
   const [updateForm] = Form.useForm();
-  const user = useSelector((state) => state.account.user);
 
-  const dispatch = useDispatch();
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const user = await getCurrentUser(); // API trả về user + role + permission
-        const formattedUser = {
-          id: user.id,
-          fullName: user.name,
-          role: user.role, // giữ nguyên object {roleId, roleName}
-          permissions: user.role?.permissionEntities?.map((p) => p.name) || [],
-        };
-        dispatch(setUser(formattedUser));
-        localStorage.setItem("user", JSON.stringify(formattedUser));
-      } catch (err) {
-        console.error("❌ Failed to fetch current user", err);
-      }
-    };
-
-    fetchUser();
-  }, []);
-
-  const handleApplyFilter = (values) => {
-    setFilters(values);
-  };
+  const handleApplyFilter = (values) => setFilters(values);
 
   const handleEditUser = (user) => {
-    setUpdateEmail(user.email); // gán email cho ô Old Email
+    setUpdateEmail(user.email);
     setUpdateUserId(user.id);
     updateForm.setFieldsValue({
       newEmail: user.email,
       username: user.username,
-      roleId: user.role?.roleId || null, // ✅ dùng optional chaining cho an toàn
+      roleId: user.role?.roleId ?? null,
     });
-    setIsUpdateModalOpen(true); // mở modal
+    setIsUpdateModalOpen(true);
   };
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <AdminSidebar key={user?.permissions?.join(",")} />
+      <AdminSidebar />
       <Layout style={{ marginLeft: 220 }}>
         <Content style={{ padding: "32px" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 24,
-            }}
-          >
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
             <PageHeader title="List User Account" />
             <Access requiredPermissions={["Create User"]}>
               <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
@@ -101,23 +66,13 @@ export default function AdminUserListPage() {
             </Access>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 24,
-              flexWrap: "wrap",
-              marginTop: 30,
-            }}
-          >
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", marginTop: 30 }}>
             <EntrySelect value={pageSize} onChange={setPageSize} />
             <Space style={{ gap: 100 }}>
               <SearchBox
                 onSearch={setSearchTerm}
                 placeholder="Search by email, username or role"
               />
-
               <Popover
                 open={isFilterOpen}
                 onOpenChange={setIsFilterOpen}
@@ -132,10 +87,7 @@ export default function AdminUserListPage() {
                 trigger="click"
                 placement="bottomRight"
               >
-                <Button
-                  icon={<FilterOutlined />}
-                  style={{ backgroundColor: "#40a9ff", color: "white" }}
-                >
+                <Button icon={<FilterOutlined />} style={{ backgroundColor: "#40a9ff", color: "white" }}>
                   Filter
                 </Button>
               </Popover>
@@ -146,10 +98,11 @@ export default function AdminUserListPage() {
             pageSize={pageSize}
             searchTerm={searchTerm}
             filters={filters}
-            onEdit={(user) => handleEditUser(user)}
+            onEdit={handleEditUser}
             refreshKey={refreshKey}
           />
-          {/* Modal tạo user */}
+
+          {/* Modal Create */}
           <Modal
             title="Create User Account"
             open={isCreateModalOpen}
@@ -162,10 +115,7 @@ export default function AdminUserListPage() {
               form={createForm}
               onFinish={async (values) => {
                 try {
-                  const payload = {
-                    ...values,
-                    roleId: 4,
-                  };
+                  const payload = { ...values, roleId: 4 };
                   await createUser(payload);
                   message.success("User created successfully");
                   setIsCreateModalOpen(false);
@@ -173,20 +123,15 @@ export default function AdminUserListPage() {
                   setRefreshKey((prev) => prev + 1);
                 } catch (error) {
                   const res = error.response?.data;
-
                   if (res?.data && typeof res.data === "object") {
-                    // ✅ Nếu backend trả key khác như emailAddress → ánh xạ:
                     const fieldMap = {
                       emailAddress: "email",
                       userName: "username",
                     };
-
-                    const fieldErrors = Object.entries(res.data).map(
-                      ([field, message]) => ({
-                        name: fieldMap[field] || field,
-                        errors: [message],
-                      })
-                    );
+                    const fieldErrors = Object.entries(res.data).map(([field, msg]) => ({
+                      name: fieldMap[field] || field,
+                      errors: [msg],
+                    }));
                     createForm.setFields(fieldErrors);
                   } else {
                     message.error(res?.message || "Failed to create user");
@@ -196,55 +141,27 @@ export default function AdminUserListPage() {
             >
               <Row gutter={16}>
                 <Col span={12}>
-                  <Form.Item
-                    name="username"
-                    label="Username"
-                    rules={[
-                      { required: true, message: "Please enter username" },
-                    ]}
-                  >
+                  <Form.Item name="username" label="Username" rules={[{ required: true }]}>
+                    <Input maxLength={20} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="fullName" label="Full Name" rules={[{ required: true }]}>
                     <Input />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item
-                    name="fullName"
-                    label="Full Name"
-                    rules={[
-                      { required: true, message: "Please enter full name" },
-                    ]}
-                  >
+                  <Form.Item name="email" label="Email" rules={[{ required: true, type: "email" }]}>
+                    <Input maxLength={50} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="phone" label="Phone" rules={[{ required: true }]}>
                     <Input />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item
-                    name="email"
-                    label="Email"
-                    rules={[{ required: true, message: "Please enter email" }]}
-                  >
-                    <Input />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="phone"
-                    label="Phone"
-                    rules={[
-                      { required: true, message: "Please enter phone number" },
-                    ]}
-                  >
-                    <Input />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="password"
-                    label="Password"
-                    rules={[
-                      { required: true, message: "Please enter password" },
-                    ]}
-                  >
+                  <Form.Item name="password" label="Password" rules={[{ required: true }]}>
                     <Input.Password />
                   </Form.Item>
                 </Col>
@@ -254,14 +171,12 @@ export default function AdminUserListPage() {
                     label="Re-enter Password"
                     dependencies={["password"]}
                     rules={[
-                      { required: true, message: "Please confirm password" },
+                      { required: true },
                       ({ getFieldValue }) => ({
                         validator(_, value) {
                           return value === getFieldValue("password")
                             ? Promise.resolve()
-                            : Promise.reject(
-                                new Error("Passwords do not match")
-                              );
+                            : Promise.reject(new Error("Passwords do not match"));
                         },
                       }),
                     ]}
@@ -276,7 +191,7 @@ export default function AdminUserListPage() {
             </Form>
           </Modal>
 
-          {/* Modal cập nhật user */}
+          {/* Modal Update */}
           <Modal
             title="Update User Account"
             open={isUpdateModalOpen}
@@ -296,9 +211,8 @@ export default function AdminUserListPage() {
                     id: updateUserId,
                     username: values.username,
                     email: values.newEmail,
-                    role: { id: values.roleId },
+                    role: { roleId: values.roleId },
                   };
-
                   await updateUser(payload);
                   message.success("User updated successfully");
                   setIsUpdateModalOpen(false);
@@ -306,18 +220,19 @@ export default function AdminUserListPage() {
                   setRefreshKey((prev) => prev + 1);
                 } catch (error) {
                   const res = error.response?.data;
-
                   if (res?.data && typeof res.data === "object") {
-                    // ✅ set lỗi từng trường
-                    const fieldErrors = Object.entries(res.data).map(
-                      ([field, message]) => ({
-                        name: field,
-                        errors: [message],
-                      })
-                    );
+                    const fieldMap = {
+                      email: "newEmail",
+                      userName: "username",
+                      role: "roleId",
+                    };
+                    const fieldErrors = Object.entries(res.data).map(([field, msg]) => ({
+                      name: fieldMap[field] || field,
+                      errors: [msg],
+                    }));
                     updateForm.setFields(fieldErrors);
                   } else {
-                    message.error("Failed to update user");
+                    message.error(res?.message || "Failed to update user");
                   }
                 }
               }}
@@ -329,27 +244,17 @@ export default function AdminUserListPage() {
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item
-                    name="newEmail"
-                    label="New Email"
-                    rules={[{ required: true, type: "email" }]}
-                  >
-                    <Input />
+                  <Form.Item name="newEmail" label="New Email" rules={[{ required: true, type: "email" }]}>
+                    <Input maxLength={50} />
                   </Form.Item>
                 </Col>
-
                 <Col span={12}>
-                  <Form.Item
-                    name="username"
-                    label="Username"
-                    rules={[{ required: true }]}
-                  >
-                    <Input />
+                  <Form.Item name="username" label="Username" rules={[{ required: true }]}>
+                    <Input maxLength={20} />
                   </Form.Item>
                 </Col>
-
                 <Col span={12}>
-                  <Form.Item name="roleId" label="Role">
+                  <Form.Item name="roleId" label="Role" rules={[{ required: true }]}>
                     <Select placeholder="Select Role">
                       <Select.Option value={1}>ADMIN</Select.Option>
                       <Select.Option value={2}>RENTER</Select.Option>

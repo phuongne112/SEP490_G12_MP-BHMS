@@ -16,11 +16,22 @@ import java.time.Instant;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UpdateUserDTO {
+    private Long id;
+
     @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
     private String username;
+
     @Gmail
     private String email;
+
     private Boolean isActive;
-    private Long roleId;
+
+    private RoleDTO role;
+
+    @Getter
+    @Setter
+    public static class RoleDTO {
+        private Long roleId;
+    }
 }
 
