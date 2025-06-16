@@ -11,9 +11,6 @@ import {
   Typography,
 } from "antd";
 import { UserOutlined } from "@ant-design/icons";
-import AccountInfoModal from "../../components/user/AccountInfoModal";
-import PersonalInfoModal from "../../components/user/PersonalInfoModal";
-
 const { Title } = Typography;
 
 export default function Header() {
@@ -115,8 +112,7 @@ export default function Header() {
               </div>
             </Dropdown>
 
-            <AccountInfoModal open={isAccountModalOpen} onClose={() => setIsAccountModalOpen(false)} />
-            <PersonalInfoModal open={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} />
+        
           </>
         ) : (
           <>
