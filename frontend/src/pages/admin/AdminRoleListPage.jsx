@@ -146,8 +146,6 @@ export default function AdminRoleListPage() {
         message.success("Role updated successfully");
 
         const updatedUser = await getCurrentUser();
-        console.log("✅ Payload gửi backend:", payload);
-        console.log("⛔ updatedUser:", updatedUser); // <- sẽ thấy undefined ở đây
         dispatch(
           setUser({
             id: updatedUser.id,
@@ -166,8 +164,6 @@ export default function AdminRoleListPage() {
       setEditingRole(null);
       setRefreshKey((prev) => prev + 1);
     } catch (error) {
-      console.error("❌ Lỗi từ backend:", error); // ✅ THÊM DÒNG NÀY
-
       const res = error.response?.data;
       setFormError(null);
       if (res?.data && typeof res.data === "object") {

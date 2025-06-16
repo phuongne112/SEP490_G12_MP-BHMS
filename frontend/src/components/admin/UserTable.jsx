@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Table, Tag, Button, Space, message, Popconfirm } from "antd";
 import { getAllUsers, updateUserStatus } from "../../services/userApi";
-
+import Access from "../../components/common/Access";
 // Hàm tạo filter DSL
 const buildFilterDSL = (searchTerm, filters) => {
   const dsl = [];
@@ -18,12 +18,11 @@ const buildFilterDSL = (searchTerm, filters) => {
     }
   }
 
-
   if (filters.dateRange && filters.dateRange.length === 2) {
     const [start, end] = filters.dateRange;
     if (start && end) {
-    dsl.push(`createdDate >: '${start.format("YYYY-MM-DD")}'`);
-    dsl.push(`createdDate <: '${end.format("YYYY-MM-DD")}'`);
+      dsl.push(`createdDate >: '${start.format("YYYY-MM-DD")}'`);
+      dsl.push(`createdDate <: '${end.format("YYYY-MM-DD")}'`);
     }
   }
 
@@ -129,22 +128,24 @@ export default function UserTable({
       title: "Status",
       dataIndex: "status",
       render: (_, record) => (
-        <Popconfirm
-          title={`Do you want to ${
-            record.isActive ? "deactivate" : "activate"
-          } this user?`}
-          onConfirm={() => handleToggleStatus(record)}
-          okText="Yes"
-          cancelText="No"
-          placement="top"
-        >
-          <Tag
-            color={record.status === "Active" ? "green" : "red"}
-            style={{ cursor: "pointer" }}
+        <Access requiredPermissions={["Active/ De-Active User"]}>
+          <Popconfirm
+            title={`Do you want to ${
+              record.isActive ? "deactivate" : "activate"
+            } this user?`}
+            onConfirm={() => handleToggleStatus(record)}
+            okText="Yes"
+            cancelText="No"
+            placement="top"
           >
-            {record.status}
-          </Tag>
-        </Popconfirm>
+            <Tag
+              color={record.status === "Active" ? "green" : "red"}
+              style={{ cursor: "pointer" }}
+            >
+              {record.status}
+            </Tag>
+          </Popconfirm>
+        </Access>
       ),
     },
     {
@@ -157,9 +158,11 @@ export default function UserTable({
       key: "actions",
       render: (_, record) => (
         <Space>
-          <Button size="medium" onClick={() => onEdit(record)}>
-            Edit
-          </Button>
+          <Access requiredPermissions={["Update User"]}>
+            <Button size="medium" onClick={() => onEdit(record)}>
+              Edit
+            </Button>
+          </Access>
         </Space>
       ),
     },

@@ -7,6 +7,7 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import Sidebar from "./Sidebar";
+import { useSelector } from "react-redux";
 
 export default function AdminSidebar() {
   const adminMenu = [
@@ -15,6 +16,7 @@ export default function AdminSidebar() {
       icon: <UserOutlined />,
       label: "Account",
       path: "/admin/users",
+      requiredPermissions: ["Get User"],
     },
     {
       key: "/admin/notification",
@@ -42,11 +44,25 @@ export default function AdminSidebar() {
     },
   ];
 
+  const user = useSelector((state) => state.account.user);
+  const aclEnabled = import.meta.env.VITE_ACL_ENABLE === "true";
+
+  const menuItems = aclEnabled
+    ? adminMenu.filter(
+        (item) =>
+          !item.requiredPermissions || // nếu không yêu cầu quyền thì cho qua
+          (user?.permissions &&
+            item.requiredPermissions.every((perm) =>
+              user.permissions.includes(perm)
+            ))
+      )
+    : adminMenu;
+
   return (
     <Sidebar
       name="Long ngu"
       avatar="https://i.pravatar.cc/40?img=1"
-      menuItems={adminMenu}
+      menuItems={menuItems}
       defaultKey="/admin/users"
     />
   );
