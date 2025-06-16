@@ -6,7 +6,6 @@ console.log("✅ Backend URL:", import.meta.env.VITE_BACKEND_URL);
 
 const REFRESH_URL = `${import.meta.env.VITE_BACKEND_URL}/mpbhms/auth/refresh`;
 
-
 const axiosClient = axios.create({
   baseURL: BASE_URL,
   headers: {
@@ -19,11 +18,18 @@ const axiosClient = axios.create({
 axiosClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
-    const publicEndpoints = ["/auth/login", "/auth/register", "/auth/refresh"];
 
-    const isPublic = publicEndpoints.some((endpoint) => config.url.includes(endpoint));
+    const publicEndpoints = [
+    ];
 
-    if (token && !isPublic) {
+    const isPublicAuth = publicEndpoints.some((endpoint) =>
+      config.url.includes(endpoint)
+    );
+
+    const isPublicRooms =
+      config.method === "get" && config.url?.startsWith("/rooms");
+
+    if (!isPublicAuth && !isPublicRooms && token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
