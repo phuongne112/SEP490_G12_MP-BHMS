@@ -124,9 +124,6 @@ export default function Login() {
                     const value = e.target.value;
                     if (value.length <= 50) {
                       setEmail(value);
-                      setEmailError("");
-                    } else {
-                      setEmailError("Không được nhập quá 50 ký tự");
                     }
                   }}
                   // maxLength={100}
@@ -139,9 +136,9 @@ export default function Login() {
                   }}
                   required
                 />
-                {(error.email || emailError) && (
+                {(error.username || emailError) && (
                   <p style={{ color: "red", marginTop: 4 }}>
-                    {emailError || error.email}
+                    {emailError || error.username}
                   </p>
                 )}
               </div>
@@ -158,9 +155,6 @@ export default function Login() {
                       const value = e.target.value;
                       if (value.length <= 20) {
                         setPassword(value);
-                        setPasswordError("");
-                      } else {
-                        setPasswordError("Không được nhập quá 20 ký tự");
                       }
                     }}
                     placeholder="Enter your password"
@@ -211,16 +205,17 @@ export default function Login() {
               >
                 Sign In
               </button>
-            </form>
+                </form>
 
-            <div style={{ marginTop: 12, textAlign: "left" }}>
-              <Link
-                to="/forgotPassword"
-                style={{ color: "#0A2342", fontSize: 16 }}
-              >
+            <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between" }}>
+              <Link to="/forgotPassword" style={{ color: "#0A2342", fontSize: 16 }}>
                 Forgot password?
               </Link>
+              <Link to="/signUp" style={{ color: "#0A2342", fontSize: 16 }}>
+                Sign Up
+              </Link>
             </div>
+
           </div>
         </div>
       </div>

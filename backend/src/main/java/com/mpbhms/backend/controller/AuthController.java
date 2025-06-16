@@ -2,6 +2,7 @@ package com.mpbhms.backend.controller;
 
 import com.mpbhms.backend.dto.*;
 import com.mpbhms.backend.entity.ApiResponse;
+import com.mpbhms.backend.exception.BusinessException;
 import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.response.ChangePasswordDTOResponse;
 import com.mpbhms.backend.response.LoginDTOResponse;
@@ -17,6 +18,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
@@ -26,7 +28,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
-    @RestController
+import java.util.Map;
+
+@RestController
     @RequestMapping("/mpbhms/auth")
     @RequiredArgsConstructor
 public class AuthController {
@@ -37,45 +41,69 @@ public class AuthController {
         @Value("${mpbhms.jwt.refresh-token-validity-in-seconds}")
         private long refreshTokenExpiration;
 
-        @PostMapping("/login")
-        @ApiMessage("Login by credential")
-        public ResponseEntity<LoginDTOResponse> login(@RequestBody LoginDTO login) {
-            //Nap input gom email/password vao security
+    @PostMapping("/login")
+    @ApiMessage("Login by credential")
+    public ResponseEntity<?> login(@Valid @RequestBody LoginDTO login) {
+        try {
+            // Nạp input gồm email/password vào Security
             UsernamePasswordAuthenticationToken authenticationToken =
-                    new UsernamePasswordAuthenticationToken(login.username, login.password);
-            //Xac thuc ng dung = loadUserByUserName
-            Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
-            //Create token
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            LoginDTOResponse loginDTOResponse = new LoginDTOResponse();
+                    new UsernamePasswordAuthenticationToken(login.getUsername(), login.getPassword());
 
-            UserEntity currentUserDB = this.userService.getUserWithEmail(login.username);
-            if (currentUserDB != null) {
-                LoginDTOResponse.UserLogin userLogin = new LoginDTOResponse.UserLogin(
-                        currentUserDB.getId(),
-                        currentUserDB.getEmail(),
-                        currentUserDB.getUsername(),
-                        currentUserDB.getRole());
-                loginDTOResponse.setUser(userLogin);
+            // Xác thực người dùng = loadUserByUsername
+            Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
+
+            // Set context xác thực
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            // Lấy thông tin người dùng
+            UserEntity currentUserDB = this.userService.getUserWithEmail(login.getUsername());
+            if (currentUserDB == null) {
+                throw new BusinessException("User Not Found");
             }
-            String access_Token = this.securityUtil.createAccessToken(authentication.getName(), loginDTOResponse);
-            loginDTOResponse.setAccessToken(access_Token);
-            //Create Refresh Token
-            String refresh_token = this.securityUtil.createRefreshToken(login.getUsername(), loginDTOResponse);
-            //Update User
-            this.userService.updateUserToken(refresh_token, login.getUsername());
-            //Set Cookies
-            ResponseCookie responseCookie = ResponseCookie.from("refreshToken", refresh_token)
+
+            // Gán thông tin vào DTO response
+            LoginDTOResponse loginDTOResponse = new LoginDTOResponse();
+            LoginDTOResponse.UserLogin userLogin = new LoginDTOResponse.UserLogin(
+                    currentUserDB.getId(),
+                    currentUserDB.getEmail(),
+                    currentUserDB.getUsername(),
+                    currentUserDB.getRole()
+            );
+            loginDTOResponse.setUser(userLogin);
+
+            // Tạo access token
+            String accessToken = this.securityUtil.createAccessToken(authentication.getName(), loginDTOResponse);
+            loginDTOResponse.setAccessToken(accessToken);
+
+            // Tạo refresh token
+            String refreshToken = this.securityUtil.createRefreshToken(login.getUsername(), loginDTOResponse);
+
+            // Cập nhật refresh token cho người dùng trong DB
+            this.userService.updateUserToken(refreshToken, login.getUsername());
+
+            // Tạo cookie
+            ResponseCookie responseCookie = ResponseCookie.from("refreshToken", refreshToken)
                     .httpOnly(true)
                     .secure(true)
                     .path("/")
                     .maxAge(refreshTokenExpiration)
                     .build();
-            return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, responseCookie.toString())
-                    .body(loginDTOResponse);
-        }
 
-        @GetMapping("/account")
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, responseCookie.toString())
+                    .body(loginDTOResponse);
+
+        } catch (BusinessException ex) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", ex.getMessage(),
+                    "data", ex.getData()
+            ));
+        }
+    }
+
+
+
+    @GetMapping("/account")
         public ResponseEntity<LoginDTOResponse.UserGetAccount> getAccount() {
             String email = SecurityUtil.getCurrentUserLogin().isPresent() ?
                     SecurityUtil.getCurrentUserLogin().get() : "";

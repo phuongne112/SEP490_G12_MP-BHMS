@@ -1,6 +1,7 @@
 package com.mpbhms.backend.dto;
 
 import com.mpbhms.backend.validation.Gmail;
+import com.mpbhms.backend.validation.Password;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -11,5 +12,6 @@ public class LoginDTO {
     public String username;
 
     @Size(max = 20, message="Pass word must 20")
+    @Password
     public String password;
 }
