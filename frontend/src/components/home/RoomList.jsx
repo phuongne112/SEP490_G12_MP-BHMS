@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { getAllRooms } from "../../services/roomService";
 import { Row, Col, Spin, Button, Input } from "antd";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
@@ -15,18 +15,20 @@ export default function RoomList({ filter }) {
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState("");
 
-  const fetchRooms = async (page = 1, sort = sortOrder, keyword = search) => {
+  const searchRef = useRef("");
+  const filterRef = useRef(filter);
+
+  const fetchRooms = async (page = 1, keyword = searchRef.current, sort = sortOrder, customFilter = filterRef.current) => {
     setLoading(true);
 
     const trimmed = keyword.trim();
-
     let searchFilter = "";
     if (trimmed) {
-      const safe = trimmed.replace(/'/g, ""); // tránh injection
+      const safe = trimmed.replace(/'/g, "");
       searchFilter = `(roomNumber~'${safe}' or pricePerMonth~'${safe}' or roomStatus~'${safe}' or area~'${safe}')`;
     }
 
-    const combinedFilter = [filter, searchFilter].filter(Boolean).join(" and ");
+    const combinedFilter = [customFilter, searchFilter].filter(Boolean).join(" and ");
     const sortParam = sort ? `pricePerMonth,${sort}` : "";
 
     const response = await getAllRooms(
@@ -37,18 +39,31 @@ export default function RoomList({ filter }) {
     );
 
     setRooms(response.result || []);
-    setPagination({
-      ...pagination,
+    setPagination((prev) => ({
+      ...prev,
       current: page,
       total: response.meta?.total ?? 0,
-    });
+    }));
     setLoading(false);
   };
 
   useEffect(() => {
+    filterRef.current = filter;
     fetchRooms(1);
     // eslint-disable-next-line
   }, [filter, sortOrder]);
+
+  const handleSearch = (value) => {
+    setSearch(value);
+    searchRef.current = value;
+    fetchRooms(1, value);
+  };
+
+  const handleClearSearch = () => {
+    setSearch("");
+    searchRef.current = "";
+    fetchRooms(1, "", sortOrder, filterRef.current);
+  };
 
   const handlePrevPage = () => {
     if (pagination.current > 1) {
@@ -85,13 +100,7 @@ export default function RoomList({ filter }) {
         <p style={{ color: "#666", maxWidth: 400, margin: "0 auto 16px" }}>
           Please check your keyword or try different values.
         </p>
-        <Button
-          type="primary"
-          onClick={() => {
-            setSearch("");
-            fetchRooms(1, sortOrder, "");
-          }}
-        >
+        <Button type="primary" onClick={handleClearSearch}>
           Clear search
         </Button>
       </div>
@@ -100,13 +109,12 @@ export default function RoomList({ filter }) {
 
   return (
     <div style={{ padding: "40px 20px" }}>
-      {/* Title + Search + Sort */}
       <div style={{ textAlign: "center", marginBottom: "30px" }}>
         <Input.Search
-          placeholder="Search room number, price,status or area..."
+          placeholder="Search room number, price, status or area..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          onSearch={(value) => fetchRooms(1, sortOrder, value)}
+          onSearch={handleSearch}
           enterButton
           style={{ maxWidth: 300, marginBottom: 12 }}
         />
@@ -154,16 +162,13 @@ export default function RoomList({ filter }) {
           Previous
         </Button>
         <span>
-          Page {pagination.current} /{" "}
-          {Math.ceil(pagination.total / pagination.pageSize)} (
-          {pagination.total} Rooms)
+          Page {pagination.current} / {Math.ceil(pagination.total / pagination.pageSize)} ({pagination.total} Rooms)
         </span>
         <Button
           icon={<RightOutlined />}
           onClick={handleNextPage}
           disabled={
-            pagination.current >=
-            Math.ceil(pagination.total / pagination.pageSize)
+            pagination.current >= Math.ceil(pagination.total / pagination.pageSize)
           }
         >
           Next
