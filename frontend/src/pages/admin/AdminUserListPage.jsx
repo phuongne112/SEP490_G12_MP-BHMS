@@ -21,6 +21,11 @@ import UserTable from "../../components/admin/UserTable";
 import UserFilterPopover from "../../components/admin/UserFilterPopover";
 import { createUser, updateUser } from "../../services/userApi";
 import Access from "../../components/common/Access";
+import { useDispatch } from "react-redux";
+import { useEffect } from "react";
+import { setUser } from "../../store/accountSlice";
+import { getCurrentUser } from "../../services/authService";
+import { useSelector } from "react-redux";
 
 const { Content } = Layout;
 
@@ -31,17 +36,39 @@ export default function AdminUserListPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [updateUserId, setUpdateUserId] = useState(null);
-
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [updateEmail, setUpdateEmail] = useState("");
-
   const [createForm] = Form.useForm();
   const [updateForm] = Form.useForm();
+  const user = useSelector((state) => state.account.user);
+
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const user = await getCurrentUser(); // API trả về user + role + permission
+        const formattedUser = {
+          id: user.id,
+          fullName: user.name,
+          role: user.role, // giữ nguyên object {roleId, roleName}
+          permissions: user.role?.permissionEntities?.map((p) => p.name) || [],
+        };
+        dispatch(setUser(formattedUser));
+        localStorage.setItem("user", JSON.stringify(formattedUser));
+      } catch (err) {
+        console.error("❌ Failed to fetch current user", err);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   const handleApplyFilter = (values) => {
     setFilters(values);
   };
+
   const handleEditUser = (user) => {
     setUpdateEmail(user.email); // gán email cho ô Old Email
     setUpdateUserId(user.id);
@@ -55,7 +82,7 @@ export default function AdminUserListPage() {
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <AdminSidebar />
+      <AdminSidebar key={user?.permissions?.join(",")} />
       <Layout style={{ marginLeft: 220 }}>
         <Content style={{ padding: "32px" }}>
           <div
@@ -327,6 +354,7 @@ export default function AdminUserListPage() {
                       <Select.Option value={1}>ADMIN</Select.Option>
                       <Select.Option value={2}>RENTER</Select.Option>
                       <Select.Option value={3}>LANDLORD</Select.Option>
+                      <Select.Option value={4}>SUBADMIN</Select.Option>
                     </Select>
                   </Form.Item>
                 </Col>

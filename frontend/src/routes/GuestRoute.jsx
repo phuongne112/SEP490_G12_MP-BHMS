@@ -4,20 +4,24 @@ import { Navigate } from "react-router-dom";
 export default function GuestRoute({ children }) {
   const user = useSelector((state) => state.account.user);
 
-  // Nếu đã đăng nhập thì chuyển hướng người dùng về trang chính phù hợp với role
+  // ✅ Nếu đã đăng nhập thì redirect theo role
   if (user?.role) {
-    switch (user.role.toUpperCase()) {
+    const roleName =
+      user?.role?.roleName?.toUpperCase?.() || user.role?.toUpperCase?.();
+
+    switch (roleName) {
       case "ADMIN":
+      case "SUBADMIN":
         return <Navigate to="/admin/users" replace />;
       case "RENTER":
         return <Navigate to="/room" replace />;
       case "LANDLORD":
         return <Navigate to="/landlord/dashboard" replace />;
       default:
-        return <Navigate to="/" replace />;
+        return <Navigate to="/403" replace />;
     }
   }
 
-  // Nếu chưa đăng nhập thì cho truy cập
+  // ✅ Nếu chưa login thì cho phép vào
   return children;
 }

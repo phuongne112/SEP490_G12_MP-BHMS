@@ -1,12 +1,19 @@
 import React, { useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useDispatch } from "react-redux";
+
 import AppRouter from "./routes/Router";
-import { useNavigate } from "react-router-dom";
 import axiosClient from "./services/axiosClient";
+import { getCurrentUser } from "./services/authService";
+import { setUser } from "./store/accountSlice";
 
 function App() {
   const navigate = useNavigate();
+  const location = useLocation(); // ✅ lắng nghe route
+  const dispatch = useDispatch();
   const hasLoggedOut = useRef(false);
 
+  // ✅ Force logout khi hết hạn refreshToken
   useEffect(() => {
     const handleForceLogout = () => {
       hasLoggedOut.current = true;
@@ -17,49 +24,10 @@ function App() {
     };
 
     window.addEventListener("force-logout", handleForceLogout);
-
-    return () => {
-      window.removeEventListener("force-logout", handleForceLogout);
-    };
+    return () => window.removeEventListener("force-logout", handleForceLogout);
   }, [navigate]);
 
-  // useEffect(() => {
-  //   const checkToken = async () => {
-  //     if (hasLoggedOut.current) return;
-  //     try {
-  //       await axiosClient.get("/auth/account"); // Xác thực xem token hợp lệ ko
-  //       console.log("✅ Token hợp lệ");
-  //     } catch (err) {
-  //       console.warn("❌ Token lỗi hoặc hết hạn");
-  //     }
-  //   };
-
-  //   checkToken(); // 👈 Gọi ngay khi load trang
-  //   const interval = setInterval(checkToken, 65000); // 👈 Gọi lại mỗi 65s
-
-  //   return () => clearInterval(interval);
-  // }, []);
-
-  // useEffect(() => {
-  //   const checkToken = async () => {
-  //     if (hasLoggedOut.current) return;
-
-  //     const token = localStorage.getItem("token");
-  //     if (!token) return; // ⛔ Không gọi nếu chưa đăng nhập
-
-  //     try {
-  //       await axiosClient.get("/auth/account");
-  //       console.log("✅ Token hợp lệ");
-  //     } catch (err) {
-  //       console.warn("❌ Token lỗi hoặc hết hạn");
-  //     }
-  //   };
-
-  //   checkToken();
-  //   const interval = setInterval(checkToken, 65000);
-  //   return () => clearInterval(interval);
-  // }, []);
-
+  // ✅ Kiểm tra token định kỳ và refresh nếu cần
   useEffect(() => {
     const checkToken = async () => {
       if (hasLoggedOut.current) return;
@@ -67,10 +35,8 @@ function App() {
       const token = localStorage.getItem("token");
       const hasUser = localStorage.getItem("user");
 
-      // ⛔ Nếu chưa login → không gọi gì cả
       if (!token && !hasUser) return;
 
-      // ✅ Nếu không có accessToken nhưng đã login → thử refresh
       if (!token && hasUser) {
         try {
           const res = await axiosClient.get("/auth/refresh", {
@@ -89,7 +55,6 @@ function App() {
         return;
       }
 
-      // ✅ Có accessToken → kiểm tra bình thường
       try {
         await axiosClient.get("/auth/account");
         console.log("✅ Token hợp lệ");
@@ -103,11 +68,29 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  return (
-    <>
-      <AppRouter />
-    </>
-  );
+  // ✅ Tự động lấy lại thông tin user khi chuyển trang (để cập nhật quyền)
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        dispatch(
+          setUser({
+            id: user.id,
+            fullName: user.name,
+            role: user.role,
+            permissions:
+              user.role?.permissionEntities?.map((p) => p.name) || [],
+          })
+        );
+      } catch (err) {
+        console.warn("❌ Không thể cập nhật lại thông tin user");
+      }
+    };
+
+    fetchUser();
+  }, [location.pathname]); // 🔁 Gọi lại mỗi lần chuyển route
+
+  return <AppRouter />;
 }
 
 export default App;
