@@ -26,8 +26,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.security.Principal;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -79,9 +82,11 @@ class AuthControllerTest {
     void login_Success() {
         // Arrange
         String userEmail = "test@example.com";
+        String password = "password123";
+
         LoginDTO loginDTO = new LoginDTO();
         loginDTO.setUsername(userEmail);
-        loginDTO.setPassword("password123");
+        loginDTO.setPassword(password);
 
         RoleEntity role = new RoleEntity();
         role.setId(1L);
@@ -93,26 +98,44 @@ class AuthControllerTest {
         mockUser.setUsername("Test User");
         mockUser.setRole(role);
 
+        // Mock Authentication flow
+        when(authenticationManagerBuilder.getObject()).thenReturn(authenticationManager);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(authentication.getName()).thenReturn(userEmail);
+
+        // Mock UserService and Token creation
         when(userService.getUserWithEmail(eq(userEmail))).thenReturn(mockUser);
         when(securityUtil.createAccessToken(eq(userEmail), any(LoginDTOResponse.class)))
                 .thenReturn("mock.access.token");
         when(securityUtil.createRefreshToken(eq(userEmail), any(LoginDTOResponse.class)))
                 .thenReturn("mock.refresh.token");
 
+        // Inject refreshTokenExpiration manually if it's private
+        ReflectionTestUtils.setField(authController, "refreshTokenExpiration", 3600L);
+
         // Act
-        ResponseEntity<LoginDTOResponse> response = authController.login(loginDTO);
+        ResponseEntity<?> response = authController.login(loginDTO);
 
         // Assert
         assertNotNull(response);
         assertEquals(200, response.getStatusCodeValue());
-        assertNotNull(response.getBody());
-        assertNotNull(response.getHeaders().get(HttpHeaders.SET_COOKIE));
-        assertTrue(response.getHeaders().get(HttpHeaders.SET_COOKIE).get(0).contains("refreshToken"));
 
-        // Verify interactions
+        assertTrue(response.getBody() instanceof LoginDTOResponse);
+        LoginDTOResponse body = (LoginDTOResponse) response.getBody();
+
+        assertNotNull(body);
+        assertEquals("mock.access.token", body.getAccessToken());
+        assertNotNull(body.getUser());
+        assertEquals(userEmail, body.getUser().getEmail());
+
+        // Check refresh token in Set-Cookie header
+        List<String> cookies = response.getHeaders().get(HttpHeaders.SET_COOKIE);
+        assertNotNull(cookies);
+        assertFalse(cookies.isEmpty());
+        assertTrue(cookies.get(0).contains("refreshToken"));
+
+        // Verify service and util method calls
         verify(userService).getUserWithEmail(eq(userEmail));
         verify(securityUtil).createAccessToken(eq(userEmail), any(LoginDTOResponse.class));
         verify(securityUtil).createRefreshToken(eq(userEmail), any(LoginDTOResponse.class));
@@ -130,20 +153,17 @@ class AuthControllerTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(authentication.getName()).thenReturn(userEmail);
-        when(userService.getUserWithEmail(eq(userEmail))).thenReturn(null);
-        when(securityUtil.createAccessToken(eq(userEmail), any(LoginDTOResponse.class)))
-                .thenReturn("mock.access.token");
-        when(securityUtil.createRefreshToken(eq(userEmail), any(LoginDTOResponse.class)))
-                .thenReturn("mock.refresh.token");
+        when(userService.getUserWithEmail(eq(userEmail))).thenReturn(null); // Không tìm thấy user
 
         // Act
-        ResponseEntity<LoginDTOResponse> response = authController.login(loginDTO);
+        ResponseEntity<?> response = authController.login(loginDTO);
 
         // Assert
         assertNotNull(response);
-        assertEquals(200, response.getStatusCodeValue());
-        assertNotNull(response.getBody());
-        assertNull(response.getBody().getUser()); // User should be null when not found
+        assertEquals(400, response.getStatusCodeValue()); // ✅ Expect 400 Bad Request
+        assertTrue(response.getBody() instanceof Map);    // ✅ Body là Map
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertEquals("User Not Found", body.get("message")); // ✅ Message đúng
     }
 
     @Test

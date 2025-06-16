@@ -12,7 +12,7 @@ public class PasswordValidator implements ConstraintValidator<Password, String> 
         }
 
         // 👉 Kiểm tra riêng độ dài tối đa
-        if (password.length() > 20) {
+        if (password.length() >= 20) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("Password must not exceed 20 characters.")
                     .addConstraintViolation();

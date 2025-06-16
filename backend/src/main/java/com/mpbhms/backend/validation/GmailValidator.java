@@ -19,7 +19,7 @@ public class GmailValidator implements ConstraintValidator<Gmail, String> {
     public boolean isValid(String email, ConstraintValidatorContext context) {
         if (email == null) return false;
 
-        if (email.length() > 50) {
+        if (email.length() >= 50) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("Email must not exceed 50 characters.")
                     .addConstraintViolation();
