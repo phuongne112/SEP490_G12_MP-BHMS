@@ -86,7 +86,11 @@ export default function AdminUserListPage() {
           >
             <EntrySelect value={pageSize} onChange={setPageSize} />
             <Space style={{ gap: 100 }}>
-              <SearchBox onSearch={setSearchTerm} />
+              <SearchBox
+                onSearch={setSearchTerm}
+                placeholder="Search by email, username or role"
+              />
+
               <Popover
                 open={isFilterOpen}
                 onOpenChange={setIsFilterOpen}

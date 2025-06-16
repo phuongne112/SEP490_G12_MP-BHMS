@@ -6,9 +6,10 @@ import Access from "../../components/common/Access";
 const buildFilterDSL = (searchTerm, filters) => {
   const dsl = [];
 
-  if (searchTerm?.trim()) {
-    dsl.push(`email~'${searchTerm.trim()}'`);
-  }
+if (searchTerm?.trim()) {
+  const term = searchTerm.trim();
+  dsl.push(`(email~'${term}' or username~'${term}' or role.roleName~'${term}')`);
+}
 
   if (filters.role !== undefined && filters.role !== "none") {
     if (filters.role === "null") {

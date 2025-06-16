@@ -52,6 +52,7 @@ export default function AdminPermissionListPage() {
 
   const handleApplyFilter = (values) => {
     setFilters(values);
+    setCurrentPage(1); // Reset page khi filter
   };
 
   const handleEditPermission = (permission) => {
@@ -139,7 +140,6 @@ export default function AdminPermissionListPage() {
     setSelectedPermission(null);
   };
 
-  // ✅ Tự động ẩn thông báo sau 3 giây
   useEffect(() => {
     if (deleteMessage) {
       const timer = setTimeout(() => setDeleteMessage(null), 3000);
@@ -168,28 +168,27 @@ export default function AdminPermissionListPage() {
             </Button>
           </div>
 
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            marginBottom: 24,
-            marginTop: 30,
-          }}>
-            <EntrySelect value={pageSize} onChange={setPageSize} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", marginBottom: 24, marginTop: 30 }}>
+            <EntrySelect value={pageSize} onChange={(val) => { setPageSize(val); setCurrentPage(1); }} />
             <Space align="start" size={30}>
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <label style={{ fontSize: 13, marginBottom: 4 }}>Name</label>
                 <SearchBox
                   placeholder="Enter name..."
-                  onSearch={(val) => setSearch((prev) => ({ ...prev, name: val }))}
+                  onSearch={(val) => {
+                    setSearch((prev) => ({ ...prev, name: val }));
+                    setCurrentPage(1);
+                  }}
                 />
               </div>
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <label style={{ fontSize: 13, marginBottom: 4 }}>API</label>
                 <SearchBox
                   placeholder="Enter API..."
-                  onSearch={(val) => setSearch((prev) => ({ ...prev, api: val }))}
+                  onSearch={(val) => {
+                    setSearch((prev) => ({ ...prev, api: val }));
+                    setCurrentPage(1);
+                  }}
                 />
               </div>
               <div style={{ marginTop: 22 }}>
@@ -215,7 +214,6 @@ export default function AdminPermissionListPage() {
             </Space>
           </div>
 
-          {/* ✅ Alert khi xóa */}
           {deleteMessage && (
             <Alert
               message={deleteMessage}
@@ -238,7 +236,6 @@ export default function AdminPermissionListPage() {
             refreshKey={refreshKey}
           />
 
-          {/* Modal Add/Edit */}
           <Modal
             title={editingPermission ? "Update Permission" : "Create Permission"}
             open={isModalOpen}
@@ -251,100 +248,33 @@ export default function AdminPermissionListPage() {
             footer={null}
             width={600}
           >
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={handleSubmitPermission}
-            >
+            <Form form={form} layout="vertical" onFinish={handleSubmitPermission}>
               <Row gutter={16}>
                 <Col span={12}>
-                  <Form.Item
-                    name="name"
-                    label="Permission Name"
-                    rules={[{ required: true, message: "Enter permission name" }]}
-                  >
-                    <Input placeholder="Enter here..." />
-                  </Form.Item>
+                  <Form.Item name="name" label="Permission Name" rules={[{ required: true, message: "Enter permission name" }]}> <Input placeholder="Enter here..." /> </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item
-                    name="api"
-                    label="API Path"
-                    rules={[{ required: true, message: "Enter API path" }]}
-                  >
-                    <Input placeholder="Enter here..." />
-                  </Form.Item>
+                  <Form.Item name="api" label="API Path" rules={[{ required: true, message: "Enter API path" }]}> <Input placeholder="Enter here..." /> </Form.Item>
                 </Col>
               </Row>
-
               <Row gutter={16}>
                 <Col span={12}>
-                  <Form.Item
-                    name="method"
-                    label="Method"
-                    rules={[{ required: true, message: "Select method" }]}
-                  >
-                    <Select placeholder="Select a method">
-                      <Option value="GET">GET</Option>
-                      <Option value="POST">POST</Option>
-                      <Option value="PUT">PUT</Option>
-                      <Option value="DELETE">DELETE</Option>
-                    </Select>
-                  </Form.Item>
+                  <Form.Item name="method" label="Method" rules={[{ required: true, message: "Select method" }]}> <Select placeholder="Select a method"> <Option value="GET">GET</Option> <Option value="POST">POST</Option> <Option value="PUT">PUT</Option> <Option value="DELETE">DELETE</Option> </Select> </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item
-                    name="module"
-                    label="Module"
-                    rules={[{ required: true, message: "Select module" }]}
-                  >
-                    <Select placeholder="Select a module...">
-                      <Option value="User">User</Option>
-                      <Option value="Renter">Renter</Option>
-                      <Option value="Room">Room</Option>
-                      <Option value="Notification">Notification</Option>
-                      <Option value="Role">Role</Option>
-                      <Option value="Permission">Permission</Option>
-                    </Select>
-                  </Form.Item>
+                  <Form.Item name="module" label="Module" rules={[{ required: true, message: "Select module" }]}> <Select placeholder="Select a module..."> <Option value="User">User</Option> <Option value="Renter">Renter</Option> <Option value="Room">Room</Option> <Option value="Notification">Notification</Option> <Option value="Role">Role</Option> <Option value="Permission">Permission</Option> </Select> </Form.Item>
                 </Col>
               </Row>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  marginTop: 16,
-                  gap: 16,
-                }}
-              >
-                <div
-                  style={{
-                    color: formError ? "red" : "transparent",
-                    fontSize: 13,
-                    minHeight: 20,
-                    maxWidth: "75%",
-                    whiteSpace: "normal",
-                    flex: 1,
-                  }}
-                >
-                  {formError || "\u00A0"}
-                </div>
-
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: 16, gap: 16 }}>
+                <div style={{ color: formError ? "red" : "transparent", fontSize: 13, minHeight: 20, maxWidth: "75%", whiteSpace: "normal", flex: 1 }}>{formError || "\u00A0"}</div>
                 <div style={{ whiteSpace: "nowrap" }}>
-                  <Button onClick={() => setIsModalOpen(false)} style={{ marginRight: 8 }}>
-                    Cancel
-                  </Button>
-                  <Button type="primary" htmlType="submit">
-                    {editingPermission ? "Update" : "Create"}
-                  </Button>
+                  <Button onClick={() => setIsModalOpen(false)} style={{ marginRight: 8 }}>Cancel</Button>
+                  <Button type="primary" htmlType="submit">{editingPermission ? "Update" : "Create"}</Button>
                 </div>
               </div>
             </Form>
           </Modal>
 
-          {/* Delete Confirmation */}
           <Modal
             title="Confirm delete this permission?"
             open={isDeleteModalOpen}

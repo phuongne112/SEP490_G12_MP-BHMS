@@ -185,7 +185,7 @@ export default function Register() {
                 </span>
               </div>
             </div>
-        </form>
+          </form>
       </div>
     </div>
   );

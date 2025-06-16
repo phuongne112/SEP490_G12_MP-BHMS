@@ -13,13 +13,18 @@ export default function RoomList({ filter }) {
     total: 0,
   });
   const [search, setSearch] = useState("");
-  const [sortOrder, setSortOrder] = useState(""); // "asc" | "desc"
+  const [sortOrder, setSortOrder] = useState("");
 
   const fetchRooms = async (page = 1, sort = sortOrder, keyword = search) => {
     setLoading(true);
 
     const trimmed = keyword.trim();
-    const searchFilter = trimmed ? `roomNumber ~ '${trimmed}'` : "";
+
+    let searchFilter = "";
+    if (trimmed) {
+      const safe = trimmed.replace(/'/g, ""); // tránh injection
+      searchFilter = `(roomNumber~'${safe}' or pricePerMonth~'${safe}' or roomStatus~'${safe}' or area~'${safe}')`;
+    }
 
     const combinedFilter = [filter, searchFilter].filter(Boolean).join(" and ");
     const sortParam = sort ? `pricePerMonth,${sort}` : "";
@@ -40,7 +45,6 @@ export default function RoomList({ filter }) {
     setLoading(false);
   };
 
-  // Chỉ fetch lại khi filter hoặc sortOrder thay đổi
   useEffect(() => {
     fetchRooms(1);
     // eslint-disable-next-line
@@ -79,12 +83,15 @@ export default function RoomList({ filter }) {
           No matching rooms found
         </h3>
         <p style={{ color: "#666", maxWidth: 400, margin: "0 auto 16px" }}>
-          Please make sure all keywords are spelled correctly. Try different or more general terms.
+          Please check your keyword or try different values.
         </p>
-        <Button type="primary" onClick={() => {
-          setSearch("");
-          fetchRooms(1, sortOrder, ""); // Clear search manually
-        }}>
+        <Button
+          type="primary"
+          onClick={() => {
+            setSearch("");
+            fetchRooms(1, sortOrder, "");
+          }}
+        >
           Clear search
         </Button>
       </div>
@@ -93,10 +100,10 @@ export default function RoomList({ filter }) {
 
   return (
     <div style={{ padding: "40px 20px" }}>
-      {/* Title + Search + Sort trong 1 khối */}
+      {/* Title + Search + Sort */}
       <div style={{ textAlign: "center", marginBottom: "30px" }}>
         <Input.Search
-          placeholder="Search room number..."
+          placeholder="Search room number, price,status or area..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onSearch={(value) => fetchRooms(1, sortOrder, value)}
@@ -121,7 +128,6 @@ export default function RoomList({ filter }) {
         </div>
       </div>
 
-      {/* Room cards */}
       <Row gutter={[24, 24]}>
         {rooms.map((room) => (
           <Col xs={24} sm={12} md={8} key={room.id}>
@@ -130,7 +136,6 @@ export default function RoomList({ filter }) {
         ))}
       </Row>
 
-      {/* Pagination */}
       <div
         style={{
           marginTop: 24,
@@ -149,14 +154,16 @@ export default function RoomList({ filter }) {
           Previous
         </Button>
         <span>
-          Page {pagination.current} / {Math.ceil(pagination.total / pagination.pageSize)} (
+          Page {pagination.current} /{" "}
+          {Math.ceil(pagination.total / pagination.pageSize)} (
           {pagination.total} Rooms)
         </span>
         <Button
           icon={<RightOutlined />}
           onClick={handleNextPage}
           disabled={
-            pagination.current >= Math.ceil(pagination.total / pagination.pageSize)
+            pagination.current >=
+            Math.ceil(pagination.total / pagination.pageSize)
           }
         >
           Next

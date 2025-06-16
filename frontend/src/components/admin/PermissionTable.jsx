@@ -21,7 +21,7 @@ const buildFilterDSL = (search, filters) => {
   }
 
   if (filters.module && filters.module !== "All") {
-    dsl.push(`module = '${filters.module}'`);
+    dsl.push(`module ~'${filters.module}'`);
   }
 
   return dsl.join(" and ");

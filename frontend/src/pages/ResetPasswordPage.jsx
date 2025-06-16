@@ -12,7 +12,7 @@ export default function ResetPasswordPage() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const [error, setError] = useState(null);
+  const [error, setError] = useState({});
   const [success, setSuccess] = useState(false);
   const [token, setToken] = useState("");
 
@@ -20,7 +20,7 @@ export default function ResetPasswordPage() {
     const params = new URLSearchParams(location.search);
     const tokenFromUrl = params.get("token");
     if (!tokenFromUrl) {
-      setError("Missing token in URL.");
+      setError({ general: "Missing token in URL." });
     } else {
       setToken(tokenFromUrl);
     }
@@ -29,14 +29,17 @@ export default function ResetPasswordPage() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
+    setError((prev) => ({ ...prev, [name]: null }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
+    setError({});
+
     if (form.newPassword !== form.confirmPassword) {
-      return setError("New passwords do not match.");
+      return setError({ confirmPassword: "Passwords do not match." });
     }
+
     try {
       await resetPassword({ token, newPassword: form.newPassword });
       setSuccess(true);
@@ -44,12 +47,11 @@ export default function ResetPasswordPage() {
       const res = err.response?.data;
 
       if (res?.data && typeof res.data === "object") {
-        const mergedErrors = Object.values(res.data).join(" ");
-        setError(mergedErrors);
+        setError(res.data);
       } else {
         const fallbackMsg =
           res?.message || err.message || "Password reset failed";
-        setError(fallbackMsg);
+        setError({ general: fallbackMsg });
       }
     }
   };
@@ -98,6 +100,7 @@ export default function ResetPasswordPage() {
           >
             <SystemLogo />
           </div>
+
           <form
             onSubmit={handleSubmit}
             style={{
@@ -115,16 +118,20 @@ export default function ResetPasswordPage() {
               value={form.newPassword}
               onChange={handleChange}
               type="password"
-            ></TextInput>
+              error={error?.newPassword}
+            />
             <TextInput
               label="Confirm Password"
               name="confirmPassword"
               value={form.confirmPassword}
               onChange={handleChange}
               type="password"
-            ></TextInput>
+              error={error?.confirmPassword}
+            />
 
-            {error && <div style={{ color: "red", fontSize: 13 }}>{error}</div>}
+            {error?.general && (
+              <div style={{ color: "red", fontSize: 13 }}>{error.general}</div>
+            )}
 
             <div style={{ textAlign: "center" }}>
               <button
@@ -163,25 +170,23 @@ export default function ResetPasswordPage() {
                 width: 320,
               }}
             >
-              {success && (
-                <div
-                  style={{
-                    marginTop: 20,
-                    color: "green",
-                    fontWeight: "bold",
-                    textAlign: "center",
-                  }}
+              <div
+                style={{
+                  marginTop: 20,
+                  color: "green",
+                  fontWeight: "bold",
+                  textAlign: "center",
+                }}
+              >
+                Reset successful. Please{" "}
+                <span
+                  onClick={() => navigate("/login")}
+                  style={{ textDecoration: "underline", cursor: "pointer" }}
                 >
-                  Reset successful. Please{" "}
-                  <span
-                    onClick={() => navigate("/login")}
-                    style={{ textDecoration: "underline", cursor: "pointer" }}
-                  >
-                    login again
-                  </span>
-                  .
-                </div>
-              )}
+                  login again
+                </span>
+                .
+              </div>
             </div>
           )}
         </div>
