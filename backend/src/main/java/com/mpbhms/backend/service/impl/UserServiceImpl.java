@@ -4,11 +4,13 @@ import com.mpbhms.backend.dto.*;
 import com.mpbhms.backend.entity.*;
 import com.mpbhms.backend.exception.BusinessException;
 import com.mpbhms.backend.exception.IdInvalidException;
+import com.mpbhms.backend.repository.PasswordResetTokenRepository;
 import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.service.EmailService;
 import com.mpbhms.backend.service.RoleService;
 import com.mpbhms.backend.service.UserService;
 import com.mpbhms.backend.util.SecurityUtil;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +20,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +36,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final SecurityUtil securityUtil;
     private final EmailService emailService;
-
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     @Override
     public UserEntity getUserWithEmail(String email) {
     return this.userRepository.findByEmail(email);
@@ -261,22 +266,68 @@ public class UserServiceImpl implements UserService {
                 return "Cập nhật mật khẩu thành công.";
             }
 
-            @Override
-            public void sendResetPasswordToken (String email){
-
-                String token = securityUtil.generateResetToken(email);
-                emailService.sendPasswordResetLink(email, token);
+        @Override
+        @Transactional
+        public void sendResetPasswordToken(String email) {
+            UserEntity user = userRepository.findByEmail(email);
+            if (user == null) {
+                throw new RuntimeException("User not found");
             }
 
-            @Override
-            public void resetPassword (String token, String newPassword){
-                String email = securityUtil.extractEmailFromResetToken(token);
+            Instant expiry = Instant.now().plus(Duration.ofSeconds(30));
+            String token = securityUtil.generateResetToken(email, expiry);
 
-                UserEntity user = userRepository.findByEmail(email);
-
-                user.setPassword(passwordEncoder.encode(newPassword));
-                userRepository.save(user);
+            LocalDate today = LocalDate.now();
+            PasswordResetToken resetToken = passwordResetTokenRepository.findByUser_Id(user.getId()).orElse(null);
+            if (resetToken != null) {
+                if (today.equals(resetToken.getLastRequestDate())) {
+                    if (resetToken.getRequestCount() >= 3) {
+                        throw new RuntimeException("Bạn đã yêu cầu quá 3 lần trong ngày. Vui lòng thử lại vào ngày mai.");
+                    }
+                    resetToken.setRequestCount(resetToken.getRequestCount() + 1);
+                } else {
+                    resetToken.setRequestCount(1);
+                    resetToken.setLastRequestDate(today);
+                }
+                resetToken.setToken(token);
+                resetToken.setExpiryDate(expiry);
+                resetToken.setUsed(false);
+            } else {
+                resetToken = new PasswordResetToken();
+                resetToken.setUser(user);
+                resetToken.setToken(token);
+                resetToken.setExpiryDate(expiry);
+                resetToken.setUsed(false);
+                resetToken.setRequestCount(1);
+                resetToken.setLastRequestDate(today);
             }
+            passwordResetTokenRepository.save(resetToken);
+            emailService.sendPasswordResetLink(email, token);
+        }
+
+        @Override
+        @Transactional
+        public void resetPassword(String token, String newPassword) {
+            PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+                    .orElseThrow(() -> new RuntimeException("Invalid token"));
+
+            if (resetToken.isUsed()) {
+                throw new RuntimeException("Token has already been used");
+            }
+
+            if (resetToken.getExpiryDate().isBefore(Instant.now())) {
+                throw new RuntimeException("Token has expired");
+            }
+
+            UserEntity user = resetToken.getUser();
+            user.setPassword(passwordEncoder.encode(newPassword));
+            userRepository.save(user);
+
+            // Mark token as used
+            resetToken.setUsed(true);
+            passwordResetTokenRepository.save(resetToken);
+        }
+
 
             @Override
             public boolean isUsernameExist(String username) {
