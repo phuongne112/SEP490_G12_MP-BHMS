@@ -59,6 +59,8 @@ export default function AdminNotificationPage() {
   const currentUserId = parseInt(localStorage.getItem("userId"));
   const dispatch = useDispatch();
   const user = useSelector((state) => state.account.user);
+  // Thêm biến state để chờ khi load xong userList
+  const [userListLoaded, setUserListLoaded] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -80,21 +82,40 @@ export default function AdminNotificationPage() {
 
     fetchUser();
   }, []);
+
+  // useEffect(() => {
+  //   if (isCreateModalOpen) {
+  //     getAllUsers(0, 1000)
+  //       .then((res) => {
+  //         const allUsers = res.result || [];
+  //         const filtered = allUsers.filter((u) => u.id !== currentUserId); // ✅ bỏ chính mình
+  //         setUserList(filtered);
+  //         console.log("✅ Filtered userList:", filtered);
+  //         console.log("❌ Current admin userId:", currentUserId);
+  //       })
+  //       .catch(() => {
+  //         message.error("Failed to load user list");
+  //       });
+  //   }
+  // }, [isCreateModalOpen]);
+
   useEffect(() => {
-    if (isCreateModalOpen) {
-      getAllUsers(0, 1000)
-        .then((res) => {
-          const allUsers = res.result || [];
-          const filtered = allUsers.filter((u) => u.id !== currentUserId); // ✅ bỏ chính mình
-          setUserList(filtered);
-          console.log("✅ Filtered userList:", filtered);
-          console.log("❌ Current admin userId:", currentUserId);
-        })
-        .catch(() => {
-          message.error("Failed to load user list");
-        });
-    }
-  }, [isCreateModalOpen]);
+    const fetchUsers = async () => {
+      try {
+        const res = await getAllUsers(0, 1000);
+        const allUsers = res.result || [];
+        const filtered = allUsers.filter((u) => u.id !== currentUserId);
+        setUserList(filtered);
+        setUserListLoaded(true); // ✅ đánh dấu đã load xong
+      } catch (err) {
+        console.error("Failed to fetch users:", err);
+        setUserList([]);
+        setUserListLoaded(true); // vẫn đánh dấu để tránh kẹt loading
+      }
+    };
+
+    fetchUsers();
+  }, [refreshKey]);
 
   useEffect(() => {
     if (deleteMessage) {
@@ -220,15 +241,17 @@ export default function AdminNotificationPage() {
             />
           )}
 
-          <NotificationTable
-            pageSize={pageSize}
-            searchTerm={searchTerm}
-            filters={filters}
-            onView={handleView}
-            onDelete={handleDelete}
-            refreshKey={refreshKey}
-            userList={userList}
-          />
+          {userListLoaded && (
+            <NotificationTable
+              pageSize={pageSize}
+              searchTerm={searchTerm}
+              filters={filters}
+              onView={handleView}
+              onDelete={handleDelete}
+              refreshKey={refreshKey}
+              userList={userList}
+            />
+          )}
 
           {/* Create Notification Modal */}
           <Modal
@@ -250,7 +273,7 @@ export default function AdminNotificationPage() {
                 try {
                   const payloadBase = {
                     title: values.label,
-                    message: values.label,
+                    message: values.content,
                     type: values.type,
                     // sendDate: values.date.format("YYYY-MM-DD"),
                     metadata: null,
@@ -358,6 +381,21 @@ export default function AdminNotificationPage() {
                     <Input.TextArea
                       rows={3}
                       placeholder="Enter notification content"
+                    />
+                  </Form.Item>
+                </Col>
+
+                <Col span={24}>
+                  <Form.Item
+                    name="content"
+                    label="Content"
+                    rules={[
+                      { required: true, message: "Please enter content!" },
+                    ]}
+                  >
+                    <Input.TextArea
+                      rows={4}
+                      placeholder="Enter the notification message/content"
                     />
                   </Form.Item>
                 </Col>
