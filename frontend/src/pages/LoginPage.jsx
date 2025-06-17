@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
-
 import { login } from "../services/authService";
 import { setUser } from "../store/accountSlice";
 import SystemLogo from "../components/SystemLogo";
@@ -12,9 +11,6 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState({});
-  const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -23,8 +19,6 @@ export default function Login() {
     setError({});
     try {
       const user = await login(email, password);
-
-      // Lưu user vào Redux + localStorage
       dispatch(
         setUser({
           id: user.id,
@@ -33,19 +27,10 @@ export default function Login() {
           permissions: user.role?.permissionEntities?.map((p) => p.name) || [],
         })
       );
-
       localStorage.setItem("showWelcome", "true");
-
       const roleName = user?.role?.roleName?.toUpperCase();
-      if (!roleName) {
-        navigate("/home");
-        return;
-      }
-
       switch (roleName) {
         case "ADMIN":
-          navigate("/admin/users");
-          break;
         case "SUBADMIN":
           navigate("/admin/users");
           break;
@@ -54,16 +39,15 @@ export default function Login() {
           break;
         default:
           navigate("/home");
-          break;
       }
-      //set error
     } catch (err) {
       const response = err.response?.data;
       if (response?.data && typeof response.data === "object") {
         setError(response.data);
       } else {
-        const fallbackMsg = response?.message || err.message || "Login failed";
-        setError({ general: fallbackMsg });
+        setError({
+          general: response?.message || err.message || "Login failed",
+        });
       }
     }
   };
@@ -76,44 +60,58 @@ export default function Login() {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
+        padding: 16,
       }}
     >
       <div
         style={{
-          height: "65%",
           backgroundColor: "#DCDCDC",
-          padding: 32,
           borderRadius: 16,
           boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+          width: "100%",
+          maxWidth: 900,
+          padding: "60px px", // ⬅ tăng chiều cao (trên + dưới)
         }}
       >
         <div
           style={{
-            width: "100%",
-            height: "85%",
-            maxWidth: 900,
             display: "flex",
-            backgroundColor: "#DCDCDC",
+            flexDirection: "row",
+            backgroundColor: "#f8f8f8",
             borderRadius: 12,
-            gap: 30,
-            marginTop: 30,
             boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+            overflow: "hidden",
+            flexWrap: "wrap",
+            padding: "70px 32px",
           }}
         >
           <div
             style={{
-              flex: 1.5,
+              flex: "1 1 300px",
               backgroundColor: "#f8f8f8",
               padding: 40,
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
+              minWidth: 250,
             }}
           >
-            <SystemLogo />
+            <div
+              onClick={() => navigate("/home")}
+              style={{ cursor: "pointer" }}
+            >
+              <SystemLogo />
+            </div>
           </div>
 
-          <div style={{ flex: 1, padding: 40, backgroundColor: "#f8f8f8" }}>
+          <div
+            style={{
+              flex: "1 1 300px",
+              padding: 40,
+              backgroundColor: "#f8f8f8",
+              minWidth: 250,
+            }}
+          >
             {error.general && (
               <p style={{ color: "red", marginBottom: 16 }}>{error.general}</p>
             )}
@@ -123,59 +121,48 @@ export default function Login() {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value.length <= 50) {
-                      setEmail(value);
-                    }
-                  }}
-                  // maxLength={100}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
+                  required
                   style={{
                     width: "100%",
                     padding: 10,
                     borderRadius: 6,
                     border: "1px solid #ccc",
+                    fontSize: 16,
                   }}
-                  required
                 />
-                {(error.username || emailError) && (
-                  <p style={{ color: "red", marginTop: 4 }}>
-                    {emailError || error.username}
+                {error.username && (
+                  <p style={{ color: "red", marginTop: 4, fontSize: 13 }}>
+                    {error.username}
                   </p>
                 )}
               </div>
 
-              <div style={{ position: "relative", marginBottom: 16 }}>
+              <div style={{ marginBottom: 16 }}>
                 <label>Password</label>
-
-                {/* wrapper input + icon */}
                 <div style={{ position: "relative" }}>
                   <input
                     type={showPassword ? "text" : "password"}
                     value={password}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value.length <= 20) {
-                        setPassword(value);
-                      }
-                    }}
+                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
+                    required
                     style={{
                       width: "100%",
-                      padding: "10px 36px 10px 10px",
+                      padding: 10,
                       borderRadius: 6,
                       border: "1px solid #ccc",
+                      fontSize: 16,
+                      paddingRight: 36,
                     }}
-                    required
                   />
-
                   <span
                     onClick={() => setShowPassword((prev) => !prev)}
                     style={{
                       position: "absolute",
                       right: 10,
-                      top: "50%", // ✅ luôn căn giữa
+                      top: "50%",
                       transform: "translateY(-50%)",
                       cursor: "pointer",
                       fontSize: 18,
@@ -185,10 +172,9 @@ export default function Login() {
                     {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
                   </span>
                 </div>
-
-                {(error.password || passwordError) && (
-                  <p style={{ color: "red", marginTop: 4 }}>
-                    {passwordError || error.password}
+                {error.password && (
+                  <p style={{ color: "red", marginTop: 4, fontSize: 13 }}>
+                    {error.password}
                   </p>
                 )}
               </div>
@@ -203,7 +189,9 @@ export default function Login() {
                   border: "none",
                   borderRadius: 6,
                   fontWeight: "bold",
+                  fontSize: 16,
                   cursor: "pointer",
+                  marginTop: 8,
                 }}
               >
                 Sign In
@@ -215,15 +203,19 @@ export default function Login() {
                 marginTop: 12,
                 display: "flex",
                 justifyContent: "space-between",
+                flexWrap: "wrap",
               }}
             >
               <Link
                 to="/forgotPassword"
-                style={{ color: "#0A2342", fontSize: 16 }}
+                style={{ color: "#0A2342", fontSize: 16, marginTop: 4 }}
               >
                 Forgot password?
               </Link>
-              <Link to="/signUp" style={{ color: "#0A2342", fontSize: 16 }}>
+              <Link
+                to="/signUp"
+                style={{ color: "#0A2342", fontSize: 16, marginTop: 4 }}
+              >
                 Sign Up
               </Link>
             </div>

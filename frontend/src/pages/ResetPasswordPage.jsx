@@ -59,43 +59,41 @@ export default function ResetPasswordPage() {
   return (
     <div
       style={{
-        height: "100vh",
+        minHeight: "100vh",
         backgroundColor: "#f0f2f5",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
+        padding: 40,
       }}
     >
       <div
         style={{
-          height: "65%",
+          width: "100%",
+          maxWidth: 900,
           backgroundColor: "#DCDCDC",
-          padding: 32,
           borderRadius: 16,
           boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+          overflow: "hidden",
         }}
       >
         <div
           style={{
-            width: "100%",
-            height: "85%",
-            maxWidth: 900,
             display: "flex",
-            backgroundColor: "#DCDCDC",
-            borderRadius: 12,
-            gap: 30,
-            marginTop: 30,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+            flexDirection: "row",
+            flexWrap: "wrap",
+            backgroundColor: "#fff",
           }}
         >
           <div
             style={{
-              flex: 1.5,
-              backgroundColor: "#f8f8f8",
+              flex: "1 1 300px",
               padding: 40,
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
+              minWidth: 250,
+              backgroundColor: "#f8f8f8",
             }}
           >
             <SystemLogo />
@@ -104,11 +102,12 @@ export default function ResetPasswordPage() {
           <form
             onSubmit={handleSubmit}
             style={{
-              flex: 1,
+              flex: "1 1 300px",
               padding: 40,
               display: "flex",
               flexDirection: "column",
               gap: 16,
+              minWidth: 250,
               backgroundColor: "#f8f8f8",
             }}
           >
@@ -151,45 +150,45 @@ export default function ResetPasswordPage() {
               </button>
             </div>
           </form>
+        </div>
 
-          {success && (
+        {success && (
+          <div
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              background: "#DCDCDC",
+              padding: "24px 32px",
+              borderRadius: 12,
+              boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+              zIndex: 10,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              width: 320,
+            }}
+          >
             <div
               style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                background: "#DCDCDC",
-                padding: "24px 32px",
-                borderRadius: 12,
-                boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
-                zIndex: 10,
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-                width: 320,
+                marginTop: 20,
+                color: "green",
+                fontWeight: "bold",
+                textAlign: "center",
               }}
             >
-              <div
-                style={{
-                  marginTop: 20,
-                  color: "green",
-                  fontWeight: "bold",
-                  textAlign: "center",
-                }}
+              Reset successful. Please{" "}
+              <span
+                onClick={() => navigate("/login")}
+                style={{ textDecoration: "underline", cursor: "pointer" }}
               >
-                Reset successful. Please{" "}
-                <span
-                  onClick={() => navigate("/login")}
-                  style={{ textDecoration: "underline", cursor: "pointer" }}
-                >
-                  login again
-                </span>
-                .
-              </div>
+                login again
+              </span>
+              .
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
