@@ -2,6 +2,7 @@ package com.mpbhms.backend.service.impl;
 
 import com.mpbhms.backend.dto.Meta;
 import com.mpbhms.backend.dto.PermissionDTO;
+import com.mpbhms.backend.dto.PermissionRequestDTO;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
 import com.mpbhms.backend.entity.Permission;
 import com.mpbhms.backend.entity.Role;
@@ -26,34 +27,35 @@ import java.util.Optional;
 public class PermissionServiceImpl implements PermissionService {
 
     private final PermissionRepository permissionRepository;
-    @Override
+
+
     public boolean isPermission(Permission permission) {
         return this.permissionRepository.existsByModuleAndApiPathAndMethod(
                 permission.getModule(),
                 permission.getApiPath(),
-                permission.getMethod()
-        );
+                permission.getMethod());
     }
 
     @Override
-    public Permission createPermission(Permission permission) {
+    public Permission createPermission(PermissionRequestDTO request) {
         Map<String, String> errors = new HashMap<>();
 
-        if (permissionRepository.existsByModuleAndApiPathAndMethod(
-                permission.getModule(),
-                permission.getApiPath(),
-                permission.getMethod()
-        )) {
-            errors.put("permission", "Permission already exists for this module + path + method combination");
-        }
+        boolean exists = permissionRepository.existsByModuleAndApiPathAndMethod(
+                request.getModule(), request.getApiPath(), request.getMethod());
 
-        if (!errors.isEmpty()) {
+        if (exists) {
+            errors.put("permission", "Permission already exists for this module + path + method combination");
             throw new BusinessException("Permission creation failed", errors);
         }
 
+        Permission permission = new Permission();
+        permission.setName(request.getName());
+        permission.setApiPath(request.getApiPath());
+        permission.setMethod(request.getMethod());
+        permission.setModule(request.getModule());
+
         return permissionRepository.save(permission);
     }
-
 
     @Override
     public Permission getById(Long Id) {
@@ -63,30 +65,28 @@ public class PermissionServiceImpl implements PermissionService {
         }
         return null;
     }
+
     @Override
-    public Permission updatePermission(Permission permission) {
-        // Validate logic ở đầu hàm
-        Permission existing = getById(permission.getId());
-        if (existing == null) {
-            throw new IdInvalidException("Permission with id " + permission.getId() + " does not exist");
-        }
+    public Permission updatePermission(PermissionRequestDTO request) {
+        Permission existing = permissionRepository.findById(request.getId())
+                .orElseThrow(() -> new IdInvalidException("Permission with id " + request.getId() + " does not exist"));
 
         Permission duplicate = permissionRepository.findByModuleAndApiPathAndMethod(
-                permission.getModule(), permission.getApiPath(), permission.getMethod()
-        );
+                request.getModule(), request.getApiPath(), request.getMethod());
 
-        if (duplicate != null && !duplicate.getId().equals(permission.getId())) {
+        if (duplicate != null && !duplicate.getId().equals(request.getId())) {
             throw new BusinessException("Permission already exists with the same module + path + method");
         }
 
         // Cập nhật
-        existing.setName(permission.getName());
-        existing.setApiPath(permission.getApiPath());
-        existing.setMethod(permission.getMethod());
-        existing.setModule(permission.getModule());
+        existing.setName(request.getName());
+        existing.setApiPath(request.getApiPath());
+        existing.setMethod(request.getMethod());
+        existing.setModule(request.getModule());
 
         return permissionRepository.save(existing);
     }
+
     @Override
     public void deletePermission(Long id) {
         Permission permission = permissionRepository.findById(id)
@@ -100,6 +100,7 @@ public class PermissionServiceImpl implements PermissionService {
         // Xóa permission
         permissionRepository.delete(permission);
     }
+
     @Override
     public ResultPaginationDTO getAllPermissions(Specification<Permission> spec, Pageable pageable) {
         Page<Permission> page = permissionRepository.findAll(spec, pageable);
@@ -118,6 +119,7 @@ public class PermissionServiceImpl implements PermissionService {
         result.setResult(dtoList);
         return result;
     }
+
     private PermissionDTO convertToDTO(Permission entity) {
         PermissionDTO dto = new PermissionDTO();
         dto.setId(entity.getId()); // hoặc entity.getPermissionId() nếu tên khác

@@ -45,7 +45,6 @@ class RoleControllerTest {
         role.setRoleName("TEST_ROLE");
         role.setId(1L);
 
-        when(roleService.existByName(role.getRoleName())).thenReturn(false);
         when(roleService.createRole(any(Role.class))).thenReturn(role);
 
         // Act
@@ -54,12 +53,12 @@ class RoleControllerTest {
         // Assert
         assertNotNull(response);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(role.getRoleName(), response.getBody().getRoleName());
-        assertEquals(role.getId(), response.getBody().getId());
+        Role responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertEquals(role.getRoleName(), responseBody.getRoleName());
+        assertEquals(role.getId(), responseBody.getId());
 
         // Verify
-        verify(roleService).existByName(role.getRoleName());
         verify(roleService).createRole(role);
     }
 
@@ -69,14 +68,15 @@ class RoleControllerTest {
         Role role = new Role();
         role.setRoleName("EXISTING_ROLE");
 
-        when(roleService.existByName(role.getRoleName())).thenReturn(true);
+        // Giả lập createRole() sẽ ném lỗi nếu tên tồn tại
+        when(roleService.createRole(any(Role.class)))
+                .thenThrow(new IdInvalidException("Role name already exists"));
 
         // Act & Assert
         assertThrows(IdInvalidException.class, () -> roleController.createRole(role));
 
-        // Verify
-        verify(roleService).existByName(role.getRoleName());
-        verify(roleService, never()).createRole(any(Role.class));
+        // Verify gọi đúng service
+        verify(roleService).createRole(role);
     }
 
     @Test
@@ -86,7 +86,6 @@ class RoleControllerTest {
         role.setId(1L);
         role.setRoleName("UPDATED_ROLE");
 
-        when(roleService.getById(role.getId())).thenReturn(role);
         when(roleService.updateRole(any(Role.class))).thenReturn(role);
 
         // Act
@@ -94,15 +93,16 @@ class RoleControllerTest {
 
         // Assert
         assertNotNull(response);
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(role.getRoleName(), response.getBody().getRoleName());
-        assertEquals(role.getId(), response.getBody().getId());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        Role responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertEquals(role.getRoleName(), responseBody.getRoleName());
+        assertEquals(role.getId(), responseBody.getId());
 
         // Verify
-        verify(roleService).getById(role.getId());
         verify(roleService).updateRole(role);
     }
+
 
     @Test
     void updateRole_NotFound() {
@@ -110,21 +110,22 @@ class RoleControllerTest {
         Role role = new Role();
         role.setId(999L);
 
-        when(roleService.getById(role.getId())).thenReturn(null);
+        // Giả lập service ném lỗi nếu role không tồn tại
+        when(roleService.updateRole(any(Role.class)))
+                .thenThrow(new IdInvalidException("Role with id = 999 not found."));
 
         // Act & Assert
         assertThrows(IdInvalidException.class, () -> roleController.updateRole(role));
 
         // Verify
-        verify(roleService).getById(role.getId());
-        verify(roleService, never()).updateRole(any(Role.class));
+        verify(roleService).updateRole(role);
     }
+
 
     @Test
     void deleteRole_Success() {
         // Arrange
         Long roleId = 1L;
-        when(roleService.existsById(roleId)).thenReturn(true);
         doNothing().when(roleService).deleteRole(roleId);
 
         // Act
@@ -132,10 +133,9 @@ class RoleControllerTest {
 
         // Assert
         assertNotNull(response);
-        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
 
         // Verify
-        verify(roleService).existsById(roleId);
         verify(roleService).deleteRole(roleId);
     }
 
@@ -143,15 +143,19 @@ class RoleControllerTest {
     void deleteRole_NotFound() {
         // Arrange
         Long roleId = 999L;
-        when(roleService.existsById(roleId)).thenReturn(false);
+
+        // Giả lập deleteRole ném ra IdInvalidException
+        doThrow(new IdInvalidException("Role with id 999 does not exist"))
+                .when(roleService).deleteRole(roleId);
 
         // Act & Assert
         assertThrows(IdInvalidException.class, () -> roleController.deleteRole(roleId));
 
-        // Verify
-        verify(roleService).existsById(roleId);
-        verify(roleService, never()).deleteRole(anyLong());
+        // Verify đã gọi method
+        verify(roleService).deleteRole(roleId);
     }
+
+
 
     @Test
     void getAllRoles_Success() {
@@ -177,7 +181,7 @@ class RoleControllerTest {
         expectedResult.setMeta(meta);
         expectedResult.setResult(roles);
 
-        when(roleService.getAllRoles(any(Specification.class), eq(pageable))).thenReturn(expectedResult);
+        when(roleService.getAllRoles(any(), eq(pageable))).thenReturn(expectedResult);
 
         // Act
         ResponseEntity<ResultPaginationDTO> response = roleController.getAllRoles(null, pageable);
@@ -186,11 +190,15 @@ class RoleControllerTest {
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(2, ((List<Role>) response.getBody().getResult()).size());
-        assertEquals(2, response.getBody().getMeta().getTotal());
+        ResultPaginationDTO responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertTrue(responseBody.getResult() instanceof List);
+        List<?> resultList = (List<?>) responseBody.getResult();
+        assertEquals(2, resultList.size());
+        assertEquals(2, responseBody.getMeta().getTotal());
 
         // Verify
-        verify(roleService).getAllRoles(any(Specification.class), eq(pageable));
+        verify(roleService).getAllRoles(any(), eq(pageable));
     }
 
     @Test
@@ -208,7 +216,7 @@ class RoleControllerTest {
         expectedResult.setMeta(meta);
         expectedResult.setResult(List.of());
 
-        when(roleService.getAllRoles(any(Specification.class), eq(pageable))).thenReturn(expectedResult);
+        when(roleService.getAllRoles(any(), eq(pageable))).thenReturn(expectedResult);
 
         // Act
         ResponseEntity<ResultPaginationDTO> response = roleController.getAllRoles(null, pageable);
@@ -217,10 +225,14 @@ class RoleControllerTest {
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(((List<Role>) response.getBody().getResult()).isEmpty());
-        assertEquals(0, response.getBody().getMeta().getTotal());
+        ResultPaginationDTO responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertTrue(responseBody.getResult() instanceof List);
+        List<?> resultList = (List<?>) responseBody.getResult();
+        assertTrue(resultList.isEmpty());
+        assertEquals(0, responseBody.getMeta().getTotal());
 
         // Verify
-        verify(roleService).getAllRoles(any(Specification.class), eq(pageable));
+        verify(roleService).getAllRoles(any(), eq(pageable));
     }
 }

@@ -18,13 +18,13 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private ResponseEntity<ApiResponse<?>> buildResponse(HttpStatus status, String errorCode, String message, Object data) {
+    private ResponseEntity<ApiResponse<?>> buildResponse(HttpStatus status, String errorCode, String message,
+            Object data) {
         ApiResponse<?> response = new ApiResponse<>(
                 status.value(),
                 errorCode,
                 message,
-                data
-        );
+                data);
         return ResponseEntity.status(status).body(response);
     }
 
@@ -61,20 +61,14 @@ public class GlobalExceptionHandler {
         return buildResponse(ex.getStatus(), "VALIDATION_ERROR", ex.getMessage(), ex.getErrors());
     }
 
-
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<?>> handleValidationErrors(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
-
-        return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Validation failed", errors);
+    public ResponseEntity<ApiResponse<Object>> handleValidationException(MethodArgumentNotValidException ex) {
+        String errorMsg = ex.getBindingResult().getAllErrors().get(0).getDefaultMessage();
+        ApiResponse<Object> response = new ApiResponse<>(400, "ValidationError", errorMsg, null);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
-    @ExceptionHandler({DataIntegrityViolationException.class, ConstraintViolationException.class})
+    @ExceptionHandler({ DataIntegrityViolationException.class, ConstraintViolationException.class })
     public ResponseEntity<ApiResponse<?>> handleDataIntegrityViolation(Exception ex) {
         String message = "Duplicate entry or constraint violation";
         Throwable cause = ex.getCause();

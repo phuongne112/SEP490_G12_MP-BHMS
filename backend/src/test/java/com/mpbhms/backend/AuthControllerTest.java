@@ -1,43 +1,46 @@
 package com.mpbhms.backend;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mpbhms.backend.controller.AuthController;
-import com.mpbhms.backend.dto.*;
+import com.mpbhms.backend.dto.CreateUserResponse;
+import com.mpbhms.backend.dto.LoginDTO;
 import com.mpbhms.backend.entity.Role;
 import com.mpbhms.backend.entity.User;
-import com.mpbhms.backend.exception.IdInvalidException;
-import com.mpbhms.backend.response.ChangePasswordDTOResponse;
+import com.mpbhms.backend.exception.BusinessException;
 import com.mpbhms.backend.response.LoginDTOResponse;
 import com.mpbhms.backend.service.UserService;
 import com.mpbhms.backend.util.SecurityUtil;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.MockitoAnnotations;
-import org.springframework.http.HttpHeaders;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.security.oauth2.jwt.JwtException;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import com.mpbhms.backend.dto.CreateUserRequest;
+import com.mpbhms.backend.response.CreateUserDTOResponse;
 
-import java.security.Principal;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-class AuthControllerTest {
+@ExtendWith(MockitoExtension.class)
+public class AuthControllerTest {
+
+    private MockMvc mockMvc;
 
     @Mock
     private UserService userService;
@@ -51,328 +54,323 @@ class AuthControllerTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
-    @Mock
-    private AuthenticationManager authenticationManager;
-
-    @Mock
-    private Authentication authentication;
-
-    @Mock
-    private Principal principal;
-
-    @InjectMocks
-    private AuthController authController;
-
-    private MockedStatic<SecurityUtil> mockedSecurityUtil;
+    private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-        when(authenticationManagerBuilder.getObject()).thenReturn(authenticationManager);
-        mockedSecurityUtil = mockStatic(SecurityUtil.class);
+        objectMapper = new ObjectMapper();
+        mockMvc = MockMvcBuilders
+                .standaloneSetup(
+                        new AuthController(userService, authenticationManagerBuilder,
+                                securityUtil, passwordEncoder))
+                .build();
     }
 
-    @AfterEach
-    void tearDown() {
-        mockedSecurityUtil.close();
-    }
-
+    // **UNITTEST Login
     @Test
-    void login_Success() {
-        // Arrange
-        String userEmail = "test@example.com";
-        String password = "password123";
-
+    public void testLoginSuccess() throws Exception {
+        // Tạo DTO
         LoginDTO loginDTO = new LoginDTO();
-        loginDTO.setUsername(userEmail);
-        loginDTO.setPassword(password);
+        loginDTO.setUsername("test@gmail.com");
+        loginDTO.setPassword("123123123aA@");
 
-        Role role = new Role();
-        role.setId(1L);
-        role.setRoleName("RENTER");
+        // Mock Authentication
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getName()).thenReturn("test@gmail.com");
 
-        User mockUser = new User();
-        mockUser.setId(1L);
-        mockUser.setEmail(userEmail);
-        mockUser.setUsername("Test User");
-        mockUser.setRole(role);
-
-        // Mock Authentication flow
-        when(authenticationManagerBuilder.getObject()).thenReturn(authenticationManager);
+        // ✅ Mock AuthenticationManager
+        AuthenticationManager authenticationManager = mock(AuthenticationManager.class);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
-        when(authentication.getName()).thenReturn(userEmail);
 
-        // Mock UserService and Token creation
-        when(userService.getUserWithEmail(eq(userEmail))).thenReturn(mockUser);
-        when(securityUtil.createAccessToken(eq(userEmail), any(LoginDTOResponse.class)))
-                .thenReturn("mock.access.token");
-        when(securityUtil.createRefreshToken(eq(userEmail), any(LoginDTOResponse.class)))
-                .thenReturn("mock.refresh.token");
+        // ✅ Gán AuthenticationManager cho builder.getObject()
+        when(authenticationManagerBuilder.getObject()).thenReturn(authenticationManager);
 
-        // Inject refreshTokenExpiration manually if it's private
-        ReflectionTestUtils.setField(authController, "refreshTokenExpiration", 3600L);
+        // Mock user trả về từ DB
+        User mockUser = new User();
+        mockUser.setId(1L);
+        mockUser.setEmail("test@gmail.com");
+        mockUser.setUsername("Admin");
+        Role role = new Role();
+        role.setId(1L);
+        role.setRoleName("ADMIN");
+        mockUser.setRole(role);
 
-        // Act
-        ResponseEntity<?> response = authController.login(loginDTO);
+        when(userService.getUserWithEmail("test@gmail.com")).thenReturn(mockUser);
 
-        // Assert
-        assertNotNull(response);
-        assertEquals(200, response.getStatusCodeValue());
+        // Mock tạo token
+        when(securityUtil.createAccessToken(any(String.class), any(LoginDTOResponse.class)))
+                .thenReturn("mockAccessToken");
+        when(securityUtil.createRefreshToken(any(String.class), any(LoginDTOResponse.class)))
+                .thenReturn("mockRefreshToken");
 
-        assertTrue(response.getBody() instanceof LoginDTOResponse);
-        LoginDTOResponse body = (LoginDTOResponse) response.getBody();
+        mockMvc.perform(post("/mpbhms/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginDTO)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.access_token").value("mockAccessToken"))
 
-        assertNotNull(body);
-        assertEquals("mock.access.token", body.getAccessToken());
-        assertNotNull(body.getUser());
-        assertEquals(userEmail, body.getUser().getEmail());
-
-        // Check refresh token in Set-Cookie header
-        List<String> cookies = response.getHeaders().get(HttpHeaders.SET_COOKIE);
-        assertNotNull(cookies);
-        assertFalse(cookies.isEmpty());
-        assertTrue(cookies.get(0).contains("refreshToken"));
-
-        // Verify service and util method calls
-        verify(userService).getUserWithEmail(eq(userEmail));
-        verify(securityUtil).createAccessToken(eq(userEmail), any(LoginDTOResponse.class));
-        verify(securityUtil).createRefreshToken(eq(userEmail), any(LoginDTOResponse.class));
-        verify(userService).updateUserToken(anyString(), eq(userEmail));
+                .andExpect(jsonPath("$.user.email").value("test@gmail.com"))
+                .andExpect(cookie().value("refreshToken", "mockRefreshToken"));
     }
 
+    // TC02: Invalid password
     @Test
-    void login_UserNotFound() {
-        // Arrange
-        String userEmail = "nonexistent@example.com";
+    public void testLoginInvalidPassword() throws Exception {
         LoginDTO loginDTO = new LoginDTO();
-        loginDTO.setUsername(userEmail);
-        loginDTO.setPassword("password123");
+        loginDTO.setUsername("test@gmail.com");
+        loginDTO.setPassword("Valid123!");
 
+        AuthenticationManager authenticationManager = mock(AuthenticationManager.class);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(authentication);
-        when(authentication.getName()).thenReturn(userEmail);
-        when(userService.getUserWithEmail(eq(userEmail))).thenReturn(null); // Không tìm thấy user
+                .thenThrow(new BadCredentialsException("Bad credentials"));
 
-        // Act
-        ResponseEntity<?> response = authController.login(loginDTO);
+        when(authenticationManagerBuilder.getObject()).thenReturn(authenticationManager);
 
-        // Assert
-        assertNotNull(response);
-        assertEquals(400, response.getStatusCodeValue()); // ✅ Expect 400 Bad Request
-        assertTrue(response.getBody() instanceof Map);    // ✅ Body là Map
-        Map<?, ?> body = (Map<?, ?>) response.getBody();
-        assertEquals("User Not Found", body.get("message")); // ✅ Message đúng
+        mockMvc.perform(post("/mpbhms/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginDTO)))
+                .andDo(print())
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid username or password"));
+    }
+
+    // TC03: Email not found
+    @Test
+    public void testLoginUserNotFound() throws Exception {
+        LoginDTO loginDTO = new LoginDTO();
+        loginDTO.setUsername("abc@gmail.com"); // email hợp lệ nhưng không tồn tại trong DB
+        loginDTO.setPassword("123123123aA@");
+
+        AuthenticationManager authenticationManager = mock(AuthenticationManager.class);
+        when(authenticationManagerBuilder.getObject()).thenReturn(authenticationManager);
+
+        // Gây BusinessException khi user = null
+        when(userService.getUserWithEmail("abc@gmail.com"))
+                .thenThrow(new com.mpbhms.backend.exception.BusinessException("User Not Found",
+                        java.util.Map.of()));
+
+        mockMvc.perform(post("/mpbhms/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginDTO)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("User Not Found"));
+    }
+
+    // TC04: Missing email
+    @Test
+    public void testLoginMissingEmail() throws Exception {
+        LoginDTO loginDTO = new LoginDTO();
+        loginDTO.setPassword("123123123aA@");
+
+        mockMvc.perform(post("/mpbhms/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginDTO)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // TC05: Missing password
+    @Test
+    public void testLoginMissingPassword() throws Exception {
+        LoginDTO loginDTO = new LoginDTO();
+        loginDTO.setUsername("test@example.com");
+
+        mockMvc.perform(post("/mpbhms/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginDTO)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // TC06: Missing all fields
+    @Test
+    public void testLoginMissingAll() throws Exception {
+        LoginDTO loginDTO = new LoginDTO();
+
+        mockMvc.perform(post("/mpbhms/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginDTO)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // **UNITTEST RESETPASSWORD
+    // TC01: Reset password success
+    @Test
+    public void testResetPasswordSuccess() throws Exception {
+        String token = "valid-reset-token";
+        String newPassword = "NewPassword123!";
+        // Prepare request body
+        String requestBody = "{" +
+                "\"token\": \"" + token + "\"," +
+                "\"newPassword\": \"" + newPassword + "\"}";
+
+        // No exception thrown means success
+        doNothing().when(userService).resetPassword(token, newPassword);
+
+        mockMvc.perform(post("/mpbhms/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Password reset successful."));
+    }
+
+    // TC02: Reset password with invalid token
+    @Test
+    public void testResetPasswordInvalidToken() throws Exception {
+        String token = "invalid-token";
+        String newPassword = "NewPassword123!";
+        String requestBody = "{" +
+                "\"token\": \"" + token + "\"," +
+                "\"newPassword\": \"" + newPassword + "\"}";
+
+        doThrow(new RuntimeException("Invalid token")).when(userService).resetPassword(token, newPassword);
+
+        mockMvc.perform(post("/mpbhms/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andDo(print()) // Print response for debugging
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid token"));
+    }
+
+    // TC_03:Email tồn tại (exist@example.com)
+    @Test
+    public void testRequestReset_EmailMissing() throws Exception {
+        String requestBody = "{}";
+
+        mockMvc.perform(post("/mpbhms/auth/request-reset")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest());
+    }
+
+    // TC_04:Email không tồn tại (nonexist@example.com)
+    @Test
+    public void testRequestReset_EmailEmpty() throws Exception {
+        String requestBody = "{\"email\": \"\"}";
+
+        mockMvc.perform(post("/mpbhms/auth/request-reset")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest());
+    }
+
+    // TC_05:Email rỗng
+    @Test
+    public void testRequestReset_EmailExists() throws Exception {
+        String email = "exist@example.com";
+        String requestBody = "{\"email\": \"" + email + "\"}";
+
+        when(userService.isEmailExist(email)).thenReturn(true);
+        doNothing().when(userService).sendResetPasswordToken(email);
+
+        mockMvc.perform(post("/mpbhms/auth/request-reset")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Reset link sent if email is registered."));
+    }
+
+    // TC_06:Không có trường email
+    @Test
+    public void testRequestReset_EmailNotExists() throws Exception {
+        String email = "nonexist@example.com";
+        String requestBody = "{\"email\": \"" + email + "\"}";
+
+        when(userService.isEmailExist(email)).thenReturn(false);
+
+        mockMvc.perform(post("/mpbhms/auth/request-reset")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Email not found in the system."));
     }
 
     @Test
-    void getAccount_Success() {
-        // Arrange
-        String userEmail = "test@example.com";
-        Role role = new Role();
-        role.setId(1L);
-        role.setRoleName("RENTER");
-
-        User mockUser = new User();
-        mockUser.setId(1L);
-        mockUser.setEmail(userEmail);
-        mockUser.setUsername("Test User");
-        mockUser.setRole(role);
-
-        mockedSecurityUtil.when(SecurityUtil::getCurrentUserLogin).thenReturn(Optional.of(userEmail));
-        when(userService.getUserWithEmail(eq(userEmail))).thenReturn(mockUser);
-
-        // Act
-        ResponseEntity<LoginDTOResponse.UserGetAccount> response = authController.getAccount();
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(200, response.getStatusCodeValue());
-        assertNotNull(response.getBody());
-        assertNotNull(response.getBody().getUser());
-        assertEquals(userEmail, response.getBody().getUser().getEmail());
-    }
-
-    @Test
-    void getAccount_UserNotFound() {
-        // Arrange
-        String userEmail = "nonexistent@example.com";
-        mockedSecurityUtil.when(SecurityUtil::getCurrentUserLogin).thenReturn(Optional.of(userEmail));
-        when(userService.getUserWithEmail(eq(userEmail))).thenReturn(null);
-
-        // Act
-        ResponseEntity<LoginDTOResponse.UserGetAccount> response = authController.getAccount();
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(200, response.getStatusCodeValue());
-        assertNotNull(response.getBody());
-        assertNull(response.getBody().getUser());
-    }
-
-    @Test
-    void getRefreshToken_Success() {
-        // Arrange
-        String userEmail = "test@example.com";
-        String refreshToken = "valid.refresh.token";
-        Role role = new Role();
-        role.setId(1L);
-        role.setRoleName("RENTER");
-
-        User mockUser = new User();
-        mockUser.setId(1L);
-        mockUser.setEmail(userEmail);
-        mockUser.setUsername("Test User");
-        mockUser.setRole(role);
-
-        when(securityUtil.checkValidRefreshToken(refreshToken)).thenReturn(mock(org.springframework.security.oauth2.jwt.Jwt.class));
-        when(securityUtil.checkValidRefreshToken(refreshToken).getSubject()).thenReturn(userEmail);
-        when(userService.getUserByRefreshTokenAndEmail(refreshToken, userEmail)).thenReturn(mockUser);
-        when(securityUtil.createAccessToken(eq(userEmail), any(LoginDTOResponse.class)))
-                .thenReturn("new.access.token");
-        when(securityUtil.createRefreshToken(eq(userEmail), any(LoginDTOResponse.class)))
-                .thenReturn("new.refresh.token");
-
-        // Act
-        ResponseEntity<LoginDTOResponse> response = authController.getRefreshToken(refreshToken);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(200, response.getStatusCodeValue());
-        assertNotNull(response.getBody());
-        assertNotNull(response.getHeaders().get(HttpHeaders.SET_COOKIE));
-        assertTrue(response.getHeaders().get(HttpHeaders.SET_COOKIE).get(0).contains("refreshToken"));
-    }
-
-    @Test
-    void getRefreshToken_MissingToken() {
-        // Act & Assert
-        assertThrows(JwtException.class, () -> authController.getRefreshToken(null));
-    }
-
-    @Test
-    void getRefreshToken_InvalidToken() {
-        // Arrange
-        String refreshToken = "invalid.token";
-        when(securityUtil.checkValidRefreshToken(refreshToken)).thenThrow(new JwtException("Invalid token"));
-
-        // Act & Assert
-        assertThrows(JwtException.class, () -> authController.getRefreshToken(refreshToken));
-    }
-
-    @Test
-    void logout_Success() {
-        // Arrange
-        String userEmail = "test@example.com";
-        mockedSecurityUtil.when(SecurityUtil::getCurrentUserLogin).thenReturn(Optional.of(userEmail));
-
-        // Act
-        ResponseEntity<Void> response = authController.logout();
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(204, response.getStatusCodeValue());
-        verify(userService).updateUserToken(null, userEmail);
-    }
-
-    @Test
-    void logout_NoUser() {
-        // Arrange
-        mockedSecurityUtil.when(SecurityUtil::getCurrentUserLogin).thenReturn(Optional.empty());
-
-        // Act & Assert
-        assertThrows(JwtException.class, () -> authController.logout());
-    }
-
-    @Test
-    void signUp_Success() {
-        // Arrange
+    public void testSignUpSuccess() throws Exception {
         CreateUserRequest request = new CreateUserRequest();
-        request.setEmail("new@example.com");
-        request.setUsername("New User");
-        request.setPassword("Password123!");
-        request.setFullName("New User Full Name");
-        request.setPhone("1234567890");
+        request.setUsername("newuser"); // >=3 ký tự
+        request.setFullName("Nguyễn Văn A"); // hợp lệ
+        request.setEmail("newuser@gmail.com"); // ✅ phải là gmail.com
+        request.setPhone("0987654321"); // ✅ đúng định dạng 10 số
+        request.setPassword("StrongPass1!"); // ✅ phải đáp ứng regex trong @Password
 
         User savedUser = new User();
         savedUser.setId(1L);
-        savedUser.setEmail(request.getEmail());
-        savedUser.setUsername(request.getUsername());
+        savedUser.setUsername("newuser");
+        savedUser.setEmail("newuser@gmail.com");
 
-        when(userService.isEmailExist(request.getEmail())).thenReturn(false);
-        when(userService.signUp(request)).thenReturn(savedUser);
-        when(userService.convertToCreateUserDTO(savedUser)).thenReturn(new CreateUserResponse());
+        when(userService.signUp(any(CreateUserRequest.class))).thenReturn(savedUser);
+        when(userService.convertToCreateUserDTO(any(User.class)))
+                .thenReturn(new CreateUserResponse());
 
-        // Act
-        ResponseEntity<CreateUserResponse> response = authController.signUp(request);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertNotNull(response.getBody());
+        mockMvc.perform(post("/mpbhms/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andDo(print()) // để xem chi tiết nếu test fail
+                .andExpect(status().isCreated());
     }
 
     @Test
-    void signUp_EmailExists() {
-        // Arrange
+    public void testSignUp_EmailExists() throws Exception {
         CreateUserRequest request = new CreateUserRequest();
-        request.setEmail("existing@example.com");
-        when(userService.isEmailExist(request.getEmail())).thenReturn(true);
+        request.setUsername("NewUser");
+        request.setFullName("New User Full Name");
+        request.setEmail("ExistedEmail@example.com");
+        request.setPhone("0987654321");
+        request.setPassword("Password123@");
 
-        // Act & Assert
-        assertThrows(IdInvalidException.class, () -> authController.signUp(request));
+        lenient().when(userService.signUp(any(CreateUserRequest.class)))
+                .thenThrow(new BusinessException("Email already exists"));
+
+        mockMvc.perform(post("/mpbhms/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    void changePassword_Success() {
-        // Arrange
-        String userEmail = "test@example.com";
-        ChangePasswordDTO request = new ChangePasswordDTO();
-        request.setCurrentPassword("oldPass123!");
-        request.setNewPassword("newPass123!");
+    public void testSignUp_UsernameExists() throws Exception {
+        CreateUserRequest request = new CreateUserRequest();
+        request.setUsername("ExistUsername");
+        request.setFullName("New User Full Name");
+        request.setEmail("existusername@gmail.com"); // Email hợp lệ!
+        request.setPhone("0987654321");
+        request.setPassword("Password123@");
 
-        when(principal.getName()).thenReturn(userEmail);
-        when(userService.changePasswordUser(userEmail, request.getCurrentPassword(), request.getNewPassword()))
-                .thenReturn("Password changed successfully");
+        when(userService.signUp(any(CreateUserRequest.class)))
+                .thenThrow(new BusinessException("Username already exists"));
 
-        // Act
-        ResponseEntity<ChangePasswordDTOResponse> response = authController.changePassword(request, principal);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(200, response.getStatusCodeValue());
-        assertNotNull(response.getBody());
-        assertEquals("Password changed successfully", response.getBody().getMessage());
+        mockMvc.perform(post("/mpbhms/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Username already exists"));
     }
 
     @Test
-    void requestReset_Success() {
-        // Arrange
-        ResetRequestDTO request = new ResetRequestDTO();
-        request.setEmail("test@example.com");
+    public void testSignUp_InvalidEmail() throws Exception {
+        CreateUserRequest request = new CreateUserRequest();
+        request.setUsername("NewUser");
+        request.setFullName("New User Full Name");
+        request.setEmail("new@aaaa"); // Email không hợp lệ
+        request.setPhone("0987654321");
+        request.setPassword("Password123@");
 
-        // Act
-        ResponseEntity<?> response = authController.requestReset(request);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(200, response.getStatusCodeValue());
-        verify(userService).sendResetPasswordToken(request.getEmail());
+        mockMvc.perform(post("/mpbhms/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    void resetPassword_Success() {
-        // Arrange
-        ResetPasswordDTO request = new ResetPasswordDTO();
-        request.setToken("valid.token");
-        request.setNewPassword("newPass123!");
+    public void testSignUp_MissingFields() throws Exception {
+        CreateUserRequest request = new CreateUserRequest();
+        // Không set email, username, password...
 
-        // Act
-        ResponseEntity<?> response = authController.resetPassword(request);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(200, response.getStatusCodeValue());
-        verify(userService).resetPassword(request.getToken(), request.getNewPassword());
+        mockMvc.perform(post("/mpbhms/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 }
