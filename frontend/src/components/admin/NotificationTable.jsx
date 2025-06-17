@@ -61,6 +61,13 @@ export default function NotificationTable({
 
       setData(
         result.map((item, index) => {
+          console.log(
+            "🔍 recipientId:",
+            item.recipientId,
+            "userList:",
+            userList
+          );
+          console.log("recipientId:", item.recipientId, "userList:", userList);
           const user = userList.find((u) => u.id === item.recipientId);
           return {
             key: item.id || index + 1 + (page - 1) * pageSize,
@@ -91,8 +98,18 @@ export default function NotificationTable({
       width: 60,
     },
     { title: "Title", dataIndex: "title" },
-    { title: "Message", dataIndex: "message" },
-    { title: "Type", dataIndex: "type" },
+    // { title: "Message", dataIndex: "message" },
+    {
+      title: "Type",
+      dataIndex: "type",
+      render: (type) => {
+        return type
+          .toLowerCase()
+          .split("_")
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(" ");
+      },
+    },
     {
       title: "Status",
       dataIndex: "status",
