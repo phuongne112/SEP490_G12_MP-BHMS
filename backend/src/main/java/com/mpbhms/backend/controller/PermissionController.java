@@ -1,8 +1,7 @@
 package com.mpbhms.backend.controller;
 
 import com.mpbhms.backend.dto.ResultPaginationDTO;
-import com.mpbhms.backend.entity.PermissionEntity;
-import com.mpbhms.backend.exception.IdInvalidException;
+import com.mpbhms.backend.entity.Permission;
 import com.mpbhms.backend.service.PermissionService;
 import com.mpbhms.backend.util.ApiMessage;
 import com.turkraft.springfilter.boot.Filter;
@@ -11,10 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/mpbhms/permissions")
@@ -23,14 +19,14 @@ public class PermissionController {
     private final PermissionService permissionService;
     @PostMapping
     @ApiMessage("Create a new permission")
-    public ResponseEntity<PermissionEntity> create(@RequestBody PermissionEntity permission) {
-        PermissionEntity created = permissionService.createPermission(permission);
+    public ResponseEntity<Permission> create(@RequestBody Permission permission) {
+        Permission created = permissionService.createPermission(permission);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping
     @ApiMessage("Update an existing permission")
-    public ResponseEntity<PermissionEntity> update(@RequestBody PermissionEntity permission) {
+    public ResponseEntity<Permission> update(@RequestBody Permission permission) {
         return ResponseEntity.ok(permissionService.updatePermission(permission));
     }
     @DeleteMapping("/{id}")
@@ -43,7 +39,7 @@ public class PermissionController {
     @GetMapping()
     @ApiMessage("Get all permissions with filters and pagination")
      public ResponseEntity<ResultPaginationDTO> getAllPermissions(
-             @Filter Specification<PermissionEntity> spec,
+             @Filter Specification<Permission> spec,
              Pageable pageable
      ) {
          return ResponseEntity.ok(permissionService.getAllPermissions(spec, pageable));

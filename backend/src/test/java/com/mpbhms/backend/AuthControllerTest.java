@@ -2,12 +2,11 @@ package com.mpbhms.backend;
 
 import com.mpbhms.backend.controller.AuthController;
 import com.mpbhms.backend.dto.*;
-import com.mpbhms.backend.entity.RoleEntity;
-import com.mpbhms.backend.entity.UserEntity;
+import com.mpbhms.backend.entity.Role;
+import com.mpbhms.backend.entity.User;
 import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.response.ChangePasswordDTOResponse;
 import com.mpbhms.backend.response.LoginDTOResponse;
-import com.mpbhms.backend.response.SignUpDTOResponse;
 import com.mpbhms.backend.service.UserService;
 import com.mpbhms.backend.util.SecurityUtil;
 import org.junit.jupiter.api.AfterEach;
@@ -88,11 +87,11 @@ class AuthControllerTest {
         loginDTO.setUsername(userEmail);
         loginDTO.setPassword(password);
 
-        RoleEntity role = new RoleEntity();
+        Role role = new Role();
         role.setId(1L);
         role.setRoleName("RENTER");
 
-        UserEntity mockUser = new UserEntity();
+        User mockUser = new User();
         mockUser.setId(1L);
         mockUser.setEmail(userEmail);
         mockUser.setUsername("Test User");
@@ -170,11 +169,11 @@ class AuthControllerTest {
     void getAccount_Success() {
         // Arrange
         String userEmail = "test@example.com";
-        RoleEntity role = new RoleEntity();
+        Role role = new Role();
         role.setId(1L);
         role.setRoleName("RENTER");
 
-        UserEntity mockUser = new UserEntity();
+        User mockUser = new User();
         mockUser.setId(1L);
         mockUser.setEmail(userEmail);
         mockUser.setUsername("Test User");
@@ -216,11 +215,11 @@ class AuthControllerTest {
         // Arrange
         String userEmail = "test@example.com";
         String refreshToken = "valid.refresh.token";
-        RoleEntity role = new RoleEntity();
+        Role role = new Role();
         role.setId(1L);
         role.setRoleName("RENTER");
 
-        UserEntity mockUser = new UserEntity();
+        User mockUser = new User();
         mockUser.setId(1L);
         mockUser.setEmail(userEmail);
         mockUser.setUsername("Test User");
@@ -295,7 +294,7 @@ class AuthControllerTest {
         request.setFullName("New User Full Name");
         request.setPhone("1234567890");
 
-        UserEntity savedUser = new UserEntity();
+        User savedUser = new User();
         savedUser.setId(1L);
         savedUser.setEmail(request.getEmail());
         savedUser.setUsername(request.getUsername());

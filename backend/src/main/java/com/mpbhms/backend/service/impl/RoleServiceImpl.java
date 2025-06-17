@@ -2,8 +2,8 @@ package com.mpbhms.backend.service.impl;
 
 import com.mpbhms.backend.dto.Meta;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
-import com.mpbhms.backend.entity.PermissionEntity;
-import com.mpbhms.backend.entity.RoleEntity;
+import com.mpbhms.backend.entity.Permission;
+import com.mpbhms.backend.entity.Role;
 import com.mpbhms.backend.exception.BusinessException;
 import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.repository.PermissionRepository;
@@ -32,23 +32,23 @@ public class RoleServiceImpl implements RoleService {
         return this.roleRepository.existsByRoleName(name);
     }
     @Override
-    public RoleEntity createRole(RoleEntity roleEntity) {
+    public Role createRole(Role role) {
         // Kiểm tra tên role đã tồn tại chưa
-        if (existByName(roleEntity.getRoleName())) {
-            throw new BusinessException("Role with name " + roleEntity.getRoleName() + " already exists.");
+        if (existByName(role.getRoleName())) {
+            throw new BusinessException("Role with name " + role.getRoleName() + " already exists.");
         }
 
         // Gán lại danh sách permission nếu có
-        if (roleEntity.getPermissionEntities() != null && !roleEntity.getPermissionEntities().isEmpty()) {
-            List<Long> permissionIds = roleEntity.getPermissionEntities().stream()
-                    .map(PermissionEntity::getId)
+        if (role.getPermissionEntities() != null && !role.getPermissionEntities().isEmpty()) {
+            List<Long> permissionIds = role.getPermissionEntities().stream()
+                    .map(Permission::getId)
                     .collect(Collectors.toList());
 
-            List<PermissionEntity> dbPermissions = permissionRepository.findByIdIn(permissionIds);
-            roleEntity.setPermissionEntities(dbPermissions);
+            List<Permission> dbPermissions = permissionRepository.findByIdIn(permissionIds);
+            role.setPermissionEntities(dbPermissions);
         }
 
-        return roleRepository.save(roleEntity);
+        return roleRepository.save(role);
     }
 
     @Override
@@ -58,31 +58,31 @@ public class RoleServiceImpl implements RoleService {
 
 
     @Override
-    public RoleEntity updateRole(RoleEntity roleEntity) {
+    public Role updateRole(Role role) {
         // Kiểm tra id tồn tại
-        RoleEntity roleDB = roleRepository.findById(roleEntity.getId())
-                .orElseThrow(() -> new IdInvalidException("Role with id = " + roleEntity.getId() + " not found."));
+        Role roleDB = roleRepository.findById(role.getId())
+                .orElseThrow(() -> new IdInvalidException("Role with id = " + role.getId() + " not found."));
 
         // Kiểm tra trùng tên role nếu tên bị đổi
-        if (!roleDB.getRoleName().equals(roleEntity.getRoleName())
-                && roleRepository.existsByRoleName(roleEntity.getRoleName())) {
-            throw new BusinessException("Role with name '" + roleEntity.getRoleName() + "' already exists.");
+        if (!roleDB.getRoleName().equals(role.getRoleName())
+                && roleRepository.existsByRoleName(role.getRoleName())) {
+            throw new BusinessException("Role with name '" + role.getRoleName() + "' already exists.");
         }
 
         // Gán lại permission nếu có
-        if (roleEntity.getPermissionEntities() != null && !roleEntity.getPermissionEntities().isEmpty()) {
-            List<Long> permissionIds = roleEntity.getPermissionEntities().stream()
-                    .map(PermissionEntity::getId)
+        if (role.getPermissionEntities() != null && !role.getPermissionEntities().isEmpty()) {
+            List<Long> permissionIds = role.getPermissionEntities().stream()
+                    .map(Permission::getId)
                     .collect(Collectors.toList());
 
-            List<PermissionEntity> dbPermissions = permissionRepository.findByIdIn(permissionIds);
+            List<Permission> dbPermissions = permissionRepository.findByIdIn(permissionIds);
             roleDB.setPermissionEntities(dbPermissions);
         } else {
             roleDB.setPermissionEntities(new ArrayList<>());
         }
 
         // Cập nhật tên role
-        roleDB.setRoleName(roleEntity.getRoleName());
+        roleDB.setRoleName(role.getRoleName());
 
         return roleRepository.save(roleDB);
     }
@@ -90,7 +90,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public void deleteRole(Long id) {
-        RoleEntity role = roleRepository.findById(id)
+        Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new IdInvalidException("Role with id " + id + " does not exist"));
 
         try {
@@ -103,8 +103,8 @@ public class RoleServiceImpl implements RoleService {
 
 
     @Override
-    public ResultPaginationDTO getAllRoles(Specification<RoleEntity> spec, Pageable pageable) {
-        Page<RoleEntity> page = roleRepository.findAll(spec, pageable);
+    public ResultPaginationDTO getAllRoles(Specification<Role> spec, Pageable pageable) {
+        Page<Role> page = roleRepository.findAll(spec, pageable);
 
         Meta meta = new Meta();
         meta.setPage(page.getNumber() + 1);
@@ -119,14 +119,14 @@ public class RoleServiceImpl implements RoleService {
         return result;
     }
     @Override
-    public RoleEntity getById(Long Id) {
-        Optional<RoleEntity> roleEntity = this.roleRepository.findById(Id);
+    public Role getById(Long Id) {
+        Optional<Role> roleEntity = this.roleRepository.findById(Id);
         if (roleEntity.isPresent()) {
             return roleEntity.get();
         }
         return null;
     }
-    public Optional<RoleEntity> fetchRoleById(long id) {
+    public Optional<Role> fetchRoleById(long id) {
         return this.roleRepository.findById(id);
     }
 

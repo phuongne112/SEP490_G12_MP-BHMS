@@ -3,7 +3,7 @@ package com.mpbhms.backend.service.impl;
 import com.mpbhms.backend.dto.Meta;
 import com.mpbhms.backend.dto.NotificationDTO;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
-import com.mpbhms.backend.entity.NotificationEntity;
+import com.mpbhms.backend.entity.Notification;
 import com.mpbhms.backend.enums.NotificationStatus;
 import com.mpbhms.backend.repository.NotificationRepository;
 import com.mpbhms.backend.repository.UserRepository;
@@ -27,8 +27,8 @@ public class NotificationServiceImpl implements NotificationService {
 
 
     @Override
-    public NotificationEntity createAndSend(NotificationDTO request) {
-        NotificationEntity notification = new NotificationEntity();
+    public Notification createAndSend(NotificationDTO request) {
+        Notification notification = new Notification();
         notification.setTitle(request.getTitle());
         notification.setMessage(request.getMessage());
         notification.setType(request.getType());
@@ -36,7 +36,7 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setMetadata(request.getMetadata());
         notification.setStatus(NotificationStatus.SENT);
 
-        NotificationEntity saved = notificationRepository.save(notification);
+        Notification saved = notificationRepository.save(notification);
 
         // Gửi WebSocket: nếu có recipientId thì gửi riêng, ngược lại gửi broadcast
         if (request.getRecipientId() != null) {
@@ -56,7 +56,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public List<NotificationEntity> getUserNotifications(String email) {
+    public List<Notification> getUserNotifications(String email) {
         Long userId = userRepository.findByEmail(email).getId();
         return notificationRepository.findByRecipientIdOrderByCreatedDateDesc(userId);
     }
@@ -76,13 +76,13 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public List<NotificationEntity> getNotifications() {
+    public List<Notification> getNotifications() {
         return notificationRepository.findAll();
     }
 
     @Override
-    public ResultPaginationDTO getAllNotifications(Specification<NotificationEntity> spec, Pageable pageable) {
-        Page<NotificationEntity> page = notificationRepository.findAll(spec, pageable);
+    public ResultPaginationDTO getAllNotifications(Specification<Notification> spec, Pageable pageable) {
+        Page<Notification> page = notificationRepository.findAll(spec, pageable);
 
         Meta meta = new Meta();
         meta.setPage(page.getNumber() + 1);

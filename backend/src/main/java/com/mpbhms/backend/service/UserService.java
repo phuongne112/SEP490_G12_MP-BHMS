@@ -1,27 +1,27 @@
 package com.mpbhms.backend.service;
 
 import com.mpbhms.backend.dto.*;
-import com.mpbhms.backend.entity.UserEntity;
+import com.mpbhms.backend.entity.User;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
 public interface UserService {
 
-    UserEntity getUserWithEmail(String email);
-    CreateUserResponse convertToCreateUserDTO(UserEntity entity);
+    User getUserWithEmail(String email);
+    CreateUserResponse convertToCreateUserDTO(User entity);
     void updateUserToken(String token, String email);
-    UserEntity getUserByRefreshTokenAndEmail(String refreshToken, String email);
-    ResultPaginationDTO getAllUsers(Specification<UserEntity> spec, Pageable pageable);
-    UserEntity createUser(CreateUserRequest userDTO);
-    UserEntity signUp(CreateUserRequest userDTO);
+    User getUserByRefreshTokenAndEmail(String refreshToken, String email);
+    ResultPaginationDTO getAllUsers(Specification<User> spec, Pageable pageable);
+    User createUser(CreateUserRequest userDTO);
+    User signUp(CreateUserRequest userDTO);
     boolean isEmailExist(String email);
-    UserEntity handleFetchUserById(long id);
-    UserEntity handleUpdateUser(UpdateUserDTO dto);
-    UpdateUserDTO convertResUpdateUserDTO(UserEntity user);
+    User handleFetchUserById(long id);
+    User handleUpdateUser(UpdateUserDTO dto);
+    UpdateUserDTO convertResUpdateUserDTO(User user);
     String changePasswordUser(String username, String currentPassword, String newPassword);
     void sendResetPasswordToken(String email);
     void resetPassword(String token, String newPassword);
-    UserEntity handleGetUserByUsername(String username);
+    User handleGetUserByUsername(String username);
     void updateUserStatus(Long userId, boolean isActive);
     boolean isUsernameExist(String username);
     UserAccountDtoResponse getUserAccountById(Long id);

@@ -3,7 +3,7 @@ package com.mpbhms.backend;
 import com.mpbhms.backend.controller.RoleController;
 import com.mpbhms.backend.dto.Meta;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
-import com.mpbhms.backend.entity.RoleEntity;
+import com.mpbhms.backend.entity.Role;
 import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.service.RoleService;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,8 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -43,83 +41,83 @@ class RoleControllerTest {
     @Test
     void createRole_Success() {
         // Arrange
-        RoleEntity roleEntity = new RoleEntity();
-        roleEntity.setRoleName("TEST_ROLE");
-        roleEntity.setId(1L);
+        Role role = new Role();
+        role.setRoleName("TEST_ROLE");
+        role.setId(1L);
 
-        when(roleService.existByName(roleEntity.getRoleName())).thenReturn(false);
-        when(roleService.createRole(any(RoleEntity.class))).thenReturn(roleEntity);
+        when(roleService.existByName(role.getRoleName())).thenReturn(false);
+        when(roleService.createRole(any(Role.class))).thenReturn(role);
 
         // Act
-        ResponseEntity<RoleEntity> response = roleController.createRole(roleEntity);
+        ResponseEntity<Role> response = roleController.createRole(role);
 
         // Assert
         assertNotNull(response);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(roleEntity.getRoleName(), response.getBody().getRoleName());
-        assertEquals(roleEntity.getId(), response.getBody().getId());
+        assertEquals(role.getRoleName(), response.getBody().getRoleName());
+        assertEquals(role.getId(), response.getBody().getId());
 
         // Verify
-        verify(roleService).existByName(roleEntity.getRoleName());
-        verify(roleService).createRole(roleEntity);
+        verify(roleService).existByName(role.getRoleName());
+        verify(roleService).createRole(role);
     }
 
     @Test
     void createRole_NameExists() {
         // Arrange
-        RoleEntity roleEntity = new RoleEntity();
-        roleEntity.setRoleName("EXISTING_ROLE");
+        Role role = new Role();
+        role.setRoleName("EXISTING_ROLE");
 
-        when(roleService.existByName(roleEntity.getRoleName())).thenReturn(true);
+        when(roleService.existByName(role.getRoleName())).thenReturn(true);
 
         // Act & Assert
-        assertThrows(IdInvalidException.class, () -> roleController.createRole(roleEntity));
+        assertThrows(IdInvalidException.class, () -> roleController.createRole(role));
 
         // Verify
-        verify(roleService).existByName(roleEntity.getRoleName());
-        verify(roleService, never()).createRole(any(RoleEntity.class));
+        verify(roleService).existByName(role.getRoleName());
+        verify(roleService, never()).createRole(any(Role.class));
     }
 
     @Test
     void updateRole_Success() {
         // Arrange
-        RoleEntity roleEntity = new RoleEntity();
-        roleEntity.setId(1L);
-        roleEntity.setRoleName("UPDATED_ROLE");
+        Role role = new Role();
+        role.setId(1L);
+        role.setRoleName("UPDATED_ROLE");
 
-        when(roleService.getById(roleEntity.getId())).thenReturn(roleEntity);
-        when(roleService.updateRole(any(RoleEntity.class))).thenReturn(roleEntity);
+        when(roleService.getById(role.getId())).thenReturn(role);
+        when(roleService.updateRole(any(Role.class))).thenReturn(role);
 
         // Act
-        ResponseEntity<RoleEntity> response = roleController.updateRole(roleEntity);
+        ResponseEntity<Role> response = roleController.updateRole(role);
 
         // Assert
         assertNotNull(response);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(roleEntity.getRoleName(), response.getBody().getRoleName());
-        assertEquals(roleEntity.getId(), response.getBody().getId());
+        assertEquals(role.getRoleName(), response.getBody().getRoleName());
+        assertEquals(role.getId(), response.getBody().getId());
 
         // Verify
-        verify(roleService).getById(roleEntity.getId());
-        verify(roleService).updateRole(roleEntity);
+        verify(roleService).getById(role.getId());
+        verify(roleService).updateRole(role);
     }
 
     @Test
     void updateRole_NotFound() {
         // Arrange
-        RoleEntity roleEntity = new RoleEntity();
-        roleEntity.setId(999L);
+        Role role = new Role();
+        role.setId(999L);
 
-        when(roleService.getById(roleEntity.getId())).thenReturn(null);
+        when(roleService.getById(role.getId())).thenReturn(null);
 
         // Act & Assert
-        assertThrows(IdInvalidException.class, () -> roleController.updateRole(roleEntity));
+        assertThrows(IdInvalidException.class, () -> roleController.updateRole(role));
 
         // Verify
-        verify(roleService).getById(roleEntity.getId());
-        verify(roleService, never()).updateRole(any(RoleEntity.class));
+        verify(roleService).getById(role.getId());
+        verify(roleService, never()).updateRole(any(Role.class));
     }
 
     @Test
@@ -158,15 +156,15 @@ class RoleControllerTest {
     @Test
     void getAllRoles_Success() {
         // Arrange
-        RoleEntity role1 = new RoleEntity();
+        Role role1 = new Role();
         role1.setId(1L);
         role1.setRoleName("ROLE_1");
 
-        RoleEntity role2 = new RoleEntity();
+        Role role2 = new Role();
         role2.setId(2L);
         role2.setRoleName("ROLE_2");
 
-        List<RoleEntity> roles = Arrays.asList(role1, role2);
+        List<Role> roles = Arrays.asList(role1, role2);
         Pageable pageable = PageRequest.of(0, 10);
 
         Meta meta = new Meta();
@@ -188,7 +186,7 @@ class RoleControllerTest {
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(2, ((List<RoleEntity>) response.getBody().getResult()).size());
+        assertEquals(2, ((List<Role>) response.getBody().getResult()).size());
         assertEquals(2, response.getBody().getMeta().getTotal());
 
         // Verify
@@ -219,7 +217,7 @@ class RoleControllerTest {
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(((List<RoleEntity>) response.getBody().getResult()).isEmpty());
+        assertTrue(((List<Role>) response.getBody().getResult()).isEmpty());
         assertEquals(0, response.getBody().getMeta().getTotal());
 
         // Verify

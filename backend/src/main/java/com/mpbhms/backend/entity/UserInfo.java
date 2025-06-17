@@ -1,7 +1,7 @@
 package com.mpbhms.backend.entity;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.mpbhms.backend.enums.Gender;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -10,20 +10,19 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
-import java.util.Date;
 
 @Entity
 @Getter
 @Setter
 @Table(name = "UserInfo")
-public class UserInfoEntity {
+public class UserInfo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userInfoId;
 
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false)
-    private UserEntity user;
+    private User user;
 
     @NotBlank(message = "Full name must not be empty")
     @Size(min = 2, max = 100, message = "Full name must be between 2 and 100 characters")
@@ -53,7 +52,4 @@ public class UserInfoEntity {
     @Size(max = 500, message = "Permanent address must not exceed 500 characters")
     private String permanentAddress;
 
-    public enum Gender {
-        Male, Female, Other
-    }
 }

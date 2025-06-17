@@ -1,8 +1,7 @@
 package com.mpbhms.backend.controller;
 
 import com.mpbhms.backend.dto.*;
-import com.mpbhms.backend.entity.UserEntity;
-import com.mpbhms.backend.entity.UserInfoEntity;
+import com.mpbhms.backend.entity.User;
 import com.mpbhms.backend.exception.BusinessException;
 import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.service.UserService;
@@ -28,7 +27,7 @@ public class UserController {
     @GetMapping
     @ApiMessage("Get all users with filters and pagination")
     public ResponseEntity<ResultPaginationDTO> getAllUsers(
-            @Filter Specification<UserEntity> spec,
+            @Filter Specification<User> spec,
             Pageable pageable
     ) {
         ResultPaginationDTO result = userService.getAllUsers(spec, pageable);
@@ -38,7 +37,7 @@ public class UserController {
     @PostMapping
     @ApiMessage("Create a new user account")
     public ResponseEntity<CreateUserResponse> createNewUser(@Valid @RequestBody CreateUserRequest request) {
-        UserEntity savedUser = userService.createUser(request); // đã bao gồm logic kiểm tra
+        User savedUser = userService.createUser(request); // đã bao gồm logic kiểm tra
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.convertToCreateUserDTO(savedUser));
     }
 
@@ -46,7 +45,7 @@ public class UserController {
     @PutMapping
     @ApiMessage("Update an existing user account")
     public ResponseEntity<UpdateUserDTO> updateUser(@Valid @RequestBody UpdateUserDTO dto) {
-        UserEntity updatedUser = userService.handleUpdateUser(dto);
+        User updatedUser = userService.handleUpdateUser(dto);
         return ResponseEntity.ok(userService.convertResUpdateUserDTO(updatedUser));
     }
 
@@ -56,7 +55,7 @@ public class UserController {
     public ResponseEntity<Void> updateUserStatus(
             @PathVariable Long id,
             @Valid @RequestBody UpdateUserStatusRequest request) {
-        UserEntity existingUser = userService.handleFetchUserById(id);
+        User existingUser = userService.handleFetchUserById(id);
         if (existingUser == null) {
             throw new BusinessException("User with ID '" + id + "' not found");
         }
