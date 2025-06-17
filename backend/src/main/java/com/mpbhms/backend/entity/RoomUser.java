@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
@@ -26,7 +27,7 @@ public class RoomUser {
     @JoinColumn(name = "room_id")
     private Room room;
 
-    private LocalDateTime joinedAt;
+    private Instant joinedAt;
 
     private String addedBy; // ví dụ: quản lý nào thêm
 

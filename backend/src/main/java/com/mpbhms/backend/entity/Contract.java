@@ -7,17 +7,14 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "contracts")
 @Getter
 @Setter
-public class Contract {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Contract extends BaseEntity {
 
     // Quan hệ với Room
     @ManyToOne(fetch = FetchType.LAZY)
@@ -30,10 +27,10 @@ public class Contract {
     private RoomUser roomUser;
 
     @Column(name = "contract_start_date", nullable = false)
-    private LocalDateTime contractStartDate;
+    private Instant contractStartDate;
 
     @Column(name = "contract_end_date", nullable = false)
-    private LocalDateTime contractEndDate;
+    private Instant contractEndDate;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "contract_status", nullable = false)
@@ -46,22 +43,11 @@ public class Contract {
     @Column(name = "deposit_amount", precision = 15, scale = 2)
     private BigDecimal depositAmount;
 
-    @Column(name = "rent_amount", precision = 15, scale = 2)
-    private BigDecimal rentAmount;
+    @Column(name = "rent_amount")
+    private Double rentAmount;
 
     @Lob
     @Column(name = "contract_image")
     private String contractImage;
 
-    @Column(name = "created_by")
-    private String createdBy;
-
-    @Column(name = "created_date")
-    private LocalDateTime createdDate;
-
-    @Column(name = "updated_by")
-    private String updatedBy;
-
-    @Column(name = "updated_date")
-    private LocalDateTime updatedDate;
 }

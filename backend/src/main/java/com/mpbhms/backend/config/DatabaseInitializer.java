@@ -60,6 +60,8 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Update Permission", "/mpbhms/permissions", "PUT", "Permission"));
             permissions.add(new Permission("Delete Permission", "/mpbhms/permissions/{id}", "DELETE", "Permission"));
             permissions.add(new Permission("View Permissions", "/mpbhms/permissions", "GET", "Permission"));
+            //Room User
+            permissions.add(new Permission("Assign user to Room", "/mpbhms/room-users/add-many", "POST", "RoomUser"));
             permissions = permissionRepository.saveAll(permissions);
         }
 
@@ -91,7 +93,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             landlordRole.setRoleName("LANDLORD");
             List<Permission> landlordPermission = permissionRepository.findAll()
                     .stream()
-                    .filter(p -> List.of("Room").contains(p.getModule())) // hoặc theo API cụ thể
+                    .filter(p -> List.of("Room","RoomUser").contains(p.getModule())) // hoặc theo API cụ thể
                     .toList();
             landlordRole.setPermissionEntities(landlordPermission);
             roleRepository.save(landlordRole);
