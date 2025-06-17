@@ -17,10 +17,13 @@ export const login = async (email, password) => {
   return user;
 };
 
-export const logout = () => {
-  localStorage.removeItem("token");
-  window.location.href = "login";
+// authService.js
+export const logout = (dispatch) => {
+  localStorage.clear();
+  dispatch({ type: "account/logout" }); // hoặc gọi action logout() từ slice
+  window.location.href = "/login";
 };
+
 
 export const register = async (formData) => {
   const response = await axiosClient.post("/auth/signup", formData);

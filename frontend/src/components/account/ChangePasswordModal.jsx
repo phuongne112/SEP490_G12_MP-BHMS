@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Form, Input, Button, message } from "antd";
-import { changePassword } from "../../services/authService"; // bạn cần tạo API này
+import { useDispatch } from "react-redux";
+import { changePassword, logout } from "../../services/authService";
 
 export default function ChangePasswordModal({ open, onClose }) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     if (!open) form.resetFields();
@@ -13,15 +15,30 @@ export default function ChangePasswordModal({ open, onClose }) {
   const handleChangePassword = async (values) => {
     setLoading(true);
     try {
-      const res = await changePassword(values); // 👈 lưu lại response
+      const res = await changePassword(values);
 
-      // ✅ In ra đúng message từ backend
       message.success(
         res?.data?.data?.message || "Password updated successfully!"
       );
-      onClose();
+
+      // ✅ Gọi logout: xóa Redux + localStorage + điều hướng
+      logout(dispatch); // truyền dispatch nếu logout dùng Redux
     } catch (err) {
-      message.error(err.response?.data?.message || "Failed to change password");
+      const res = err?.response?.data;
+      if (res?.data && typeof res.data === "object") {
+        const fieldMap = {
+          currentPassword: "currentPassword",
+          newPassword: "newPassword",
+          confirmPassword: "confirmPassword",
+        };
+        const fieldErrors = Object.entries(res.data).map(([field, msg]) => ({
+          name: fieldMap[field] || field,
+          errors: [msg],
+        }));
+        form.setFields(fieldErrors);
+      } else {
+        message.error(res?.message || "Failed to change password");
+      }
     } finally {
       setLoading(false);
     }

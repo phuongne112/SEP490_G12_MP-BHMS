@@ -10,6 +10,7 @@ import com.mpbhms.backend.service.EmailService;
 import com.mpbhms.backend.service.RoleService;
 import com.mpbhms.backend.service.UserService;
 import com.mpbhms.backend.util.SecurityUtil;
+import com.mpbhms.backend.validation.PasswordValidator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -253,20 +254,37 @@ public class UserServiceImpl implements UserService {
                 userRepository.save(user);
             }
 
-            @Override
-            public String changePasswordUser (String email, String currentPassword, String newPassword){
-                User user = userRepository.findByEmail(email);
+    @Override
+    public void changePasswordUser(String email, String currentPassword, String newPassword) {
+        User user = userRepository.findByEmail(email);
 
-                if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-                    return "Mật khẩu hiện tại không đúng.";
-                }
+        Map<String, String> errors = new HashMap<>();
 
-                user.setPassword(passwordEncoder.encode(newPassword));
-                userRepository.save(user);
-                return "Cập nhật mật khẩu thành công.";
+        // Kiểm tra mật khẩu hiện tại
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            errors.put("currentPassword", "Current password is incorrect");
+        }
+
+        // Kiểm tra newPassword bằng regex
+        if (newPassword.length() >= 20) {
+            errors.put("newPassword", "Password must not exceed 20 characters.");
+        } else {
+            String pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=!]).{8,}$";
+            if (!newPassword.matches(pattern)) {
+                errors.put("newPassword", "Password must be at least 8 characters and include uppercase, lowercase, number and special character.");
             }
+        }
 
-        @Override
+        if (!errors.isEmpty()) {
+            throw new BusinessException("Change password failed", errors);
+        }
+
+        // Cập nhật mật khẩu mới
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    @Override
         @Transactional
         public void sendResetPasswordToken(String email) {
             User user = userRepository.findByEmail(email);
@@ -282,7 +300,7 @@ public class UserServiceImpl implements UserService {
             if (resetToken != null) {
                 if (today.equals(resetToken.getLastRequestDate())) {
                     if (resetToken.getRequestCount() >= 3) {
-                        throw new RuntimeException("Bạn đã yêu cầu quá 3 lần trong ngày. Vui lòng thử lại vào ngày mai.");
+                        throw new RuntimeException("You have requested more than 3 times in a day. Please try again tomorrow.");
                     }
                     resetToken.setRequestCount(resetToken.getRequestCount() + 1);
                 } else {
@@ -405,16 +423,26 @@ public class UserServiceImpl implements UserService {
 
         Map<String, String> errors = new HashMap<>();
 
-        // Kiểm tra email trùng (nếu có thay đổi)
         if (!user.getEmail().equals(request.getEmail())
                 && userRepository.existsByEmail(request.getEmail())) {
             errors.put("email", "Email already exists");
         }
 
-        // Kiểm tra username trùng (nếu có thay đổi)
         if (!user.getUsername().equals(request.getUsername())
                 && userRepository.existsByUsername(request.getUsername())) {
             errors.put("username", "Username already exists");
+        }
+
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            PasswordValidator validator = new PasswordValidator();
+            if (!validator.isValid(request.getPassword(), null)) {
+                // Gọi riêng validator để lấy đúng message
+                if (request.getPassword().length() >= 20) {
+                    errors.put("password", "Password must not exceed 20 characters.");
+                } else {
+                    errors.put("password", "Password must be at least 8 characters and include uppercase, lowercase, number and special character.");
+                }
+            }
         }
 
         if (!errors.isEmpty()) {
@@ -430,7 +458,6 @@ public class UserServiceImpl implements UserService {
 
         userRepository.save(user);
     }
-
 
 }
 

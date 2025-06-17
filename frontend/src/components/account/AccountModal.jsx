@@ -8,10 +8,10 @@ import {
   Form,
   Input,
   Space,
+  message,
 } from "antd";
 import { getCurrentUser, updateUserAccount } from "../../services/authService";
 import ChangePasswordModal from "./ChangePasswordModal";
-import { message } from "antd";
 
 export default function AccountModal({ open, onClose }) {
   const [loading, setLoading] = useState(true);
@@ -40,20 +40,31 @@ export default function AccountModal({ open, onClose }) {
 
   const handleUpdate = async (values) => {
     try {
-      const res = await updateUserAccount({
+      await updateUserAccount({
         username: values.username,
         email: values.email,
       });
       message.success("Account updated successfully!");
       setEditing(false);
 
-      // Load lại thông tin mới
       const updatedUser = await getCurrentUser();
       setUser(updatedUser);
     } catch (err) {
-      message.error(
-        err?.response?.data?.message || "Failed to update account."
-      );
+      const res = err?.response?.data;
+      if (res?.data && typeof res.data === "object") {
+        // Map lỗi từ backend về đúng field form
+        const fieldMap = {
+          userName: "username",
+          emailAddress: "email",
+        };
+        const fieldErrors = Object.entries(res.data).map(([field, msg]) => ({
+          name: fieldMap[field] || field,
+          errors: [msg],
+        }));
+        form.setFields(fieldErrors);
+      } else {
+        message.error(res?.message || "Failed to update account.");
+      }
     }
   };
 
@@ -71,21 +82,30 @@ export default function AccountModal({ open, onClose }) {
         ) : error ? (
           <Alert type="error" message={error} />
         ) : editing ? (
-          <Form layout="vertical" form={form} onFinish={handleUpdate}>
+          <Form layout="vertical" form={form} onFinish={handleUpdate} autoComplete="off">
             <Form.Item
               label="Username"
               name="username"
-              rules={[{ required: true, message: "Username is required" }]}
+              rules={[
+                { required: true, message: "Username is required" },
+                { max: 20, message: "Username must be at most 20 characters" },
+              ]}
             >
-              <Input />
+              <Input maxLength={20} />
             </Form.Item>
+
             <Form.Item
               label="Email"
               name="email"
-              rules={[{ type: "email", message: "Invalid email format" }]}
+              rules={[
+                { required: true, message: "Email is required" },
+                { type: "email", message: "Invalid email format" },
+                { max: 50, message: "Email must be at most 50 characters" },
+              ]}
             >
-              <Input />
+              <Input maxLength={50} />
             </Form.Item>
+
             <Space style={{ display: "flex", justifyContent: "end" }}>
               <Button onClick={() => setEditing(false)}>Cancel</Button>
               <Button type="primary" htmlType="submit">

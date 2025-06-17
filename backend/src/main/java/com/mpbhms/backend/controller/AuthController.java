@@ -206,14 +206,14 @@ public class AuthController {
 
         @PutMapping("/change-password")
         @ApiMessage("Change user password")
-        public ResponseEntity<ChangePasswordDTOResponse> changePassword(@Valid @RequestBody ChangePasswordDTO
-                                                                                request,
-                                                                        Principal principal) {
-            String response = userService.changePasswordUser(principal.getName(), request.getCurrentPassword(), request.getNewPassword());
-            return ResponseEntity.ok(new ChangePasswordDTOResponse(response));
+        public ResponseEntity<ChangePasswordDTOResponse> changePassword(
+                @Valid @RequestBody ChangePasswordDTO request,
+                Principal principal) {
+            userService.changePasswordUser(principal.getName(), request.getCurrentPassword(), request.getNewPassword());
+            return ResponseEntity.ok(new ChangePasswordDTOResponse("Password updated successfully!"));
         }
 
-        @PostMapping("/request-reset")
+    @PostMapping("/request-reset")
         @ApiMessage("Request password reset link via email")
         public ResponseEntity<?> requestReset(@RequestBody ResetRequestDTO request) {
             if (!userService.isEmailExist(request.getEmail())) {

@@ -18,7 +18,7 @@ public interface UserService {
     User handleFetchUserById(long id);
     User handleUpdateUser(UpdateUserDTO dto);
     UpdateUserDTO convertResUpdateUserDTO(User user);
-    String changePasswordUser(String username, String currentPassword, String newPassword);
+    void changePasswordUser(String email, String currentPassword, String newPassword);
     void sendResetPasswordToken(String email);
     void resetPassword(String token, String newPassword);
     User handleGetUserByUsername(String username);
