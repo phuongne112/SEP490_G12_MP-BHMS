@@ -1,11 +1,10 @@
 package com.mpbhms.backend.config;
 
-import com.mpbhms.backend.entity.UserEntity;
+import com.mpbhms.backend.entity.User;
 import com.mpbhms.backend.service.UserService;
 import lombok.AllArgsConstructor;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -21,7 +20,7 @@ public class UserDetailCustom implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        UserEntity user = this.userService.getUserWithEmail(username);
+        User user = this.userService.getUserWithEmail(username);
         if (user == null) {
             throw new UsernameNotFoundException("User not found with email: " + username);
         }
@@ -34,7 +33,7 @@ public class UserDetailCustom implements UserDetailsService {
 
         String role = user.getRole() != null ? user.getRole().getRoleName() : "ROLE_GUEST";
 
-        return new User(
+        return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
                 user.getPassword(),
                 Collections.singletonList(new SimpleGrantedAuthority(role))

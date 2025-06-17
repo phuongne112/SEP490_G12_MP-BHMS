@@ -1,8 +1,7 @@
 package com.mpbhms.backend.controller;
 
 import com.mpbhms.backend.dto.ResultPaginationDTO;
-import com.mpbhms.backend.entity.RoleEntity;
-import com.mpbhms.backend.exception.IdInvalidException;
+import com.mpbhms.backend.entity.Role;
 import com.mpbhms.backend.service.RoleService;
 import com.mpbhms.backend.util.ApiMessage;
 import com.turkraft.springfilter.boot.Filter;
@@ -14,8 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/mpbhms/roles")
 @RequiredArgsConstructor
@@ -23,14 +20,14 @@ public class RoleController {
     private final RoleService roleService;
     @PostMapping
     @ApiMessage("Create a new role")
-    public ResponseEntity<RoleEntity> createRole(@Valid @RequestBody RoleEntity roleEntity) {
-        RoleEntity savedRole = roleService.createRole(roleEntity);
+    public ResponseEntity<Role> createRole(@Valid @RequestBody Role role) {
+        Role savedRole = roleService.createRole(role);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedRole);
     }
     @PutMapping
     @ApiMessage("Update an existing role")
-    public ResponseEntity<RoleEntity> updateRole(@Valid @RequestBody RoleEntity roleEntity) {
-        RoleEntity updatedRole = roleService.updateRole(roleEntity);
+    public ResponseEntity<Role> updateRole(@Valid @RequestBody Role role) {
+        Role updatedRole = roleService.updateRole(role);
         return ResponseEntity.ok(updatedRole);
     }
 
@@ -43,7 +40,7 @@ public class RoleController {
     @GetMapping
     @ApiMessage("Get all roles with filters and pagination")
     public ResponseEntity<ResultPaginationDTO> getAllRoles(
-            @Filter Specification<RoleEntity> spec,
+            @Filter Specification<Role> spec,
             Pageable pageable
     ) {
         return ResponseEntity.ok(roleService.getAllRoles(spec, pageable));

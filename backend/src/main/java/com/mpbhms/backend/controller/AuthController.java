@@ -3,11 +3,9 @@ package com.mpbhms.backend.controller;
 import com.mpbhms.backend.dto.*;
 import com.mpbhms.backend.entity.ApiResponse;
 import com.mpbhms.backend.exception.BusinessException;
-import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.response.ChangePasswordDTOResponse;
 import com.mpbhms.backend.response.LoginDTOResponse;
-import com.mpbhms.backend.entity.UserEntity;
-import com.mpbhms.backend.response.SignUpDTOResponse;
+import com.mpbhms.backend.entity.User;
 import com.mpbhms.backend.service.UserService;
 import com.mpbhms.backend.util.ApiMessage;
 import com.mpbhms.backend.util.SecurityUtil;
@@ -18,7 +16,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
@@ -56,7 +53,7 @@ public class AuthController {
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             // Lấy thông tin người dùng
-            UserEntity currentUserDB = this.userService.getUserWithEmail(login.getUsername());
+            User currentUserDB = this.userService.getUserWithEmail(login.getUsername());
             if (currentUserDB == null) {
                 throw new BusinessException("User Not Found");
             }
@@ -108,7 +105,7 @@ public class AuthController {
             String email = SecurityUtil.getCurrentUserLogin().isPresent() ?
                     SecurityUtil.getCurrentUserLogin().get() : "";
 
-            UserEntity currentUserDB = this.userService.getUserWithEmail(email);
+            User currentUserDB = this.userService.getUserWithEmail(email);
             LoginDTOResponse.UserLogin userLogin = new LoginDTOResponse.UserLogin();
             LoginDTOResponse.UserGetAccount userGetAccount = new LoginDTOResponse.UserGetAccount();
             if(currentUserDB != null){
@@ -135,7 +132,7 @@ public class AuthController {
             String email = decodedToken.getSubject();
 
             // Tìm user trong DB
-            UserEntity currentUser = this.userService.getUserByRefreshTokenAndEmail(refreshToken, email);
+            User currentUser = this.userService.getUserByRefreshTokenAndEmail(refreshToken, email);
             if (currentUser == null) {
                 throw new JwtException("Invalid refresh token");
             }
@@ -202,7 +199,7 @@ public class AuthController {
         @ApiMessage("Register a new user account")
         public ResponseEntity<CreateUserResponse> signUp(@Valid @RequestBody CreateUserRequest request) {
             // Gọi service để tạo
-            UserEntity saved = userService.signUp(request);
+            User saved = userService.signUp(request);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(userService.convertToCreateUserDTO(saved));
         }

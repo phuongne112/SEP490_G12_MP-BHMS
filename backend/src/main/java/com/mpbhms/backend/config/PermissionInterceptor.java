@@ -1,8 +1,8 @@
 package com.mpbhms.backend.config;
 
-import com.mpbhms.backend.entity.PermissionEntity;
-import com.mpbhms.backend.entity.RoleEntity;
-import com.mpbhms.backend.entity.UserEntity;
+import com.mpbhms.backend.entity.Permission;
+import com.mpbhms.backend.entity.Role;
+import com.mpbhms.backend.entity.User;
 import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.service.UserService;
 import com.mpbhms.backend.util.SecurityUtil;
@@ -32,11 +32,11 @@ public class PermissionInterceptor implements HandlerInterceptor {
                 ? SecurityUtil.getCurrentUserLogin().get()
                 : "";
         if(!email.isEmpty()){
-            UserEntity user = this.userService.handleGetUserByUsername(email);
+            User user = this.userService.handleGetUserByUsername(email);
             if(user != null){
-                RoleEntity role = user.getRole();
+                Role role = user.getRole();
                 if(role != null){
-                    List<PermissionEntity> permissions = role.getPermissionEntities();
+                    List<Permission> permissions = role.getPermissionEntities();
                     boolean isAllow = permissions.stream().anyMatch(
                             permission -> permission.getApiPath().equals(path)
                                     &&

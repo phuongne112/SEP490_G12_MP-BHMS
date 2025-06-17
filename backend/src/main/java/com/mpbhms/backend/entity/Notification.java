@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Setter
 @Getter
 @Table(name = "Notifications")
-public class NotificationEntity extends BaseEntity {
+public class Notification extends BaseEntity {
     private String title;
 
     @Column(columnDefinition = "TEXT")

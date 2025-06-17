@@ -2,7 +2,7 @@ package com.mpbhms.backend.controller;
 
 import com.mpbhms.backend.dto.NotificationDTO;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
-import com.mpbhms.backend.entity.NotificationEntity;
+import com.mpbhms.backend.entity.Notification;
 import com.mpbhms.backend.service.NotificationService;
 import com.mpbhms.backend.util.ApiMessage;
 import com.turkraft.springfilter.boot.Filter;
@@ -24,20 +24,20 @@ public class NotificationController {
 
     @PostMapping("/send")
     @ApiMessage("Create and send a new notification")
-    public ResponseEntity<NotificationEntity> createAndSend(@RequestBody NotificationDTO request) {
+    public ResponseEntity<Notification> createAndSend(@RequestBody NotificationDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(notificationService.createAndSend(request));
     }
 
     @GetMapping()
     @ApiMessage("Get all notifications for the current user")
-    public ResponseEntity<List<NotificationEntity>> getUserNotifications(Principal principal) {
+    public ResponseEntity<List<Notification>> getUserNotifications(Principal principal) {
         return ResponseEntity.ok(notificationService.getUserNotifications(principal.getName()));
     }
 
     @GetMapping("/all")
     @ApiMessage("Get all notifications with filters and pagination (admin only)")
     public ResponseEntity<ResultPaginationDTO> getAllNotifications(
-            @Filter Specification<NotificationEntity> spec,
+            @Filter Specification<Notification> spec,
             Pageable pageable
     ) {
         return ResponseEntity.ok(notificationService.getAllNotifications(spec, pageable));

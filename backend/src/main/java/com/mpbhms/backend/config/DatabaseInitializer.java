@@ -1,8 +1,8 @@
 package com.mpbhms.backend.config;
 
-import com.mpbhms.backend.entity.PermissionEntity;
-import com.mpbhms.backend.entity.RoleEntity;
-import com.mpbhms.backend.entity.UserEntity;
+import com.mpbhms.backend.entity.Permission;
+import com.mpbhms.backend.entity.Role;
+import com.mpbhms.backend.entity.User;
 import com.mpbhms.backend.repository.PermissionRepository;
 import com.mpbhms.backend.repository.RoleRepository;
 import com.mpbhms.backend.repository.UserRepository;
@@ -33,41 +33,41 @@ public class DatabaseInitializer implements CommandLineRunner {
 
         // --- Init Permissions ---
         if (countPermissions == 0) {
-            List<PermissionEntity> permissions = new ArrayList<>();
+            List<Permission> permissions = new ArrayList<>();
             //Rooms
-            permissions.add(new PermissionEntity("Update Room", "/mpbhms/rooms/{id}", "PUT", "Room"));
-            permissions.add(new PermissionEntity("Delete Room", "/mpbhms/rooms/{id}", "DELETE", "Room"));
-            permissions.add(new PermissionEntity("Create Room", "/mpbhms/rooms", "POST", "Room"));
-            permissions.add(new PermissionEntity("View Room", "/mpbhms/rooms", "GET", "Room"));
+            permissions.add(new Permission("Update Room", "/mpbhms/rooms/{id}", "PUT", "Room"));
+            permissions.add(new Permission("Delete Room", "/mpbhms/rooms/{id}", "DELETE", "Room"));
+            permissions.add(new Permission("Create Room", "/mpbhms/rooms", "POST", "Room"));
+            permissions.add(new Permission("View Room", "/mpbhms/rooms", "GET", "Room"));
             //User
-            permissions.add(new PermissionEntity("Create User", "/mpbhms/users", "POST", "User"));
-            permissions.add(new PermissionEntity("Update User", "/mpbhms/users", "PUT", "User"));
-            permissions.add(new PermissionEntity("Get User", "/mpbhms/users", "GET", "User"));
-            permissions.add(new PermissionEntity("Active/ De-Active User", "/mpbhms/users/{id}/status", "PUT", "User"));
+            permissions.add(new Permission("Create User", "/mpbhms/users", "POST", "User"));
+            permissions.add(new Permission("Update User", "/mpbhms/users", "PUT", "User"));
+            permissions.add(new Permission("Get User", "/mpbhms/users", "GET", "User"));
+            permissions.add(new Permission("Active/ De-Active User", "/mpbhms/users/{id}/status", "PUT", "User"));
             //Roles
-            permissions.add(new PermissionEntity("Create Role", "/mpbhms/roles", "POST", "Role"));
-            permissions.add(new PermissionEntity("Update Role", "/mpbhms/roles", "PUT", "Role"));
-            permissions.add(new PermissionEntity("Delete Role", "/mpbhms/roles/{id}", "DELETE", "Role"));
-            permissions.add(new PermissionEntity("View Roles", "/mpbhms/roles", "GET", "Role"));
+            permissions.add(new Permission("Create Role", "/mpbhms/roles", "POST", "Role"));
+            permissions.add(new Permission("Update Role", "/mpbhms/roles", "PUT", "Role"));
+            permissions.add(new Permission("Delete Role", "/mpbhms/roles/{id}", "DELETE", "Role"));
+            permissions.add(new Permission("View Roles", "/mpbhms/roles", "GET", "Role"));
             //Notification
-            permissions.add(new PermissionEntity("Create Notification", "/mpbhms/notifications", "POST", "Notification"));
-            permissions.add(new PermissionEntity("Update Notification", "/mpbhms/notifications", "PUT", "Notification"));
-            permissions.add(new PermissionEntity("Delete Notification", "/mpbhms/notifications/{id}", "DELETE", "Notification"));
-            permissions.add(new PermissionEntity("View Notification", "/mpbhms/notifications/all", "GET", "Notification"));
-            permissions.add(new PermissionEntity("Create Notification Send", "/mpbhms/notifications/send", "POST", "Notification"));
+            permissions.add(new Permission("Create Notification", "/mpbhms/notifications", "POST", "Notification"));
+            permissions.add(new Permission("Update Notification", "/mpbhms/notifications", "PUT", "Notification"));
+            permissions.add(new Permission("Delete Notification", "/mpbhms/notifications/{id}", "DELETE", "Notification"));
+            permissions.add(new Permission("View Notification", "/mpbhms/notifications/all", "GET", "Notification"));
+            permissions.add(new Permission("Create Notification Send", "/mpbhms/notifications/send", "POST", "Notification"));
             //Permissions
-            permissions.add(new PermissionEntity("Create Permission", "/mpbhms/permissions", "POST", "Permission"));
-            permissions.add(new PermissionEntity("Update Permission", "/mpbhms/permissions", "PUT", "Permission"));
-            permissions.add(new PermissionEntity("Delete Permission", "/mpbhms/permissions/{id}", "DELETE", "Permission"));
-            permissions.add(new PermissionEntity("View Permissions", "/mpbhms/permissions", "GET", "Permission"));
+            permissions.add(new Permission("Create Permission", "/mpbhms/permissions", "POST", "Permission"));
+            permissions.add(new Permission("Update Permission", "/mpbhms/permissions", "PUT", "Permission"));
+            permissions.add(new Permission("Delete Permission", "/mpbhms/permissions/{id}", "DELETE", "Permission"));
+            permissions.add(new Permission("View Permissions", "/mpbhms/permissions", "GET", "Permission"));
             permissions = permissionRepository.saveAll(permissions);
         }
 
         // --- Init Roles ---
         if (countRoles == 0) {
-            RoleEntity adminRole = new RoleEntity();
+            Role adminRole = new Role();
             adminRole.setRoleName("ADMIN");
-            List<PermissionEntity> adminPermissions = permissionRepository.findAll()
+            List<Permission> adminPermissions = permissionRepository.findAll()
                     .stream()
                     .filter(p ->
                             List.of("User", "Role", "Permission", "Notification").contains(p.getModule()) ||
@@ -78,18 +78,18 @@ public class DatabaseInitializer implements CommandLineRunner {
             adminRole.setPermissionEntities(adminPermissions);
             roleRepository.save(adminRole);
 
-            RoleEntity renterRole = new RoleEntity();
+            Role renterRole = new Role();
             renterRole.setRoleName("RENTER");
-            List<PermissionEntity> renterPermission = permissionRepository.findAll()
+            List<Permission> renterPermission = permissionRepository.findAll()
                     .stream()
                     .filter(p -> List.of().contains(p.getModule())) // hoặc theo API cụ thể
                     .toList();
             renterRole.setPermissionEntities(renterPermission);
             roleRepository.save(renterRole);
 
-            RoleEntity landlordRole = new RoleEntity();
+            Role landlordRole = new Role();
             landlordRole.setRoleName("LANDLORD");
-            List<PermissionEntity> landlordPermission = permissionRepository.findAll()
+            List<Permission> landlordPermission = permissionRepository.findAll()
                     .stream()
                     .filter(p -> List.of("Room").contains(p.getModule())) // hoặc theo API cụ thể
                     .toList();
@@ -99,24 +99,24 @@ public class DatabaseInitializer implements CommandLineRunner {
 
         // --- Init Users ---
         if (countUsers == 0) {
-            UserEntity admin = new UserEntity();
+            User admin = new User();
             admin.setEmail("admin@gmail.com");
             admin.setUsername("Administrator");
             admin.setPassword(passwordEncoder.encode("123123123aA@"));
 
-            RoleEntity adminRole = roleRepository.findByRoleName("ADMIN");
+            Role adminRole = roleRepository.findByRoleName("ADMIN");
             if (adminRole != null) {
                 admin.setRole(adminRole);
             }
             userRepository.save(admin);
 
 
-            UserEntity landlord  = new UserEntity();
+            User landlord  = new User();
             landlord.setEmail("landlord@gmail.com");
             landlord.setUsername("Landlord");
             landlord.setPassword(passwordEncoder.encode("123123123aA@"));
 
-            RoleEntity landlordRole = roleRepository.findByRoleName("LANDLORD");
+            Role landlordRole = roleRepository.findByRoleName("LANDLORD");
             if (landlordRole != null) {
                 landlord.setRole(landlordRole);
             }

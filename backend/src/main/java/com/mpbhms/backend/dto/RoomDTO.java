@@ -1,6 +1,5 @@
 package com.mpbhms.backend.dto;
 
-import com.mpbhms.backend.entity.RoomEntity;
 import lombok.Data;
 
 import java.math.BigDecimal;

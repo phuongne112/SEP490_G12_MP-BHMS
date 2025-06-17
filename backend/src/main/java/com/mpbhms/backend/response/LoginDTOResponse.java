@@ -1,7 +1,7 @@
 package com.mpbhms.backend.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.mpbhms.backend.entity.RoleEntity;
+import com.mpbhms.backend.entity.Role;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,7 +22,7 @@ public class LoginDTOResponse {
         private long id;
         private String email;
         private String name;
-        private RoleEntity role;
+        private Role role;
     }
 
     @Getter

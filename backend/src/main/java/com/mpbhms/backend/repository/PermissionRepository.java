@@ -1,6 +1,6 @@
 package com.mpbhms.backend.repository;
 
-import com.mpbhms.backend.entity.PermissionEntity;
+import com.mpbhms.backend.entity.Permission;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
@@ -8,10 +8,10 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface PermissionRepository extends JpaRepository<PermissionEntity, Long>, JpaSpecificationExecutor<PermissionEntity> {
+public interface PermissionRepository extends JpaRepository<Permission, Long>, JpaSpecificationExecutor<Permission> {
     boolean existsByModuleAndApiPathAndMethod(String module, String apiPath, String method);
-    List<PermissionEntity> findByIdIn(List<Long> ids);
+    List<Permission> findByIdIn(List<Long> ids);
     boolean existsByName(String name);
-    PermissionEntity findByModuleAndApiPathAndMethod(String module, String apiPath, String method);
+    Permission findByModuleAndApiPathAndMethod(String module, String apiPath, String method);
 
 }

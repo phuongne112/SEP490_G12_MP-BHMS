@@ -1,16 +1,16 @@
 package com.mpbhms.backend.entity;
 
+import com.mpbhms.backend.enums.ServiceType;
 import jakarta.persistence.*;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
 @Table(name = "services")
 @Data
-public class ServiceEntity extends BaseEntity {
+public class Service extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ServiceType serviceType;
@@ -24,13 +24,6 @@ public class ServiceEntity extends BaseEntity {
     private BigDecimal unitPrice;
 
     @ManyToMany(mappedBy = "services")
-    private List<RoomEntity> rooms;
+    private List<Room> rooms;
 
-
-    // Enum nội bộ
-    public enum ServiceType {
-        ELECTRICITY,
-        WATER,
-        OTHER
-    }
 }

@@ -2,8 +2,8 @@ package com.mpbhms.backend.service.impl;
 
 import com.mpbhms.backend.dto.*;
 import com.mpbhms.backend.entity.*;
+import com.mpbhms.backend.enums.Gender;
 import com.mpbhms.backend.exception.BusinessException;
-import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.repository.PasswordResetTokenRepository;
 import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.service.EmailService;
@@ -26,7 +26,6 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -38,15 +37,15 @@ public class UserServiceImpl implements UserService {
     private final EmailService emailService;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     @Override
-    public UserEntity getUserWithEmail(String email) {
+    public User getUserWithEmail(String email) {
     return this.userRepository.findByEmail(email);
     }
 
-    public UserEntity handleGetUserByUsername(String username) {
+    public User handleGetUserByUsername(String username) {
         return this.userRepository.findByEmail(username);
     }
     @Override
-    public CreateUserResponse convertToCreateUserDTO(UserEntity entity) {
+    public CreateUserResponse convertToCreateUserDTO(User entity) {
         CreateUserResponse dto = new CreateUserResponse();
         dto.setUsername(entity.getUsername());
         dto.setEmail(entity.getEmail());
@@ -57,7 +56,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void updateUserToken(String token, String email) {
-        UserEntity currentUser = this.getUserWithEmail(email);
+        User currentUser = this.getUserWithEmail(email);
         if (currentUser != null) {
             currentUser.setRefreshToken(token);
             userRepository.save(currentUser); // lưu lại thay đổi
@@ -65,12 +64,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserEntity getUserByRefreshTokenAndEmail(String refreshToken, String email) {
+    public User getUserByRefreshTokenAndEmail(String refreshToken, String email) {
         return this.userRepository.findByRefreshTokenAndEmail(refreshToken, email);
     }
     @Override
-    public ResultPaginationDTO getAllUsers(Specification<UserEntity> spec, Pageable pageable) {
-        Page<UserEntity> userPage = userRepository.findAll(spec, pageable);
+    public ResultPaginationDTO getAllUsers(Specification<User> spec, Pageable pageable) {
+        Page<User> userPage = userRepository.findAll(spec, pageable);
         List<UserDTO> userDTOs = userPage.getContent().stream()
                 .map(this::convertToUserDTO)
                 .toList();
@@ -87,7 +86,7 @@ public class UserServiceImpl implements UserService {
         return result;
     }
 
-    private UserDTO convertToUserDTO(UserEntity user) {
+    private UserDTO convertToUserDTO(User user) {
         UserDTO dto = new UserDTO();
         UserDTO.RoleUser role = new UserDTO.RoleUser();
         if (user.getRole() != null) {
@@ -107,7 +106,7 @@ public class UserServiceImpl implements UserService {
         return dto;
     }
     @Override
-    public UserEntity createUser(CreateUserRequest dto) {
+    public User createUser(CreateUserRequest dto) {
         Map<String, String> errors = new HashMap<>();
 
         // 1. Kiểm tra email đã tồn tại
@@ -125,14 +124,14 @@ public class UserServiceImpl implements UserService {
         }
 
         // 3. Tạo UserEntity
-        UserEntity user = new UserEntity();
+        User user = new User();
         user.setEmail(dto.getEmail());
         user.setUsername(dto.getUsername());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setIsActive(true);
 
         // 4. Tạo UserInfoEntity
-        UserInfoEntity info = new UserInfoEntity();
+        UserInfo info = new UserInfo();
         info.setFullName(dto.getFullName());
         info.setPhoneNumber(dto.getPhone());
         info.setUser(user);         // liên kết ngược
@@ -142,7 +141,7 @@ public class UserServiceImpl implements UserService {
         return userRepository.save(user);
     }
 
-    public UserEntity signUp(CreateUserRequest dto) {
+    public User signUp(CreateUserRequest dto) {
         Map<String, String> errors = new HashMap<>();
         // 1. Kiểm tra email đã tồn tại
         if (isEmailExist(dto.getEmail())) {
@@ -155,14 +154,14 @@ public class UserServiceImpl implements UserService {
         }
 
         // 3. Tạo UserEntity
-        UserEntity user = new UserEntity();
+        User user = new User();
         user.setEmail(dto.getEmail());
         user.setUsername(dto.getUsername());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setIsActive(true);
 
         // 4. Tạo UserInfoEntity
-        UserInfoEntity info = new UserInfoEntity();
+        UserInfo info = new UserInfo();
         info.setFullName(dto.getFullName());
         info.setPhoneNumber(dto.getPhone());
         info.setUser(user);         // liên kết ngược
@@ -179,14 +178,14 @@ public class UserServiceImpl implements UserService {
         return userRepository.existsByEmail(email);
     }
     @Override
-    public UserEntity handleFetchUserById(long id) {
+    public User handleFetchUserById(long id) {
         if (!this.userRepository.findById(id).isEmpty())
             return this.userRepository.findById(id).get();
         return null;
     }
     @Override
-    public UserEntity handleUpdateUser(UpdateUserDTO dto) {
-        UserEntity existingUser = this.userRepository.findById(dto.getId())
+    public User handleUpdateUser(UpdateUserDTO dto) {
+        User existingUser = this.userRepository.findById(dto.getId())
                 .orElseThrow(() -> new BusinessException("User with ID '" + dto.getId() + "' not found"));
 
         Map<String, String> errors = new HashMap<>();
@@ -222,7 +221,7 @@ public class UserServiceImpl implements UserService {
         existingUser.setEmail(dto.getEmail());
 
         if (dto.getRole() != null && dto.getRole().getRoleId() != null) {
-            RoleEntity role = roleService.fetchRoleById(dto.getRole().getRoleId())
+            Role role = roleService.fetchRoleById(dto.getRole().getRoleId())
                     .orElseThrow(() -> new BusinessException("Role not found"));
             existingUser.setRole(role);
         }
@@ -231,7 +230,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UpdateUserDTO convertResUpdateUserDTO(UserEntity user) {
+    public UpdateUserDTO convertResUpdateUserDTO(User user) {
         UpdateUserDTO dto = new UpdateUserDTO();
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
@@ -247,7 +246,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
             public void updateUserStatus (Long userId,boolean isActive){
-                UserEntity user = userRepository.findById(userId)
+                User user = userRepository.findById(userId)
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
                 user.setIsActive(isActive);
@@ -256,7 +255,7 @@ public class UserServiceImpl implements UserService {
 
             @Override
             public String changePasswordUser (String email, String currentPassword, String newPassword){
-                UserEntity user = userRepository.findByEmail(email);
+                User user = userRepository.findByEmail(email);
 
                 if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
                     return "Mật khẩu hiện tại không đúng.";
@@ -270,7 +269,7 @@ public class UserServiceImpl implements UserService {
         @Override
         @Transactional
         public void sendResetPasswordToken(String email) {
-            UserEntity user = userRepository.findByEmail(email);
+            User user = userRepository.findByEmail(email);
             if (user == null) {
                 throw new RuntimeException("User not found");
             }
@@ -320,7 +319,7 @@ public class UserServiceImpl implements UserService {
                 throw new RuntimeException("Token has expired");
             }
 
-            UserEntity user = resetToken.getUser();
+            User user = resetToken.getUser();
             user.setPassword(passwordEncoder.encode(newPassword));
             userRepository.save(user);
 
@@ -337,7 +336,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserAccountDtoResponse getUserAccountById(Long id) {
-        UserEntity user = userRepository.findById(id)
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         UserAccountDtoResponse dto = new UserAccountDtoResponse();
@@ -355,10 +354,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserInfoDtoResponse getUserInfoById(Long userId) {
-        UserEntity user = userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        UserInfoEntity info = user.getUserInfo();
+        UserInfo info = user.getUserInfo();
         if (info == null) {
             throw new RuntimeException("User info not found");
         }
@@ -377,19 +376,19 @@ public class UserServiceImpl implements UserService {
         return dto;
     }
     public void updateUserInfo(Long userId, UserInfoDtoRequest request) {
-        UserEntity user = userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        UserInfoEntity info = user.getUserInfo();
+        UserInfo info = user.getUserInfo();
         if (info == null) {
-            info = new UserInfoEntity();
+            info = new UserInfo();
             info.setUser(user);
         }
 
         info.setFullName(request.getFullName());
         info.setPhoneNumber(request.getPhoneNumber());
         info.setPhoneNumber2(request.getPhoneNumber2());
-        info.setGender(request.getGender() != null ? UserInfoEntity.Gender.valueOf(request.getGender()) : null);
+        info.setGender(request.getGender() != null ? Gender.valueOf(request.getGender()) : null);
         info.setBirthDate(request.getBirthDate());
         info.setBirthPlace(request.getBirthPlace());
         info.setNationalID(request.getNationalID());
@@ -401,7 +400,7 @@ public class UserServiceImpl implements UserService {
     }
 
     public void updateUserAccount(Long userId, UserAccountDtoRequest request) {
-        UserEntity user = userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Map<String, String> errors = new HashMap<>();

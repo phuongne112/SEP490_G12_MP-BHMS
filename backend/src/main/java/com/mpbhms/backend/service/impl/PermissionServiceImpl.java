@@ -3,21 +3,19 @@ package com.mpbhms.backend.service.impl;
 import com.mpbhms.backend.dto.Meta;
 import com.mpbhms.backend.dto.PermissionDTO;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
-import com.mpbhms.backend.entity.PermissionEntity;
-import com.mpbhms.backend.entity.RoleEntity;
+import com.mpbhms.backend.entity.Permission;
+import com.mpbhms.backend.entity.Role;
 import com.mpbhms.backend.exception.BusinessException;
 import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.exception.ResourceNotFoundException;
 import com.mpbhms.backend.repository.PermissionRepository;
 import com.mpbhms.backend.service.PermissionService;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.security.Permission;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +27,7 @@ public class PermissionServiceImpl implements PermissionService {
 
     private final PermissionRepository permissionRepository;
     @Override
-    public boolean isPermission(PermissionEntity permission) {
+    public boolean isPermission(Permission permission) {
         return this.permissionRepository.existsByModuleAndApiPathAndMethod(
                 permission.getModule(),
                 permission.getApiPath(),
@@ -38,7 +36,7 @@ public class PermissionServiceImpl implements PermissionService {
     }
 
     @Override
-    public PermissionEntity createPermission(PermissionEntity permission) {
+    public Permission createPermission(Permission permission) {
         Map<String, String> errors = new HashMap<>();
 
         if (permissionRepository.existsByModuleAndApiPathAndMethod(
@@ -58,22 +56,22 @@ public class PermissionServiceImpl implements PermissionService {
 
 
     @Override
-    public PermissionEntity getById(Long Id) {
-        Optional<PermissionEntity> permission = this.permissionRepository.findById(Id);
+    public Permission getById(Long Id) {
+        Optional<Permission> permission = this.permissionRepository.findById(Id);
         if (permission.isPresent()) {
             return permission.get();
         }
         return null;
     }
     @Override
-    public PermissionEntity updatePermission(PermissionEntity permission) {
+    public Permission updatePermission(Permission permission) {
         // Validate logic ở đầu hàm
-        PermissionEntity existing = getById(permission.getId());
+        Permission existing = getById(permission.getId());
         if (existing == null) {
             throw new IdInvalidException("Permission with id " + permission.getId() + " does not exist");
         }
 
-        PermissionEntity duplicate = permissionRepository.findByModuleAndApiPathAndMethod(
+        Permission duplicate = permissionRepository.findByModuleAndApiPathAndMethod(
                 permission.getModule(), permission.getApiPath(), permission.getMethod()
         );
 
@@ -91,11 +89,11 @@ public class PermissionServiceImpl implements PermissionService {
     }
     @Override
     public void deletePermission(Long id) {
-        PermissionEntity permission = permissionRepository.findById(id)
+        Permission permission = permissionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Permission không tồn tại với ID: " + id));
 
         // Xóa quan hệ giữa permission và role
-        for (RoleEntity role : permission.getRoleEntities()) {
+        for (Role role : permission.getRoleEntities()) {
             role.getPermissionEntities().remove(permission);
         }
 
@@ -103,8 +101,8 @@ public class PermissionServiceImpl implements PermissionService {
         permissionRepository.delete(permission);
     }
     @Override
-    public ResultPaginationDTO getAllPermissions(Specification<PermissionEntity> spec, Pageable pageable) {
-        Page<PermissionEntity> page = permissionRepository.findAll(spec, pageable);
+    public ResultPaginationDTO getAllPermissions(Specification<Permission> spec, Pageable pageable) {
+        Page<Permission> page = permissionRepository.findAll(spec, pageable);
         List<PermissionDTO> dtoList = page.getContent().stream()
                 .map(this::convertToDTO)
                 .toList();
@@ -120,7 +118,7 @@ public class PermissionServiceImpl implements PermissionService {
         result.setResult(dtoList);
         return result;
     }
-    private PermissionDTO convertToDTO(PermissionEntity entity) {
+    private PermissionDTO convertToDTO(Permission entity) {
         PermissionDTO dto = new PermissionDTO();
         dto.setId(entity.getId()); // hoặc entity.getPermissionId() nếu tên khác
         dto.setName(entity.getName());
@@ -130,7 +128,7 @@ public class PermissionServiceImpl implements PermissionService {
         return dto;
     }
 
-    public boolean isSameName(PermissionEntity permission) {
+    public boolean isSameName(Permission permission) {
         return this.permissionRepository.existsByName(permission.getName());
     }
 }

@@ -1,24 +1,24 @@
 package com.mpbhms.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.mpbhms.backend.enums.AssetStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Entity
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Table(name = "assets")
-public class AssetEntity extends BaseEntity {
+public class Asset extends BaseEntity {
 
     // FK đến RoomEntity
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id", nullable = false)
     @JsonIgnoreProperties("assets") // nếu bạn muốn tránh vòng lặp
-    private RoomEntity room;
+    private Room room;
 
     private String assetName;
 
@@ -34,11 +34,5 @@ public class AssetEntity extends BaseEntity {
     private String assetImage;
 
 
-    // ===== Enum for AssetStatus =====
-    public enum AssetStatus {
-        Good,
-        Damaged,
-        Lost,
-        Maintenance
-    }
+
 }
