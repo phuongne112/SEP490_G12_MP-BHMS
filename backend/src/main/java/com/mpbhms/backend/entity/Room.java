@@ -57,5 +57,6 @@ public class Room extends BaseEntity {
     @JsonManagedReference
     private List<Asset> assets = new ArrayList<>();
 
-
+    @Column(name = "max_occupants")
+    private Integer maxOccupants;
 }
