@@ -45,3 +45,14 @@ export const getCurrentUser = async () => {
   console.log("🔥 getCurrentUser response:", res.data);
   return res.data?.user;
 };
+
+export const changePassword = async ({ currentPassword, newPassword }) => {
+  return axiosClient.put("/auth/change-password", {
+    currentPassword,
+    newPassword,
+  });
+};
+
+export const updateUserAccount = async (payload) => {
+  return axiosClient.put("/users/me/account", payload);
+};

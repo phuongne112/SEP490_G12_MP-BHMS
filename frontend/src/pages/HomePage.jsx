@@ -1,4 +1,3 @@
-// ✅ HomePage.jsx - có filter theo asset
 import React, { useState } from "react";
 import Footer from "../components/layout/Footer";
 import Header from "../components/layout/Header";
@@ -52,7 +51,6 @@ export default function HomePage() {
     if (status !== "All") {
       dsl.push(`roomStatus = '${status}'`);
     }
-    // ✅ Đã chỉnh đúng
     if (hasAsset === "true") {
       dsl.push("assets IS NOT EMPTY");
     } else if (hasAsset === "false") {
@@ -79,16 +77,20 @@ export default function HomePage() {
           display: "flex",
           alignItems: "flex-start",
           padding: 0,
+          flexWrap: "wrap",
         }}
       >
         <div
           style={{
-            width: 300,
+            width: "100%",
+            maxWidth: 300,
             background: "#fff",
             padding: 24,
             borderRight: "1px solid #eee",
             marginTop: 60,
             minHeight: 600,
+            flex: 1,
+            boxSizing: "border-box",
           }}
         >
           <FilterBox title="Area (m²)">
@@ -96,7 +98,11 @@ export default function HomePage() {
           </FilterBox>
 
           <FilterBox title="Room Status">
-            <Select value={status} onChange={setStatus} style={{ width: "100%" }}>
+            <Select
+              value={status}
+              onChange={setStatus}
+              style={{ width: "100%" }}
+            >
               <Option value="All">All</Option>
               <Option value="Available">Available</Option>
               <Option value="Occupied">Occupied</Option>
@@ -106,11 +112,23 @@ export default function HomePage() {
           </FilterBox>
 
           <FilterBox title="Bedrooms">
-            <Slider range min={0} max={5} value={bedrooms} onChange={setBedrooms} />
+            <Slider
+              range
+              min={0}
+              max={5}
+              value={bedrooms}
+              onChange={setBedrooms}
+            />
           </FilterBox>
 
           <FilterBox title="Bathrooms">
-            <Slider range min={0} max={5} value={bathrooms} onChange={setBathrooms} />
+            <Slider
+              range
+              min={0}
+              max={5}
+              value={bathrooms}
+              onChange={setBathrooms}
+            />
           </FilterBox>
 
           <FilterBox title="Price (VND)">
@@ -125,7 +143,11 @@ export default function HomePage() {
           </FilterBox>
 
           <FilterBox title="Has Asset">
-            <Select value={hasAsset} onChange={setHasAsset} style={{ width: "100%" }}>
+            <Select
+              value={hasAsset}
+              onChange={setHasAsset}
+              style={{ width: "100%" }}
+            >
               <Option value="All">All</Option>
               <Option value="true">Có nội thất</Option>
               <Option value="false">Không có</Option>
@@ -139,11 +161,13 @@ export default function HomePage() {
 
         <div
           style={{
-            flex: 1,
+            flex: 3,
             padding: 32,
             background: "#fff",
             borderRadius: "0 12px 12px 0",
             minHeight: 600,
+            width: "100%",
+            boxSizing: "border-box",
           }}
         >
           <RoomList filter={appliedFilter} />

@@ -20,7 +20,7 @@ export default function Register() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
-    setErrors({ ...errors, [name]: null }); // clear lỗi khi người dùng nhập lại
+    setErrors({ ...errors, [name]: null });
   };
 
   const handleSubmit = async (e) => {
@@ -44,12 +44,13 @@ export default function Register() {
       navigate("/login");
     } catch (err) {
       const res = err.response?.data;
-
       if (res?.data && typeof res.data === "object") {
-        setErrors(res.data); // Ví dụ: { email: "Email đã tồn tại" }
+        setErrors(res.data);
       } else {
-        const fallbackMsg = res?.message || err.message || "Sign up failed. Please try again.";
-        setErrors({ general: fallbackMsg });
+        setErrors({
+          general:
+            res?.message || err.message || "Sign up failed. Please try again.",
+        });
       }
     }
   };
@@ -59,33 +60,31 @@ export default function Register() {
       style={{
         display: "flex",
         justifyContent: "center",
-        alignItems: "center",
-        height: "90vh",
+        alignItems: "start",
+        height: "100vh",
         backgroundColor: "#ccc",
-        paddingTop: 40,
-        maxWidth: 1000,
-        margin: "0 auto",
-        borderRadius: 12,
-        marginTop: 20,
+        padding: 24,
       }}
     >
       <div
         style={{
-          width: 800,
+          width: "100%",
+          maxWidth: 900,
           background: "#B1D7E7",
-          borderRadius: 8,
-          padding: "100px 32px 32px 32px",
+          borderRadius: 12,
+          padding: "48px 32px",
           boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
           position: "relative",
-          marginTop: 50,
         }}
       >
+        {/* Logo clickable */}
         <div
+          onClick={() => navigate("/home")}
           style={{
-            position: "absolute",
-            top: -180,
-            left: "50%",
-            transform: "translateX(-50%)",
+            display: "flex",
+            justifyContent: "center",
+            marginBottom: 32,
+            cursor: "pointer",
           }}
         >
           <SystemLogo />
@@ -94,8 +93,6 @@ export default function Register() {
         <form
           onSubmit={handleSubmit}
           style={{
-            margin: 20,
-            marginTop: 40,
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
             gap: 20,
@@ -150,42 +147,43 @@ export default function Register() {
           {errors.general && (
             <div style={{ gridColumn: "1 / span 2" }}>
               <ErrorMessage message={errors.general} />
-                    </div>
-                  )}
-              <div
+            </div>
+          )}
+
+          <div
+            style={{
+              gridColumn: "1 / span 2",
+              textAlign: "center",
+              marginTop: 16,
+            }}
+          >
+            <button
+              type="submit"
               style={{
-                gridColumn: "1 / span 2",
-                textAlign: "center",
-                marginTop: 16,
+                padding: "12px 48px",
+                background: "#0A2342",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                fontWeight: "bold",
+                fontSize: 16,
+                cursor: "pointer",
               }}
             >
-              <button
-                type="submit"
-                style={{
-                  padding: "12px 48px",
-                  background: "#0A2342",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  fontWeight: "bold",
-                  fontSize: 16,
-                  cursor: "pointer",
-                }}
-              >
-                Sign Up
-              </button>
+              Sign Up
+            </button>
 
-              {/* Link Sign In */}
-              <div style={{ marginTop: 12, textAlign: "center" }}>
-                <span style={{ fontSize: 14 }}>
-                  Already have an account?{" "}
-                  <a href="/login" style={{ color: "#0A2342", textDecoration: "underline" }}>
-                    Sign In
-                  </a>
-                </span>
-              </div>
+            <div style={{ marginTop: 12, fontSize: 14 }}>
+              Already have an account?{" "}
+              <a
+                href="/login"
+                style={{ color: "#0A2342", textDecoration: "underline" }}
+              >
+                Sign In
+              </a>
             </div>
-          </form>
+          </div>
+        </form>
       </div>
     </div>
   );
