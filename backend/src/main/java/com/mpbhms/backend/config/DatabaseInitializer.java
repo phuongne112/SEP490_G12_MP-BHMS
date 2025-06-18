@@ -62,6 +62,8 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("View Permissions", "/mpbhms/permissions", "GET", "Permission"));
             //Room User
             permissions.add(new Permission("Assign user to Room", "/mpbhms/room-users/add-many", "POST", "RoomUser"));
+            //
+            permissions.add(new Permission("Export contract", "/mpbhms/contracts/{id}/export", "GET", "Contract"));
             permissions = permissionRepository.saveAll(permissions);
         }
 

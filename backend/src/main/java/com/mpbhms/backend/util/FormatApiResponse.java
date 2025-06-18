@@ -16,7 +16,7 @@ public class FormatApiResponse implements ResponseBodyAdvice{
 
     @Override
     public boolean supports(MethodParameter returnType, Class converterType) {
-        return true;
+        return !byte[].class.equals(returnType.getParameterType());
     }
 
     @Override
@@ -26,23 +26,34 @@ public class FormatApiResponse implements ResponseBodyAdvice{
                                   Class selectedConverterType,
                                   ServerHttpRequest request,
                                   ServerHttpResponse response) {
+
         HttpServletResponse servletResponse = ((ServletServerHttpResponse) response).getServletResponse();
         int statusCode = servletResponse.getStatus();
 
-        if(body instanceof String) {
+        // ✅ Bỏ qua nếu là file trả về (PDF, ảnh, Excel, ...)
+        if (body instanceof byte[]) {
             return body;
         }
 
-        ApiResponse<Object> apiResponse = new ApiResponse<Object>();
-             apiResponse.setStatus(statusCode);
+        // ✅ Bỏ qua nếu lỗi (đã được handle ở @ExceptionHandler)
         if (statusCode >= 400) {
-            //Error
-             return body;
-        }else {
-            apiResponse.setData(body);
-            ApiMessage message = returnType.getMethodAnnotation(ApiMessage.class);
-            apiResponse.setMessage(message != null ? message.value() : "Call api success");
+            return body;
         }
+
+        // ✅ Nếu trả về là String, vẫn cần trả về nguyên vẹn (nếu không sẽ lỗi MediaType)
+        if (body instanceof String) {
+            return body;
+        }
+
+        // ✅ Trả về ApiResponse bọc data
+        ApiResponse<Object> apiResponse = new ApiResponse<>();
+        apiResponse.setStatus(statusCode);
+        apiResponse.setData(body);
+
+        ApiMessage message = returnType.getMethodAnnotation(ApiMessage.class);
+        apiResponse.setMessage(message != null ? message.value() : "Call api success");
+
         return apiResponse;
     }
+
 }
