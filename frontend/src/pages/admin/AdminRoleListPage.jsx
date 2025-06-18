@@ -14,6 +14,7 @@ import {
   Popover,
   message,
   Alert,
+  Popconfirm,
 } from "antd";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import PageHeader from "../../components/common/PageHeader";
@@ -408,9 +409,20 @@ export default function AdminRoleListPage() {
                   >
                     Cancel
                   </Button>
-                  <Button type="primary" htmlType="submit">
-                    {editingRole ? "Update" : "Save"}
-                  </Button>
+                  {editingRole ? (
+                    <Popconfirm
+                      title="Are you sure you want to update this role?"
+                      onConfirm={() => form.submit()}
+                      okText="Yes"
+                      cancelText="No"
+                    >
+                      <Button type="primary">Update</Button>
+                    </Popconfirm>
+                  ) : (
+                    <Button type="primary" htmlType="submit">
+                      Save
+                    </Button>
+                  )}
                 </div>
               </div>
             </Form>

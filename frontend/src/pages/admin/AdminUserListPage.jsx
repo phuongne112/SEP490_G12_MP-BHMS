@@ -11,6 +11,7 @@ import {
   Popover,
   Space,
   Select,
+  Popconfirm,
 } from "antd";
 import { FilterOutlined } from "@ant-design/icons";
 import AdminSidebar from "../../components/layout/AdminSidebar";
@@ -318,9 +319,16 @@ export default function AdminUserListPage() {
                   </Form.Item>
                 </Col>
               </Row>
-              <Button type="primary" htmlType="submit" block>
-                Update User
-              </Button>
+              <Popconfirm
+                title="Are you sure you want to update this user?"
+                onConfirm={() => updateForm.submit()}
+                okText="Yes"
+                cancelText="No"
+              >
+                <Button type="primary" block>
+                  Update User
+                </Button>
+              </Popconfirm>
             </Form>
           </Modal>
         </Content>

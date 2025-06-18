@@ -6,24 +6,25 @@ const columns = [
     title: "No.",
     dataIndex: "no",
     key: "no",
-    width: 60,
+    width: 50,
   },
   {
     title: "Name",
     dataIndex: "name",
     key: "name",
+    width: 150,
   },
   {
     title: "Room",
     dataIndex: "room",
     key: "room",
-    width: 80,
+    width: 150,
   },
   {
     title: "Check-in Date",
     dataIndex: "checkInDate",
     key: "checkInDate",
-    width: 120,
+    width: 150,
   },
 ];
 

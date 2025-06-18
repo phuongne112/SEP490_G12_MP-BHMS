@@ -4,16 +4,25 @@ import { FilterOutlined, PlusOutlined } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import RenterTable from "../../components/landlord/RenterTable";
 
-const { Content } = Layout;
+const { Sider, Content } = Layout;
 const { Title } = Typography;
 
 export default function LandlordRenterListPage() {
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <LandlordSidebar />
+    <Layout style={{ minHeight: "100vh", flexDirection: "row" }}>
+      <Sider width={220} style={{ background: "#001529" }}>
+        <LandlordSidebar />
+      </Sider>
 
       <Layout style={{ padding: "24px" }}>
-        <Content style={{ background: "#fff", padding: 24, borderRadius: 8 }}>
+        <Content
+          style={{
+            background: "#fff",
+            padding: 24,
+            borderRadius: 8,
+            minHeight: "100%",
+          }}
+        >
           <div
             style={{
               display: "flex",
