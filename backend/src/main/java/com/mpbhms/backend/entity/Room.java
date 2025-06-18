@@ -59,4 +59,10 @@ public class Room extends BaseEntity {
 
     @Column(name = "max_occupants")
     private Integer maxOccupants;
+
+    // ✅ Quan hệ với landlord (chủ trọ)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "landlord_id")
+    @JsonIgnoreProperties({"userInfo", "password", "role", "refreshToken"})
+    private User landlord;
 }

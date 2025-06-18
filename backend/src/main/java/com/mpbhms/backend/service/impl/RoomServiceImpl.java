@@ -7,6 +7,7 @@ import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.repository.RoomRepository;
 import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.service.RoomService;
+import com.mpbhms.backend.util.SecurityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -41,23 +42,26 @@ public class RoomServiceImpl implements RoomService {
         room.setDescription(request.getDescription());
         room.setIsActive(true);
 
-        //Xử lý ảnh nếu có
+        // ✅ Gán chủ trọ hiện tại (landlord)
+        Long landlordId = SecurityUtil.getCurrentUserId(); // giả sử bạn dùng security
+        room.setLandlord(userRepository.findById(landlordId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng (landlord)")));
+
+        // Xử lý ảnh nếu có
         if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
             List<RoomImage> imageEntities = request.getImageUrls().stream()
                     .map(url -> {
                         RoomImage img = new RoomImage();
                         img.setImageURL(url);
-                        img.setRoom(room); // liên kết ngược lại
+                        img.setRoom(room);
                         return img;
-                    })
-                    .collect(Collectors.toList());
+                    }).collect(Collectors.toList());
 
-            room.setImages(imageEntities); // gán ảnh vào phòng
+            room.setImages(imageEntities);
         }
 
         return roomRepository.save(room);
     }
-
     @Override
     public ResultPaginationDTO getAllRooms(Specification<Room> spec, Pageable pageable) {
         Page<Room> roomsPage = roomRepository.findAll(spec, pageable);
@@ -92,16 +96,26 @@ public class RoomServiceImpl implements RoomService {
         dto.setNumberOfBathrooms(room.getNumberOfBathrooms());
         dto.setDescription(room.getDescription());
 
-        // Convert images
+        // ✅ Convert landlord (chủ trọ)
+        if (room.getLandlord() != null) {
+            dto.setLandlordId(room.getLandlord().getId());
+
+            if (room.getLandlord().getUserInfo() != null) {
+                dto.setLandlordName(room.getLandlord().getUserInfo().getFullName());
+                dto.setLandlordPhone(room.getLandlord().getUserInfo().getPhoneNumber());
+            }
+        }
+
+        // ✅ Convert images
         List<RoomImageDTO> imageDTOs = room.getImages().stream().map(image -> {
             RoomImageDTO img = new RoomImageDTO();
             img.setId(image.getId());
             img.setImageUrl(image.getImageURL());
             return img;
         }).toList();
-        dto.setImages(imageDTOs); // ✅ đảm bảo RoomDTO có setter
+        dto.setImages(imageDTOs);
 
-        // Convert services
+        // ✅ Convert services
         List<ServiceDTO> serviceDTOs = room.getServices().stream().map(service -> {
             ServiceDTO s = new ServiceDTO();
             s.setId(service.getId());
@@ -113,7 +127,7 @@ public class RoomServiceImpl implements RoomService {
         }).toList();
         dto.setServices(serviceDTOs);
 
-        // Convert assets
+        // ✅ Convert assets
         List<AssetDTO> assetDTOs = room.getAssets().stream().map(asset -> {
             AssetDTO a = new AssetDTO();
             a.setId(asset.getId());

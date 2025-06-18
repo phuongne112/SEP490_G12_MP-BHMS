@@ -15,7 +15,9 @@ public class RoomDTO {
     private Integer numberOfBedrooms;
     private Integer numberOfBathrooms;
     private String description;
-
+    private Long landlordId;
+    private String landlordName;
+    private String landlordPhone;
     private List<RoomImageDTO> images;  // ✅ cần thiết
     private List<ServiceDTO> services;  // ✅ cần thiết
     private List<AssetDTO> assets;      // ✅ cần thiết
