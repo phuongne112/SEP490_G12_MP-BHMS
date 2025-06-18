@@ -10,16 +10,24 @@ import {
   Space,
   message,
 } from "antd";
-import { getCurrentUser, updateUserAccount } from "../../services/authService";
+import { useDispatch } from "react-redux";
+import {
+  getCurrentUser,
+  updateUserAccount,
+  logout,
+} from "../../services/authService";
 import ChangePasswordModal from "./ChangePasswordModal";
 
 export default function AccountModal({ open, onClose }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [originalUser, setOriginalUser] = useState(null);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(false);
   const [form] = Form.useForm();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+  const dispatch = useDispatch();
 
   useEffect(() => {
     if (open) {
@@ -28,6 +36,7 @@ export default function AccountModal({ open, onClose }) {
       getCurrentUser()
         .then((res) => {
           setUser(res);
+          setOriginalUser(res); // lưu lại dữ liệu gốc để so sánh
           form.setFieldsValue({
             username: res.name,
             email: res.email,
@@ -39,20 +48,27 @@ export default function AccountModal({ open, onClose }) {
   }, [open]);
 
   const handleUpdate = async (values) => {
+    const isUnchanged =
+      values.username === originalUser?.name &&
+      values.email === originalUser?.email;
+
+    if (isUnchanged) {
+      message.info("No changes detected.");
+      setEditing(false);
+      return;
+    }
+
     try {
       await updateUserAccount({
         username: values.username,
         email: values.email,
       });
       message.success("Account updated successfully!");
-      setEditing(false);
 
-      const updatedUser = await getCurrentUser();
-      setUser(updatedUser);
+      logout(dispatch); // Chỉ logout nếu có thay đổi thực sự
     } catch (err) {
       const res = err?.response?.data;
       if (res?.data && typeof res.data === "object") {
-        // Map lỗi từ backend về đúng field form
         const fieldMap = {
           userName: "username",
           emailAddress: "email",
@@ -82,7 +98,12 @@ export default function AccountModal({ open, onClose }) {
         ) : error ? (
           <Alert type="error" message={error} />
         ) : editing ? (
-          <Form layout="vertical" form={form} onFinish={handleUpdate} autoComplete="off">
+          <Form
+            layout="vertical"
+            form={form}
+            onFinish={handleUpdate}
+            autoComplete="off"
+          >
             <Form.Item
               label="Username"
               name="username"
@@ -131,7 +152,10 @@ export default function AccountModal({ open, onClose }) {
               >
                 Edit Info
               </Button>
-              <Button type="primary" onClick={() => setShowPasswordModal(true)}>
+              <Button
+                type="primary"
+                onClick={() => setShowPasswordModal(true)}
+              >
                 Change Password
               </Button>
             </div>
@@ -142,6 +166,10 @@ export default function AccountModal({ open, onClose }) {
       <ChangePasswordModal
         open={showPasswordModal}
         onClose={() => setShowPasswordModal(false)}
+        onSuccess={() => {
+          setShowPasswordModal(false);
+          logout(dispatch); // Logout khi đổi mật khẩu
+        }}
       />
     </>
   );

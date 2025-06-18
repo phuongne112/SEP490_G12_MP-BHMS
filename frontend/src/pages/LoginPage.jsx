@@ -112,9 +112,6 @@ export default function Login() {
               minWidth: 250,
             }}
           >
-            {error.general && (
-              <p style={{ color: "red", marginBottom: 16 }}>{error.general}</p>
-            )}
             <form onSubmit={handleLogin}>
               <div style={{ marginBottom: 16 }}>
                 <label>Email</label>
@@ -196,6 +193,9 @@ export default function Login() {
               >
                 Sign In
               </button>
+             {error.general && (
+                <p style={{ color: "red", marginTop: 12, fontSize: 14 }}>{error.general}</p>
+              )}
             </form>
 
             <div

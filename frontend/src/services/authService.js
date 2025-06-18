@@ -17,10 +17,17 @@ export const login = async (email, password) => {
   return user;
 };
 
-// authService.js
-export const logout = (dispatch) => {
+export const logout = async (dispatch) => {
+  try {
+    // Gọi API backend để xóa cookie refresh token
+    await axiosClient.post("/auth/logout");
+  } catch (err) {
+    console.warn("Logout API failed (but continuing locally)", err);
+  }
+
+  // Dọn localStorage + Redux + redirect
   localStorage.clear();
-  dispatch({ type: "account/logout" }); // hoặc gọi action logout() từ slice
+  dispatch({ type: "account/logout" });
   window.location.href = "/login";
 };
 

@@ -48,7 +48,11 @@ axiosClient.interceptors.response.use(
     const isNotRefresh = !originalRequest.url.includes("/auth/refresh");
     const isNotRetried = !originalRequest._retry;
 
-    if (is401 && isNotRefresh && isNotRetried) {
+
+    // ✅ Thêm kiểm tra nếu đang ở trang /login
+    const currentPath = window.location.pathname;
+    const isLoginPage = currentPath === "/login";
+    if (is401 && isNotRefresh && isNotRetried && !isLoginPage) {
       originalRequest._retry = true;
 
       try {
