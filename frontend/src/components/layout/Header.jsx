@@ -122,22 +122,21 @@ export default function Header() {
               overlay={
                 <Menu>
                   <Menu.Item onClick={() => setIsAccountModalOpen(true)}>
-                    Thông tin tài khoản
+                    Account Info
                   </Menu.Item>
                   <Menu.Item onClick={() => setIsInfoModalOpen(true)}>
-                    Thông tin cá nhân
+                    Personal Info
                   </Menu.Item>
 
-                  {/* ✅ THÊM MỤC "Quản trị" nếu có quyền */}
                   {dashboardPath && (
                     <Menu.Item onClick={() => navigate(dashboardPath)}>
-                      Trang quản trị
+                      Admin Dashboard
                     </Menu.Item>
                   )}
 
                   <Menu.Divider />
                   <Menu.Item onClick={handleLogout} danger>
-                    Đăng xuất
+                    Logout
                   </Menu.Item>
                 </Menu>
               }

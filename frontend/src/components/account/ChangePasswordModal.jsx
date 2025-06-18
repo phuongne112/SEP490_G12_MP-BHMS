@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, Button, message } from "antd";
+import { Modal, Form, Input, Button, message, Popconfirm } from "antd";
 import { useDispatch } from "react-redux";
 import { changePassword, logout } from "../../services/authService";
 
@@ -102,9 +102,17 @@ export default function ChangePasswordModal({ open, onClose }) {
           <Button onClick={onClose} style={{ marginRight: 8 }}>
             Cancel
           </Button>
-          <Button type="primary" htmlType="submit" loading={loading}>
-            Update
-          </Button>
+          <Popconfirm
+            title="Confirm password change"
+            description="Are you sure you want to change your password?"
+            onConfirm={() => form.submit()}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Button type="primary" loading={loading}>
+              Update
+            </Button>
+          </Popconfirm>
         </div>
       </Form>
     </Modal>

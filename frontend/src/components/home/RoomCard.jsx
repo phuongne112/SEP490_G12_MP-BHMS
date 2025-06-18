@@ -116,14 +116,17 @@ export default function RoomCard({ room }) {
         </div>
 
         <div style={{ fontSize: 14, color: "#555", marginTop: 4 }}>
-          Nội thất:{" "}
-          <span style={{ fontWeight: 600, color: hasAsset ? "#1BC700" : "#999" }}>
-            {hasAsset ? "Có" : "Không"}
+          Asset:{" "}
+          <span
+            style={{ fontWeight: 600, color: hasAsset ? "#1BC700" : "#999" }}
+          >
+            {hasAsset ? "Yes" : "No"}
           </span>
         </div>
 
         <div style={{ fontSize: 14, color: "#555", marginTop: 4 }}>
-          Bedrooms: {room.numberOfBedrooms ?? "N/A"} | Bathrooms: {room.numberOfBathrooms ?? "N/A"}
+          Bedrooms: {room.numberOfBedrooms ?? "N/A"} | Bathrooms:{" "}
+          {room.numberOfBathrooms ?? "N/A"}
         </div>
 
         <div
