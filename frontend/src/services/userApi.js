@@ -26,12 +26,12 @@ export const deleteNotification = async (id) => {
   return axiosClient.delete(`/notifications/${id}`);
 };
 export const getAccountInfo = async () => {
-  const res = await axiosClient.get('users/me/account');
+  const res = await axiosClient.get("users/me/account");
   return res.data;
 };
 
 export const getPersonalInfo = async () => {
-  const res = await axiosClient.get('users/me/info');
+  const res = await axiosClient.get("users/me/info");
   return res.data;
 };
 
@@ -42,5 +42,10 @@ export const updateAccountInfo = async (data) => {
 
 export const updatePersonalInfo = async (data) => {
   const res = await axiosClient.put("users/me/info", data);
+  return res.data;
+};
+
+export const createPersonalInfo = async (data) => {
+  const res = await axiosClient.post("users/me/info", data);
   return res.data;
 };

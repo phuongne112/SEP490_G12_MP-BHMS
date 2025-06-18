@@ -28,4 +28,5 @@ public interface UserService {
     UserInfoDtoResponse getUserInfoById(Long userId);
     void updateUserInfo(Long userId, UserInfoDtoRequest request);
     void updateUserAccount(Long userId, UserAccountDtoRequest request);
+    void addUserInfo(Long userId, UserInfoDtoRequest request);
 }

@@ -23,6 +23,7 @@ export default function Header() {
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [showUpdateInfoModal, setShowUpdateInfoModal] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [isCreate, setIsCreate] = useState(false);
 
   // ✅ Hàm xác định dashboard path theo role
   const getDashboardPath = () => {
@@ -218,13 +219,15 @@ export default function Header() {
       <UserInfoModal
         open={isInfoModalOpen}
         onClose={() => setIsInfoModalOpen(false)}
-        onShowUpdateModal={() => {
+        onShowUpdateModal={(create = false) => {
           setIsInfoModalOpen(false);
+          setIsCreate(create); // ✅ set trạng thái tạo mới hay update
           setShowUpdateInfoModal(true);
         }}
       />
       <UpdateUserInfoModal
         open={showUpdateInfoModal}
+        isCreate={isCreate} // ✅ truyền prop này vào
         onClose={() => setShowUpdateInfoModal(false)}
         onBackToInfoModal={() => setIsInfoModalOpen(true)}
       />

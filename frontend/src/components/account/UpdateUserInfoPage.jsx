@@ -9,11 +9,16 @@ import {
   Spin,
   Select,
 } from "antd";
-import { getPersonalInfo, updatePersonalInfo } from "../../services/userApi";
 import dayjs from "dayjs";
+import {
+  createPersonalInfo,
+  getPersonalInfo,
+  updatePersonalInfo,
+} from "../../services/userApi";
 
 export default function UpdateUserInfoModal({
   open,
+  isCreate,
   onClose,
   onBackToInfoModal,
 }) {
@@ -22,7 +27,14 @@ export default function UpdateUserInfoModal({
   const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+
+    if (isCreate) {
+      // Tạo mới => không gọi getPersonalInfo
+      form.resetFields();
+      setInitialLoading(false);
+    } else {
+      // Cập nhật => gọi API để fill form
       setInitialLoading(true);
       getPersonalInfo()
         .then((res) => {
@@ -42,23 +54,38 @@ export default function UpdateUserInfoModal({
         .catch(() => message.error("Failed to load personal info"))
         .finally(() => setInitialLoading(false));
     }
-  }, [open]);
+  }, [open, isCreate]);
 
   const onFinish = async (values) => {
     const payload = {
       ...values,
       birthDate: values.birthDate ? values.birthDate.toISOString() : null,
     };
+
     try {
       setLoading(true);
-      await updatePersonalInfo(payload);
-      message.success("Update Successful");
-      onClose();
-      if (typeof onBackToInfoModal === "function") {
-        onBackToInfoModal();
+      if (isCreate) {
+        await createPersonalInfo(payload);
+        message.success("Create successful");
+      } else {
+        await updatePersonalInfo(payload);
+        message.success("Update successful");
       }
+      onClose();
+      onBackToInfoModal?.();
     } catch (err) {
-      message.error("Update failed");
+      // 👇 Thêm xử lý này để hiển thị message từ backend
+      if (err.response?.data?.error === "VALIDATION_ERROR") {
+        const fieldErrors = err.response.data.data;
+        form.setFields(
+          Object.entries(fieldErrors).map(([field, message]) => ({
+            name: field,
+            errors: [message],
+          }))
+        );
+      } else {
+        message.error(isCreate ? "Create failed" : "Update failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -93,6 +120,7 @@ export default function UpdateUserInfoModal({
             <Select placeholder="Select gender">
               <Select.Option value="Male">Male</Select.Option>
               <Select.Option value="Female">Female</Select.Option>
+              <Select.Option value="Other">Other</Select.Option>
             </Select>
           </Form.Item>
           <Form.Item name="birthDate" label="Birth Date">
@@ -111,19 +139,11 @@ export default function UpdateUserInfoModal({
             <Input />
           </Form.Item>
           <Form.Item style={{ textAlign: "right" }}>
-            <Button
-              onClick={() => {
-                onClose();
-                if (typeof onBackToInfoModal === "function") {
-                  onBackToInfoModal();
-                }
-              }}
-              style={{ marginRight: 8 }}
-            >
+            <Button onClick={onClose} style={{ marginRight: 8 }}>
               Cancel
             </Button>
             <Button type="primary" htmlType="submit" loading={loading}>
-              Update
+              {isCreate ? "Create" : "Update"}
             </Button>
           </Form.Item>
         </Form>
