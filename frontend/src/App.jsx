@@ -45,10 +45,10 @@ function App() {
           const newToken = res.data?.data?.access_token;
           if (newToken) {
             localStorage.setItem("token", newToken);
-            console.log("🔁 Đã refresh lại token thành công");
+            console.log("Token has been refreshed successfully.");
           }
         } catch (err) {
-          console.warn("❌ Refresh token hết hạn hoặc sai → logout");
+          console.warn("Refresh token expired or invalid → logout");
           localStorage.removeItem("user");
           window.dispatchEvent(new Event("force-logout"));
         }
@@ -57,9 +57,9 @@ function App() {
 
       try {
         await axiosClient.get("/auth/account");
-        console.log("✅ Token hợp lệ");
+        console.log("Token is valid.");
       } catch (err) {
-        console.warn("❌ Token lỗi hoặc hết hạn");
+        console.warn("Token is invalid or expired.");
       }
     };
 
@@ -83,7 +83,7 @@ function App() {
           })
         );
       } catch (err) {
-        console.warn("❌ Không thể cập nhật lại thông tin user");
+        console.warn("Cannot update the information user");
       }
     };
 
