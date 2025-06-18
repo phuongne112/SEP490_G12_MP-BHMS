@@ -1,24 +1,41 @@
 import React, { useEffect, useState } from "react";
 import { Modal, Descriptions, Spin, Alert, Button } from "antd";
-import { useNavigate } from "react-router-dom";
-import { getPersonalInfo } from "../../services/userApi"; // tạo API này
+import { getPersonalInfo } from "../../services/userApi";
+import { getCurrentUser } from "../../services/authService";
 
 export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
   const [loading, setLoading] = useState(true);
   const [info, setInfo] = useState(null);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    if (open) {
-      setLoading(true);
-      getPersonalInfo()
-        .then((res) => {
-          setInfo(res);
-        })
-        .catch(() => setError("Failed to load personal information."))
-        .finally(() => setLoading(false));
-    }
+    if (!open) return;
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const user = await getCurrentUser();
+        setCurrentUser(user);
+
+        const data = await getPersonalInfo();
+        setInfo(data);
+      } catch (err) {
+        const status = err?.response?.status;
+
+        if (status === 404 || status === 500) {
+          setInfo(null);
+        } else {
+          setError("Failed to load personal information.");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [open]);
 
   return (
@@ -31,8 +48,19 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
     >
       {loading ? (
         <Spin />
-      ) : error ? (
-        <Alert type="error" message={error} />
+      ) : info === null ? (
+        <div style={{ textAlign: "center", marginTop: 16 }}>
+          <p>{error || "No personal information found."}</p>
+          <Button
+            type="primary"
+            onClick={() => {
+              onClose();
+              onShowUpdateModal?.(true); // create mode
+            }}
+          >
+            Add Info
+          </Button>
+        </div>
       ) : (
         <>
           <Descriptions column={1} bordered size="small">
@@ -69,9 +97,7 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
               type="primary"
               onClick={() => {
                 onClose();
-                if (typeof onShowUpdateModal === "function") {
-                  onShowUpdateModal();
-                }
+                onShowUpdateModal?.(false); // update mode
               }}
             >
               Update

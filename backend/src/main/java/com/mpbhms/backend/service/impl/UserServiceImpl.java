@@ -416,6 +416,30 @@ public class UserServiceImpl implements UserService {
         user.setUserInfo(info); // nếu cascade thì sẽ tự lưu info khi lưu user
         userRepository.save(user);
     }
+    public void addUserInfo(Long userId, UserInfoDtoRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        UserInfo info = user.getUserInfo();
+        if (info == null) {
+            info = new UserInfo();
+            info.setUser(user);
+        }
+
+        info.setFullName(request.getFullName());
+        info.setPhoneNumber(request.getPhoneNumber());
+        info.setPhoneNumber2(request.getPhoneNumber2());
+        info.setGender(request.getGender() != null ? Gender.valueOf(request.getGender()) : null);
+        info.setBirthDate(request.getBirthDate());
+        info.setBirthPlace(request.getBirthPlace());
+        info.setNationalID(request.getNationalID());
+        info.setNationalIDIssuePlace(request.getNationalIDIssuePlace());
+        info.setPermanentAddress(request.getPermanentAddress());
+
+        user.setUserInfo(info); // nếu cascade thì sẽ tự lưu info khi lưu user
+        userRepository.save(user);
+    }
+
 
     public void updateUserAccount(Long userId, UserAccountDtoRequest request) {
         User user = userRepository.findById(userId)

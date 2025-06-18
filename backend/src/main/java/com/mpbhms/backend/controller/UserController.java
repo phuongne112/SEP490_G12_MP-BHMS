@@ -91,6 +91,17 @@ public class UserController {
         userService.updateUserInfo(currentUserId, request);
         return ResponseEntity.noContent().build();
     }
+    @PostMapping("/me/info")
+    @ApiMessage("Add user info")
+    public ResponseEntity<Void> addUserInfoByMe(@RequestBody @Valid UserInfoDtoRequest request) {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        if (currentUserId == null) {
+            throw new IdInvalidException("You do not have permission to access this endpoint!!!");
+        }
+
+        userService.addUserInfo(currentUserId, request);
+        return ResponseEntity.noContent().build();
+    }
     @PutMapping("/me/account")
     @ApiMessage("Update user account")
     public ResponseEntity<Void> updateUserAccountByMe(@RequestBody @Valid UserAccountDtoRequest request) {

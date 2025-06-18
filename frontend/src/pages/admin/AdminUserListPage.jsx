@@ -57,7 +57,13 @@ export default function AdminUserListPage() {
       <AdminSidebar />
       <Layout style={{ marginLeft: 220 }}>
         <Content style={{ padding: "32px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: 24,
+            }}
+          >
             <PageHeader title="List User Account" />
             <Access requiredPermissions={["Create User"]}>
               <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
@@ -66,7 +72,15 @@ export default function AdminUserListPage() {
             </Access>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", marginTop: 30 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: 24,
+              flexWrap: "wrap",
+              marginTop: 30,
+            }}
+          >
             <EntrySelect value={pageSize} onChange={setPageSize} />
             <Space style={{ gap: 100 }}>
               <SearchBox
@@ -87,7 +101,10 @@ export default function AdminUserListPage() {
                 trigger="click"
                 placement="bottomRight"
               >
-                <Button icon={<FilterOutlined />} style={{ backgroundColor: "#40a9ff", color: "white" }}>
+                <Button
+                  icon={<FilterOutlined />}
+                  style={{ backgroundColor: "#40a9ff", color: "white" }}
+                >
                   Filter
                 </Button>
               </Popover>
@@ -128,10 +145,12 @@ export default function AdminUserListPage() {
                       emailAddress: "email",
                       userName: "username",
                     };
-                    const fieldErrors = Object.entries(res.data).map(([field, msg]) => ({
-                      name: fieldMap[field] || field,
-                      errors: [msg],
-                    }));
+                    const fieldErrors = Object.entries(res.data).map(
+                      ([field, msg]) => ({
+                        name: fieldMap[field] || field,
+                        errors: [msg],
+                      })
+                    );
                     createForm.setFields(fieldErrors);
                   } else {
                     message.error(res?.message || "Failed to create user");
@@ -141,27 +160,47 @@ export default function AdminUserListPage() {
             >
               <Row gutter={16}>
                 <Col span={12}>
-                  <Form.Item name="username" label="Username" rules={[{ required: true }]}>
+                  <Form.Item
+                    name="username"
+                    label="Username"
+                    rules={[{ required: true }]}
+                  >
                     <Input maxLength={20} />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item name="fullName" label="Full Name" rules={[{ required: true }]}>
+                  <Form.Item
+                    name="fullName"
+                    label="Full Name"
+                    rules={[{ required: true }]}
+                  >
                     <Input />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item name="email" label="Email" rules={[{ required: true, type: "email" }]}>
+                  <Form.Item
+                    name="email"
+                    label="Email"
+                    rules={[{ required: true, type: "email" }]}
+                  >
                     <Input maxLength={50} />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item name="phone" label="Phone" rules={[{ required: true }]}>
+                  <Form.Item
+                    name="phone"
+                    label="Phone"
+                    rules={[{ required: true }]}
+                  >
                     <Input />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item name="password" label="Password" rules={[{ required: true }]}>
+                  <Form.Item
+                    name="password"
+                    label="Password"
+                    rules={[{ required: true }]}
+                  >
                     <Input.Password />
                   </Form.Item>
                 </Col>
@@ -176,7 +215,9 @@ export default function AdminUserListPage() {
                         validator(_, value) {
                           return value === getFieldValue("password")
                             ? Promise.resolve()
-                            : Promise.reject(new Error("Passwords do not match"));
+                            : Promise.reject(
+                                new Error("Passwords do not match")
+                              );
                         },
                       }),
                     ]}
@@ -226,10 +267,12 @@ export default function AdminUserListPage() {
                       userName: "username",
                       role: "roleId",
                     };
-                    const fieldErrors = Object.entries(res.data).map(([field, msg]) => ({
-                      name: fieldMap[field] || field,
-                      errors: [msg],
-                    }));
+                    const fieldErrors = Object.entries(res.data).map(
+                      ([field, msg]) => ({
+                        name: fieldMap[field] || field,
+                        errors: [msg],
+                      })
+                    );
                     updateForm.setFields(fieldErrors);
                   } else {
                     message.error(res?.message || "Failed to update user");
@@ -244,19 +287,30 @@ export default function AdminUserListPage() {
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item name="newEmail" label="New Email" rules={[{ required: true, type: "email" }]}>
+                  <Form.Item
+                    name="newEmail"
+                    label="New Email"
+                    rules={[{ required: true, type: "email" }]}
+                  >
                     <Input maxLength={50} />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item name="username" label="Username" rules={[{ required: true }]}>
+                  <Form.Item
+                    name="username"
+                    label="Username"
+                    rules={[{ required: true }]}
+                  >
                     <Input maxLength={20} />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item name="roleId" label="Role" rules={[{ required: true }]}>
+                  <Form.Item
+                    name="roleId"
+                    label="Role"
+                    rules={[{ required: true }]}
+                  >
                     <Select placeholder="Select Role">
-                      <Select.Option value={1}>ADMIN</Select.Option>
                       <Select.Option value={2}>RENTER</Select.Option>
                       <Select.Option value={3}>LANDLORD</Select.Option>
                       <Select.Option value={4}>SUBADMIN</Select.Option>

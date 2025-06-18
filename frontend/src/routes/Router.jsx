@@ -14,6 +14,7 @@ import RoomSection from "../components/home/RoomSection";
 import Error403 from "../pages/Error403";
 import AdminRoute from "./AdminRoute";
 import GuestRoute from "./GuestRoute";
+import LandlordRenterListPage from "../pages/landlord/LandlordRenterListPage";
 
 export default function AppRouter() {
   return (
@@ -72,6 +73,7 @@ export default function AppRouter() {
       />
       <Route path="*" element={<Error403 />} />
       <Route path="/room" element={<RoomSection />} />
+      <Route path="/landlord/renters" element={<LandlordRenterListPage />} />
       <Route path="/403" element={<Error403 />} />
     </Routes>
   );

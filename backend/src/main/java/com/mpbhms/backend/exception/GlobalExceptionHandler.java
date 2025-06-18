@@ -97,4 +97,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<?>> handleGlobalException(Exception ex) {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getClass().getSimpleName(), ex.getMessage(), null);
     }
+
+
 }
