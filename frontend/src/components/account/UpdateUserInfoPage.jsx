@@ -8,6 +8,7 @@ import {
   message,
   Spin,
   Select,
+  Popconfirm,
 } from "antd";
 import dayjs from "dayjs";
 import {
@@ -142,9 +143,21 @@ export default function UpdateUserInfoModal({
             <Button onClick={onClose} style={{ marginRight: 8 }}>
               Cancel
             </Button>
-            <Button type="primary" htmlType="submit" loading={loading}>
-              {isCreate ? "Create" : "Update"}
-            </Button>
+            <Popconfirm
+              title={isCreate ? "Confirm creation" : "Confirm update"}
+              description={
+                isCreate
+                  ? "Are you sure you want to create this personal information?"
+                  : "Are you sure you want to update this personal information?"
+              }
+              onConfirm={() => form.submit()}
+              okText="Yes"
+              cancelText="No"
+            >
+              <Button type="primary" loading={loading}>
+                {isCreate ? "Create" : "Update"}
+              </Button>
+            </Popconfirm>
           </Form.Item>
         </Form>
       )}

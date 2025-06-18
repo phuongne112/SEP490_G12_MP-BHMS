@@ -9,6 +9,7 @@ import {
   Input,
   Space,
   message,
+  Popconfirm,
 } from "antd";
 import { useDispatch } from "react-redux";
 import {
@@ -129,9 +130,15 @@ export default function AccountModal({ open, onClose }) {
 
             <Space style={{ display: "flex", justifyContent: "end" }}>
               <Button onClick={() => setEditing(false)}>Cancel</Button>
-              <Button type="primary" htmlType="submit">
-                Save
-              </Button>
+              <Popconfirm
+                title="Confirm update"
+                description="Are you sure you want to save changes?"
+                onConfirm={() => form.submit()}
+                okText="Yes"
+                cancelText="No"
+              >
+                <Button type="primary">Save</Button>
+              </Popconfirm>
             </Space>
           </Form>
         ) : (
@@ -152,10 +159,7 @@ export default function AccountModal({ open, onClose }) {
               >
                 Edit Info
               </Button>
-              <Button
-                type="primary"
-                onClick={() => setShowPasswordModal(true)}
-              >
+              <Button type="primary" onClick={() => setShowPasswordModal(true)}>
                 Change Password
               </Button>
             </div>
