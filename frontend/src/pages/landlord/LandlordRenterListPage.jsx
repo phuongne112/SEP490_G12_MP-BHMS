@@ -8,13 +8,15 @@ import {
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import RenterTable from "../../components/landlord/RenterTable";
 import RenterFilterPopover from "../../components/landlord/RenterFilterPopover";
-import PageHeader from "../../components/common/PageHeader"; // ✅ IMPORT MỚI
+import PageHeader from "../../components/common/PageHeader";
+import { useNavigate } from "react-router-dom";
 
 const { Sider, Content } = Layout;
 
 export default function LandlordRenterListPage() {
   const [searchText, setSearchText] = useState("");
   const [filter, setFilter] = useState({});
+  const navigate = useNavigate();
 
   const handleFilter = (filterValues) => {
     setFilter(filterValues);
@@ -25,7 +27,7 @@ export default function LandlordRenterListPage() {
       <Sider width={220} style={{ background: "#001529" }}>
         <LandlordSidebar />
       </Sider>
-
+      6
       <Layout style={{ padding: 24 }}>
         <Content
           style={{
@@ -35,17 +37,16 @@ export default function LandlordRenterListPage() {
             minHeight: "100%",
           }}
         >
-          {/* ✅ PHẦN HEADER MỚI */}
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
               marginBottom: 24,
-              paddingTop: 4, // ✅ Tạo khoảng cách với đỉnh
+              paddingTop: 4,
             }}
           >
-            <PageHeader title="List Renter" /> {/* ✅ Sử dụng PageHeader */}
+            <PageHeader title="List Renter" />
             <Space>
               <Input
                 placeholder="Search renter name or room"
@@ -67,7 +68,11 @@ export default function LandlordRenterListPage() {
               >
                 <Button icon={<FilterOutlined />}>Filter</Button>
               </Popover>
-              <Button type="primary" icon={<PlusOutlined />}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => navigate("/landlord/renters/add")}
+              >
                 Add Renter
               </Button>
             </Space>

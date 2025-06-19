@@ -42,6 +42,21 @@ export default function Header() {
   };
   const dashboardPath = getDashboardPath();
 
+  const getDashboardLabel = () => {
+    const role = user?.role?.roleName || user?.role;
+    switch (role?.toUpperCase()) {
+      case "ADMIN":
+      case "SUBADMIN":
+        return "Admin Dashboard";
+      case "LANDLORD":
+        return "Landlord Dashboard";
+      case "RENTER":
+        return "Renter Dashboard";
+      default:
+        return "Dashboard";
+    }
+  };
+
   const handleLogout = () => {
     navigate("/login", { replace: true });
     dispatch(logout());
@@ -63,7 +78,7 @@ export default function Header() {
     };
   }, []);
 
-  const navItems = ["Products", "Solutions", "Community", "Contact", "About"];
+  const navItems = ["Rooms", "Services", "Renters", "Contact", "About"];
 
   return (
     <header
@@ -99,7 +114,7 @@ export default function Header() {
         </Title>
       </div>
 
-      <div className="desktop-nav" style={{ display: "flex", gap: 24 }}>
+      <div className="desktop-nav" style={{ display: "flex", gap: 50 }}>
         {navItems.map((label, idx) => (
           <span
             key={idx}
@@ -130,7 +145,7 @@ export default function Header() {
 
                   {dashboardPath && (
                     <Menu.Item onClick={() => navigate(dashboardPath)}>
-                      Admin Dashboard
+                      {getDashboardLabel()}
                     </Menu.Item>
                   )}
 

@@ -4,6 +4,7 @@ import SystemLogo from "../components/SystemLogo";
 import TextInput from "../components/common/TextInput";
 import ErrorMessage from "../components/common/ErrorMessage";
 import { register } from "../services/authService";
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -16,6 +17,8 @@ export default function Register() {
     password: "",
     confirmPassword: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -132,16 +135,33 @@ export default function Register() {
             name="password"
             value={form.password}
             onChange={handleChange}
-            type="password"
+            type={showPassword ? "text" : "password"}
             error={errors.password}
+            suffix={
+              showPassword ? (
+                <AiOutlineEyeInvisible onClick={() => setShowPassword(false)} />
+              ) : (
+                <AiOutlineEye onClick={() => setShowPassword(true)} />
+              )
+            }
           />
+
           <TextInput
             label="Re-enter Password"
             name="confirmPassword"
             value={form.confirmPassword}
             onChange={handleChange}
-            type="password"
+            type={showConfirmPassword ? "text" : "password"}
             error={errors.confirmPassword}
+            suffix={
+              showConfirmPassword ? (
+                <AiOutlineEyeInvisible
+                  onClick={() => setShowConfirmPassword(false)}
+                />
+              ) : (
+                <AiOutlineEye onClick={() => setShowConfirmPassword(true)} />
+              )
+            }
           />
 
           {errors.general && (

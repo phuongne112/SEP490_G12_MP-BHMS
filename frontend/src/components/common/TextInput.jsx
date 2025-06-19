@@ -15,23 +15,42 @@ export default function TextInput({
   onChange,
   type = "text",
   required = true,
-  error, // 👉 thêm prop error
+  error,
+  suffix,
 }) {
   return (
     <div style={{ marginBottom: 16 }}>
       <label>{label}</label>
-      <input
-        type={type}
-        name={name}
-        value={value}
-        onChange={onChange}
-        placeholder="Enter here..."
-        required={required}
-        style={{
-          ...inputStyle,
-          border: error ? "1px solid red" : inputStyle.border,
-        }}
-      />
+      <div style={{ position: "relative" }}>
+        <input
+          type={type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder="Enter here..."
+          required={required}
+          style={{
+            ...inputStyle,
+            paddingRight: suffix ? "40px" : "12px",
+            border: error ? "1px solid red" : inputStyle.border,
+          }}
+        />
+        {suffix && (
+          <div
+            style={{
+              position: "absolute",
+              top: "60%",
+              right: 12,
+              transform: "translateY(-50%)",
+              cursor: "pointer",
+              fontSize: 18,
+              color: "#555",
+            }}
+          >
+            {suffix}
+          </div>
+        )}
+      </div>
       {error && (
         <p style={{ color: "red", marginTop: 4, fontSize: 14 }}>{error}</p>
       )}

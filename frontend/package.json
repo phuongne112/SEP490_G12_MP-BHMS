@@ -11,15 +11,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@ant-design/pro-components": "^2.8.7",
     "@reduxjs/toolkit": "^2.8.2",
     "antd": "^5.25.4",
     "axios": "1.7.2",
     "dayjs": "^1.11.13",
     "jwt-decode": "^4.0.0",
     "query-string": "^9.2.0",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-icons": "^5.5.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^6.30.1"
