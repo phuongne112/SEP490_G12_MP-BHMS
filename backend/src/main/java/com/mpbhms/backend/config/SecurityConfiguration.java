@@ -45,11 +45,10 @@ public class SecurityConfiguration {
     public SecurityFilterChain filterChain(
             HttpSecurity http, CustomAuthenticationEntryPoint caep) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(Customizer.withDefaults())
                 .csrf(c -> c.disable())
                 .authorizeHttpRequests(
                         authz -> authz
-                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                 .requestMatchers(whiteList).permitAll()
                                 .requestMatchers(HttpMethod.GET, "/mpbhms/rooms/**").permitAll()
                                 .anyRequest().authenticated())
@@ -80,7 +79,11 @@ public class SecurityConfiguration {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of(
-              "*"
+                "http://localhost:3000",
+                "http://localhost:4173",
+                "http://localhost:8080",
+                "http://localhost:5173",
+                "http://localhost"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "x-no-retry"));
