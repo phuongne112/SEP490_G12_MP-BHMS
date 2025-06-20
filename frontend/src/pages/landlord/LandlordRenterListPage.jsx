@@ -27,7 +27,6 @@ export default function LandlordRenterListPage() {
       <Sider width={220} style={{ background: "#001529" }}>
         <LandlordSidebar />
       </Sider>
-      6
       <Layout style={{ padding: 24 }}>
         <Content
           style={{

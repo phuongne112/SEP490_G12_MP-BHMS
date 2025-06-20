@@ -39,6 +39,12 @@ export default function LandlordSidebar() {
       label: "Service",
       path: "/landlord/services",
     },
+    {
+      key: "/landlord/electric",
+      icon: <ToolOutlined />,
+      label: "Electric",
+      path: "/landlord/electric",
+    },
   ];
 
   const selectedKey = landlordMenu.find((item) =>

@@ -33,7 +33,7 @@ export default function Header() {
       case "SUBADMIN":
         return "/admin/users";
       case "LANDLORD":
-        return "/landlord/dashboard";
+        return "/landlord/renters";
       case "RENTER":
         return "/renter/dashboard";
       default:

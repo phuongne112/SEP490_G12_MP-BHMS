@@ -16,8 +16,11 @@ import AdminRoute from "./AdminRoute";
 import GuestRoute from "./GuestRoute";
 import LandlordRenterListPage from "../pages/landlord/LandlordRenterListPage";
 import LandlordRoomListPage from "../pages/landlord/LandlordRoomListPage";
+import LandlordAddRoomPage from "../pages/landlord/LandlordAddRoomPage";
 import LandlordAddRenterPage from "../pages/landlord/LandlordAddRenterPage";
 import LandlordServiceListPage from "../pages/landlord/LandlordServiceListPage";
+import LandlordElectricListPage from "../pages/landlord/LandlordElectricListPage";
+import RenterRoomDetailPage from "../pages/renter/RenterRoomDetailPage";
 
 export default function AppRouter() {
   return (
@@ -78,11 +81,15 @@ export default function AppRouter() {
       <Route path="/room" element={<RoomSection />} />
       <Route path="/landlord/renters" element={<LandlordRenterListPage />} />
       <Route path="/landlord/rooms" element={<LandlordRoomListPage />} />
+      <Route path="/landlord/rooms/add" element={<LandlordAddRoomPage />} />
       <Route path="/403" element={<Error403 />} />
       <Route path="/" element={<Navigate to="/login" replace />} />
 
       <Route path="/landlord/renters/add" element={<LandlordAddRenterPage />} />
       <Route path="/landlord/services" element={<LandlordServiceListPage />} />
+      <Route path="/landlord/electric" element={<LandlordElectricListPage />} />
+
+      <Route path="/renter/room" element={<RenterRoomDetailPage />} />
     </Routes>
   );
 }

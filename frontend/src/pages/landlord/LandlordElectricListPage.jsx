@@ -1,0 +1,135 @@
+import React, { useState } from "react";
+import { Layout, Row, Col, DatePicker, Select, Button } from "antd";
+import dayjs from "dayjs";
+import PageHeader from "../../components/common/PageHeader";
+import LandlordSidebar from "../../components/layout/LandlordSidebar";
+import ElectricTable from "../../components/landlord/ElectricTable";
+
+const { Sider, Content } = Layout;
+const { Option } = Select;
+
+export default function LandlordElectricListPage() {
+  const [selectedMonth, setSelectedMonth] = useState(dayjs());
+  const [selectedBuilding, setSelectedBuilding] = useState("All");
+  const [selectedCycle, setSelectedCycle] = useState("All");
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5;
+
+  const fullData = [
+    {
+      key: "1",
+      room: "201",
+      lastMonth: 120,
+      thisMonth: 150,
+      bill: 105000,
+    },
+    {
+      key: "2",
+      room: "202",
+      lastMonth: 200,
+      thisMonth: 245,
+      bill: 157500,
+    },
+    {
+      key: "3",
+      room: "203",
+      lastMonth: 180,
+      thisMonth: 215,
+      bill: 122500,
+    },
+    {
+      key: "4",
+      room: "204",
+      lastMonth: 220,
+      thisMonth: 250,
+      bill: 105000,
+    },
+    {
+      key: "5",
+      room: "205",
+      lastMonth: 100,
+      thisMonth: 140,
+      bill: 140000,
+    },
+    {
+      key: "6",
+      room: "206",
+      lastMonth: 300,
+      thisMonth: 340,
+      bill: 140000,
+    },
+  ];
+
+  const pagedData = fullData.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const handleSaveBill = () => {
+    console.log("Saving bill for:", selectedMonth.format("MM/YYYY"));
+    // TODO: Gọi API lưu bill nếu có
+  };
+
+  return (
+    <Layout style={{ minHeight: "100vh" }}>
+      <Sider width={220} style={{ background: "#001529" }}>
+        <LandlordSidebar />
+      </Sider>
+
+      <Layout style={{ marginTop: 20, marginLeft: 20 }}>
+        <PageHeader title="Total Electric Number" />
+        <Content style={{ margin: "20px" }}>
+          <Row gutter={16} style={{ marginBottom: 20 }}>
+            <Col>
+              <DatePicker
+                picker="month"
+                value={selectedMonth}
+                onChange={(date) => setSelectedMonth(date)}
+                format="MM/YYYY"
+              />
+            </Col>
+
+            <Col>
+              <Select
+                value={selectedBuilding}
+                style={{ width: 140 }}
+                onChange={setSelectedBuilding}
+              >
+                <Option value="All">All Buildings</Option>
+                <Option value="A">Building A</Option>
+                <Option value="B">Building B</Option>
+              </Select>
+            </Col>
+
+            <Col>
+              <Select
+                value={selectedCycle}
+                style={{ width: 140 }}
+                onChange={setSelectedCycle}
+              >
+                <Option value="All">All Cycles</Option>
+                <Option value="Monthly">Monthly</Option>
+                <Option value="Quarterly">Quarterly</Option>
+              </Select>
+            </Col>
+
+            <Col>
+              <Button type="primary" onClick={handleSaveBill}>
+                Save Bill
+              </Button>
+            </Col>
+          </Row>
+          <ElectricTable
+            dataSource={pagedData}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            total={fullData.length}
+            onPageChange={(page) => setCurrentPage(page)}
+          />
+        </Content>
+      </Layout>
+    </Layout>
+  );
+}
