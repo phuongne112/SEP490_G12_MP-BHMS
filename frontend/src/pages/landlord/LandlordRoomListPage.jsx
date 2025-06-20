@@ -9,6 +9,7 @@ import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import RoomTable from "../../components/landlord/RoomTable";
 import RoomFilterPopover from "../../components/landlord/RoomFilterPopover";
 import PageHeader from "../../components/common/PageHeader"; // ✅ Dùng PageHeader
+import { useNavigate } from "react-router-dom"; 
 import { getAllRooms } from "../../services/roomService";
 
 import image1 from "../../assets/RoomImage/image1.png";
@@ -64,6 +65,7 @@ export default function LandlordRoomListPage() {
   const [rooms, setRooms] = useState([]);
   const [total, setTotal] = useState(0);
   const pageSize = 6;
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
   // Tạo filter DSL cho backend
@@ -141,7 +143,10 @@ export default function LandlordRoomListPage() {
               >
                 <Button icon={<FilterOutlined />}>Filter</Button>
               </Popover>
-              <Button type="primary" icon={<PlusOutlined />}>
+              <Button type="primary" 
+              icon={<PlusOutlined />}
+              onClick={() => navigate("/landlord/rooms/add")}
+              >
                 Add Room
               </Button>
             </Space>

@@ -1,6 +1,7 @@
 package com.mpbhms.backend.service.impl;
 
 import com.mpbhms.backend.dto.*;
+import com.mpbhms.backend.entity.ApiResponse;
 import com.mpbhms.backend.entity.Room;
 import com.mpbhms.backend.entity.RoomImage;
 import com.mpbhms.backend.exception.IdInvalidException;
@@ -41,9 +42,8 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public Room addRoom(AddRoomDTO request, MultipartFile[] images) {
         if (roomRepository.existsByRoomNumber(request.getRoomNumber())) {
-            throw new RuntimeException("Room number already exists");
+            throw new com.mpbhms.backend.exception.BusinessException("Room number duplicated");
         }
-
         Room room = new Room();
         room.setRoomNumber(request.getRoomNumber());
         room.setArea(request.getArea());
@@ -53,22 +53,19 @@ public class RoomServiceImpl implements RoomService {
         room.setNumberOfBathrooms(request.getNumberOfBathrooms());
         room.setDescription(request.getDescription());
         room.setIsActive(true);
-
+        room.setMaxOccupants(request.getMaxOccupants());
         Long landlordId = SecurityUtil.getCurrentUserId();
         room.setLandlord(userRepository.findById(landlordId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng (landlord)")));
-
-        // Lưu file ảnh nếu có
         List<RoomImage> imageEntities = new ArrayList<>();
         if (images != null && images.length > 0) {
+            File uploadDirectory = new File(uploadDir);
+            if (!uploadDirectory.exists()) {
+                uploadDirectory.mkdirs();
+            }
             for (MultipartFile file : images) {
                 if (!file.isEmpty()) {
                     try {
-                        File uploadDirectory = new File(uploadDir);
-                        if (!uploadDirectory.exists()) {
-                            uploadDirectory.mkdirs();
-                        }
-                        // Kiểm tra trùng ảnh bằng hash
                         String uploadedFileHash = getFileHash(file);
                         String fileName = null;
                         String imageUrl = null;
@@ -89,23 +86,20 @@ public class RoomServiceImpl implements RoomService {
                             file.transferTo(savedFile);
                             imageUrl = "/uploads/" + fileName;
                         }
-                        // Luôn tạo RoomImage mới cho phòng này
                         RoomImage img = new RoomImage();
                         img.setImageURL(imageUrl);
                         img.setRoom(room);
                         imageEntities.add(img);
-                    } catch (IOException e) {
-                        throw new RuntimeException("Lỗi khi lưu file ảnh: " + e.getMessage());
                     } catch (Exception e) {
-                        throw new RuntimeException("Lỗi khi kiểm tra trùng ảnh: " + e.getMessage());
+                        throw new RuntimeException("Lỗi khi lưu file ảnh: " + e.getMessage());
                     }
                 }
             }
         }
-
         room.setImages(imageEntities);
         return roomRepository.save(room);
     }
+
 
     @Override
     public ResultPaginationDTO getAllRooms(Specification<Room> spec, Pageable pageable) {
@@ -202,6 +196,7 @@ public class RoomServiceImpl implements RoomService {
         room.setNumberOfBathrooms(request.getNumberOfBathrooms());
         room.setDescription(request.getDescription());
         room.setIsActive(true);
+        room.setMaxOccupants(request.getMaxOccupants());
 
         // Chỉ update ảnh nếu FE gửi keepImageIds hoặc images
         boolean updateImages = (keepImageIds != null && !keepImageIds.isEmpty()) || (images != null && images.length > 0);
