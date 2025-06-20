@@ -1,76 +1,54 @@
 import React from "react";
-import { Card, Row, Col, Button, Badge } from "antd";
-import image1 from "../../assets/RoomImage/image1.png";
-import image2 from "../../assets/RoomImage/image2.png";
+import { Card, Row, Col, Button, Badge, Skeleton } from "antd";
 
 const { Meta } = Card;
 
-const mockRooms = [
-  {
-    id: 1,
-    name: "Room 201 - Building B",
-    price: 2300000,
-    status: "Available",
-    image: image1,
-  },
-  {
-    id: 2,
-    name: "Room 202 - Building B",
-    price: 2300000,
-    status: "Full",
-    image: image2,
-  },
-  {
-    id: 3,
-    name: "Room 203 - Building B",
-    price: 2300000,
-    status: "Full",
-    image: image1,
-  },
-  {
-    id: 4,
-    name: "Room 204 - Building B",
-    price: 2300000,
-    status: "Available",
-    image: image2,
-  },
-];
-export default function RoomTable({ rooms }) {
+export default function RoomTable({ rooms, loading }) {
+  if (loading) {
+    return (
+      <Row gutter={[16, 16]}>
+        {[...Array(6)].map((_, idx) => (
+          <Col key={idx} xs={24} sm={12} md={8}>
+            <Card><Skeleton active /></Card>
+          </Col>
+        ))}
+      </Row>
+    );
+  }
   return (
     <Row gutter={[16, 16]}>
-      {rooms.map((room) => (
-        <Col key={room.id} xs={24} sm={12} md={8}>
-          <Card
-            cover={
-              <img
-                alt="room"
-                src={room.image}
-                style={{
-                  height: 200,
-                  objectFit: "cover",
-                  width: "100%",
-                }}
+      {rooms.map((room) => {
+        const imageUrl = room.images && room.images.length > 0
+          ? room.images[0].imageUrl
+          : "/img/room-default.png"; // fallback ảnh mặc định
+        return (
+          <Col key={room.id} xs={24} sm={12} md={8}>
+            <Card
+              cover={
+                <img
+                  alt="room"
+                  src={imageUrl}
+                  style={{ height: 200, objectFit: "cover", width: "100%" }}
+                />
+              }
+              actions={[
+                <Button type="primary" disabled={room.roomStatus !== "Available"}>
+                  Assign Renter
+                </Button>,
+                <Badge
+                  status={room.roomStatus === "Available" ? "success" : "error"}
+                  text={room.roomStatus}
+                />,
+              ]}
+            >
+              <Meta
+                title={room.roomNumber}
+                description={`Price: ${room.pricePerMonth?.toLocaleString("en-US")} VND/month`}
               />
-            }
-            actions={[
-              <Button type="primary" disabled={room.status !== "Available"}>
-                Assign Renter
-              </Button>,
-              <Badge
-                status={room.status === "Available" ? "success" : "error"}
-                text={room.status}
-              />,
-            ]}
-          >
-            <Meta
-              title={room.name}
-              description={`Price: ${room.price.toLocaleString(
-                "en-US"
-              )} VND/month`}
-            />
-          </Card>
-        </Col>
-      ))}
+            </Card>
+          </Col>
+        );
+      })}
     </Row>
   );
 }

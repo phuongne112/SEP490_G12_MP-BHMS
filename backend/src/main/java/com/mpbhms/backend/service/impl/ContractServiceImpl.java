@@ -14,6 +14,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.nio.file.Paths;
 import java.text.NumberFormat;
@@ -49,8 +53,16 @@ public class ContractServiceImpl implements ContractService {
         Document document = new Document(PageSize.A4, 50, 50, 50, 50);
 
         try {
-            String fontPath = Paths.get("src/main/resources/fonts/arial.ttf").toAbsolutePath().toString();
-            BaseFont baseFont = BaseFont.createFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            InputStream fontStream = getClass().getResourceAsStream("/fonts/arial.ttf");
+            File tempFont = File.createTempFile("arial", ".ttf");
+            try (OutputStream out = new FileOutputStream(tempFont)) {
+                if (fontStream != null) {
+                    fontStream.transferTo(out);
+                } else {
+                    throw new RuntimeException("Không tìm thấy font arial.ttf trong resource!");
+                }
+            }
+            BaseFont baseFont = BaseFont.createFont(tempFont.getAbsolutePath(), BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
             Font titleFont = new Font(baseFont, 18, Font.BOLD);
             Font normalFont = new Font(baseFont, 12);
             Font smallBold = new Font(baseFont, 12, Font.BOLD);

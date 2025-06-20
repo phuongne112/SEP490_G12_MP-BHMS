@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { Layout, Pagination, Input, Button, Space, Popover } from "antd";
+import React, { useState, useEffect } from "react";
+import { Layout, Pagination, Input, Button, Space, Popover, message } from "antd";
 import {
   SearchOutlined,
   PlusOutlined,
@@ -9,6 +9,7 @@ import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import RoomTable from "../../components/landlord/RoomTable";
 import RoomFilterPopover from "../../components/landlord/RoomFilterPopover";
 import PageHeader from "../../components/common/PageHeader"; // ✅ Dùng PageHeader
+import { getAllRooms } from "../../services/roomService";
 
 import image1 from "../../assets/RoomImage/image1.png";
 import image2 from "../../assets/RoomImage/image2.png";
@@ -60,33 +61,44 @@ export default function LandlordRoomListPage() {
     priceRange: [null, null],
   });
   const [currentPage, setCurrentPage] = useState(1);
+  const [rooms, setRooms] = useState([]);
+  const [total, setTotal] = useState(0);
   const pageSize = 6;
+  const [loading, setLoading] = useState(false);
 
-  const handleSearch = () => {
-    setCurrentPage(1);
+  // Tạo filter DSL cho backend
+  const buildFilterDSL = () => {
+    let filters = [];
+    if (search) filters.push(`roomNumber~'*${search}*'`);
+    if (filter.status) filters.push(`roomStatus='${filter.status}'`);
+    if (filter.priceRange[0] != null) filters.push(`pricePerMonth>=${filter.priceRange[0]}`);
+    if (filter.priceRange[1] != null) filters.push(`pricePerMonth<=${filter.priceRange[1]}`);
+    return filters.join(" and ");
   };
 
+  const fetchRooms = async () => {
+    setLoading(true);
+    try {
+      const filterDSL = buildFilterDSL();
+      const res = await getAllRooms(currentPage - 1, pageSize, filterDSL);
+      setRooms(res.result || []);
+      setTotal(res.meta?.total || 0);
+    } catch (err) {
+      message.error("Failed to load rooms");
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchRooms();
+    // eslint-disable-next-line
+  }, [search, filter, currentPage]);
+
+  const handleSearch = () => setCurrentPage(1);
   const handleFilter = (newFilter) => {
     setFilter(newFilter);
     setCurrentPage(1);
   };
-
-  const filteredRooms = useMemo(() => {
-    return mockRooms
-      .filter((room) => room.name.toLowerCase().includes(search.toLowerCase()))
-      .filter((room) => (filter.status ? room.status === filter.status : true))
-      .filter((room) =>
-        filter.priceRange[0] != null ? room.price >= filter.priceRange[0] : true
-      )
-      .filter((room) =>
-        filter.priceRange[1] != null ? room.price <= filter.priceRange[1] : true
-      );
-  }, [search, filter]);
-
-  const paginatedRooms = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredRooms.slice(start, start + pageSize);
-  }, [filteredRooms, currentPage]);
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -136,14 +148,14 @@ export default function LandlordRoomListPage() {
           </div>
 
           {/* ✅ Room cards */}
-          <RoomTable rooms={paginatedRooms} />
+          <RoomTable rooms={rooms} loading={loading} />
 
           {/* ✅ Pagination */}
           <div style={{ marginTop: 24, textAlign: "center" }}>
             <Pagination
               current={currentPage}
               pageSize={pageSize}
-              total={filteredRooms.length}
+              total={total}
               onChange={(page) => setCurrentPage(page)}
             />
           </div>
