@@ -15,11 +15,8 @@ public class AddRoomDTO {
     private String roomNumber;
     private BigDecimal area;
     private Double pricePerMonth;
-    private String roomStatus; // Enum: Available, Occupied, Maintenance, Inactive
+    private String roomStatus;
     private Integer numberOfBedrooms;
     private Integer numberOfBathrooms;
     private String description;
-
-    // Thêm field ảnh
-    private List<String> imageUrls; // danh sách đường dẫn ảnh
 }

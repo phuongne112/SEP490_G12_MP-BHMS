@@ -6,18 +6,19 @@ import com.mpbhms.backend.dto.RoomDTO;
 import com.mpbhms.backend.entity.Room;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 public interface RoomService {
-    Room addRoom(AddRoomDTO request);
+    Room addRoom(AddRoomDTO request, MultipartFile[] images);
 
     ResultPaginationDTO getAllRooms(Specification<Room> spec, Pageable pageable);
 
     RoomDTO convertToRoomDTO(Room room);
 
     List<RoomDTO> convertToRoomDTOList(List<Room> rooms);
-    Room updateRoom(Long id, AddRoomDTO request);
+    Room updateRoom(Long id, AddRoomDTO request, List<Long> keepImageIds, MultipartFile[] images);
     void deleteRoom(Long id);
 
 }
