@@ -44,10 +44,10 @@ public class Room extends BaseEntity {
     @ManyToMany
     @JoinTable(
             name = "room_services",
-            joinColumns = @JoinColumn(name = "RoomID"),
-            inverseJoinColumns = @JoinColumn(name = "ServiceID")
+            joinColumns = @JoinColumn(name = "roomid"),
+            inverseJoinColumns = @JoinColumn(name = "serviceid")
     )
-    private List<Service> services;
+    private List<CustomService> services;
 
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @JsonManagedReference
@@ -65,4 +65,7 @@ public class Room extends BaseEntity {
     @JoinColumn(name = "landlord_id")
     @JsonIgnoreProperties({"userInfo", "password", "role", "refreshToken"})
     private User landlord;
+    //
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL)
+    private List<ServiceReading> serviceReadings = new ArrayList<>();
 }

@@ -64,6 +64,16 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Assign user to Room", "/mpbhms/room-users/add-many", "POST", "RoomUser"));
             //
             permissions.add(new Permission("Export contract", "/mpbhms/contracts/{id}/export", "GET", "Contract"));
+            //OCR
+            permissions.add(new Permission("OCR", "/mpbhms/ocr/detect-ocr", "POST", "Ocr"));
+            //Bill
+            permissions.add(new Permission("Generate first", "/mpbhms/bills/generate-first", "POST", "Bill"));
+            permissions.add(new Permission("Generate", "/mpbhms/bills/generate", "POST", "Bill"));
+            permissions.add(new Permission("Generate", "/mpbhms/bills/service-bill", "POST", "Bill"));
+            //Renter
+            permissions.add(new Permission("Get Renter List", "/mpbhms/renters", "GET", "Renter"));
+            permissions.add(new Permission("Create new Renter", "/mpbhms/renters", "POST", "Renter"));
+            permissions.add(new Permission("Change renter status", "/mpbhms/renters/{id}/status", "PUT", "Renter"));
             permissions = permissionRepository.saveAll(permissions);
         }
 
@@ -95,10 +105,19 @@ public class DatabaseInitializer implements CommandLineRunner {
             landlordRole.setRoleName("LANDLORD");
             List<Permission> landlordPermission = permissionRepository.findAll()
                     .stream()
-                    .filter(p -> List.of("Room","RoomUser").contains(p.getModule())) // hoặc theo API cụ thể
+                    .filter(p -> List.of("Room","RoomUser","Bill","Ocr","Contract").contains(p.getModule())) // hoặc theo API cụ thể
                     .toList();
             landlordRole.setPermissionEntities(landlordPermission);
             roleRepository.save(landlordRole);
+
+            Role subAdminRole = new Role();
+            subAdminRole.setRoleName("SUBADMIN");
+            List<Permission> subAdminPermission = permissionRepository.findAll()
+                    .stream()
+                    .filter(p -> List.of().contains(p.getModule())) // hoặc theo API cụ thể
+                    .toList();
+            landlordRole.setPermissionEntities(subAdminPermission);
+            roleRepository.save(subAdminRole);
         }
 
         // --- Init Users ---
@@ -125,6 +144,17 @@ public class DatabaseInitializer implements CommandLineRunner {
                 landlord.setRole(landlordRole);
             }
             userRepository.save(landlord);
+
+            User subAdmin  = new User();
+            subAdmin.setEmail("subadmin@gmail.com");
+            subAdmin.setUsername("Sub admin");
+            subAdmin.setPassword(passwordEncoder.encode("123123123aA@"));
+
+            Role subAdminRole = roleRepository.findByRoleName("SUBADMIN");
+            if (subAdminRole != null) {
+                subAdmin.setRole(subAdminRole);
+            }
+            userRepository.save(subAdmin);
         }
 
         if (countPermissions > 0 && countRoles > 0 && countUsers > 0) {

@@ -3,7 +3,7 @@ package com.mpbhms.backend.controller;
 import com.mpbhms.backend.dto.AddRoomDTO;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
 import com.mpbhms.backend.entity.Room;
-import com.mpbhms.backend.service.ElectricOcrService;
+import com.mpbhms.backend.service.ElectricMeterDetectionService;
 import com.mpbhms.backend.service.RoomService;
 import com.turkraft.springfilter.boot.Filter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,8 +19,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class RoomController {
     @Autowired
     private RoomService roomService;
-    @Autowired
-    private ElectricOcrService electricOcrService;
     @PostMapping()
     public ResponseEntity<Room> addRoom(@RequestBody AddRoomDTO request) {
         Room savedRoom = roomService.addRoom(request);
@@ -44,14 +42,5 @@ public class RoomController {
     public ResponseEntity<Void> deleteRoom(@PathVariable Long id) {
         roomService.deleteRoom(id);
         return ResponseEntity.noContent().build();
-    }
-    @PostMapping("/electric")
-    public ResponseEntity<String> ocrElectricMeter(@RequestParam("file") MultipartFile file) {
-        try {
-            String result = electricOcrService.extractTextFromImage(file);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("OCR failed: " + e.getMessage());
-        }
     }
 }
