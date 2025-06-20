@@ -1,5 +1,7 @@
 package com.mpbhms.backend.util;
 
+import com.mpbhms.backend.entity.User;
+import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.response.LoginDTOResponse;
 import com.nimbusds.jose.util.Base64;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +28,7 @@ import java.util.Optional;
 public class SecurityUtil {
     private final JwtEncoder jwtEncoder;
     private final JwtDecoder jwtDecoder;
-
+    private final UserRepository userRepository;
     public static final MacAlgorithm JWT_MAC_ALGORITHM = MacAlgorithm.HS512;
     @Value("${mpbhms.jwt.base64-secret}")
     private String jwtKey;
@@ -159,5 +161,15 @@ public class SecurityUtil {
         }
         return null;
     }
+    public User getCurrentUser() {
+        Long id = getCurrentUserId();
+        if (id == null) {
+            throw new RuntimeException("Cannot found current user");
+        }
+
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Current user not have in system"));
+    }
+
 
 }

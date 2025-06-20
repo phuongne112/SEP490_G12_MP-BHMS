@@ -33,12 +33,17 @@ public class ContractServiceImpl implements ContractService {
     @Transactional
     public byte[] generateContractPdf(Long contractId) {
         Contract contract = contractRepository.findById(contractId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy hợp đồng"));
+                .orElseThrow(() -> new RuntimeException("Cannot found Contract with id: " + contractId));
 
         Room room = contract.getRoom();
         RoomUser roomUser = contract.getRoomUser();
-        User renter = roomUser.getUser();
+
+        if (room == null) {
+            throw new RuntimeException("Cannot found room in contract with id: " + contractId);
+        }
+
         User landlord = room.getLandlord();
+        User renter = (roomUser != null) ? roomUser.getUser() : null;
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4, 50, 50, 50, 50);
@@ -58,16 +63,31 @@ public class ContractServiceImpl implements ContractService {
             DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
             NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
 
-            // Lấy thông tin
-            String landlordName = (landlord.getUserInfo() != null) ? landlord.getUserInfo().getFullName() : "Chưa rõ";
-            String landlordPhone = (landlord.getUserInfo() != null) ? landlord.getUserInfo().getPhoneNumber() : "Chưa rõ";
-            String landlordCCCD = (landlord.getUserInfo() != null) ? landlord.getUserInfo().getNationalID() : "Chưa rõ";
-            String landlordAddress = (landlord.getUserInfo() != null) ? landlord.getUserInfo().getPermanentAddress() : "Chưa rõ";
+            // Lấy thông tin landlord
+            String landlordName = "Chưa rõ";
+            String landlordPhone = "Chưa rõ";
+            String landlordCCCD = "Chưa rõ";
+            String landlordAddress = "Chưa rõ";
 
-            String renterName = (renter.getUserInfo() != null) ? renter.getUserInfo().getFullName() : "Chưa rõ";
-            String renterPhone = (renter.getUserInfo() != null) ? renter.getUserInfo().getPhoneNumber() : "Chưa rõ";
-            String renterCCCD = (renter.getUserInfo() != null) ? renter.getUserInfo().getNationalID() : "Chưa rõ";
-            String renterAddress = (renter.getUserInfo() != null) ? renter.getUserInfo().getPermanentAddress() : "Chưa rõ";
+            if (landlord != null && landlord.getUserInfo() != null) {
+                landlordName = landlord.getUserInfo().getFullName();
+                landlordPhone = landlord.getUserInfo().getPhoneNumber();
+                landlordCCCD = landlord.getUserInfo().getNationalID();
+                landlordAddress = landlord.getUserInfo().getPermanentAddress();
+            }
+
+            // Lấy thông tin renter
+            String renterName = "Chưa rõ";
+            String renterPhone = "Chưa rõ";
+            String renterCCCD = "Chưa rõ";
+            String renterAddress = "Chưa rõ";
+
+            if (renter != null && renter.getUserInfo() != null) {
+                renterName = renter.getUserInfo().getFullName();
+                renterPhone = renter.getUserInfo().getPhoneNumber();
+                renterCCCD = renter.getUserInfo().getNationalID();
+                renterAddress = renter.getUserInfo().getPermanentAddress();
+            }
 
             String roomNumber = room.getRoomNumber() != null ? room.getRoomNumber() : "Không rõ";
             Double rentAmount = contract.getRentAmount() != null ? contract.getRentAmount() : 0.0;
@@ -105,46 +125,46 @@ public class ContractServiceImpl implements ContractService {
 
             // BÊN A
             Paragraph benA = new Paragraph(String.format("""
-                BÊN CHO THUÊ (BÊN A):
-                - Chủ trọ: %s
-                - Số điện thoại: %s
-                - Số CCCD: %s
-                - Địa chỉ thường trú: %s
-                """, landlordName, landlordPhone, landlordCCCD, landlordAddress), normalFont);
+            BÊN CHO THUÊ (BÊN A):
+            - Chủ trọ: %s
+            - Số điện thoại: %s
+            - Số CCCD: %s
+            - Địa chỉ thường trú: %s
+            """, landlordName, landlordPhone, landlordCCCD, landlordAddress), normalFont);
             benA.setSpacingAfter(10f);
             document.add(benA);
 
             // BÊN B
             Paragraph benB = new Paragraph(String.format("""
-                BÊN THUÊ (BÊN B):
-                - Họ tên: %s
-                - Số điện thoại: %s
-                - Số CCCD: %s
-                - Địa chỉ thường trú: %s
-                """, renterName, renterPhone, renterCCCD, renterAddress), normalFont);
+            BÊN THUÊ (BÊN B):
+            - Họ tên: %s
+            - Số điện thoại: %s
+            - Số CCCD: %s
+            - Địa chỉ thường trú: %s
+            """, renterName, renterPhone, renterCCCD, renterAddress), normalFont);
             benB.setSpacingAfter(10f);
             document.add(benB);
 
             // Điều khoản
             Paragraph content = new Paragraph(String.format("""
-                Hai bên đồng ý ký kết hợp đồng thuê phòng trọ với các điều khoản sau:
+            Hai bên đồng ý ký kết hợp đồng thuê phòng trọ với các điều khoản sau:
 
-                1. Thông tin phòng thuê:
-                   - Phòng số: %s
-                   - Giá thuê: %s / tháng
-                   - Tiền cọc: %s
-                   - Thời hạn thuê: từ ngày %s đến ngày %s
-                   - Hình thức thanh toán: %s
+            1. Thông tin phòng thuê:
+               - Phòng số: %s
+               - Giá thuê: %s / tháng
+               - Tiền cọc: %s
+               - Thời hạn thuê: từ ngày %s đến ngày %s
+               - Hình thức thanh toán: %s
 
-                2. Quy định sử dụng:
-                   - Bên B cam kết sử dụng phòng đúng mục đích, giữ gìn vệ sinh, an ninh.
-                   - Mọi hư hỏng do Bên B gây ra sẽ phải đền bù theo thoả thuận.
+            2. Quy định sử dụng:
+               - Bên B cam kết sử dụng phòng đúng mục đích, giữ gìn vệ sinh, an ninh.
+               - Mọi hư hỏng do Bên B gây ra sẽ phải đền bù theo thoả thuận.
 
-                3. Chấm dứt hợp đồng:
-                   - Hai bên thông báo trước 15 ngày khi muốn chấm dứt hợp đồng.
+            3. Chấm dứt hợp đồng:
+               - Hai bên thông báo trước 15 ngày khi muốn chấm dứt hợp đồng.
 
-                Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá trị pháp lý như nhau.
-                """,
+            Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá trị pháp lý như nhau.
+            """,
                     roomNumber,
                     currencyFormat.format(rentAmount),
                     currencyFormat.format(depositAmount),
@@ -160,9 +180,9 @@ public class ContractServiceImpl implements ContractService {
 
             // Chữ ký
             Paragraph sign = new Paragraph("""
-                BÊN CHO THUÊ (BÊN A)                BÊN THUÊ (BÊN B)
-                (Ký và ghi rõ họ tên)               (Ký và ghi rõ họ tên)
-                """, normalFont);
+            BÊN CHO THUÊ (BÊN A)                BÊN THUÊ (BÊN B)
+            (Ký và ghi rõ họ tên)               (Ký và ghi rõ họ tên)
+            """, normalFont);
             sign.setSpacingBefore(20f);
             sign.setAlignment(Element.ALIGN_CENTER);
             document.add(sign);
@@ -175,4 +195,6 @@ public class ContractServiceImpl implements ContractService {
             throw new RuntimeException("Không thể tạo PDF", e);
         }
     }
+
 }
+
