@@ -18,13 +18,13 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private ResponseEntity<ApiResponse<?>> buildResponse(HttpStatus status, String errorCode, String message, Object data) {
+    private ResponseEntity<ApiResponse<?>> buildResponse(HttpStatus status, String errorCode, String message,
+            Object data) {
         ApiResponse<?> response = new ApiResponse<>(
                 status.value(),
                 errorCode,
                 message,
-                data
-        );
+                data);
         return ResponseEntity.status(status).body(response);
     }
 
@@ -61,7 +61,6 @@ public class GlobalExceptionHandler {
         return buildResponse(ex.getStatus(), "VALIDATION_ERROR", ex.getMessage(), ex.getErrors());
     }
 
-
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<?>> handleValidationErrors(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
@@ -74,7 +73,7 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Validation failed", errors);
     }
 
-    @ExceptionHandler({DataIntegrityViolationException.class, ConstraintViolationException.class})
+    @ExceptionHandler({ DataIntegrityViolationException.class, ConstraintViolationException.class })
     public ResponseEntity<ApiResponse<?>> handleDataIntegrityViolation(Exception ex) {
         String message = "Duplicate entry or constraint violation";
         Throwable cause = ex.getCause();
@@ -93,10 +92,14 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, "DATA_INTEGRITY_ERROR", message, null);
     }
 
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ApiResponse<?>> handleRuntimeException(RuntimeException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "RUNTIME_ERROR", ex.getMessage(), null);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleGlobalException(Exception ex) {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getClass().getSimpleName(), ex.getMessage(), null);
     }
-
 
 }
