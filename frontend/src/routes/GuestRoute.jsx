@@ -5,24 +5,11 @@ export default function GuestRoute({ children }) {
   const user = useSelector((state) => state.account.user);
   const token = localStorage.getItem("token");
 
-  // ❌ Nếu chưa đăng nhập hoặc đã logout → cho vào guest route
+  // ❌ Nếu chưa đăng nhập → cho vào guest route (login, register)
   if (!user || !user.role || !token) {
     return children;
   }
 
-  // ✅ Nếu đã đăng nhập → redirect theo vai trò
-  const roleName =
-    user?.role?.roleName?.toUpperCase?.() || user.role?.toUpperCase?.();
-
-  switch (roleName) {
-    case "ADMIN":
-    case "SUBADMIN":
-      return <Navigate to="/admin/users" replace />;
-    case "RENTER":
-      return <Navigate to="/room" replace />;
-    case "LANDLORD":
-      return <Navigate to="/landlord/dashboard" replace />;
-    default:
-      return <Navigate to="/403" replace />;
-  }
+  // ✅ Nếu đã đăng nhập → redirect về trang homepage chung
+  return <Navigate to="/home" replace />;
 }

@@ -8,9 +8,11 @@ import {
 } from "@ant-design/icons";
 import Sidebar from "./Sidebar";
 import { useSelector } from "react-redux";
+import { useLocation } from "react-router-dom";
 
 export default function LandlordSidebar() {
   const user = useSelector((state) => state.account.user);
+  const location = useLocation();
 
   const landlordMenu = [
     {
@@ -39,12 +41,16 @@ export default function LandlordSidebar() {
     },
   ];
 
+  const selectedKey = landlordMenu.find((item) =>
+    location.pathname.startsWith(item.path)
+  )?.key;
+
   return (
     <Sidebar
       name={user?.fullName || "Landlord"}
       avatar="https://i.pravatar.cc/40?img=2"
       menuItems={landlordMenu}
-      defaultKey="/landlord/renters"
+      selectedKeys={[selectedKey]}
     ></Sidebar>
   );
 }

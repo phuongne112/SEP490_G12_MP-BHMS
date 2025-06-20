@@ -29,17 +29,18 @@ export default function Login() {
       );
       localStorage.setItem("showWelcome", "true");
       const roleName = user?.role?.roleName?.toUpperCase();
-      switch (roleName) {
-        case "ADMIN":
-        case "SUBADMIN":
-          navigate("/admin/users");
-          break;
-        case "RENTER":
-          navigate("/room");
-          break;
-        default:
-          navigate("/home");
-      }
+      // switch (roleName) {
+      //   case "ADMIN":
+      //   case "SUBADMIN":
+      //     navigate("/admin/users");
+      //     break;
+      //   case "RENTER":
+      //     navigate("/room");
+      //     break;
+      //   default:
+      //     navigate("/home");
+      // }
+      navigate("/home");
     } catch (err) {
       const response = err.response?.data;
       if (response?.data && typeof response.data === "object") {
@@ -193,8 +194,10 @@ export default function Login() {
               >
                 Sign In
               </button>
-             {error.general && (
-                <p style={{ color: "red", marginTop: 12, fontSize: 14 }}>{error.general}</p>
+              {error.general && (
+                <p style={{ color: "red", marginTop: 12, fontSize: 14 }}>
+                  {error.general}
+                </p>
               )}
             </form>
 

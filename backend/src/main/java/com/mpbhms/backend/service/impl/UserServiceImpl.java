@@ -292,7 +292,7 @@ public class UserServiceImpl implements UserService {
                 throw new RuntimeException("User not found");
             }
 
-            Instant expiry = Instant.now().plus(Duration.ofSeconds(30));
+            Instant expiry = Instant.now().plus(Duration.ofSeconds(120));
             String token = securityUtil.generateResetToken(email, expiry);
 
             LocalDate today = LocalDate.now();

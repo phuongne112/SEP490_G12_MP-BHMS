@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "../pages/LoginPage";
 import HomePage from "../pages/HomePage";
 import Register from "../pages/RegisterPage";
@@ -16,6 +16,8 @@ import AdminRoute from "./AdminRoute";
 import GuestRoute from "./GuestRoute";
 import LandlordRenterListPage from "../pages/landlord/LandlordRenterListPage";
 import LandlordRoomListPage from "../pages/landlord/LandlordRoomListPage";
+import LandlordAddRenterPage from "../pages/landlord/LandlordAddRenterPage";
+import LandlordServiceListPage from "../pages/landlord/LandlordServiceListPage";
 
 export default function AppRouter() {
   return (
@@ -29,7 +31,7 @@ export default function AppRouter() {
         }
       />
       <Route
-        path="/signup"
+        path="/signUp"
         element={
           <GuestRoute>
             <Register />
@@ -77,6 +79,10 @@ export default function AppRouter() {
       <Route path="/landlord/renters" element={<LandlordRenterListPage />} />
       <Route path="/landlord/rooms" element={<LandlordRoomListPage />} />
       <Route path="/403" element={<Error403 />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
+
+      <Route path="/landlord/renters/add" element={<LandlordAddRenterPage />} />
+      <Route path="/landlord/services" element={<LandlordServiceListPage />} />
     </Routes>
   );
 }

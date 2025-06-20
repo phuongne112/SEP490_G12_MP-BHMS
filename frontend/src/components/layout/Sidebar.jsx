@@ -92,7 +92,10 @@ export default function Sidebar({
         <Menu
           theme="dark"
           mode="inline"
-          selectedKeys={[location.pathname]}
+          selectedKeys={[
+            menuItems.find((item) => location.pathname.startsWith(item.path))
+              ?.key,
+          ]}
           onClick={handleClick}
         >
           {menuItems.map((item) => (

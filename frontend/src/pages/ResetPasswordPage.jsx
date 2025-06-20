@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import SystemLogo from "../components/SystemLogo";
 import { resetPassword } from "../services/authService";
 import TextInput from "../components/common/TextInput";
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 
 export default function ResetPasswordPage() {
   const [form, setForm] = useState({
@@ -15,6 +16,8 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState({});
   const [success, setSuccess] = useState(false);
   const [token, setToken] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -116,16 +119,34 @@ export default function ResetPasswordPage() {
               name="newPassword"
               value={form.newPassword}
               onChange={handleChange}
-              type="password"
+              type={showNewPassword ? "text" : "password"}
               error={error?.newPassword}
+              suffix={
+                showNewPassword ? (
+                  <AiOutlineEyeInvisible
+                    onClick={() => setShowNewPassword(false)}
+                  />
+                ) : (
+                  <AiOutlineEye onClick={() => setShowNewPassword(true)} />
+                )
+              }
             />
             <TextInput
               label="Confirm Password"
               name="confirmPassword"
               value={form.confirmPassword}
               onChange={handleChange}
-              type="password"
+              type={showConfirmPassword ? "text" : "password"}
               error={error?.confirmPassword}
+              suffix={
+                showConfirmPassword ? (
+                  <AiOutlineEyeInvisible
+                    onClick={() => setShowConfirmPassword(false)}
+                  />
+                ) : (
+                  <AiOutlineEye onClick={() => setShowConfirmPassword(true)} />
+                )
+              }
             />
 
             {error?.general && (
