@@ -3,6 +3,7 @@ package com.mpbhms.backend.service;
 import com.mpbhms.backend.dto.AddRoomDTO;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
 import com.mpbhms.backend.dto.RoomDTO;
+import com.mpbhms.backend.entity.ApiResponse;
 import com.mpbhms.backend.entity.Room;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
