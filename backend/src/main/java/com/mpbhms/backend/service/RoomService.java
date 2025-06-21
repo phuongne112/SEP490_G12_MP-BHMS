@@ -22,5 +22,8 @@ public interface RoomService {
     Room updateRoom(Long id, AddRoomDTO request, List<Long> keepImageIds, MultipartFile[] images);
     void deleteRoom(Long id);
 
+    void updateRoomStatus(Long id, String status);
+
+    void toggleActiveStatus(Long id);
 }
 

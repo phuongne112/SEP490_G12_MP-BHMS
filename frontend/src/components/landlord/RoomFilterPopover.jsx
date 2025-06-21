@@ -8,11 +8,24 @@ export default function RoomFilterPopover({ onFilter }) {
   const [status, setStatus] = useState();
   const [minPrice, setMinPrice] = useState();
   const [maxPrice, setMaxPrice] = useState();
+  const [minArea, setMinArea] = useState();
+  const [maxArea, setMaxArea] = useState();
+  const [minBedrooms, setMinBedrooms] = useState();
+  const [maxBedrooms, setMaxBedrooms] = useState();
+  const [minBathrooms, setMinBathrooms] =useState();
+  const [maxBathrooms, setMaxBathrooms] = useState();
+  const [hasAsset, setHasAsset] = useState();
+  const [isActive, setIsActive] = useState();
 
   const handleApply = () => {
     onFilter({
       status,
       priceRange: [minPrice, maxPrice],
+      areaRange: [minArea, maxArea],
+      bedroomsRange: [minBedrooms, maxBedrooms],
+      bathroomsRange: [minBathrooms, maxBathrooms],
+      hasAsset,
+      isActive,
     });
   };
 
@@ -33,7 +46,9 @@ export default function RoomFilterPopover({ onFilter }) {
             allowClear
           >
             <Option value="Available">Available</Option>
-            <Option value="Full">Full</Option>
+            <Option value="Occupied">Occupied</Option>
+            <Option value="Maintenance">Maintenance</Option>
+            <Option value="Inactive">Inactive</Option>
           </Select>
         </div>
 
@@ -54,6 +69,93 @@ export default function RoomFilterPopover({ onFilter }) {
             onChange={(val) => setMaxPrice(val)}
             min={0}
           />
+        </div>
+
+        {/* Filter by Area */}
+        <div>
+          <div style={{ marginBottom: 4 }}>Area (m²)</div>
+          <InputNumber
+            style={{ width: "45%", marginRight: "10%" }}
+            placeholder="Min"
+            value={minArea}
+            onChange={(val) => setMinArea(val)}
+            min={0}
+          />
+          <InputNumber
+            style={{ width: "45%" }}
+            placeholder="Max"
+            value={maxArea}
+            onChange={(val) => setMaxArea(val)}
+            min={0}
+          />
+        </div>
+
+        {/* Filter by Bedrooms */}
+        <div>
+          <div style={{ marginBottom: 4 }}>Bedrooms</div>
+          <InputNumber
+            style={{ width: "45%", marginRight: "10%" }}
+            placeholder="Min"
+            value={minBedrooms}
+            onChange={(val) => setMinBedrooms(val)}
+            min={0}
+          />
+          <InputNumber
+            style={{ width: "45%" }}
+            placeholder="Max"
+            value={maxBedrooms}
+            onChange={(val) => setMaxBedrooms(val)}
+            min={0}
+          />
+        </div>
+
+        {/* Filter by Bathrooms */}
+        <div>
+          <div style={{ marginBottom: 4 }}>Bathrooms</div>
+          <InputNumber
+            style={{ width: "45%", marginRight: "10%" }}
+            placeholder="Min"
+            value={minBathrooms}
+            onChange={(val) => setMinBathrooms(val)}
+            min={0}
+          />
+          <InputNumber
+            style={{ width: "45%" }}
+            placeholder="Max"
+            value={maxBathrooms}
+            onChange={(val) => setMaxBathrooms(val)}
+            min={0}
+          />
+        </div>
+        
+        {/* Filter by Has Asset */}
+        <div>
+          <div style={{ marginBottom: 4 }}>Has Asset</div>
+          <Select
+            style={{ width: "100%" }}
+            placeholder="-- All --"
+            value={hasAsset}
+            onChange={(val) => setHasAsset(val)}
+            allowClear
+          >
+            <Option value="true">Yes</Option>
+            <Option value="false">No</Option>
+          </Select>
+        </div>
+
+        {/* Filter by Is Active */}
+        <div>
+          <div style={{ marginBottom: 4 }}>Active Status</div>
+          <Select
+            style={{ width: "100%" }}
+            placeholder="-- All --"
+            value={isActive}
+            onChange={(val) => setIsActive(val)}
+            allowClear
+          >
+            <Option value="true">Active</Option>
+            <Option value="false">Inactive</Option>
+          </Select>
         </div>
 
         <Button type="primary" onClick={handleApply} block>

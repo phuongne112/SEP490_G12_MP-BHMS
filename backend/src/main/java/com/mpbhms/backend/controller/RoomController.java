@@ -5,9 +5,11 @@ import com.mpbhms.backend.dto.ResultPaginationDTO;
 import com.mpbhms.backend.dto.RoomDTO;
 import com.mpbhms.backend.entity.Room;
 import com.mpbhms.backend.response.AddRoomDTOResponse;
+import com.mpbhms.backend.dto.UpdateRoomStatusDTO;
 import com.mpbhms.backend.service.ElectricMeterDetectionService;
 import com.mpbhms.backend.service.RoomService;
 import com.turkraft.springfilter.boot.Filter;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -59,6 +61,16 @@ public class RoomController {
         response.setDescription(savedRoom.getDescription());
         response.setMaxOccupants(savedRoom.getMaxOccupants());
         return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<Void> updateRoomStatus(@PathVariable Long id, @Valid @RequestBody UpdateRoomStatusDTO request) {
+        roomService.updateRoomStatus(id, request.getRoomStatus());
+        return ResponseEntity.ok().build();
+    }
+    @PatchMapping("/{id}/active")
+    public ResponseEntity<Void> toggleActiveStatus(@PathVariable Long id) {
+        roomService.toggleActiveStatus(id);
+        return ResponseEntity.ok().build();
     }
     @GetMapping()
     public ResponseEntity<ResultPaginationDTO> getAllRooms(

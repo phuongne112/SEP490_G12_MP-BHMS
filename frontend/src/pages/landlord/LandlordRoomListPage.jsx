@@ -60,6 +60,11 @@ export default function LandlordRoomListPage() {
   const [filter, setFilter] = useState({
     status: null,
     priceRange: [null, null],
+    areaRange: [null, null],
+    bedroomsRange: [null, null],
+    bathroomsRange: [null, null],
+    hasAsset: null,
+    isActive: null,
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [rooms, setRooms] = useState([]);
@@ -73,8 +78,26 @@ export default function LandlordRoomListPage() {
     let filters = [];
     if (search) filters.push(`roomNumber~'*${search}*'`);
     if (filter.status) filters.push(`roomStatus='${filter.status}'`);
-    if (filter.priceRange[0] != null) filters.push(`pricePerMonth>=${filter.priceRange[0]}`);
-    if (filter.priceRange[1] != null) filters.push(`pricePerMonth<=${filter.priceRange[1]}`);
+    if (filter.priceRange?.[0] != null) filters.push(`pricePerMonth>=${filter.priceRange[0]}`);
+    if (filter.priceRange?.[1] != null) filters.push(`pricePerMonth<=${filter.priceRange[1]}`);
+    
+    if (filter.areaRange?.[0] != null) filters.push(`area>=${filter.areaRange[0]}`);
+    if (filter.areaRange?.[1] != null) filters.push(`area<=${filter.areaRange[1]}`);
+
+    if (filter.bedroomsRange?.[0] != null) filters.push(`numberOfBedrooms>=${filter.bedroomsRange[0]}`);
+    if (filter.bedroomsRange?.[1] != null) filters.push(`numberOfBedrooms<=${filter.bedroomsRange[1]}`);
+
+    if (filter.bathroomsRange?.[0] != null) filters.push(`numberOfBathrooms>=${filter.bathroomsRange[0]}`);
+    if (filter.bathroomsRange?.[1] != null) filters.push(`numberOfBathrooms<=${filter.bathroomsRange[1]}`);
+    
+    if (filter.hasAsset === "true") {
+      filters.push("assets IS NOT EMPTY");
+    } else if (filter.hasAsset === "false") {
+      filters.push("assets IS EMPTY");
+    }
+
+    if (filter.isActive != null) filters.push(`isActive=${filter.isActive}`);
+    
     return filters.join(" and ");
   };
 
@@ -153,7 +176,7 @@ export default function LandlordRoomListPage() {
           </div>
 
           {/* ✅ Room cards */}
-          <RoomTable rooms={rooms} loading={loading} />
+          <RoomTable rooms={rooms} loading={loading} onRoomsUpdate={fetchRooms} />
 
           {/* ✅ Pagination */}
           <div style={{ marginTop: 24, textAlign: "center" }}>

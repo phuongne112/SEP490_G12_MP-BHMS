@@ -10,11 +10,13 @@ import {
   message,
   Row,
   Col,
+  Switch,
 } from "antd";
 import { UploadOutlined, PlusOutlined } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import axiosClient from "../../services/axiosClient";
+import { useNavigate } from "react-router-dom";
 
 const { Sider, Content } = Layout;
 const { TextArea } = Input;
@@ -25,6 +27,7 @@ export default function LandlordAddRoomPage() {
   const [fileList, setFileList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState(null);
+  const navigate = useNavigate();
 
   const handleUploadChange = ({ fileList: newFileList }) => {
     if (newFileList.length <= 8) {
@@ -48,6 +51,7 @@ export default function LandlordAddRoomPage() {
         numberOfBathrooms: values.numberOfBathrooms,
         description: values.description || "",
         maxOccupants: values.maxOccupants,
+        isActive: values.isActive,
       };
       const formData = new FormData();
       formData.append("room", JSON.stringify(roomDTO));
@@ -60,8 +64,8 @@ export default function LandlordAddRoomPage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       message.success("Room added successfully!");
-      form.resetFields();
-      setFileList([]);
+      // Navigate back to room list page
+      navigate("/landlord/rooms");
     } catch (err) {
       const res = err.response?.data;
       setFormError(null);
@@ -101,6 +105,7 @@ export default function LandlordAddRoomPage() {
               numberOfBedrooms: 1,
               numberOfBathrooms: 1,
               roomStatus: "Available",
+              isActive: true,
             }}
           >
             <Row gutter={16}>
@@ -146,8 +151,9 @@ export default function LandlordAddRoomPage() {
                 >
                   <Select>
                     <Option value="Available">Available</Option>
-                    <Option value="Full">Full</Option>
+                    <Option value="Occupied">Occupied</Option>
                     <Option value="Maintenance">Maintenance</Option>
+                    <Option value="Inactive">Inactive</Option>
                   </Select>
                 </Form.Item>
               </Col>
@@ -176,6 +182,18 @@ export default function LandlordAddRoomPage() {
                   rules={[{ required: true, message: "Please enter max occupants" }]}
                 >
                   <InputNumber min={1} max={20} style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="isActive"
+                  label="Active Status"
+                  valuePropName="checked"
+                >
+                  <Switch 
+                    checkedChildren="Active" 
+                    unCheckedChildren="Inactive"
+                  />
                 </Form.Item>
               </Col>
               <Col span={24}>

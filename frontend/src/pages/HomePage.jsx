@@ -2,21 +2,18 @@ import React, { useState } from "react";
 import Footer from "../components/layout/Footer";
 import Header from "../components/layout/Header";
 import RoomList from "../components/home/RoomList";
-import { Slider, Select, Button } from "antd";
+import { Slider, Select, Button, Typography, Carousel } from "antd";
 
 const { Option } = Select;
+const { Title } = Typography;
 
 const FilterBox = ({ title, children }) => (
   <div
     style={{
-      border: "1px solid #eee",
-      borderRadius: 10,
-      padding: 16,
-      background: "#fafafa",
-      marginBottom: 20,
+      marginBottom: 24,
     }}
   >
-    <div style={{ fontWeight: 600, marginBottom: 10 }}>{title}</div>
+    <Title level={5} style={{ marginBottom: 12, fontSize: 16 }}>{title}</Title>
     {children}
   </div>
 );
@@ -28,10 +25,18 @@ export default function HomePage() {
   const [bedrooms, setBedrooms] = useState([1, 3]);
   const [bathrooms, setBathrooms] = useState([1, 2]);
   const [hasAsset, setHasAsset] = useState("All");
-  const [appliedFilter, setAppliedFilter] = useState("");
+  const [appliedFilter, setAppliedFilter] = useState("isActive=true");
+
+  const handleQuickFilter = (filter) => {
+    setAppliedFilter(filter);
+    document.getElementById('room-list-section')?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const buildRoomFilter = () => {
     const dsl = [];
+    // Always filter for active rooms on the homepage
+    dsl.push(`isActive=true`);
+
     if (area?.length === 2) {
       dsl.push(`area >= ${area[0]}`);
       dsl.push(`area <= ${area[1]}`);
@@ -65,34 +70,32 @@ export default function HomePage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f5f5f5" }}>
+    <div style={{ background: "#fff", minHeight: "100vh" }}>
       <Header />
+      
       <div
+        id="room-list-section"
         style={{
-          maxWidth: 1300,
-          margin: "32px auto 0",
-          background: "#fff",
-          borderRadius: 12,
-          boxShadow: "0 2px 8px #0001",
+          width: '95%',
+          maxWidth: 1400,
+          margin: "24px auto",
           display: "flex",
           alignItems: "flex-start",
-          padding: 0,
-          flexWrap: "wrap",
+          gap: '24px',
         }}
       >
         <div
           style={{
-            width: "100%",
-            maxWidth: 300,
+            flex: '0 0 300px',
             background: "#fff",
-            padding: 24,
-            borderRight: "1px solid #eee",
-            marginTop: 60,
-            minHeight: 600,
-            flex: 1,
-            boxSizing: "border-box",
+            padding: '24px',
+            borderRadius: 8,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+            position: 'sticky',
+            top: 24,
           }}
         >
+          <Title level={4} style={{ marginBottom: 24, fontWeight: 600 }}>Filters</Title>
           <FilterBox title="Area (m²)">
             <Slider range min={15} max={40} value={area} onChange={setArea} />
           </FilterBox>
@@ -149,8 +152,8 @@ export default function HomePage() {
               style={{ width: "100%" }}
             >
               <Option value="All">All</Option>
-              <Option value="true">Có nội thất</Option>
-              <Option value="false">Không có</Option>
+              <Option value="true">Yes</Option>
+              <Option value="false">No</Option>
             </Select>
           </FilterBox>
 
@@ -161,18 +164,17 @@ export default function HomePage() {
 
         <div
           style={{
-            flex: 3,
-            padding: 32,
-            background: "#fff",
-            borderRadius: "0 12px 12px 0",
-            minHeight: 600,
-            width: "100%",
-            boxSizing: "border-box",
+            flex: 1,
+            background: '#fff',
+            borderRadius: 8,
+            padding: '24px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
           }}
         >
           <RoomList filter={appliedFilter} />
         </div>
       </div>
+
       <Footer />
     </div>
   );

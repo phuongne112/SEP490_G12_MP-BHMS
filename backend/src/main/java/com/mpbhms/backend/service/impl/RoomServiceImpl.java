@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import com.mpbhms.backend.enums.RoomStatus;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.beans.factory.annotation.Value;
+import com.mpbhms.backend.exception.BusinessException;
+import com.mpbhms.backend.exception.ResourceNotFoundException;
 
 import java.io.File;
 import java.io.IOException;
@@ -52,7 +54,7 @@ public class RoomServiceImpl implements RoomService {
         room.setNumberOfBedrooms(request.getNumberOfBedrooms());
         room.setNumberOfBathrooms(request.getNumberOfBathrooms());
         room.setDescription(request.getDescription());
-        room.setIsActive(true);
+        room.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
         room.setMaxOccupants(request.getMaxOccupants());
         Long landlordId = SecurityUtil.getCurrentUserId();
         room.setLandlord(userRepository.findById(landlordId)
@@ -134,6 +136,7 @@ public class RoomServiceImpl implements RoomService {
         dto.setNumberOfBedrooms(room.getNumberOfBedrooms());
         dto.setNumberOfBathrooms(room.getNumberOfBathrooms());
         dto.setDescription(room.getDescription());
+        dto.setIsActive(room.getIsActive());
 
         // ✅ Convert landlord (chủ trọ)
         if (room.getLandlord() != null) {
@@ -195,7 +198,7 @@ public class RoomServiceImpl implements RoomService {
         room.setNumberOfBedrooms(request.getNumberOfBedrooms());
         room.setNumberOfBathrooms(request.getNumberOfBathrooms());
         room.setDescription(request.getDescription());
-        room.setIsActive(true);
+        room.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
         room.setMaxOccupants(request.getMaxOccupants());
 
         // Chỉ update ảnh nếu FE gửi keepImageIds hoặc images
@@ -259,6 +262,27 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public void deleteRoom(Long id) {
       roomRepository.deleteById(id);
+    }
+
+    @Override
+    public void updateRoomStatus(Long id, String status) {
+        Room room = roomRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
+        try {
+            RoomStatus newStatus = RoomStatus.valueOf(status);
+            room.setRoomStatus(newStatus);
+            roomRepository.save(room);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException("Invalid room status: " + status);
+        }
+    }
+
+    @Override
+    public void toggleActiveStatus(Long id) {
+        Room room = roomRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
+        room.setIsActive(!room.getIsActive());
+        roomRepository.save(room);
     }
 
     private String getFileHash(MultipartFile file) throws Exception {

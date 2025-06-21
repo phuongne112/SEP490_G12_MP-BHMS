@@ -50,7 +50,7 @@ public class UserController {
     }
 
 
-    @PutMapping("/{id}/status")
+    @PutMapping("/{id}/active")
     @ApiMessage("Update user account status (activate/deactivate)")
     public ResponseEntity<Void> updateUserStatus(
             @PathVariable Long id,

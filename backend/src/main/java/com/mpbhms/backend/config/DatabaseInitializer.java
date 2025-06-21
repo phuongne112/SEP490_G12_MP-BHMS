@@ -36,14 +36,16 @@ public class DatabaseInitializer implements CommandLineRunner {
             List<Permission> permissions = new ArrayList<>();
             //Rooms
             permissions.add(new Permission("Update Room", "/mpbhms/rooms/{id}", "PUT", "Room"));
+            permissions.add(new Permission("Update Room Status", "/mpbhms/rooms/{id}/status", "PATCH", "Room"));
             permissions.add(new Permission("Delete Room", "/mpbhms/rooms/{id}", "DELETE", "Room"));
             permissions.add(new Permission("Create Room", "/mpbhms/rooms", "POST", "Room"));
             permissions.add(new Permission("View Room", "/mpbhms/rooms", "GET", "Room"));
+            permissions.add(new Permission("Active/ De-Active Room", "/mpbhms/rooms/{id}/active", "PATCH", "Room"));
             //User
             permissions.add(new Permission("Create User", "/mpbhms/users", "POST", "User"));
             permissions.add(new Permission("Update User", "/mpbhms/users", "PUT", "User"));
             permissions.add(new Permission("Get User", "/mpbhms/users", "GET", "User"));
-            permissions.add(new Permission("Active/ De-Active User", "/mpbhms/users/{id}/status", "PUT", "User"));
+            permissions.add(new Permission("Active/ De-Active User", "/mpbhms/users/{id}/active", "PUT", "User"));
             //Roles
             permissions.add(new Permission("Create Role", "/mpbhms/roles", "POST", "Role"));
             permissions.add(new Permission("Update Role", "/mpbhms/roles", "PUT", "Role"));
