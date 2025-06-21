@@ -319,6 +319,7 @@ export default function AdminPermissionListPage() {
                       <Option value="POST">POST</Option>
                       <Option value="PUT">PUT</Option>
                       <Option value="DELETE">DELETE</Option>
+                      <Option value="PATCH">PATCH</Option>
                     </Select>
                   </Form.Item>
                 </Col>

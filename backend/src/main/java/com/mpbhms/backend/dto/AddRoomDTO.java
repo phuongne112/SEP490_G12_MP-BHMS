@@ -44,4 +44,6 @@ public class AddRoomDTO {
     @NotNull(message = "Max occupants is required")
     @Min(value = 1, message = "Max occupants must be at least 1")
     private Integer maxOccupants;
+
+    private Boolean isActive = true;
 }
