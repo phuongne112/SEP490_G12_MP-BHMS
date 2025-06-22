@@ -21,6 +21,7 @@ import LandlordAddRenterPage from "../pages/landlord/LandlordAddRenterPage";
 import LandlordServiceListPage from "../pages/landlord/LandlordServiceListPage";
 import LandlordElectricListPage from "../pages/landlord/LandlordElectricListPage";
 import RenterRoomDetailPage from "../pages/renter/RenterRoomDetailPage";
+import LandlordAssignRenterPage from '../pages/landlord/LandlordAssignRenterPage';
 
 export default function AppRouter() {
   return (
@@ -90,6 +91,7 @@ export default function AppRouter() {
       <Route path="/landlord/electric" element={<LandlordElectricListPage />} />
 
       <Route path="/renter/room" element={<RenterRoomDetailPage />} />
+      <Route path="/landlord/rooms/:roomId/assign" element={<LandlordAssignRenterPage />} />
     </Routes>
   );
 }

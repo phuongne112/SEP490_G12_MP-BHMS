@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Card, Row, Col, Button, Badge, Skeleton, Tag, Dropdown, Menu, message } from "antd";
 import { updateRoomStatus, toggleRoomActiveStatus } from "../../services/roomService"; 
+import { useNavigate } from "react-router-dom";
 
 const { Meta } = Card;
 
@@ -22,6 +23,7 @@ const getStatusProps = (status) => {
 export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
     const [updatingId, setUpdatingId] = useState(null);
     const [togglingId, setTogglingId] = useState(null);
+    const navigate = useNavigate();
 
     const handleStatusChange = async (roomId, newStatus) => {
         setUpdatingId(roomId);
@@ -100,7 +102,11 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
                                 />
                             }
                             actions={[
-                                <Button type="primary" disabled={room.roomStatus !== "Available"}>
+                                <Button
+                                    type="default"
+                                    onClick={() => navigate(`/landlord/rooms/${room.id}/assign`)}
+                                    style={{ marginLeft: 8 }}
+                                >
                                     Assign Renter
                                 </Button>,
                                 <Dropdown overlay={statusMenu(room)} trigger={['click']} disabled={updatingId === room.id}>
