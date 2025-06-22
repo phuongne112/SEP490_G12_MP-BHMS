@@ -112,9 +112,9 @@ export default function RoleTable({
               }
 
               // ADMIN không được sửa chính mình
-              if (currentRole?.roleName === "ADMIN" && targetRole === "ADMIN") {
-                return null;
-              }
+              // if (currentRole?.roleName === "ADMIN" && targetRole === "ADMIN") {
+              //   return null;
+              // }
 
               return (
                 <Space>
@@ -126,15 +126,19 @@ export default function RoleTable({
                       />
                     </Tooltip>
                   )}
-                  {canDelete && (
-                    <Tooltip title="Delete">
-                      <Button
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => onDeleteRole(record)}
-                      />
-                    </Tooltip>
-                  )}
+                  {canDelete &&
+                    !(
+                      currentRole?.roleName === "ADMIN" &&
+                      record.roleName === "ADMIN"
+                    ) && (
+                      <Tooltip title="Delete">
+                        <Button
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => onDeleteRole(record)}
+                        />
+                      </Tooltip>
+                    )}
                 </Space>
               );
             },

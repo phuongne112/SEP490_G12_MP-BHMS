@@ -1,16 +1,20 @@
 package com.mpbhms.backend.config;
 
+import com.mpbhms.backend.entity.CustomService;
 import com.mpbhms.backend.entity.Permission;
 import com.mpbhms.backend.entity.Role;
 import com.mpbhms.backend.entity.User;
+import com.mpbhms.backend.enums.ServiceType;
 import com.mpbhms.backend.repository.PermissionRepository;
 import com.mpbhms.backend.repository.RoleRepository;
+import com.mpbhms.backend.repository.ServiceRepository;
 import com.mpbhms.backend.repository.UserRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,6 +25,7 @@ public class DatabaseInitializer implements CommandLineRunner {
     private final PermissionRepository permissionRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final ServiceRepository serviceRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -30,6 +35,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         long countPermissions = permissionRepository.count();
         long countRoles = roleRepository.count();
         long countUsers = userRepository.count();
+        long countServices = serviceRepository.count();
 
         // --- Init Permissions ---
         if (countPermissions == 0) {
@@ -76,6 +82,13 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Get Renter List", "/mpbhms/renters", "GET", "Renter"));
             permissions.add(new Permission("Create new Renter", "/mpbhms/renters", "POST", "Renter"));
             permissions.add(new Permission("Change renter status", "/mpbhms/renters/{id}/status", "PUT", "Renter"));
+            //Service
+            permissions.add(new Permission("Create Service", "/mpbhms/services", "POST", "Service"));
+            permissions.add(new Permission("Update Service", "/mpbhms/services/{id}", "PUT", "Service"));
+            permissions.add(new Permission("Delete Service", "/mpbhms/services/{id}", "DELETE", "Service"));
+            permissions.add(new Permission("View Services", "/mpbhms/services", "GET", "Service"));
+            permissions.add(new Permission("View All Services", "/mpbhms/services/all", "GET", "Service"));
+            permissions.add(new Permission("Get Service by ID", "/mpbhms/services/{id}", "GET", "Service"));
             permissions = permissionRepository.saveAll(permissions);
         }
 
@@ -86,7 +99,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             List<Permission> adminPermissions = permissionRepository.findAll()
                     .stream()
                     .filter(p ->
-                            List.of("User", "Role", "Permission", "Notification").contains(p.getModule()) ||
+                            List.of("User", "Role", "Permission", "Notification", "Service").contains(p.getModule()) ||
                                     (p.getModule().equals("Room") && p.getMethod().equals("GET"))
                     )// hoặc theo API cụ thể
                     .toList();
@@ -107,7 +120,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             landlordRole.setRoleName("LANDLORD");
             List<Permission> landlordPermission = permissionRepository.findAll()
                     .stream()
-                    .filter(p -> List.of("Room","RoomUser","Bill","Ocr","Contract").contains(p.getModule())) // hoặc theo API cụ thể
+                    .filter(p -> List.of("Room","RoomUser","Bill","Ocr","Contract","Service").contains(p.getModule())) // hoặc theo API cụ thể
                     .toList();
             landlordRole.setPermissionEntities(landlordPermission);
             roleRepository.save(landlordRole);
@@ -118,7 +131,7 @@ public class DatabaseInitializer implements CommandLineRunner {
                     .stream()
                     .filter(p -> List.of().contains(p.getModule())) // hoặc theo API cụ thể
                     .toList();
-            landlordRole.setPermissionEntities(subAdminPermission);
+            subAdminRole.setPermissionEntities(subAdminPermission);
             roleRepository.save(subAdminRole);
         }
 
@@ -159,7 +172,35 @@ public class DatabaseInitializer implements CommandLineRunner {
             userRepository.save(subAdmin);
         }
 
-        if (countPermissions > 0 && countRoles > 0 && countUsers > 0) {
+        // --- Init Services ---
+        if (countServices == 0) {
+            List<CustomService> services = new ArrayList<>();
+
+            CustomService electricity = new CustomService();
+            electricity.setServiceName("Điện");
+            electricity.setServiceType(ServiceType.ELECTRICITY);
+            electricity.setUnit("kWh");
+            electricity.setUnitPrice(new BigDecimal("3500"));
+            services.add(electricity);
+
+            CustomService water = new CustomService();
+            water.setServiceName("Nước");
+            water.setServiceType(ServiceType.WATER);
+            water.setUnit("m³");
+            water.setUnitPrice(new BigDecimal("25000"));
+            services.add(water);
+
+            CustomService internet = new CustomService();
+            internet.setServiceName("Internet");
+            internet.setServiceType(ServiceType.OTHER);
+            internet.setUnit("tháng");
+            internet.setUnitPrice(new BigDecimal("100000"));
+            services.add(internet);
+
+            serviceRepository.saveAll(services);
+        }
+
+        if (countPermissions > 0 && countRoles > 0 && countUsers > 0 && countServices > 0) {
             System.out.println(">>> SKIP INIT DATABASE <<<");
         }
         System.out.println(">>> INIT DONE <<<");

@@ -4,7 +4,7 @@ import { Row, Col, Spin, Button, Input } from "antd";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import RoomCard from "./RoomCard";
 
-export default function RoomList({ filter }) {
+export default function RoomList({ filter, onViewDetail }) {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
@@ -18,7 +18,12 @@ export default function RoomList({ filter }) {
   const searchRef = useRef("");
   const filterRef = useRef(filter);
 
-  const fetchRooms = async (page = 1, keyword = searchRef.current, sort = sortOrder, customFilter = filterRef.current) => {
+  const fetchRooms = async (
+    page = 1,
+    keyword = searchRef.current,
+    sort = sortOrder,
+    customFilter = filterRef.current
+  ) => {
     setLoading(true);
 
     const trimmed = keyword.trim();
@@ -28,7 +33,9 @@ export default function RoomList({ filter }) {
       searchFilter = `(roomNumber~'${safe}' or pricePerMonth~'${safe}' or roomStatus~'${safe}' or area~'${safe}')`;
     }
 
-    const combinedFilter = [customFilter, searchFilter].filter(Boolean).join(" and ");
+    const combinedFilter = [customFilter, searchFilter]
+      .filter(Boolean)
+      .join(" and ");
     const sortParam = sort ? `pricePerMonth,${sort}` : "";
 
     const response = await getAllRooms(
@@ -139,7 +146,7 @@ export default function RoomList({ filter }) {
       <Row gutter={[24, 24]}>
         {rooms.map((room) => (
           <Col xs={24} sm={12} md={8} key={room.id}>
-            <RoomCard room={room} />
+            <RoomCard room={room} onClick={() => onViewDetail(room)} />
           </Col>
         ))}
       </Row>
@@ -162,13 +169,16 @@ export default function RoomList({ filter }) {
           Previous
         </Button>
         <span>
-          Page {pagination.current} / {Math.ceil(pagination.total / pagination.pageSize)} ({pagination.total} Rooms)
+          Page {pagination.current} /{" "}
+          {Math.ceil(pagination.total / pagination.pageSize)} (
+          {pagination.total} Rooms)
         </span>
         <Button
           icon={<RightOutlined />}
           onClick={handleNextPage}
           disabled={
-            pagination.current >= Math.ceil(pagination.total / pagination.pageSize)
+            pagination.current >=
+            Math.ceil(pagination.total / pagination.pageSize)
           }
         >
           Next
