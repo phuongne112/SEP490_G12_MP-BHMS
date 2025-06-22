@@ -50,8 +50,6 @@ export default function AdminRoleListPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [form] = Form.useForm();
   const [formError, setFormError] = useState(null);
-  const [deleteError, setDeleteError] = useState(null);
-  const [deleteMessage, setDeleteMessage] = useState(null);
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -79,24 +77,6 @@ export default function AdminRoleListPage() {
     fetchPermissions();
   }, []);
 
-  useEffect(() => {
-    if (deleteMessage) {
-      const timer = setTimeout(() => setDeleteMessage(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [deleteMessage]);
-
-  useEffect(() => {
-    if (deleteError) {
-      const timer = setTimeout(() => setDeleteError(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [deleteError]);
-
-  const handleApplyFilter = (values) => {
-    setFilters(values);
-  };
-
   const openAddModal = () => {
     setEditingRole(null);
     form.setFieldsValue({ name: "", permissions: {} });
@@ -117,12 +97,10 @@ export default function AdminRoleListPage() {
     if (!selectedRole) return;
     try {
       await deleteRole(selectedRole.id);
-      setDeleteMessage("✅ Role deleted successfully");
-      setDeleteError(null);
+      message.success("Role deleted successfully!");
       setRefreshKey((prev) => prev + 1);
     } catch (err) {
-      setDeleteError("❌ Failed to delete role due to constraint violation");
-      setDeleteMessage(null);
+      message.error("Failed to delete role due to constraint violation");
     } finally {
       setIsDeleteModalOpen(false);
       setSelectedRole(null);
@@ -250,27 +228,6 @@ export default function AdminRoleListPage() {
               </Popover>
             </Space>
           </div>
-
-          {deleteMessage && (
-            <Alert
-              message={deleteMessage}
-              type="info"
-              showIcon
-              closable
-              onClose={() => setDeleteMessage(null)}
-              style={{ marginBottom: 16 }}
-            />
-          )}
-          {deleteError && (
-            <Alert
-              message={deleteError}
-              type="error"
-              showIcon
-              closable
-              onClose={() => setDeleteError(null)}
-              style={{ marginBottom: 16 }}
-            />
-          )}
 
           <RoleTable
             pageSize={pageSize}

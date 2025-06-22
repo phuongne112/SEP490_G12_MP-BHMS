@@ -54,8 +54,6 @@ export default function AdminNotificationPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [sendMode, setSendMode] = useState("role");
   const [userList, setUserList] = useState([]);
-  const [deleteMessage, setDeleteMessage] = useState(null); // ✅ Thông báo thành công
-  const [deleteError, setDeleteError] = useState(null); // ✅ Thông báo lỗi
   const currentUserId = parseInt(localStorage.getItem("userId"));
   const dispatch = useDispatch();
   const user = useSelector((state) => state.account.user);
@@ -83,22 +81,6 @@ export default function AdminNotificationPage() {
     fetchUser();
   }, []);
 
-  // useEffect(() => {
-  //   if (isCreateModalOpen) {
-  //     getAllUsers(0, 1000)
-  //       .then((res) => {
-  //         const allUsers = res.result || [];
-  //         const filtered = allUsers.filter((u) => u.id !== currentUserId); // ✅ bỏ chính mình
-  //         setUserList(filtered);
-  //         console.log("✅ Filtered userList:", filtered);
-  //         console.log("❌ Current admin userId:", currentUserId);
-  //       })
-  //       .catch(() => {
-  //         message.error("Failed to load user list");
-  //       });
-  //   }
-  // }, [isCreateModalOpen]);
-
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -116,20 +98,6 @@ export default function AdminNotificationPage() {
 
     fetchUsers();
   }, [refreshKey]);
-
-  useEffect(() => {
-    if (deleteMessage) {
-      const timer = setTimeout(() => setDeleteMessage(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [deleteMessage]);
-
-  useEffect(() => {
-    if (deleteError) {
-      const timer = setTimeout(() => setDeleteError(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [deleteError]);
 
   const handleApplyFilter = (values) => {
     setFilters({
@@ -218,28 +186,6 @@ export default function AdminNotificationPage() {
               </Popover>
             </Space>
           </div>
-
-          {/* ✅ Alert xóa thành công / thất bại */}
-          {deleteMessage && (
-            <Alert
-              message={deleteMessage}
-              type="info"
-              showIcon
-              closable
-              onClose={() => setDeleteMessage(null)}
-              style={{ marginBottom: 16 }}
-            />
-          )}
-          {deleteError && (
-            <Alert
-              message={deleteError}
-              type="error"
-              showIcon
-              closable
-              onClose={() => setDeleteError(null)}
-              style={{ marginBottom: 16 }}
-            />
-          )}
 
           {userListLoaded && (
             <NotificationTable
@@ -344,16 +290,6 @@ export default function AdminNotificationPage() {
                   </Col>
                 )}
 
-                {/* <Col span={12}>
-                  <Form.Item
-                    name="date"
-                    label="Send date"
-                    rules={[{ required: true }]}
-                  >
-                    <DatePicker style={{ width: "100%" }} />
-                  </Form.Item>
-                </Col> */}
-
                 <Col span={24}>
                   <Form.Item
                     name="type"
@@ -447,13 +383,11 @@ export default function AdminNotificationPage() {
             onOk={async () => {
               try {
                 await deleteNotification(selectedNotification.id);
-                setDeleteMessage("✅ Notification deleted successfully");
-                setDeleteError(null);
+                message.success("Notification deleted successfully!");
                 setRefreshKey((prev) => prev + 1);
               } catch (error) {
                 console.error("Delete failed:", error);
-                setDeleteError("❌ Failed to delete notification");
-                setDeleteMessage(null);
+                message.error("Failed to delete notification!");
               } finally {
                 setIsDeleteModalOpen(false);
                 setSelectedNotification(null);

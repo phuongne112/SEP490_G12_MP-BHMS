@@ -13,7 +13,9 @@ const FilterBox = ({ title, children }) => (
       marginBottom: 24,
     }}
   >
-    <Title level={5} style={{ marginBottom: 12, fontSize: 16 }}>{title}</Title>
+    <Title level={5} style={{ marginBottom: 12, fontSize: 16 }}>
+      {title}
+    </Title>
     {children}
   </div>
 );
@@ -29,7 +31,9 @@ export default function HomePage() {
 
   const handleQuickFilter = (filter) => {
     setAppliedFilter(filter);
-    document.getElementById('room-list-section')?.scrollIntoView({ behavior: 'smooth' });
+    document
+      .getElementById("room-list-section")
+      ?.scrollIntoView({ behavior: "smooth" });
   };
 
   const buildRoomFilter = () => {
@@ -72,30 +76,72 @@ export default function HomePage() {
   return (
     <div style={{ background: "#fff", minHeight: "100vh" }}>
       <Header />
-      
+
+      <Carousel
+        autoplay
+        dotPosition="bottom"
+        style={{
+          margin: "24px auto",
+          width: "95%",
+          maxWidth: 1400,
+          borderRadius: 12,
+          overflow: "hidden",
+        }}
+      >
+        <div>
+          <div style={{ height: 450, overflow: "hidden" }}>
+            <img
+              src="/banners/banner1.png"
+              alt="Banner 1"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          </div>
+        </div>
+        <div>
+          <div style={{ height: 450, overflow: "hidden" }}>
+            <img
+              src="/banners/banner2.png"
+              alt="Banner 2"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          </div>
+        </div>
+        <div>
+          <div style={{ height: 450, overflow: "hidden" }}>
+            <img
+              src="/banners/banner3.png"
+              alt="Banner 3"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          </div>
+        </div>
+      </Carousel>
+
       <div
         id="room-list-section"
         style={{
-          width: '95%',
+          width: "95%",
           maxWidth: 1400,
           margin: "24px auto",
           display: "flex",
           alignItems: "flex-start",
-          gap: '24px',
+          gap: "24px",
         }}
       >
         <div
           style={{
-            flex: '0 0 300px',
+            flex: "0 0 300px",
             background: "#fff",
-            padding: '24px',
+            padding: "24px",
             borderRadius: 8,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-            position: 'sticky',
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+            position: "sticky",
             top: 24,
           }}
         >
-          <Title level={4} style={{ marginBottom: 24, fontWeight: 600 }}>Filters</Title>
+          <Title level={4} style={{ marginBottom: 24, fontWeight: 600 }}>
+            Filters
+          </Title>
           <FilterBox title="Area (m²)">
             <Slider range min={15} max={40} value={area} onChange={setArea} />
           </FilterBox>
@@ -165,10 +211,10 @@ export default function HomePage() {
         <div
           style={{
             flex: 1,
-            background: '#fff',
+            background: "#fff",
             borderRadius: 8,
-            padding: '24px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+            padding: "24px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
           }}
         >
           <RoomList filter={appliedFilter} />
