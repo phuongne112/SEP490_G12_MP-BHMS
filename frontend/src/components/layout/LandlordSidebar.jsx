@@ -5,6 +5,7 @@ import {
   DollarOutlined,
   ToolOutlined,
   TeamOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import Sidebar from "./Sidebar";
 import { useSelector } from "react-redux";
@@ -32,6 +33,12 @@ export default function LandlordSidebar() {
       icon: <DollarOutlined />,
       label: "Revenue",
       path: "/landlord/revenue",
+    },
+    {
+      key: "/landlord/contract",
+      icon: <FileTextOutlined />,
+      label: "Contract",
+      path: "/landlord/contract",
     },
     {
       key: "/landlord/services",

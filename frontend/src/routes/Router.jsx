@@ -20,8 +20,10 @@ import LandlordAddRoomPage from "../pages/landlord/LandlordAddRoomPage";
 import LandlordAddRenterPage from "../pages/landlord/LandlordAddRenterPage";
 import LandlordServiceListPage from "../pages/landlord/LandlordServiceListPage";
 import LandlordElectricListPage from "../pages/landlord/LandlordElectricListPage";
+import LandlordContractListPage from "../pages/landlord/LandlordContractListPage";
 import RenterRoomDetailPage from "../pages/renter/RenterRoomDetailPage";
-import LandlordAssignRenterPage from '../pages/landlord/LandlordAssignRenterPage';
+import LandlordAssignRenterPage from "../pages/landlord/LandlordAssignRenterPage";
+import RoomDetailPage from "../pages/RoomDetailPage";
 
 export default function AppRouter() {
   return (
@@ -43,6 +45,7 @@ export default function AppRouter() {
         }
       />
       <Route path="/home" element={<HomePage />} />
+      <Route path="/rooms/:roomNumber" element={<RoomDetailPage />} />
       <Route path="/forgotPassword" element={<ForgotPasswordPage />} />
       <Route path="/resetPassword" element={<ResetPasswordPage />} />
       <Route path="/layout/adminSidebar" element={<AdminSidebar />} />
@@ -89,9 +92,13 @@ export default function AppRouter() {
       <Route path="/landlord/renters/add" element={<LandlordAddRenterPage />} />
       <Route path="/landlord/services" element={<LandlordServiceListPage />} />
       <Route path="/landlord/electric" element={<LandlordElectricListPage />} />
+      <Route path="/landlord/contract" element={<LandlordContractListPage />} />
 
       <Route path="/renter/room" element={<RenterRoomDetailPage />} />
-      <Route path="/landlord/rooms/:roomId/assign" element={<LandlordAssignRenterPage />} />
+      <Route
+        path="/landlord/rooms/:roomId/assign"
+        element={<LandlordAssignRenterPage />}
+      />
     </Routes>
   );
 }

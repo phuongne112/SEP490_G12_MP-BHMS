@@ -3,6 +3,7 @@ import Footer from "../components/layout/Footer";
 import Header from "../components/layout/Header";
 import RoomList from "../components/home/RoomList";
 import { Slider, Select, Button, Typography, Carousel } from "antd";
+import { useNavigate } from "react-router-dom";
 
 const { Option } = Select;
 const { Title } = Typography;
@@ -28,6 +29,7 @@ export default function HomePage() {
   const [bathrooms, setBathrooms] = useState([1, 2]);
   const [hasAsset, setHasAsset] = useState("All");
   const [appliedFilter, setAppliedFilter] = useState("isActive=true");
+  const navigate = useNavigate();
 
   const handleQuickFilter = (filter) => {
     setAppliedFilter(filter);
@@ -71,6 +73,10 @@ export default function HomePage() {
   const handleApplyFilter = () => {
     const dsl = buildRoomFilter().trim();
     setAppliedFilter(dsl);
+  };
+
+  const handleViewDetail = (room) => {
+    navigate(`/rooms/${room.roomNumber}`, { state: { room } });
   };
 
   return (
@@ -217,7 +223,7 @@ export default function HomePage() {
             boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
           }}
         >
-          <RoomList filter={appliedFilter} />
+          <RoomList filter={appliedFilter} onViewDetail={handleViewDetail} />
         </div>
       </div>
 
