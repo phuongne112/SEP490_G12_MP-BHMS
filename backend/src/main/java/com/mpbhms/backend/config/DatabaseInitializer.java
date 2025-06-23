@@ -63,6 +63,8 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Delete Notification", "/mpbhms/notifications/{id}", "DELETE", "Notification"));
             permissions.add(new Permission("View Notification", "/mpbhms/notifications/all", "GET", "Notification"));
             permissions.add(new Permission("Create Notification Send", "/mpbhms/notifications/send", "POST", "Notification"));
+            permissions.add(new Permission("View My Notification", "/mpbhms/notifications", "GET", "Notification"));
+            permissions.add(new Permission("Mark Notification as Read", "/mpbhms/notifications/{id}/read", "PUT", "Notification"));
             //Permissions
             permissions.add(new Permission("Create Permission", "/mpbhms/permissions", "POST", "Permission"));
             permissions.add(new Permission("Update Permission", "/mpbhms/permissions", "PUT", "Permission"));
@@ -96,41 +98,71 @@ public class DatabaseInitializer implements CommandLineRunner {
         if (countRoles == 0) {
             Role adminRole = new Role();
             adminRole.setRoleName("ADMIN");
-            List<Permission> adminPermissions = permissionRepository.findAll()
+            List<Permission> adminPermissions = new ArrayList<>(permissionRepository.findAll()
                     .stream()
                     .filter(p ->
                             List.of("User", "Role", "Permission", "Notification", "Service").contains(p.getModule()) ||
                                     (p.getModule().equals("Room") && p.getMethod().equals("GET"))
                     )// hoặc theo API cụ thể
-                    .toList();
+                    .toList());
 
+            Permission viewMyNotification = permissionRepository.findByModuleAndApiPathAndMethod(
+                "Notification", "/mpbhms/notifications", "GET"
+            );
+            Permission markReadNotification = permissionRepository.findByModuleAndApiPathAndMethod(
+                "Notification", "/mpbhms/notifications/{id}/read", "PUT"
+            );
+            if (viewMyNotification != null && !adminPermissions.contains(viewMyNotification)) {
+                adminPermissions.add(viewMyNotification);
+            }
+            if (markReadNotification != null && !adminPermissions.contains(markReadNotification)) {
+                adminPermissions.add(markReadNotification);
+            }
             adminRole.setPermissionEntities(adminPermissions);
             roleRepository.save(adminRole);
 
             Role renterRole = new Role();
             renterRole.setRoleName("RENTER");
-            List<Permission> renterPermission = permissionRepository.findAll()
+            List<Permission> renterPermission = new ArrayList<>(permissionRepository.findAll()
                     .stream()
                     .filter(p -> List.of().contains(p.getModule())) // hoặc theo API cụ thể
-                    .toList();
+                    .toList());
+            if (viewMyNotification != null && !renterPermission.contains(viewMyNotification)) {
+                renterPermission.add(viewMyNotification);
+            }
+            if (markReadNotification != null && !renterPermission.contains(markReadNotification)) {
+                renterPermission.add(markReadNotification);
+            }
             renterRole.setPermissionEntities(renterPermission);
             roleRepository.save(renterRole);
 
             Role landlordRole = new Role();
             landlordRole.setRoleName("LANDLORD");
-            List<Permission> landlordPermission = permissionRepository.findAll()
+            List<Permission> landlordPermission = new ArrayList<>(permissionRepository.findAll()
                     .stream()
                     .filter(p -> List.of("Room","RoomUser","Bill","Ocr","Contract","Service").contains(p.getModule())) // hoặc theo API cụ thể
-                    .toList();
+                    .toList());
+            if (viewMyNotification != null && !landlordPermission.contains(viewMyNotification)) {
+                landlordPermission.add(viewMyNotification);
+            }
+            if (markReadNotification != null && !landlordPermission.contains(markReadNotification)) {
+                landlordPermission.add(markReadNotification);
+            }
             landlordRole.setPermissionEntities(landlordPermission);
             roleRepository.save(landlordRole);
 
             Role subAdminRole = new Role();
             subAdminRole.setRoleName("SUBADMIN");
-            List<Permission> subAdminPermission = permissionRepository.findAll()
+            List<Permission> subAdminPermission = new ArrayList<>(permissionRepository.findAll()
                     .stream()
                     .filter(p -> List.of().contains(p.getModule())) // hoặc theo API cụ thể
-                    .toList();
+                    .toList());
+            if (viewMyNotification != null && !subAdminPermission.contains(viewMyNotification)) {
+                subAdminPermission.add(viewMyNotification);
+            }
+            if (markReadNotification != null && !subAdminPermission.contains(markReadNotification)) {
+                subAdminPermission.add(markReadNotification);
+            }
             subAdminRole.setPermissionEntities(subAdminPermission);
             roleRepository.save(subAdminRole);
         }

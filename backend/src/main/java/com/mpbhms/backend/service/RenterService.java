@@ -7,7 +7,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 public interface RenterService {
 
-    ResultPaginationDTO getAllRenters(Specification<?> spec, Pageable pageable);
+    ResultPaginationDTO getAllRenters(Specification<?> spec, Pageable pageable, String search);
 
     CreateUserResponse createRenter(CreateUserRequest request);
 

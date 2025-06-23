@@ -210,6 +210,7 @@ export default function LandlordAddRoomPage() {
                     beforeUpload={() => false}
                     multiple
                     maxCount={8}
+                    accept="image/*"
                   >
                     {fileList.length < 8 && (
                       <div>

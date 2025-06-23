@@ -25,5 +25,7 @@ public interface RoomService {
     void updateRoomStatus(Long id, String status);
 
     void toggleActiveStatus(Long id);
+
+    ResultPaginationDTO getAllRoomsWithRenter(Pageable pageable);
 }
 
