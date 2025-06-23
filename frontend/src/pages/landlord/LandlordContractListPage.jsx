@@ -1,48 +1,64 @@
 import React, { useEffect, useState } from "react";
-import { Layout, message } from "antd";
+import { Layout, message, Button, Popover } from "antd";
 import PageHeader from "../../components/common/PageHeader";
-import contractApi from "../../services/contractApi";
+import { getAllContracts, deleteContract, exportContractPdf } from "../../services/contractApi";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import ContractTable from "../../components/landlord/ContractTable";
+import ContractFilterPopover from "../../components/landlord/ContractFilterPopover";
 
 const { Sider, Content } = Layout;
 
 export default function LandlordContractListPage() {
-  const [contracts] = useState([
-    {
-      id: 1,
-      roomUser: {
-        user: {
-          userInfo: {
-            fullName: "Nguyen Van A",
-          },
-        },
-      },
-      room: {
-        roomNumber: "101",
-      },
-      contractStartDate: "2024-01-01T00:00:00Z",
-      contractEndDate: "2024-12-31T00:00:00Z",
-    },
-    {
-      id: 2,
-      roomUser: {
-        user: {
-          userInfo: {
-            fullName: "Tran Thi B",
-          },
-        },
-      },
-      room: {
-        roomNumber: "203",
-      },
-      contractStartDate: "2024-06-01T00:00:00Z",
-      contractEndDate: "2025-05-31T00:00:00Z",
-    },
-  ]);
+  const [contracts, setContracts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [filter, setFilter] = useState({});
 
-  const handleExport = (id) => {
-    message.info(`Export contract ID ${id} (mock)`);
+  const fetchContracts = async (params = {}) => {
+    setLoading(true);
+    try {
+      const res = await getAllContracts(params);
+      setContracts(res.result || []);
+    } catch (err) {
+      message.error("Failed to fetch contracts");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchContracts(filter);
+  }, [filter]);
+
+  const handleExport = async (id) => {
+    try {
+      const blob = await exportContractPdf(id);
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (err) {
+      message.error("Export PDF failed");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await deleteContract(id);
+      message.success("Contract deleted");
+      fetchContracts();
+    } catch {
+      message.error("Delete failed");
+    }
+  };
+
+  const handleFilterApply = (values) => {
+    const params = {};
+    if (values.status && values.status !== "ALL") params.contractStatus = values.status;
+    if (values.dateRange && values.dateRange.length === 2) {
+      params.contractStartDateFrom = values.dateRange[0]?.startOf("day").toISOString();
+      params.contractStartDateTo = values.dateRange[1]?.endOf("day").toISOString();
+    }
+    setFilter(params);
+    setFilterVisible(false);
   };
 
   return (
@@ -52,8 +68,22 @@ export default function LandlordContractListPage() {
       </Sider>
       <Layout>
         <Content style={{ padding: "24px" }}>
-          <PageHeader title="Contract List" />
-          <ContractTable contracts={contracts} onExport={handleExport} />
+          <PageHeader
+            title="Contract List"
+            extra={[
+              <Popover
+                key="filter"
+                content={<ContractFilterPopover onApply={handleFilterApply} />}
+                title={null}
+                trigger="click"
+                open={filterVisible}
+                onOpenChange={setFilterVisible}
+              >
+                <Button>Filter</Button>
+              </Popover>
+            ]}
+          />
+          <ContractTable contracts={contracts} onExport={handleExport} onDelete={handleDelete} loading={loading} />
         </Content>
       </Layout>
     </Layout>

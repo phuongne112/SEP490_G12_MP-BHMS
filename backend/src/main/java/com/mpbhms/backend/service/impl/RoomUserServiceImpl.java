@@ -38,28 +38,28 @@ public class RoomUserServiceImpl implements RoomUserService {
             throw new IllegalArgumentException("Vượt quá số người tối đa của phòng.");
         }
 
+        // Tạo Contract trước
+        Contract contract = new Contract();
+        contract.setRoom(room);
+        contract.setContractStartDate(request.getContractStartDate());
+        contract.setContractEndDate(request.getContractEndDate());
+        contract.setDepositAmount(request.getDepositAmount());
+        contract.setRentAmount(room.getPricePerMonth());
+        contract.setPaymentCycle(PaymentCycle.valueOf(request.getPaymentCycle()));
+        contract.setContractStatus(ContractStatus.ACTIVE);
+        contract = contractRepository.save(contract);
+
+        // Tạo RoomUser và gán contract cho từng user
         for (Long userId : request.getUserIds()) {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // Tạo RoomUser
             RoomUser roomUser = new RoomUser();
             roomUser.setRoom(room);
             roomUser.setUser(user);
             roomUser.setJoinedAt(request.getContractStartDate());
-            roomUser = roomUserRepository.save(roomUser);
-
-            // Tạo Contract
-            Contract contract = new Contract();
-            contract.setRoom(room);
-            contract.setRoomUser(roomUser);
-            contract.setContractStartDate(request.getContractStartDate());
-            contract.setContractEndDate(request.getContractEndDate());
-            contract.setDepositAmount(request.getDepositAmount());
-            contract.setRentAmount(room.getPricePerMonth());
-            contract.setPaymentCycle(PaymentCycle.valueOf(request.getPaymentCycle()));
-            contract.setContractStatus(ContractStatus.ACTIVE);
-            contractRepository.save(contract);
+            roomUser.setContract(contract);
+            roomUserRepository.save(roomUser);
         }
     }
 }

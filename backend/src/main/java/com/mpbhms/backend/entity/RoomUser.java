@@ -27,6 +27,11 @@ public class RoomUser {
     @JoinColumn(name = "room_id")
     private Room room;
 
+    // Tham chiếu tới Contract
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "contract_id")
+    private Contract contract;
+
     private Instant joinedAt;
 
     private String addedBy; // ví dụ: quản lý nào thêm

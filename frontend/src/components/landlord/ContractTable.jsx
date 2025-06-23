@@ -1,7 +1,7 @@
 import React from "react";
-import { Table, Button } from "antd";
+import { Table, Button, Popconfirm } from "antd";
 
-export default function ContractTable({ contracts = [], onExport }) {
+export default function ContractTable({ contracts = [], onExport, onDelete, loading, onFilter }) {
   const columns = [
     {
       title: "Contract ID",
@@ -10,11 +10,13 @@ export default function ContractTable({ contracts = [], onExport }) {
     {
       title: "Renter Name",
       render: (_, record) =>
-        record?.roomUser?.user?.userInfo?.fullName || "Unknown",
+        Array.isArray(record?.renterNames) && record.renterNames.length > 0
+          ? record.renterNames.join(", ")
+          : "Unknown",
     },
     {
       title: "Room Number",
-      render: (_, record) => record?.room?.roomNumber || "Unknown",
+      render: (_, record) => record?.roomNumber || "Unknown",
     },
     {
       title: "Start Date",
@@ -31,9 +33,16 @@ export default function ContractTable({ contracts = [], onExport }) {
     {
       title: "Actions",
       render: (_, record) => (
-        <Button type="link" onClick={() => onExport(record.id)}>
-          Export PDF
-        </Button>
+        <>
+          <Button type="link" onClick={() => onExport(record.id)}>
+            Export PDF
+          </Button>
+          <Popconfirm title="Delete contract?" onConfirm={() => onDelete(record.id)}>
+            <Button type="link" danger>
+              Delete
+            </Button>
+          </Popconfirm>
+        </>
       ),
     },
   ];
@@ -45,6 +54,7 @@ export default function ContractTable({ contracts = [], onExport }) {
       rowKey="id"
       pagination={{ pageSize: 5 }}
       style={{ background: "#fff", borderRadius: 8, padding: 16 }}
+      loading={loading}
     />
   );
 }

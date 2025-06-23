@@ -8,7 +8,7 @@ export const getAllRenters = async (page = 0, size = 10, filter = {}) => {
 
 // New function for getting renters with filter string for assign page
 export const getRentersForAssign = (page = 0, size = 100, filter = "") => {
-  let url = `/mpbhms/renters?page=${page}&size=${size}`;
+  let url = `/renters?page=${page}&size=${size}`;
   if (filter) url += `&filter=${encodeURIComponent(filter)}`;
   return axiosClient.get(url);
 };
