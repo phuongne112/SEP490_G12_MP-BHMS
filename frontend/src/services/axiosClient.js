@@ -40,7 +40,12 @@ axiosClient.interceptors.request.use(
 
 // ✅ Response interceptor: xử lý 401 → gọi refresh → retry
 axiosClient.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    if (response.config.responseType === "blob") {
+      return response;
+    }
+    return response.data;
+  },
   async (error) => {
     const originalRequest = error.config;
 
