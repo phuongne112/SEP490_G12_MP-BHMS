@@ -3,11 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logout } from "../../store/accountSlice";
 import logo from "../../assets/logo.png";
-import { Dropdown, Menu, Avatar, Typography, Button, Drawer } from "antd";
-import { MenuOutlined, UserOutlined } from "@ant-design/icons";
+import { Dropdown, Menu, Avatar, Typography, Button, Drawer, Badge, List, Spin, Modal } from "antd";
+import { MenuOutlined, UserOutlined, BellOutlined } from "@ant-design/icons";
 import AccountModal from "../account/AccountModal";
 import UserInfoModal from "../account/UserInfoModal";
 import UpdateUserInfoModal from "../account/UpdateUserInfoPage";
+import { getMyNotifications, markNotificationRead } from "../../services/notificationApi";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
 
 const { Title } = Typography;
 
@@ -24,6 +28,17 @@ export default function Header() {
   const [showUpdateInfoModal, setShowUpdateInfoModal] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [isCreate, setIsCreate] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNoti, setLoadingNoti] = useState(false);
+  const [notiOpen, setNotiOpen] = useState(false);
+  const [tab, setTab] = useState("all"); // "all" | "unread"
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedNoti, setSelectedNoti] = useState(null);
+
+  let dateStr = "N/A";
+  if (selectedNoti?.createdDate && dayjs(selectedNoti.createdDate).isValid()) {
+    dateStr = dayjs(selectedNoti.createdDate).format("HH:mm DD/MM/YYYY");
+  }
 
   // ✅ Hàm xác định dashboard path theo role
   const getDashboardPath = () => {
@@ -58,7 +73,7 @@ export default function Header() {
   };
 
   const handleLogout = () => {
-    navigate("/login", { replace: true });
+    navigate("/home", { replace: true });
     dispatch(logout());
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -77,6 +92,86 @@ export default function Header() {
       window.removeEventListener("token-changed", handleStorageChange);
     };
   }, []);
+
+  const fetchNotifications = async () => {
+    setLoadingNoti(true);
+    try {
+      const res = await getMyNotifications();
+      setNotifications(res || []);
+    } finally {
+      setLoadingNoti(false);
+    }
+  };
+
+  useEffect(() => {
+    if (notiOpen) fetchNotifications();
+  }, [notiOpen]);
+
+  useEffect(() => {
+    // Polling mỗi 20s để cập nhật notifications
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 20000); // 20 giây
+    return () => clearInterval(interval);
+  }, []);
+
+  const filteredNotifications = tab === "all"
+    ? notifications
+    : notifications.filter(n => n.status !== "READ");
+
+  const handleClickNotification = async (id) => {
+    const noti = notifications.find(n => n.id === id);
+    setSelectedNoti(noti);
+    setModalOpen(true);
+    if (noti.status !== "READ") {
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, status: "READ" } : n));
+      await markNotificationRead(id);
+    }
+  };
+
+  const unreadCount = notifications.filter(n => n.status !== "READ").length;
+
+  const notiMenu = (
+    <div style={{ width: 350, maxHeight: 420, background: "#fff", borderRadius: 10, boxShadow: "0 4px 24px rgba(0,0,0,0.12)", overflow: "hidden" }}>
+      {/* Header */}
+      <div style={{ padding: "14px 20px 8px 20px", borderBottom: "1px solid #f0f0f0", background: "#f7fafd" }}>
+        <div style={{ fontWeight: 700, fontSize: 17, color: "#222" }}>Notifications</div>
+        <div style={{ marginTop: 8, display: "flex", gap: 16 }}>
+          <span
+            style={{ fontWeight: tab === "all" ? 600 : 400, color: tab === "all" ? "#1890ff" : "#555", cursor: "pointer", borderBottom: tab === "all" ? "2px solid #1890ff" : "none", paddingBottom: 2 }}
+            onClick={() => setTab("all")}
+          >All</span>
+          <span
+            style={{ fontWeight: tab === "unread" ? 600 : 400, color: tab === "unread" ? "#1890ff" : "#555", cursor: "pointer", borderBottom: tab === "unread" ? "2px solid #1890ff" : "none", paddingBottom: 2 }}
+            onClick={() => setTab("unread")}
+          >Unread</span>
+        </div>
+      </div>
+      {/* Danh sách */}
+      <div style={{ maxHeight: 340, overflowY: "auto" }}>
+        <List
+          dataSource={filteredNotifications}
+          renderItem={item => (
+            <List.Item
+              style={{
+                background: item.status !== "READ" ? "#f0f7ff" : "#fff",
+                cursor: "pointer",
+                padding: "12px 20px",
+                borderBottom: "1px solid #f0f0f0"
+              }}
+              onClick={() => handleClickNotification(item.id)}
+            >
+              <div style={{ width: "100%" }}>
+                <div style={{ fontWeight: item.status !== "READ" ? 600 : 400, color: "#222", fontSize: 15 }}>{item.title}</div>
+                <div style={{ color: "#999", fontSize: 12, marginTop: 2 }}>{dayjs(item.createdDate).fromNow()}</div>
+              </div>
+            </List.Item>
+          )}
+          locale={{ emptyText: "No notifications" }}
+        />
+      </div>
+    </div>
+  );
 
   const navItems = ["Rooms", "Services", "Renters", "Contact", "About"];
 
@@ -177,6 +272,15 @@ export default function Header() {
                 </span>
               </div>
             </Dropdown>
+            <Dropdown overlay={notiMenu} trigger={["click"]} open={notiOpen} onOpenChange={setNotiOpen} placement="bottomRight" arrow>
+              {unreadCount > 0 ? (
+                <Badge count={unreadCount} size="small" offset={[-4, 2]}>
+                  <BellOutlined style={{ fontSize: 22, cursor: "pointer", marginRight: 12, color: "#fff" }} />
+                </Badge>
+              ) : (
+                <BellOutlined style={{ fontSize: 22, cursor: "pointer", marginRight: 12, color: "#fff" }} />
+              )}
+            </Dropdown>
           </>
         ) : (
           <>
@@ -245,6 +349,19 @@ export default function Header() {
         onClose={() => setShowUpdateInfoModal(false)}
         onBackToInfoModal={() => setIsInfoModalOpen(true)}
       />
+      <Modal
+        open={modalOpen}
+        onCancel={() => setModalOpen(false)}
+        footer={null}
+        title={null}
+        width={480}
+      >
+        <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>Title: <span style={{ fontWeight: 400 }}>{selectedNoti?.title}</span></div>
+        <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>Message: <span style={{ fontWeight: 400 }}>{selectedNoti?.message}</span></div>
+        <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
+          Created Date: <span style={{ fontWeight: 400 }}>{dateStr}</span>
+        </div>
+      </Modal>
     </header>
   );
 }

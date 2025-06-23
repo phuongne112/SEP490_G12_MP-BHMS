@@ -25,9 +25,10 @@ public class RenterController {
     @ApiMessage("Get list of renters with filters and pagination")
     public ResponseEntity<ResultPaginationDTO> getAllRenters(
             @Filter Specification<User> spec,
-            Pageable pageable
+            Pageable pageable,
+            @RequestParam(required = false) String search
     ) {
-        return ResponseEntity.ok(renterService.getAllRenters(spec, pageable));
+        return ResponseEntity.ok(renterService.getAllRenters(spec, pageable, search));
     }
 
     // ✅ 2. Tạo người thuê mới (mặc định roleId = 2)

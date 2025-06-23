@@ -14,3 +14,12 @@ export const getAllNotifications = async (page = 0, size = 5, filter = "") => {
   const response = await axiosClient.get(url);
   return response.data; // ✅ TRẢ RA DATA!
 };
+
+export const getMyNotifications = async () => {
+  const res = await axiosClient.get("/notifications");
+  return res.data;
+};
+
+export const markNotificationRead = async (id) => {
+  return axiosClient.put(`/notifications/${id}/read`);
+};

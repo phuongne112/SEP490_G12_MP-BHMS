@@ -87,7 +87,7 @@ export default function AppRouter() {
       <Route path="/landlord/rooms" element={<LandlordRoomListPage />} />
       <Route path="/landlord/rooms/add" element={<LandlordAddRoomPage />} />
       <Route path="/403" element={<Error403 />} />
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<Navigate to="/home" replace />} />
 
       <Route path="/landlord/renters/add" element={<LandlordAddRenterPage />} />
       <Route path="/landlord/services" element={<LandlordServiceListPage />} />

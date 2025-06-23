@@ -12,6 +12,7 @@ export const login = async (email, password) => {
 
   localStorage.setItem("token", accessToken);
   localStorage.setItem("user", JSON.stringify(user));
+  localStorage.setItem("userId", user.id);
   console.log("🔥 User from API:", res.data.user);
 
   return user;
@@ -28,7 +29,7 @@ export const logout = async (dispatch) => {
   // Dọn localStorage + Redux + redirect
   localStorage.clear();
   dispatch({ type: "account/logout" });
-  window.location.href = "/login";
+  window.location.href = "/home";
 };
 
 

@@ -28,3 +28,8 @@ export const toggleRoomActiveStatus = async (roomId) => {
     const response = await axiosClient.patch(`/rooms/${roomId}/active`);
     return response.data;
 };
+
+export const getRoomsWithRenter = async () => {
+  const response = await axiosClient.get("/rooms/with-renter");
+  return response.data;
+};

@@ -1,22 +1,14 @@
 import axiosClient from "./axiosClient";
 
-export const getAllServices = async (page = 0, size = 10, filters = {}) => {
-  // Use axios's 'params' object for robust serialization
-  const params = {
-    page,
-    size,
-    sortDir: 'desc',
-    ...filters
-  };
-
-  // Remove null, undefined, or empty string keys from params before sending
-  Object.keys(params).forEach(key => {
-    if (params[key] == null || params[key] === '') {
-      delete params[key];
-    }
-  });
-
-  const response = await axiosClient.get("/services", { params });
+export const getAllServices = async (page = 0, size = 10, serviceName = "", serviceType = "") => {
+  let url = `/services?page=${page}&size=${size}`;
+  if (serviceName) {
+    url += `&serviceName=${encodeURIComponent(serviceName)}`;
+  }
+  if (serviceType) {
+    url += `&serviceType=${encodeURIComponent(serviceType)}`;
+  }
+  const response = await axiosClient.get(url);
   return response;
 };
 

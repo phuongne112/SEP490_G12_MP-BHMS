@@ -12,3 +12,8 @@ export const getRentersForAssign = (page = 0, size = 100, filter = "") => {
   if (filter) url += `&filter=${encodeURIComponent(filter)}`;
   return axiosClient.get(url);
 };
+
+export const createRenter = async (data) => {
+  const res = await axiosClient.post("/renters", data);
+  return res.data;
+};

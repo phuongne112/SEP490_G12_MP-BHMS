@@ -8,14 +8,9 @@ export default function RenterTable({ search = "", filter = {} }) {
   const [loading, setLoading] = useState(false);
 
   const buildFilterParams = () => {
-    const params = {
-      room: filter.room,
-      checkInStart: filter.checkInDateRange?.[0]?.format("YYYY-MM-DD"),
-      checkInEnd: filter.checkInDateRange?.[1]?.format("YYYY-MM-DD"),
-    };
-    if (search?.trim()) {
-      params.search = search.trim();
-    }
+    const params = {};
+    if (search?.trim()) params.search = search.trim();
+    // Có thể giữ lại filter nâng cao cho phòng/ngày nếu muốn filter thủ công ở backend sau này
     return params;
   };
 
@@ -26,19 +21,43 @@ export default function RenterTable({ search = "", filter = {} }) {
 
       const result = response.result || [];
 
-      const formatted = result.map((item, index) => ({
+      let filtered = result;
+      // Filter thủ công ở FE nếu có filter phòng hoặc ngày
+      if (filter.room) {
+        filtered = filtered.filter(item => item.renterRoomInfo?.roomName === filter.room);
+      }
+      if (filter.checkInDateRange?.[0] && filter.checkInDateRange?.[1]) {
+        const start = filter.checkInDateRange[0].startOf('day');
+        const end = filter.checkInDateRange[1].endOf('day');
+        filtered = filtered.filter(item => {
+          if (item.checkInDate === 'N/A') return false;
+          const checkIn = new Date(item.checkInDate);
+          return checkIn >= start.toDate() && checkIn <= end.toDate();
+        });
+      }
+      const formatted = filtered.map((item, index) => ({
         key: item.id,
         name: item.userInfo?.fullName || item.username,
-        room: item.userInfo?.roomName || "N/A",
-        checkInDate: item.userInfo?.checkInDate || "N/A",
+        room: item.renterRoomInfo?.roomName || "N/A",
+        checkInDate: item.renterRoomInfo?.checkInDate ? new Date(item.renterRoomInfo.checkInDate).toLocaleString() : "N/A",
       }));
 
       setData(formatted);
-      setPagination({
-        current: response.meta.page,
-        pageSize: response.meta.pageSize,
-        total: response.meta.total,
-      });
+      if (filter.room || (filter.checkInDateRange?.[0] && filter.checkInDateRange?.[1])) {
+        // Có filter nâng cao: phân trang FE
+        setPagination({
+          current: 1,
+          pageSize: response.meta.pageSize,
+          total: filtered.length,
+        });
+      } else {
+        // Không filter nâng cao: dùng phân trang backend
+        setPagination({
+          current: response.meta.page,
+          pageSize: response.meta.pageSize,
+          total: response.meta.total,
+        });
+      }
     } catch (err) {
       console.error("Failed to fetch renters:", err);
     } finally {
@@ -47,11 +66,15 @@ export default function RenterTable({ search = "", filter = {} }) {
   };
 
   useEffect(() => {
+    // Reset về trang 1 mỗi khi search thay đổi
+    setPagination(p => ({ ...p, current: 1 }));
     fetchData(1, pagination.pageSize);
+    // eslint-disable-next-line
   }, [search, filter]);
 
-  const handleTableChange = (pagination) => {
-    fetchData(pagination.current, pagination.pageSize);
+  const handleTableChange = (newPagination) => {
+    fetchData(newPagination.current, newPagination.pageSize);
+    setPagination(prev => ({ ...prev, current: newPagination.current, pageSize: newPagination.pageSize }));
   };
 
   const columns = [

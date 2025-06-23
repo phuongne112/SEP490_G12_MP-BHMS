@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
+import com.mpbhms.backend.dto.RenterRoomInfoDTO;
 
 @Getter
 @Setter
@@ -21,6 +22,7 @@ public class UserDTO {
     private String updatedBy;
     private Instant updatedDate;
     private RoleUser role;
+    private RenterRoomInfoDTO renterRoomInfo;
 
 
     @Getter

@@ -107,6 +107,12 @@ public class RoomController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/with-renter")
+    public ResponseEntity<ResultPaginationDTO> getAllRoomsWithRenter(Pageable pageable) {
+        ResultPaginationDTO response = roomService.getAllRoomsWithRenter(pageable);
+        return ResponseEntity.ok(response);
+    }
+
     // Xử lý lỗi validation toàn cục
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
