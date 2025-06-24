@@ -13,5 +13,8 @@ public interface ContractService {
     ContractDTO updateContract(ContractDTO contractDTO);
     void deleteContract(Long id);
     ContractDTO createContract(ContractDTO contractDTO);
+    
+    // Method để test cập nhật thông tin user
+    void updateUserInfoMonthly();
 }
 

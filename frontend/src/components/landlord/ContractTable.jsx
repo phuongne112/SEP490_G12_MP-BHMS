@@ -34,9 +34,9 @@ export default function ContractTable({ contracts = [], onExport, onDelete, load
       title: "Actions",
       render: (_, record) => (
         <>
-          <Button type="link" onClick={() => onExport(record.id)}>
-            Export PDF
-          </Button>
+        <Button type="link" onClick={() => onExport(record.id)}>
+          Export PDF
+        </Button>
           <Popconfirm title="Delete contract?" onConfirm={() => onDelete(record.id)}>
             <Button type="link" danger>
               Delete

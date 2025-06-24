@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/mpbhms/renters")
 @RequiredArgsConstructor
@@ -47,5 +49,10 @@ public class RenterController {
     ) {
         renterService.updateRenterStatus(id, request.isActive());
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/for-assign")
+    public ResponseEntity<List<UserDTO>> getRentersForAssign(@RequestParam(required = false) String keyword) {
+        return ResponseEntity.ok(renterService.getRentersForAssign(keyword));
     }
 }

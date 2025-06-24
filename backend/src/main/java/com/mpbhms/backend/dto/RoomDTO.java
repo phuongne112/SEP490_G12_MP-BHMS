@@ -19,6 +19,7 @@ public class RoomDTO {
     private String landlordName;
     private String landlordPhone;
     private Boolean isActive;
+    private Integer maxOccupants;
     private List<RoomImageDTO> images;  // ✅ cần thiết
     private List<ServiceDTO> services;  // ✅ cần thiết
     private List<AssetDTO> assets;      // ✅ cần thiết

@@ -128,4 +128,9 @@ public class RenterServiceImpl implements RenterService {
         dto.setUpdatedDate(user.getUpdatedDate());
         return dto;
     }
+
+    public List<UserDTO> getRentersForAssign(String keyword) {
+        List<User> users = userRepository.findRentersWithoutActiveRoomAndSearch(keyword == null ? "" : keyword);
+        return users.stream().map(this::convertToUserDTO).toList();
+    }
 }

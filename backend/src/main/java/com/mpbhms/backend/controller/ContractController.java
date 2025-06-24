@@ -57,4 +57,14 @@ public class ContractController {
         contractService.deleteContract(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/test-update-user-info")
+    public ResponseEntity<?> testUpdateUserInfo() {
+        try {
+            contractService.updateUserInfoMonthly();
+            return ResponseEntity.ok("Đã cập nhật thông tin user thành công!");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
+        }
+    }
 }

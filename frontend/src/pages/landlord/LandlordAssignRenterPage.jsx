@@ -40,10 +40,10 @@ export default function LandlordAssignRenterPage() {
     }
   };
 
-  const fetchRenters = async () => {
+  const fetchRenters = async (keyword = "") => {
     try {
-      const res = await getRentersForAssign(0, 1000, "isActive=true");
-      setRenters(res.data.result || []);
+      const res = await getRentersForAssign(keyword);
+      setRenters(res.data || []);
     } catch (err) {
       message.error("Failed to load renters");
     }
@@ -68,7 +68,8 @@ export default function LandlordAssignRenterPage() {
       message.success("Đã gán người thuê vào phòng thành công!");
       navigate("/landlord/rooms");
     } catch (err) {
-      message.error("Failed to assign renters to room");
+      const errorMessage = err.response?.data?.message || err.response?.data || "Failed to assign renters to room";
+      message.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -144,7 +145,7 @@ export default function LandlordAssignRenterPage() {
                   <Text strong>Status:</Text> {room.roomStatus}
                 </div>
                 <div>
-                  <Text strong>Max Occupants:</Text> {room.maxOccupants}
+                  <Text strong>Max Occupants:</Text> {room.maxOccupants ?? "N/A"}
                 </div>
                 <div>
                   <Text strong>Bedrooms:</Text> {room.numberOfBedrooms}
@@ -175,9 +176,8 @@ export default function LandlordAssignRenterPage() {
                     mode="multiple"
                     placeholder="Select renters by email"
                     showSearch
-                    filterOption={(input, option) =>
-                      option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                    }
+                    onSearch={fetchRenters}
+                    filterOption={false}
                   >
                     {renters.map(renter => (
                       <Option key={renter.email} value={renter.email}>
