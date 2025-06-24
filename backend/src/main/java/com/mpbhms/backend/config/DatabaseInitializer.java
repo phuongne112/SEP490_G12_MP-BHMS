@@ -91,6 +91,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("View Services", "/mpbhms/services", "GET", "Service"));
             permissions.add(new Permission("View All Services", "/mpbhms/services/all", "GET", "Service"));
             permissions.add(new Permission("Get Service by ID", "/mpbhms/services/{id}", "GET", "Service"));
+            //Service
+            permissions.add(new Permission("View List Contract", "/mpbhms/contracts", "GET", "Contract"));
+            permissions.add(new Permission("Delete Contract", "/mpbhms/contracts/{id}", "DELETE", "Contract"));
+            permissions.add(new Permission("Update Contract", "/mpbhms/contracts", "PUT ", "Contract"));
             permissions = permissionRepository.saveAll(permissions);
         }
 

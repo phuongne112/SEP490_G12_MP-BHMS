@@ -4,6 +4,7 @@ import com.mpbhms.backend.dto.*;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import java.util.List;
 
 public interface RenterService {
 
@@ -12,4 +13,6 @@ public interface RenterService {
     CreateUserResponse createRenter(CreateUserRequest request);
 
     void updateRenterStatus(Long userId, boolean isActive);
+
+    List<UserDTO> getRentersForAssign(String keyword);
 }

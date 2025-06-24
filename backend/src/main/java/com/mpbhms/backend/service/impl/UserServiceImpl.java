@@ -260,6 +260,11 @@ public class UserServiceImpl implements UserService {
 
         Map<String, String> errors = new HashMap<>();
 
+        // Log để debug kiểm tra giá trị thực tế
+        System.out.println("Current: " + currentPassword + ", New: " + newPassword);
+        System.out.println("Hash: " + user.getPassword());
+        System.out.println("Match new == old? " + passwordEncoder.matches(newPassword, user.getPassword()));
+
         // Kiểm tra mật khẩu hiện tại
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             errors.put("currentPassword", "Current password is incorrect");
@@ -273,6 +278,11 @@ public class UserServiceImpl implements UserService {
             if (!newPassword.matches(pattern)) {
                 errors.put("newPassword", "Password must be at least 8 characters and include uppercase, lowercase, number and special character.");
             }
+        }
+
+        // Kiểm tra mật khẩu mới phải khác mật khẩu cũ
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            errors.put("newPassword", "New password must be different from the current password.");
         }
 
         if (!errors.isEmpty()) {

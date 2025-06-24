@@ -153,6 +153,11 @@ public class RenterServiceImpl implements RenterService {
         return dto;
     }
 
+    public List<UserDTO> getRentersForAssign(String keyword) {
+        List<User> users = userRepository.findRentersWithoutActiveRoomAndSearch(keyword == null ? "" : keyword);
+        return users.stream().map(this::convertToUserDTO).toList();
+    }
+
     private UserDTO convertToUserDTOWithRoom(User user) {
         UserDTO dto = convertToUserDTO(user);
         RoomUser roomUser = roomUserRepository.findTopByUserIdOrderByJoinedAtDesc(user.getId());

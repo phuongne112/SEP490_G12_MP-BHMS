@@ -21,10 +21,9 @@ public class Contract extends BaseEntity {
     @JoinColumn(name = "room_id", nullable = false)
     private Room room;
 
-    // Quan hệ với RoomUser
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "room_user_id", nullable = false)
-    private RoomUser roomUser;
+    // Quan hệ với RoomUser (nhiều người thuê)
+    @OneToMany(mappedBy = "contract", fetch = FetchType.LAZY)
+    private java.util.List<RoomUser> roomUsers;
 
     @Column(name = "contract_start_date", nullable = false)
     private Instant contractStartDate;

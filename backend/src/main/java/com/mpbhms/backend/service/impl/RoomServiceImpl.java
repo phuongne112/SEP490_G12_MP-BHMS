@@ -137,6 +137,7 @@ public class RoomServiceImpl implements RoomService {
         dto.setNumberOfBathrooms(room.getNumberOfBathrooms());
         dto.setDescription(room.getDescription());
         dto.setIsActive(room.getIsActive());
+        dto.setMaxOccupants(room.getMaxOccupants());
 
         // ✅ Convert landlord (chủ trọ)
         if (room.getLandlord() != null) {
