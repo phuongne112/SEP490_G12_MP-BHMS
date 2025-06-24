@@ -9,13 +9,20 @@ import {
 } from "@ant-design/icons";
 import Sidebar from "./Sidebar";
 import { useSelector } from "react-redux";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
+import { Menu } from "antd";
 
 export default function LandlordSidebar() {
   const user = useSelector((state) => state.account.user);
   const location = useLocation();
 
   const landlordMenu = [
+    {
+      key: "/landlord/users",
+      icon: <UserOutlined />,
+      label: "User",
+      path: "/landlord/users",
+    },
     {
       key: "/landlord/renters",
       icon: <TeamOutlined />,
@@ -27,12 +34,6 @@ export default function LandlordSidebar() {
       icon: <HomeOutlined />,
       label: "Room",
       path: "/landlord/rooms",
-    },
-    {
-      key: "/landlord/revenue",
-      icon: <DollarOutlined />,
-      label: "Revenue",
-      path: "/landlord/revenue",
     },
     {
       key: "/landlord/contract",
@@ -51,6 +52,12 @@ export default function LandlordSidebar() {
       icon: <ToolOutlined />,
       label: "Electric",
       path: "/landlord/electric",
+    },
+    {
+      key: "/landlord/bills",
+      icon: <DollarOutlined />,
+      label: "Bill",
+      path: "/landlord/bills",
     },
   ];
 

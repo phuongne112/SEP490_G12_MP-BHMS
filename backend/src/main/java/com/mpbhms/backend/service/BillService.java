@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import com.mpbhms.backend.dto.BillDetailResponse;
 import java.time.LocalDate;
 import java.util.List;
+import java.math.BigDecimal;
 
 public interface BillService {
     // Tạo bill bất kỳ theo fromDate/toDate
@@ -24,4 +25,8 @@ public interface BillService {
     List<BillDetailResponse> calculateServiceBill(Long roomId, int month, int year);
 
     BillResponse createAndSaveServiceBill(Long roomId, int month, int year);
+
+    void deleteBillById(Long id);
+
+    Page<Bill> filterBills(Long roomId, Boolean status, BigDecimal minPrice, BigDecimal maxPrice, String search, Pageable pageable);
 }
