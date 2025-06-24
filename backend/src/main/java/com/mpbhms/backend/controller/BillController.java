@@ -11,6 +11,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -47,14 +48,25 @@ public class BillController {
     @GetMapping
     public Page<BillResponse> getBills(@RequestParam(required = false) Long contractId,
                                        @RequestParam(required = false) Long roomId,
+                                       @RequestParam(required = false) Boolean status,
+                                       @RequestParam(required = false) BigDecimal minPrice,
+                                       @RequestParam(required = false) BigDecimal maxPrice,
+                                       @RequestParam(required = false) String search,
                                        @RequestParam(defaultValue = "0") int page,
                                        @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
+        if (roomId != null || status != null || minPrice != null || maxPrice != null || (search != null && !search.isEmpty())) {
+            return billService.filterBills(roomId, status, minPrice, maxPrice, search, pageable)
+                    .map(billService::toResponse);
+        }
         return billService.getBillsByContractOrRoom(contractId, roomId, pageable)
                 .map(billService::toResponse);
     }
 
-
+    @DeleteMapping("/{id}")
+    public void deleteBill(@PathVariable Long id) {
+        billService.deleteBillById(id);
+    }
 
     @PostMapping("/service-bill")
     public BillResponse createServiceBill(@RequestParam Long roomId,

@@ -337,9 +337,10 @@ export default function AdminPermissionListPage() {
                       <Option value="Notification">Notification</Option>
                       <Option value="Role">Role</Option>
                       <Option value="Permission">Permission</Option>
+                      <Option value="Bill">Bill</Option>
                       <Option value="Service">Service</Option>
-                      <Option value="RoomUser">RoomUser</Option>
                       <Option value="Contract">Contract</Option>
+                      <Option value="Ocr">Ocr</Option>
                     </Select>
                   </Form.Item>
                 </Col>

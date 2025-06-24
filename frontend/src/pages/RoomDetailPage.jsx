@@ -10,7 +10,7 @@ import {
   message,
   Divider,
 } from "antd";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { getAllRooms } from "../services/roomService";
 
 const { Content } = Layout;
@@ -19,6 +19,7 @@ const { Title, Text } = Typography;
 export default function RoomDetailPage() {
   const { roomNumber } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [room, setRoom] = useState(location.state?.room || null);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -151,6 +152,7 @@ export default function RoomDetailPage() {
                       cursor: 'pointer',
                       marginLeft: 16,
                     }}
+                    onClick={() => navigate(`/landlord/rooms/${room.id}/book`, { state: { room } })}
                   >
                     Book Appointment
                   </button>
