@@ -18,6 +18,7 @@ import com.mpbhms.backend.service.BillService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -443,5 +444,34 @@ public class BillServiceImpl implements BillService {
         }
         billRepository.save(bill);
         return toResponse(bill);
+    }
+
+    @Override
+    public void deleteBillById(Long id) {
+        billRepository.deleteById(id);
+    }
+
+    @Override
+    public Page<Bill> filterBills(Long roomId, Boolean status, BigDecimal minPrice, BigDecimal maxPrice, String search, Pageable pageable) {
+        Specification<Bill> spec = Specification.where(null);
+        if (roomId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("room").get("id"), roomId));
+        }
+        if (status != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+        }
+        if (minPrice != null) {
+            spec = spec.and((root, query, cb) -> cb.ge(root.get("totalAmount"), minPrice));
+        }
+        if (maxPrice != null) {
+            spec = spec.and((root, query, cb) -> cb.le(root.get("totalAmount"), maxPrice));
+        }
+        if (search != null && !search.isEmpty()) {
+            spec = spec.and((root, query, cb) -> cb.or(
+                cb.like(cb.lower(root.get("room").get("roomNumber")), "%" + search.toLowerCase() + "%"),
+                cb.like(cb.function("str", String.class, root.get("id")), "%" + search + "%")
+            ));
+        }
+        return billRepository.findAll(spec, pageable);
     }
 }

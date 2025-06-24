@@ -24,6 +24,11 @@ import LandlordContractListPage from "../pages/landlord/LandlordContractListPage
 import RenterRoomDetailPage from "../pages/renter/RenterRoomDetailPage";
 import LandlordAssignRenterPage from "../pages/landlord/LandlordAssignRenterPage";
 import RoomDetailPage from "../pages/RoomDetailPage";
+import LandlordBillListPage from "../pages/landlord/LandlordBillListPage";
+import LandlordBillCreatePage from "../pages/landlord/LandlordBillCreatePage";
+import LandlordBillDetailPage from "../pages/landlord/LandlordBillDetailPage";
+import LandlordBookAppointmentPage from '../pages/landlord/LandlordBookAppointmentPage';
+import LandlordUserListPage from "../pages/landlord/LandlordUserListPage";
 
 export default function AppRouter() {
   return (
@@ -99,6 +104,11 @@ export default function AppRouter() {
         path="/landlord/rooms/:roomId/assign"
         element={<LandlordAssignRenterPage />}
       />
+      <Route path="/landlord/bills" element={<LandlordBillListPage />} />
+      <Route path="/landlord/bills/create" element={<LandlordBillCreatePage />} />
+      <Route path="/landlord/bills/:id" element={<LandlordBillDetailPage />} />
+      <Route path="/landlord/rooms/:roomId/book" element={<LandlordBookAppointmentPage />} />
+      <Route path="/landlord/users" element={<LandlordUserListPage />} />
     </Routes>
   );
 }
