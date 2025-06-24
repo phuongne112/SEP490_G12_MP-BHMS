@@ -14,6 +14,7 @@ public class AddRoomDTOResponse {
     private Integer numberOfBathrooms;
     private String description;
     private Integer maxOccupants;
+    private String building;
 
     public Integer getMaxOccupants() { return maxOccupants; }
     public void setMaxOccupants(Integer maxOccupants) { this.maxOccupants = maxOccupants; }

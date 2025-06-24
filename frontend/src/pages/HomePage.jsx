@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Footer from "../components/layout/Footer";
 import Header from "../components/layout/Header";
 import RoomList from "../components/home/RoomList";
-import { Slider, Select, Button, Typography, Carousel, Dropdown, Badge } from "antd";
+import { Slider, Select, Button, Typography, Carousel, Dropdown, Badge, Input, Spin } from "antd";
 import { useNavigate } from "react-router-dom";
 import { BellOutlined } from "@ant-design/icons";
+import { getAllRooms } from "../services/roomService";
 
 const { Option } = Select;
 const { Title } = Typography;
@@ -30,7 +31,27 @@ export default function HomePage() {
   const [bathrooms, setBathrooms] = useState([1, 2]);
   const [hasAsset, setHasAsset] = useState("All");
   const [appliedFilter, setAppliedFilter] = useState("isActive=true");
+  const [building, setBuilding] = useState("");
+  const [buildingOptions, setBuildingOptions] = useState([]);
+  const [buildingLoading, setBuildingLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Fetch unique building list on mount
+  useEffect(() => {
+    const fetchBuildings = async () => {
+      setBuildingLoading(true);
+      try {
+        const res = await getAllRooms(0, 1000, "", "");
+        const allRooms = res.result || [];
+        const uniqueBuildings = Array.from(new Set(allRooms.map(r => r.building).filter(Boolean)));
+        setBuildingOptions(uniqueBuildings);
+      } catch (e) {
+        setBuildingOptions([]);
+      }
+      setBuildingLoading(false);
+    };
+    fetchBuildings();
+  }, []);
 
   const handleQuickFilter = (filter) => {
     setAppliedFilter(filter);
@@ -67,6 +88,9 @@ export default function HomePage() {
       dsl.push("assets IS NOT EMPTY");
     } else if (hasAsset === "false") {
       dsl.push("assets IS EMPTY");
+    }
+    if (building && building.trim() !== "") {
+      dsl.push(`building='${building.trim()}'`);
     }
     return dsl.join(" and ");
   };
@@ -207,6 +231,22 @@ export default function HomePage() {
               <Option value="All">All</Option>
               <Option value="true">Yes</Option>
               <Option value="false">No</Option>
+            </Select>
+          </FilterBox>
+
+          <FilterBox title="Building">
+            <Select
+              value={building}
+              onChange={val => setBuilding(val)}
+              style={{ width: "100%" }}
+              loading={buildingLoading}
+              allowClear
+              placeholder="Select building"
+            >
+              <Option value="">All</Option>
+              {buildingOptions.map(b => (
+                <Option key={b} value={b}>{b}</Option>
+              ))}
             </Select>
           </FilterBox>
 

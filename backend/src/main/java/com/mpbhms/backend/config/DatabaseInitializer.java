@@ -41,7 +41,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         if (countPermissions == 0) {
             List<Permission> permissions = new ArrayList<>();
             //Rooms
-            permissions.add(new Permission("Update Room", "/mpbhms/rooms/{id}", "PUT", "Room"));
+            permissions.add(new Permission("Update Room", "/mpbhms/rooms/{id}", "POST", "Room"));
             permissions.add(new Permission("Update Room Status", "/mpbhms/rooms/{id}/status", "PATCH", "Room"));
             permissions.add(new Permission("Delete Room", "/mpbhms/rooms/{id}", "DELETE", "Room"));
             permissions.add(new Permission("Create Room", "/mpbhms/rooms", "POST", "Room"));

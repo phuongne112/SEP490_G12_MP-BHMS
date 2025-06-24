@@ -68,4 +68,7 @@ public class Room extends BaseEntity {
     //
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL)
     private List<ServiceReading> serviceReadings = new ArrayList<>();
+
+    @Column(length = 100)
+    private String building;
 }

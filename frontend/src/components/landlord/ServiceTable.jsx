@@ -34,12 +34,6 @@ export default function ServiceTable({ services, pagination, loading, onEdit, on
       },
     },
     {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status) => <Switch checked={status} disabled />,
-    },
-    {
       title: "Actions",
       key: "actions",
       render: (_, record) => (

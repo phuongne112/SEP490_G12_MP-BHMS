@@ -98,15 +98,19 @@ export default function RoomCard({ room, onClick }) {
           >
             {room.roomNumber}
           </Title>
+          {room.building && (
+            <div style={{ color: '#888', fontSize: 15, marginBottom: 4 }}>
+              <span role="img" aria-label="building">🏢</span> Tòa: <b>{room.building}</b>
+            </div>
+          )}
 
           <Text type="secondary" style={{ display: "block", marginBottom: 12 }}>
-            {room.area} m²
+            <span role="img" aria-label="area">📏</span> {room.area} m²
           </Text>
 
-          <Title level={5} style={{ color: "#1890ff" }}>
-            {room.pricePerMonth?.toLocaleString("en-US")}{" "}
-            <Text style={{ fontSize: 14, color: "#1890ff" }}>VND/month</Text>
-          </Title>
+          <div style={{ fontWeight: 700, color: '#d4380d', fontSize: 20, marginBottom: 8 }}>
+            <span role="img" aria-label="money">💰</span> {room.pricePerMonth?.toLocaleString("vi-VN")} <span style={{ fontWeight: 400, fontSize: 15 }}>VND/tháng</span>
+          </div>
 
           <Space direction="vertical" style={{ width: "100%", marginTop: 16 }}>
             <Space size="large">

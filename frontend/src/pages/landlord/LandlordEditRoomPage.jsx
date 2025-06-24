@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Layout,
   Form,
@@ -12,37 +12,90 @@ import {
   Col,
   Switch,
 } from "antd";
-import { UploadOutlined, PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import axiosClient from "../../services/axiosClient";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 const { Sider, Content } = Layout;
 const { TextArea } = Input;
 const { Option } = Select;
 
-export default function LandlordAddRoomPage() {
+export default function LandlordEditRoomPage() {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState(null);
-  const [roomNumberSuffix, setRoomNumberSuffix] = useState("");
+  const [initialValues, setInitialValues] = useState(null);
+  const [keepImageIds, setKeepImageIds] = useState([]);
   const navigate = useNavigate();
+  const { id } = useParams();
+
+  useEffect(() => {
+    // Fetch room data by id
+    const fetchRoom = async () => {
+      try {
+        const res = await axiosClient.get(`/rooms/${id}`);
+        const room = res.data;
+        if (!room) throw new Error("Room not found");
+        // Parse building + suffix
+        let building = room.building || "";
+        let roomNumberSuffix = room.roomNumber?.replace(building, "") || "";
+        setInitialValues({
+          building,
+          roomNumberSuffix,
+          area: room.area,
+          price: room.pricePerMonth,
+          roomStatus: room.roomStatus,
+          numberOfBedrooms: room.numberOfBedrooms,
+          numberOfBathrooms: room.numberOfBathrooms,
+          description: room.description,
+          maxOccupants: room.maxOccupants,
+          isActive: room.isActive,
+        });
+        form.setFieldsValue({
+          building,
+          roomNumberSuffix,
+          area: room.area,
+          price: room.pricePerMonth,
+          roomStatus: room.roomStatus,
+          numberOfBedrooms: room.numberOfBedrooms,
+          numberOfBathrooms: room.numberOfBathrooms,
+          description: room.description,
+          maxOccupants: room.maxOccupants,
+          isActive: room.isActive,
+        });
+        // Prepare fileList for Upload
+        setFileList(
+          (room.images || []).map((img) => ({
+            uid: String(img.id),
+            name: img.imageUrl.split("/").pop(),
+            status: "done",
+            url: img.imageUrl,
+            id: img.id,
+          }))
+        );
+        setKeepImageIds((room.images || []).map((img) => img.id));
+      } catch (e) {
+        message.error("Failed to load room data");
+        navigate("/landlord/rooms");
+      }
+    };
+    fetchRoom();
+    // eslint-disable-next-line
+  }, [id]);
 
   const handleUploadChange = ({ fileList: newFileList }) => {
-    if (newFileList.length <= 8) {
-      setFileList(newFileList);
-    } else {
-      message.warning("Chỉ được upload tối đa 8 ảnh!");
-    }
+    // Keep only new files and those with id (old images)
+    setFileList(newFileList);
+    setKeepImageIds(newFileList.filter(f => f.id).map(f => f.id));
   };
 
   const handleFinish = async (values) => {
     setLoading(true);
     setFormError(null);
     try {
-      // Ghép roomNumber từ building + roomNumberSuffix
       const roomNumber = values.building + values.roomNumberSuffix;
       const roomDTO = {
         roomNumber,
@@ -58,22 +111,23 @@ export default function LandlordAddRoomPage() {
       };
       const formData = new FormData();
       formData.append("room", JSON.stringify(roomDTO));
+      if (keepImageIds.length > 0) {
+        keepImageIds.forEach((id) => formData.append("keepImageIds", id));
+      }
       fileList.forEach((file) => {
-        if (file.originFileObj) {
+        if (!file.id && file.originFileObj) {
           formData.append("images", file.originFileObj);
         }
       });
-      await axiosClient.post("/rooms", formData, {
+      await axiosClient.post(`/rooms/${id}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      message.success("Room added successfully!");
-      // Navigate back to room list page
+      message.success("Room updated successfully!");
       navigate("/landlord/rooms");
     } catch (err) {
       const res = err.response?.data;
       setFormError(null);
       if (res && typeof res === "object") {
-        // Nếu backend trả về lỗi từng trường
         const fieldMap = {};
         const fieldErrors = Object.entries(res).map(([field, msg]) => ({
           name: fieldMap[field] || field,
@@ -81,11 +135,15 @@ export default function LandlordAddRoomPage() {
         }));
         form.setFields(fieldErrors);
       } else {
-        setFormError(res?.message || "Failed to add room!");
+        setFormError(res?.message || "Failed to update room!");
       }
     }
     setLoading(false);
   };
+
+  if (!initialValues) {
+    return <div style={{ textAlign: "center", padding: 60 }}><span>Loading...</span></div>;
+  }
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -93,7 +151,7 @@ export default function LandlordAddRoomPage() {
         <LandlordSidebar />
       </Sider>
       <Layout style={{ marginTop: 20, marginLeft: 15 }}>
-        <PageHeader title="Add Room" />
+        <PageHeader title="Edit Room" />
         <Content style={{ padding: "24px" }}>
           {formError && (
             <div style={{ color: "red", marginBottom: 16 }}>{formError}</div>
@@ -102,14 +160,7 @@ export default function LandlordAddRoomPage() {
             layout="vertical"
             form={form}
             onFinish={handleFinish}
-            initialValues={{
-              area: 20,
-              price: 1000000,
-              numberOfBedrooms: 1,
-              numberOfBathrooms: 1,
-              roomStatus: "Available",
-              isActive: true,
-            }}
+            initialValues={initialValues}
           >
             <Row gutter={16}>
               <Col span={12}>
@@ -223,6 +274,9 @@ export default function LandlordAddRoomPage() {
                     multiple
                     maxCount={8}
                     accept="image/*"
+                    onRemove={file => {
+                      setKeepImageIds(prev => prev.filter(id => id !== file.id));
+                    }}
                   >
                     {fileList.length < 8 && (
                       <div>
@@ -236,7 +290,7 @@ export default function LandlordAddRoomPage() {
             </Row>
             <Form.Item>
               <Button type="primary" htmlType="submit" loading={loading}>
-                Add Room
+                Update Room
               </Button>
             </Form.Item>
           </Form>
@@ -244,4 +298,4 @@ export default function LandlordAddRoomPage() {
       </Layout>
     </Layout>
   );
-}
+} 

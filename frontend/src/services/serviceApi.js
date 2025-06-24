@@ -1,12 +1,20 @@
 import axiosClient from "./axiosClient";
 
-export const getAllServices = async (page = 0, size = 10, serviceName = "", serviceType = "") => {
+export const getAllServices = async (page = 0, size = 10, filters = {}) => {
   let url = `/services?page=${page}&size=${size}`;
-  if (serviceName) {
-    url += `&serviceName=${encodeURIComponent(serviceName)}`;
+  let filterDsl = "";
+  if (typeof filters === 'object' && filters !== null) {
+    const dslArr = [];
+    if (filters.serviceName) dslArr.push(`serviceName~'${filters.serviceName}'`);
+    if (filters.serviceType) dslArr.push(`serviceType='${filters.serviceType}'`);
+    if (filters.minPrice) dslArr.push(`unitPrice>=${filters.minPrice}`);
+    if (filters.maxPrice) dslArr.push(`unitPrice<=${filters.maxPrice}`);
+    filterDsl = dslArr.join(" and ");
+  } else if (typeof filters === 'string') {
+    filterDsl = filters;
   }
-  if (serviceType) {
-    url += `&serviceType=${encodeURIComponent(serviceType)}`;
+  if (filterDsl) {
+    url += `&filter=${encodeURIComponent(filterDsl)}`;
   }
   const response = await axiosClient.get(url);
   return response;
