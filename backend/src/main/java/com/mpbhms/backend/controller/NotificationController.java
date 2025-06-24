@@ -30,8 +30,21 @@ public class NotificationController {
 
     @GetMapping()
     @ApiMessage("Get all notifications for the current user")
-    public ResponseEntity<List<Notification>> getUserNotifications(Principal principal) {
-        return ResponseEntity.ok(notificationService.getUserNotifications(principal.getName()));
+    public ResponseEntity<List<NotificationDTO>> getUserNotifications(Principal principal) {
+        List<Notification> notifications = notificationService.getUserNotifications(principal.getName());
+        List<NotificationDTO> dtos = notifications.stream().map(n -> {
+            NotificationDTO dto = new NotificationDTO();
+            dto.setId(n.getId());
+            dto.setTitle(n.getTitle());
+            dto.setMessage(n.getMessage());
+            dto.setType(n.getType());
+            dto.setRecipientId(n.getRecipientId());
+            dto.setMetadata(n.getMetadata());
+            dto.setCreatedDate(n.getCreatedDate());
+            dto.setStatus(n.getStatus());
+            return dto;
+        }).toList();
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/all")

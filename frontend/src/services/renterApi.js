@@ -12,3 +12,8 @@ export const getRentersForAssign = (keyword = "") => {
   if (keyword) url += `?keyword=${encodeURIComponent(keyword)}`;
   return axiosClient.get(url);
 };
+
+export const createRenter = async (data) => {
+  const res = await axiosClient.post("/renters", data);
+  return res.data;
+};

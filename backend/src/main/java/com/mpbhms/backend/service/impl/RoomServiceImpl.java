@@ -300,4 +300,20 @@ public class RoomServiceImpl implements RoomService {
         return sb.toString();
     }
 
+    // Lấy danh sách phòng có người thuê
+    public ResultPaginationDTO getAllRoomsWithRenter(Pageable pageable) {
+        Page<Room> roomsPage = roomRepository.findByRoomUsersIsNotEmpty(pageable);
+        List<RoomDTO> roomDTOs = convertToRoomDTOList(roomsPage.getContent());
+        Meta meta = new Meta();
+        meta.setPage(roomsPage.getNumber() + 1);
+        meta.setPageSize(roomsPage.getSize());
+        meta.setPages(roomsPage.getTotalPages());
+        meta.setTotal(roomsPage.getTotalElements());
+
+        ResultPaginationDTO result = new ResultPaginationDTO();
+        result.setMeta(meta);
+        result.setResult(roomDTOs);
+        return result;
+    }
+
 }

@@ -4,9 +4,13 @@ import com.mpbhms.backend.dto.*;
 import com.mpbhms.backend.entity.Role;
 import com.mpbhms.backend.entity.User;
 import com.mpbhms.backend.entity.UserInfo;
+import com.mpbhms.backend.entity.RoomUser;
+import com.mpbhms.backend.entity.Room;
 import com.mpbhms.backend.exception.BusinessException;
 import com.mpbhms.backend.repository.RoleRepository;
 import com.mpbhms.backend.repository.UserRepository;
+import com.mpbhms.backend.repository.RoomUserRepository;
+import com.mpbhms.backend.repository.RoomRepository;
 import com.mpbhms.backend.service.RenterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,6 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import com.mpbhms.backend.dto.RenterRoomInfoDTO;
 
 import java.util.*;
 
@@ -26,23 +31,42 @@ public class RenterServiceImpl implements RenterService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RoomUserRepository roomUserRepository;
+    private final RoomRepository roomRepository;
 
     @Override
-    public ResultPaginationDTO getAllRenters(Specification<?> spec, Pageable pageable) {
+    public ResultPaginationDTO getAllRenters(Specification<?> spec, Pageable pageable, String search) {
         Specification<User> specWithRole = ((Specification<User>) spec).and((root, query, cb) ->
                 cb.equal(root.get("role").get("id"), 2)
         );
 
-        Page<User> userPage = userRepository.findAll(specWithRole, pageable);
-        List<UserDTO> userDTOs = userPage.getContent().stream()
-                .map(this::convertToUserDTO)
-                .toList();
+        // Lấy tất cả user matching spec (không phân trang ở DB)
+        List<User> allUsers = userRepository.findAll(specWithRole, Pageable.unpaged()).getContent();
+        // Filter search trước
+        List<User> filteredUsers = allUsers.stream()
+            .filter(user -> {
+                if (search != null && !search.isEmpty()) {
+                    return user.getUsername() != null &&
+                        user.getUsername().toLowerCase().contains(search.toLowerCase());
+                }
+                return true;
+            })
+            .toList();
+
+        // Phân trang lại thủ công
+        int page = pageable.getPageNumber();
+        int size = pageable.getPageSize();
+        int start = page * size;
+        int end = Math.min(start + size, filteredUsers.size());
+        List<UserDTO> userDTOs = (start < end)
+            ? filteredUsers.subList(start, end).stream().map(this::convertToUserDTOWithRoom).toList()
+            : new ArrayList<>();
 
         Meta meta = new Meta();
-        meta.setPage(userPage.getNumber() + 1);
-        meta.setPageSize(userPage.getSize());
-        meta.setPages(userPage.getTotalPages());
-        meta.setTotal(userPage.getTotalElements());
+        meta.setPage(page + 1);
+        meta.setPageSize(size);
+        meta.setPages((int) Math.ceil((double) filteredUsers.size() / size));
+        meta.setTotal(filteredUsers.size());
 
         ResultPaginationDTO result = new ResultPaginationDTO();
         result.setMeta(meta);
@@ -132,5 +156,18 @@ public class RenterServiceImpl implements RenterService {
     public List<UserDTO> getRentersForAssign(String keyword) {
         List<User> users = userRepository.findRentersWithoutActiveRoomAndSearch(keyword == null ? "" : keyword);
         return users.stream().map(this::convertToUserDTO).toList();
+    }
+
+    private UserDTO convertToUserDTOWithRoom(User user) {
+        UserDTO dto = convertToUserDTO(user);
+        RoomUser roomUser = roomUserRepository.findTopByUserIdOrderByJoinedAtDesc(user.getId());
+        if (roomUser != null) {
+            Room room = roomUser.getRoom();
+            RenterRoomInfoDTO info = new RenterRoomInfoDTO();
+            info.setRoomName(room != null ? room.getRoomNumber() : null);
+            info.setCheckInDate(roomUser.getJoinedAt());
+            dto.setRenterRoomInfo(info);
+        }
+        return dto;
     }
 }

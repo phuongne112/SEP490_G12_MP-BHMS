@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Layout,
   Button,
@@ -51,6 +51,7 @@ export default function AdminRoleListPage() {
   const [form] = Form.useForm();
   const [formError, setFormError] = useState(null);
   const dispatch = useDispatch();
+  const [, forceUpdate] = useState({});
 
   useEffect(() => {
     const fetchPermissions = async () => {
@@ -159,6 +160,26 @@ export default function AdminRoleListPage() {
     }
   };
 
+  // Helper: toggle group (bật thì bật hết, tắt thì tắt hết, đồng bộ ngay)
+  const handleToggleGroup = (module, perms, checked) => {
+    const values = form.getFieldValue("permissions") || {};
+    const newValues = { ...values };
+    perms.forEach((perm) => {
+      newValues[perm.id] = checked;
+    });
+    form.setFieldsValue({ permissions: newValues });
+    forceUpdate({}); // Ép rerender ngay
+  };
+
+  // Helper: kiểm tra group có bật hết không (dùng trực tiếp values thay vì form.getFieldValue để đồng bộ UI)
+  const isGroupChecked = useCallback(
+    (module, perms) => {
+      const values = form.getFieldValue("permissions") || {};
+      return perms.every((perm) => !!values[perm.id]);
+    },
+    [form]
+  );
+
   return (
     <Layout>
       <AdminSidebar />
@@ -259,6 +280,7 @@ export default function AdminRoleListPage() {
               form={form}
               layout="vertical"
               onFinish={handleSubmitRole}
+              onValuesChange={() => forceUpdate({})}
             >
               <Row gutter={16}>
                 <Col span={12}>
@@ -277,7 +299,19 @@ export default function AdminRoleListPage() {
               <Form.Item label="Permissions">
                 <Collapse defaultActiveKey={Object.keys(groupedPermissions)}>
                   {Object.entries(groupedPermissions).map(([module, perms]) => (
-                    <Panel header={module} key={module}>
+                    <Panel 
+                      header={
+                        <div style={{display:'flex',alignItems:'center',gap:12}}>
+                          <span>{module}</span>
+                          <Switch
+                            style={{ transform: 'scale(1.15)', marginLeft: 16 }}
+                            checked={isGroupChecked(module, perms)}
+                            onChange={checked => handleToggleGroup(module, perms, checked)}
+                          />
+                        </div>
+                      }
+                      key={module}
+                    >
                       <Row gutter={[16, 16]}>
                         {perms.map((perm) => (
                           <Col span={12} key={perm.id}>

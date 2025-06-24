@@ -15,7 +15,7 @@ export default function UserMenu() {
     dispatch(logout());
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    window.location.href = "/login";
+    window.location.href = "/home";
   };
 
   const openAccountModal = async () => {

@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import Footer from "../components/layout/Footer";
 import Header from "../components/layout/Header";
 import RoomList from "../components/home/RoomList";
-import { Slider, Select, Button, Typography, Carousel } from "antd";
+import { Slider, Select, Button, Typography, Carousel, Dropdown, Badge } from "antd";
 import { useNavigate } from "react-router-dom";
+import { BellOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
 const { Title } = Typography;

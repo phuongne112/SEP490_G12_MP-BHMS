@@ -137,7 +137,24 @@ export default function RoomDetailPage() {
                 size="middle"
                 style={{ width: "100%" }}
               >
-                <Title level={3}>Room {room.roomNumber}</Title>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <Title level={3} style={{ margin: 0 }}>Room {room.roomNumber}</Title>
+                  <button
+                    style={{
+                      background: '#1890ff',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 6,
+                      padding: '8px 20px',
+                      fontWeight: 500,
+                      fontSize: 16,
+                      cursor: 'pointer',
+                      marginLeft: 16,
+                    }}
+                  >
+                    Book Appointment
+                  </button>
+                </div>
                 <Text>
                   <strong>Area:</strong> {room.area} m²
                 </Text>

@@ -54,9 +54,12 @@ export default function AdminNotificationPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [sendMode, setSendMode] = useState("role");
   const [userList, setUserList] = useState([]);
-  const currentUserId = parseInt(localStorage.getItem("userId"));
-  const dispatch = useDispatch();
   const user = useSelector((state) => state.account.user);
+  let currentUserId = Number(localStorage.getItem("userId"));
+  if (!currentUserId || isNaN(currentUserId)) {
+    currentUserId = user?.id;
+  }
+  const dispatch = useDispatch();
   // Thêm biến state để chờ khi load xong userList
   const [userListLoaded, setUserListLoaded] = useState(false);
 
@@ -86,7 +89,7 @@ export default function AdminNotificationPage() {
       try {
         const res = await getAllUsers(0, 1000);
         const allUsers = res.result || [];
-        const filtered = allUsers.filter((u) => u.id !== currentUserId);
+        const filtered = allUsers.filter((u) => Number(u.id) !== Number(currentUserId));
         setUserList(filtered);
         setUserListLoaded(true); // ✅ đánh dấu đã load xong
       } catch (err) {
@@ -232,11 +235,16 @@ export default function AdminNotificationPage() {
                     };
                     await sendNotification(payload);
                   } else {
-                    const promises = userList.map((user) => {
+                    const filteredUserList = userList.filter(user => Number(user.id) !== Number(currentUserId));
+                    console.log("currentUserId:", currentUserId);
+                    console.log("userList:", userList.map(u => u.id));
+                    console.log("filteredUserList:", filteredUserList.map(u => u.id));
+                    const promises = filteredUserList.map((user) => {
                       const payload = {
                         ...payloadBase,
                         recipientId: user.id,
                       };
+                      console.log("Sending to:", user.id);
                       return sendNotification(payload);
                     });
                     await Promise.all(promises);

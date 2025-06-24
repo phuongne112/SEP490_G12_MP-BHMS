@@ -15,4 +15,7 @@ public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificat
 //    Page<RoomEntity> findAllByIsActiveTrue(Pageable pageable);
 @EntityGraph(attributePaths = "images")
 Page<Room> findAll(Specification<Room> spec, Pageable pageable);
+
+    // Lấy các phòng có người thuê
+    Page<Room> findByRoomUsersIsNotEmpty(Pageable pageable);
 }

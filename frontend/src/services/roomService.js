@@ -25,8 +25,8 @@ export const updateRoomStatus = async (roomId, status) => {
 };
 
 export const toggleRoomActiveStatus = async (roomId) => {
-    const response = await axiosClient.patch(`/rooms/${roomId}/active`);
-    return response.data;
+  const response = await axiosClient.patch(`/rooms/${roomId}/active`);
+  return response.data;
 };
 
 /**
@@ -35,5 +35,13 @@ export const toggleRoomActiveStatus = async (roomId) => {
  */
 export const leaveRoom = async (roomUserId) => {
   const response = await axiosClient.post(`/room-users/leave/${roomUserId}`);
+  return response.data;
+};
+
+/**
+ * Lấy danh sách phòng có người thuê
+ */
+export const getRoomsWithRenter = async () => {
+  const response = await axiosClient.get("/rooms/with-renter");
   return response.data;
 };
