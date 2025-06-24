@@ -7,6 +7,7 @@ import com.mpbhms.backend.entity.Contract;
 import com.mpbhms.backend.entity.Room;
 import com.mpbhms.backend.entity.RoomUser;
 import com.mpbhms.backend.entity.User;
+import com.mpbhms.backend.entity.ContractRenterInfo;
 import com.mpbhms.backend.repository.ContractRepository;
 import com.mpbhms.backend.repository.RoomUserRepository;
 import com.mpbhms.backend.service.ContractService;
@@ -20,6 +21,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.util.SecurityUtil;
+import com.mpbhms.backend.repository.ContractRenterInfoRepository;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.mpbhms.backend.service.NotificationService;
+import com.mpbhms.backend.service.EmailService;
+import com.mpbhms.backend.dto.NotificationDTO;
+import com.mpbhms.backend.enums.NotificationType;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -43,6 +52,10 @@ public class ContractServiceImpl implements ContractService {
     private final ContractRepository contractRepository;
     private final RoomUserRepository roomUserRepository;
     private final UserRepository userRepository;
+    private final ContractRenterInfoRepository contractRenterInfoRepository;
+    private final NotificationService notificationService;
+    private final EmailService emailService;
+    private static final Logger logger = LoggerFactory.getLogger(ContractServiceImpl.class);
 
     @Override
     @Transactional
@@ -53,8 +66,17 @@ public class ContractServiceImpl implements ContractService {
         // Lấy landlord từ user đang đăng nhập
         Long landlordId = SecurityUtil.getCurrentUserId();
         User landlord = landlordId != null ? userRepository.findById(landlordId).orElse(null) : null;
-        // Lấy danh sách renter
-        java.util.List<RoomUser> renters = contract.getRoomUsers();
+        // Lấy danh sách ContractRenterInfo chỉ của RoomUser còn tồn tại (đã xóa hẳn những người rời phòng)
+        java.util.List<RoomUser> activeRoomUsers = contract.getRoomUsers() != null ? contract.getRoomUsers() : java.util.Collections.emptyList();
+        java.util.List<ContractRenterInfo> renters = contractRenterInfoRepository.findByContractId(contractId).stream()
+            .filter(info -> activeRoomUsers.stream().anyMatch(ru -> ru.getUser() != null && ru.getUser().getId().equals(info.getFullName() != null ? ru.getUser().getId() : null)))
+            .toList();
+        // Nếu không thể map theo userId, chỉ lấy ContractRenterInfo của RoomUser còn tồn tại theo tên
+        if (renters.isEmpty()) {
+            renters = contractRenterInfoRepository.findByContractId(contractId).stream()
+                .filter(info -> activeRoomUsers.stream().anyMatch(ru -> ru.getUser() != null && ru.getUser().getUserInfo() != null && ru.getUser().getUserInfo().getFullName().equals(info.getFullName())))
+                .toList();
+        }
 
         if (room == null) {
             throw new RuntimeException("Cannot found room in contract with id: " + contractId);
@@ -103,19 +125,16 @@ public class ContractServiceImpl implements ContractService {
             StringBuilder renterInfo = new StringBuilder();
             if (renters != null && !renters.isEmpty()) {
                 for (int i = 0; i < renters.size(); i++) {
-                    RoomUser ru = renters.get(i);
-                    User renter = ru.getUser();
-                    if (renter != null && renter.getUserInfo() != null) {
-                        renterInfo.append(String.format(
-                            "- Họ tên: %s\n- Số điện thoại: %s\n- Số CCCD: %s\n- Địa chỉ thường trú: %s\n",
-                            renter.getUserInfo().getFullName(),
-                            renter.getUserInfo().getPhoneNumber(),
-                            renter.getUserInfo().getNationalID(),
-                            renter.getUserInfo().getPermanentAddress()
-                        ));
-                        if (i < renters.size() - 1) {
-                            renterInfo.append("\n");
-                        }
+                    ContractRenterInfo info = renters.get(i);
+                    renterInfo.append(String.format(
+                        "- Họ tên: %s\n- Số điện thoại: %s\n- Số CCCD: %s\n- Địa chỉ thường trú: %s\n",
+                        info.getFullName(),
+                        info.getPhoneNumber(),
+                        info.getNationalID(),
+                        info.getPermanentAddress()
+                    ));
+                    if (i < renters.size() - 1) {
+                        renterInfo.append("\n");
                     }
                 }
             } else {
@@ -267,6 +286,11 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
     public void deleteContract(Long id) {
         Contract contract = contractRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Contract not found"));
+        // Xóa tất cả ContractRenterInfo liên quan
+        java.util.List<ContractRenterInfo> renterInfos = contractRenterInfoRepository.findByContractId(id);
+        for (ContractRenterInfo info : renterInfos) {
+            contractRenterInfoRepository.delete(info);
+        }
         // Xóa tất cả RoomUser liên quan
         if (contract.getRoomUsers() != null) {
             for (RoomUser ru : contract.getRoomUsers()) {
@@ -294,9 +318,94 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
                 RoomUser ru = roomUserRepository.findById(roomUserId).orElseThrow();
                 ru.setContract(contract);
                 roomUserRepository.save(ru);
+                // Lưu snapshot thông tin renter vào ContractRenterInfo
+                if (ru.getUser() != null && ru.getUser().getUserInfo() != null) {
+                    ContractRenterInfo info = new ContractRenterInfo();
+                    info.setContract(contract);
+                    info.setFullName(ru.getUser().getUserInfo().getFullName());
+                    info.setPhoneNumber(ru.getUser().getUserInfo().getPhoneNumber());
+                    info.setNationalID(ru.getUser().getUserInfo().getNationalID());
+                    info.setPermanentAddress(ru.getUser().getUserInfo().getPermanentAddress());
+                    contractRenterInfoRepository.save(info);
+                }
             }
         }
         return toDTO(contract);
+    }
+
+    // Hàm tự động cập nhật thông tin user mỗi tháng cho tất cả hợp đồng active
+    @Scheduled(cron = "0 0 0 1 * ?") // Chạy vào 0h ngày 1 hàng tháng
+    public void updateUserInfoMonthly() {
+        // Lấy tất cả hợp đồng active
+        java.util.List<Contract> activeContracts = contractRepository.findAll().stream()
+            .filter(contract -> contract.getContractStatus() == com.mpbhms.backend.enums.ContractStatus.ACTIVE)
+            .toList();
+            
+        for (Contract contract : activeContracts) {
+            // Lấy RoomUser còn tồn tại (đã xóa hẳn những người rời phòng)
+            java.util.List<RoomUser> activeUsers = contract.getRoomUsers() != null ? contract.getRoomUsers() : java.util.Collections.emptyList();
+            if (activeUsers.isEmpty()) continue;
+            
+            // Cập nhật thông tin user cho từng người thuê
+            for (RoomUser ru : activeUsers) {
+                if (ru.getUser() != null && ru.getUser().getUserInfo() != null) {
+                    // Tìm ContractRenterInfo hiện tại của user này
+                    java.util.List<ContractRenterInfo> existingInfos = contractRenterInfoRepository.findByContractId(contract.getId());
+                    ContractRenterInfo existingInfo = null;
+                    
+                    // Tìm thông tin hiện tại của user này (dựa trên tên và số điện thoại)
+                    for (ContractRenterInfo info : existingInfos) {
+                        if (ru.getUser().getUserInfo().getFullName().equals(info.getFullName()) &&
+                            ru.getUser().getUserInfo().getPhoneNumber().equals(info.getPhoneNumber())) {
+                            existingInfo = info;
+                            break;
+                        }
+                    }
+                    
+                    // Nếu tìm thấy thông tin cũ, cập nhật; nếu không tìm thấy, tạo mới
+                    if (existingInfo != null) {
+                        // Cập nhật thông tin mới nhất
+                        existingInfo.setFullName(ru.getUser().getUserInfo().getFullName());
+                        existingInfo.setPhoneNumber(ru.getUser().getUserInfo().getPhoneNumber());
+                        existingInfo.setNationalID(ru.getUser().getUserInfo().getNationalID());
+                        existingInfo.setPermanentAddress(ru.getUser().getUserInfo().getPermanentAddress());
+                        contractRenterInfoRepository.save(existingInfo);
+                        
+                        logger.info("[UpdateUserInfo] Đã cập nhật thông tin user {} trong hợp đồng {} (phòng {})", 
+                            ru.getUser().getUserInfo().getFullName(), contract.getId(), contract.getRoom().getRoomNumber());
+                    } else {
+                        // Tạo mới thông tin nếu chưa có
+                        ContractRenterInfo newInfo = new ContractRenterInfo();
+                        newInfo.setContract(contract);
+                        newInfo.setFullName(ru.getUser().getUserInfo().getFullName());
+                        newInfo.setPhoneNumber(ru.getUser().getUserInfo().getPhoneNumber());
+                        newInfo.setNationalID(ru.getUser().getUserInfo().getNationalID());
+                        newInfo.setPermanentAddress(ru.getUser().getUserInfo().getPermanentAddress());
+                        contractRenterInfoRepository.save(newInfo);
+                        
+                        logger.info("[UpdateUserInfo] Đã tạo mới thông tin user {} trong hợp đồng {} (phòng {})", 
+                            ru.getUser().getUserInfo().getFullName(), contract.getId(), contract.getRoom().getRoomNumber());
+                    }
+                }
+            }
+            
+            // Gửi thông báo cho chủ phòng về việc cập nhật thông tin
+            if (contract.getRoom() != null && contract.getRoom().getLandlord() != null && contract.getRoom().getLandlord().getEmail() != null) {
+                String subject = "Cập nhật thông tin người thuê - Phòng " + contract.getRoom().getRoomNumber();
+                String content = "Thông tin người thuê trong phòng " + contract.getRoom().getRoomNumber() + 
+                               " đã được cập nhật tự động. Vui lòng kiểm tra trên hệ thống.";
+                
+                NotificationDTO landlordNoti = new NotificationDTO();
+                landlordNoti.setTitle(subject);
+                landlordNoti.setMessage(content);
+                landlordNoti.setType(NotificationType.CUSTOM);
+                landlordNoti.setRecipientId(contract.getRoom().getLandlord().getId());
+                notificationService.createAndSend(landlordNoti);
+                emailService.sendNotificationEmail(contract.getRoom().getLandlord().getEmail(), subject, content);
+            }
+        }
+        
+        logger.info("[UpdateUserInfo] Hoàn thành cập nhật thông tin user cho {} hợp đồng", activeContracts.size());
     }
 
     private ContractDTO toDTO(Contract contract) {
@@ -314,7 +423,7 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
         if (contract.getRoom() != null) {
             dto.setRoomNumber(contract.getRoom().getRoomNumber());
         }
-        // Thêm danh sách tên người thuê
+        // Thêm danh sách tên người thuê - bây giờ chỉ lấy những RoomUser còn tồn tại (đã xóa hẳn những người rời phòng)
         if (contract.getRoomUsers() != null) {
             dto.setRenterNames(contract.getRoomUsers().stream()
                 .map(ru -> ru.getUser() != null && ru.getUser().getUserInfo() != null ? ru.getUser().getUserInfo().getFullName() : "Unknown")

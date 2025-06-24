@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface RoomUserService {
     void addUsersToRoom(AddUsersToRoomRequest request);
+    void leaveRoom(Long roomUserId);
 }
