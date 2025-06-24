@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Card, Row, Col, Button, Badge, Skeleton, Tag, Dropdown, Menu, message } from "antd";
-import { updateRoomStatus, toggleRoomActiveStatus } from "../../services/roomService"; 
+import { updateRoomStatus, toggleRoomActiveStatus, deleteRoom } from "../../services/roomService"; 
 import { useNavigate } from "react-router-dom";
 
 const { Meta } = Card;
@@ -103,11 +103,37 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
                             }
                             actions={[
                                 <Button
+                                    type="primary"
+                                    onClick={() => navigate(`/landlord/rooms/${room.id}/edit`)}
+                                    style={{ marginLeft: 8 }}
+                                >
+                                    Edit
+                                </Button>,
+                                <Button
                                     type="default"
                                     onClick={() => navigate(`/landlord/rooms/${room.id}/assign`)}
                                     style={{ marginLeft: 8 }}
                                 >
                                     Assign Renter
+                                </Button>,
+                                <Button
+                                    type="primary"
+                                    danger
+                                    style={{ marginLeft: 8 }}
+                                    onClick={async () => {
+                                        if (window.confirm('Are you sure you want to delete this room?')) {
+                                            try {
+                                                await deleteRoom(room.id);
+                                                message.success('Room deleted successfully');
+                                                if (onRoomsUpdate) onRoomsUpdate();
+                                            } catch (e) {
+                                                const backendMsg = e?.response?.data?.message || e?.response?.data?.error || 'Failed to delete room';
+                                                message.error(backendMsg);
+                                            }
+                                        }
+                                    }}
+                                >
+                                    Delete
                                 </Button>,
                                 <Dropdown overlay={statusMenu(room)} trigger={['click']} disabled={updatingId === room.id}>
                                     <a onClick={e => e.preventDefault()} style={{
@@ -126,6 +152,11 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
                                 title={
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <span>{room.roomNumber}</span>
+                                        {room.building && (
+                                            <span style={{ marginLeft: 8, fontWeight: 400, color: '#888', fontSize: 13 }}>
+                                                | {room.building}
+                                            </span>
+                                        )}
                                         <Tag 
                                             color={room.isActive ? "green" : "red"}
                                             onClick={() => handleToggleActive(room.id)}
@@ -140,6 +171,9 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
                                 }
                                 description={
                                     <div>
+                                        {room.building && (
+                                            <div>Building: {room.building}</div>
+                                        )}
                                         <div>Price: {room.pricePerMonth?.toLocaleString("en-US")} VND/month</div>
                                         {room.area && (
                                             <div>Area: {room.area} m²</div>

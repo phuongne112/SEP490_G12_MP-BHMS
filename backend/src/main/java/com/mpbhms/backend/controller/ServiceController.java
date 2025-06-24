@@ -13,6 +13,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.turkraft.springfilter.boot.Filter;
 
 import java.util.List;
 
@@ -26,39 +27,9 @@ public class ServiceController {
 
     @GetMapping
     public ResponseEntity<ResultPaginationDTO> getAllServices(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir,
-            @RequestParam(required = false) String serviceName,
-            @RequestParam(required = false) String serviceType,
-            @RequestParam(required = false) java.math.BigDecimal minPrice,
-            @RequestParam(required = false) java.math.BigDecimal maxPrice
+            @Filter Specification<CustomService> spec,
+            Pageable pageable
     ) {
-        
-        Sort sort = sortDir.equalsIgnoreCase("desc") ? 
-            Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
-        
-        Pageable pageable = PageRequest.of(page, size, sort);
-        
-        Specification<CustomService> spec = Specification.where(null);
-        
-        if (serviceName != null && !serviceName.trim().isEmpty()) {
-            spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("serviceName")), "%" + serviceName.toLowerCase() + "%"));
-        }
-        
-        if (serviceType != null && !serviceType.trim().isEmpty()) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("serviceType"), com.mpbhms.backend.enums.ServiceType.valueOf(serviceType.toUpperCase())));
-        }
-
-        if (minPrice != null) {
-            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("unitPrice"), minPrice));
-        }
-
-        if (maxPrice != null) {
-            spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("unitPrice"), maxPrice));
-        }
-        
         ResultPaginationDTO result = serviceService.getAllServices(spec, pageable);
         return ResponseEntity.ok(result);
     }

@@ -24,10 +24,11 @@ import LandlordContractListPage from "../pages/landlord/LandlordContractListPage
 import RenterRoomDetailPage from "../pages/renter/RenterRoomDetailPage";
 import LandlordAssignRenterPage from "../pages/landlord/LandlordAssignRenterPage";
 import RoomDetailPage from "../pages/RoomDetailPage";
+import LandlordEditRoomPage from "../pages/landlord/LandlordEditRoomPage";
 import LandlordBillListPage from "../pages/landlord/LandlordBillListPage";
 import LandlordBillCreatePage from "../pages/landlord/LandlordBillCreatePage";
 import LandlordBillDetailPage from "../pages/landlord/LandlordBillDetailPage";
-import LandlordBookAppointmentPage from '../pages/landlord/LandlordBookAppointmentPage';
+import LandlordBookAppointmentPage from "../pages/landlord/LandlordBookAppointmentPage";
 import LandlordUserListPage from "../pages/landlord/LandlordUserListPage";
 
 export default function AppRouter() {
@@ -93,17 +94,13 @@ export default function AppRouter() {
       <Route path="/landlord/rooms/add" element={<LandlordAddRoomPage />} />
       <Route path="/403" element={<Error403 />} />
       <Route path="/" element={<Navigate to="/home" replace />} />
-
       <Route path="/landlord/renters/add" element={<LandlordAddRenterPage />} />
       <Route path="/landlord/services" element={<LandlordServiceListPage />} />
       <Route path="/landlord/electric" element={<LandlordElectricListPage />} />
       <Route path="/landlord/contract" element={<LandlordContractListPage />} />
-
       <Route path="/renter/room" element={<RenterRoomDetailPage />} />
-      <Route
-        path="/landlord/rooms/:roomId/assign"
-        element={<LandlordAssignRenterPage />}
-      />
+      <Route path="/landlord/rooms/:roomId/assign" element={<LandlordAssignRenterPage />} />
+      <Route path="/landlord/rooms/:id/edit" element={<LandlordEditRoomPage />} />
       <Route path="/landlord/bills" element={<LandlordBillListPage />} />
       <Route path="/landlord/bills/create" element={<LandlordBillCreatePage />} />
       <Route path="/landlord/bills/:id" element={<LandlordBillDetailPage />} />

@@ -60,6 +60,7 @@ public class RoomController {
         response.setNumberOfBathrooms(savedRoom.getNumberOfBathrooms());
         response.setDescription(savedRoom.getDescription());
         response.setMaxOccupants(savedRoom.getMaxOccupants());
+        response.setBuilding(savedRoom.getBuilding());
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
     @PatchMapping("/{id}/status")
@@ -98,6 +99,7 @@ public class RoomController {
         response.setNumberOfBathrooms(updatedRoom.getNumberOfBathrooms());
         response.setDescription(updatedRoom.getDescription());
         response.setMaxOccupants(updatedRoom.getMaxOccupants());
+        response.setBuilding(updatedRoom.getBuilding());
         return ResponseEntity.ok(response);
     }
 
@@ -111,6 +113,13 @@ public class RoomController {
     public ResponseEntity<ResultPaginationDTO> getAllRoomsWithRenter(Pageable pageable) {
         ResultPaginationDTO response = roomService.getAllRoomsWithRenter(pageable);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<RoomDTO> getRoomById(@PathVariable Long id) {
+        Room room = roomService.getRoomById(id);
+        RoomDTO dto = roomService.convertToRoomDTO(room);
+        return ResponseEntity.ok(dto);
     }
 
     // Xử lý lỗi validation toàn cục

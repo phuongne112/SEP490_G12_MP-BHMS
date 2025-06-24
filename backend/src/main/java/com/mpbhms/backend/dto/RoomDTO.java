@@ -23,5 +23,6 @@ public class RoomDTO {
     private List<RoomImageDTO> images;  // ✅ cần thiết
     private List<ServiceDTO> services;  // ✅ cần thiết
     private List<AssetDTO> assets;      // ✅ cần thiết
+    private String building;
 }
 

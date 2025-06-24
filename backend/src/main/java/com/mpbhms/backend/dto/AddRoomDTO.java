@@ -46,4 +46,6 @@ public class AddRoomDTO {
     private Integer maxOccupants;
 
     private Boolean isActive = true;
+
+    private String building;
 }

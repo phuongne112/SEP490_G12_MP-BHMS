@@ -45,3 +45,8 @@ export const getRoomsWithRenter = async () => {
   const response = await axiosClient.get("/rooms/with-renter");
   return response.data;
 };
+
+export const deleteRoom = async (roomId) => {
+  const response = await axiosClient.delete(`/rooms/${roomId}`);
+  return response.data;
+};

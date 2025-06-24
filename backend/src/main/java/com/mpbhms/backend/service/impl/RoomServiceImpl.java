@@ -7,6 +7,8 @@ import com.mpbhms.backend.entity.RoomImage;
 import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.repository.RoomRepository;
 import com.mpbhms.backend.repository.UserRepository;
+import com.mpbhms.backend.repository.RoomUserRepository;
+import com.mpbhms.backend.repository.ContractRepository;
 import com.mpbhms.backend.service.RoomService;
 import com.mpbhms.backend.util.SecurityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +40,12 @@ public class RoomServiceImpl implements RoomService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private RoomUserRepository roomUserRepository;
+
+    @Autowired
+    private ContractRepository contractRepository;
+
     @Value("${file.upload-dir}")
     private String uploadDir;
 
@@ -56,6 +64,7 @@ public class RoomServiceImpl implements RoomService {
         room.setDescription(request.getDescription());
         room.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
         room.setMaxOccupants(request.getMaxOccupants());
+        room.setBuilding(request.getBuilding());
         Long landlordId = SecurityUtil.getCurrentUserId();
         room.setLandlord(userRepository.findById(landlordId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng (landlord)")));
@@ -138,6 +147,7 @@ public class RoomServiceImpl implements RoomService {
         dto.setDescription(room.getDescription());
         dto.setIsActive(room.getIsActive());
         dto.setMaxOccupants(room.getMaxOccupants());
+        dto.setBuilding(room.getBuilding());
 
         // ✅ Convert landlord (chủ trọ)
         if (room.getLandlord() != null) {
@@ -201,6 +211,7 @@ public class RoomServiceImpl implements RoomService {
         room.setDescription(request.getDescription());
         room.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
         room.setMaxOccupants(request.getMaxOccupants());
+        room.setBuilding(request.getBuilding());
 
         // Chỉ update ảnh nếu FE gửi keepImageIds hoặc images
         boolean updateImages = (keepImageIds != null && !keepImageIds.isEmpty()) || (images != null && images.length > 0);
@@ -262,7 +273,17 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public void deleteRoom(Long id) {
-      roomRepository.deleteById(id);
+        // Kiểm tra người ở
+        int userCount = roomUserRepository.countByRoomId(id);
+        if (userCount > 0) {
+            throw new BusinessException("Cannot delete room: There are still renters in this room.");
+        }
+        // Kiểm tra hợp đồng active
+        boolean hasActiveContract = contractRepository.findActiveByRoomId(id).isPresent();
+        if (hasActiveContract) {
+            throw new BusinessException("Cannot delete room: There is an active contract for this room.");
+        }
+        roomRepository.deleteById(id);
     }
 
     @Override
@@ -314,6 +335,12 @@ public class RoomServiceImpl implements RoomService {
         result.setMeta(meta);
         result.setResult(roomDTOs);
         return result;
+    }
+
+    @Override
+    public Room getRoomById(Long id) {
+        return roomRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
     }
 
 }
