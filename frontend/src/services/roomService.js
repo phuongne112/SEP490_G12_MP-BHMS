@@ -50,3 +50,13 @@ export const deleteRoom = async (roomId) => {
   const response = await axiosClient.delete(`/rooms/${roomId}`);
   return response.data;
 };
+
+/**
+ * Thêm service cho phòng
+ * @param {number} roomId
+ * @param {number} serviceId
+ */
+export const addServiceToRoom = async (roomId, serviceId) => {
+  const response = await axiosClient.post(`/rooms/${roomId}/add-service`, { serviceId });
+  return response.data;
+};

@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Layout, Row, Col, DatePicker, Select, Button } from "antd";
 import dayjs from "dayjs";
 import PageHeader from "../../components/common/PageHeader";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import ElectricTable from "../../components/landlord/ElectricTable";
+import { getElectricReadings } from "../../services/electricReadingApi";
+import { getAllRooms } from "../../services/roomService";
 
 const { Sider, Content } = Layout;
 const { Option } = Select;
@@ -17,52 +19,35 @@ export default function LandlordElectricListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
 
-  const fullData = [
-    {
-      key: "1",
-      room: "201",
-      lastMonth: 120,
-      thisMonth: 150,
-      bill: 105000,
-    },
-    {
-      key: "2",
-      room: "202",
-      lastMonth: 200,
-      thisMonth: 245,
-      bill: 157500,
-    },
-    {
-      key: "3",
-      room: "203",
-      lastMonth: 180,
-      thisMonth: 215,
-      bill: 122500,
-    },
-    {
-      key: "4",
-      room: "204",
-      lastMonth: 220,
-      thisMonth: 250,
-      bill: 105000,
-    },
-    {
-      key: "5",
-      room: "205",
-      lastMonth: 100,
-      thisMonth: 140,
-      bill: 140000,
-    },
-    {
-      key: "6",
-      room: "206",
-      lastMonth: 300,
-      thisMonth: 340,
-      bill: 140000,
-    },
-  ];
+  const [electricData, setElectricData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [roomMap, setRoomMap] = useState({});
 
-  const pagedData = fullData.slice(
+  useEffect(() => {
+    reloadElectricData();
+    // eslint-disable-next-line
+  }, []);
+
+  const reloadElectricData = async () => {
+    setLoading(true);
+    try {
+      const res = await getElectricReadings();
+      const mapped = (res.data || res).map((item) => ({
+        key: item.id,
+        roomId: item.roomId,
+        roomNumber: item.roomNumber,
+        oldReading: item.oldReading,
+        newReading: item.newReading,
+        createdDate: item.createdDate,
+      }));
+      setElectricData(mapped);
+    } catch {
+      setElectricData([]);
+    }
+    setLoading(false);
+  };
+
+  const pagedData = electricData.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
@@ -125,8 +110,10 @@ export default function LandlordElectricListPage() {
             dataSource={pagedData}
             currentPage={currentPage}
             pageSize={pageSize}
-            total={fullData.length}
+            total={electricData.length}
             onPageChange={(page) => setCurrentPage(page)}
+            loading={loading}
+            onReload={reloadElectricData}
           />
         </Content>
       </Layout>

@@ -64,7 +64,7 @@ public class ElectricMeterDetectionService {
     public String detectAndReadFromFile(MultipartFile file) throws IOException, InterruptedException {
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
-            return "File không hợp lệ: chỉ chấp nhận ảnh (jpg, png, bmp, gif)";
+            return "Invalid file: only image files (jpg, png, bmp, gif) are accepted";
         }
 
         HttpHeaders headers = new HttpHeaders();
@@ -86,7 +86,7 @@ public class ElectricMeterDetectionService {
             }
         }
 
-        if (bestBox == null) return "Không tìm thấy vùng newReading có độ tin cậy cao";
+        if (bestBox == null) return "No high-confidence reading area found";
 
         BufferedImage original = ImageIO.read(file.getInputStream());
         int width = original.getWidth();
@@ -125,7 +125,7 @@ public class ElectricMeterDetectionService {
         HttpEntity<byte[]> ocrEntity = new HttpEntity<>(croppedBytes, ocrHeaders);
         ResponseEntity<Void> ocrInit = restTemplate.postForEntity(ocrEndpoint + "/vision/v3.2/read/analyze", ocrEntity, Void.class);
         String operationUrl = ocrInit.getHeaders().getFirst("Operation-Location");
-        if (operationUrl == null) return "Lỗi: không nhận được Operation-Location";
+        if (operationUrl == null) return "Error: Operation-Location not received";
 
         for (int i = 0; i < 10; i++) {
             Thread.sleep(1000);
@@ -143,11 +143,11 @@ public class ElectricMeterDetectionService {
 
                 if (resultDigits.length() == 5) return resultDigits;
                 if (resultDigits.length() == 6) return resultDigits.substring(0, 5) + "." + resultDigits.charAt(5);
-                return "Giá trị không hợp lệ: " + resultDigits;
+                return "Invalid value: " + resultDigits;
             }
         }
 
-        return "OCR timeout sau 10 giây";
+        return "OCR timeout after 10 seconds";
     }
 
     public void saveElectricReading(String resultValue, Long roomId) {
@@ -156,17 +156,23 @@ public class ElectricMeterDetectionService {
 
         Room room = roomRepository.findById(roomId).orElseThrow(() -> new RuntimeException("Không tìm thấy phòng"));
 
-        Optional<ServiceReading> latest = serviceReadingRepository.findTopByRoomAndServiceOrderByCreatedDateDesc(room, electricityCustomService);
-        BigDecimal old = latest.map(ServiceReading::getNewReading).orElse(BigDecimal.ZERO);
-
-        ServiceReading reading = new ServiceReading();
-        reading.setRoom(room);
-        reading.setService(electricityCustomService);
-        reading.setOldReading(old);
-        reading.setNewReading(new BigDecimal(resultValue));
-        reading.setCreatedDate(Instant.now());
-        reading.setCreatedBy("OCR");
-
-        serviceReadingRepository.save(reading);
+        Optional<ServiceReading> latestOpt = serviceReadingRepository.findTopByRoomAndServiceOrderByCreatedDateDesc(room, electricityCustomService);
+        if (latestOpt.isPresent()) {
+            ServiceReading latest = latestOpt.get();
+            latest.setOldReading(latest.getNewReading());
+            latest.setNewReading(new BigDecimal(resultValue));
+            latest.setUpdatedDate(Instant.now());
+            latest.setUpdatedBy("OCR");
+            serviceReadingRepository.save(latest);
+        } else {
+            ServiceReading reading = new ServiceReading();
+            reading.setRoom(room);
+            reading.setService(electricityCustomService);
+            reading.setOldReading(BigDecimal.ZERO);
+            reading.setNewReading(new BigDecimal(resultValue));
+            reading.setCreatedDate(Instant.now());
+            reading.setCreatedBy("OCR");
+            serviceReadingRepository.save(reading);
+        }
     }
 }

@@ -20,18 +20,26 @@ public class ElectricMeterController {
 
     @PostMapping("/detect-ocr")
     public ResponseEntity<ApiResponse<String>> detectAndRead(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("roomId") Long roomId
+            @RequestParam("file") MultipartFile file
     ) throws IOException, InterruptedException {
-        String result = detectionService.detectAndReadFromFile(file, roomId);
+        String result = detectionService.detectAndReadFromFile(file);
 
         if (result.startsWith("File không hợp lệ") || result.startsWith("Không tìm thấy")
                 || result.startsWith("Lỗi") || result.startsWith("Giá trị không hợp lệ")
                 || result.startsWith("OCR timeout")) {
             return ResponseEntity.badRequest().body(
-                    new ApiResponse<>(400, "Bad Request", "Có lỗi xảy ra khi xử lý ảnh", result));
+                    new ApiResponse<>(400, "Bad Request", "An error occurred while processing the image", result));
         }
 
-        return ResponseEntity.ok(new ApiResponse<>(200, null, "Thành công", result));
+        return ResponseEntity.ok(new ApiResponse<>(200, null, "Success", result));
+    }
+
+    @PostMapping("/save-reading")
+    public ResponseEntity<ApiResponse<String>> saveReading(
+            @RequestParam("roomId") Long roomId,
+            @RequestParam("value") String value
+    ) {
+        detectionService.saveElectricReading(value, roomId);
+        return ResponseEntity.ok(new ApiResponse<>(200, null, "Saved successfully", value));
     }
 }

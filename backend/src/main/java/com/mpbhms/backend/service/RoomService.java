@@ -29,5 +29,11 @@ public interface RoomService {
     ResultPaginationDTO getAllRoomsWithRenter(Pageable pageable);
 
     Room getRoomById(Long id);
+
+    /**
+     * Thêm service cho phòng, nếu là điện thì tạo luôn ServiceReading với chỉ số ban đầu
+     */
+    void addServiceToRoom(Long roomId, Long serviceId);
+    void addServiceToRoom(Long roomId, Long serviceId, java.math.BigDecimal initialReading);
 }
 

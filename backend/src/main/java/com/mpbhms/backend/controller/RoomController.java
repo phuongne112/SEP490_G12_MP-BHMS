@@ -122,6 +122,19 @@ public class RoomController {
         return ResponseEntity.ok(dto);
     }
 
+    @PostMapping("/{roomId}/add-service")
+    public ResponseEntity<?> addServiceToRoom(@PathVariable Long roomId, @RequestBody Map<String, Object> body) {
+        Long serviceId = ((Number) body.get("serviceId")).longValue();
+        java.math.BigDecimal initialReading = null;
+        if (body.containsKey("initialReading") && body.get("initialReading") != null) {
+            try {
+                initialReading = new java.math.BigDecimal(body.get("initialReading").toString());
+            } catch (Exception ignored) {}
+        }
+        roomService.addServiceToRoom(roomId, serviceId, initialReading);
+        return ResponseEntity.ok().build();
+    }
+
     // Xử lý lỗi validation toàn cục
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
