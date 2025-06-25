@@ -77,6 +77,7 @@ function App() {
           setUser({
             id: user.id,
             fullName: user.name,
+            email: user.email,
             role: user.role,
             permissions:
               user.role?.permissionEntities?.map((p) => p.name) || [],

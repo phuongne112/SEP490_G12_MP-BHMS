@@ -80,13 +80,29 @@ export default function RenterTable({ search = "", filter = {} }) {
   const columns = [
     {
       title: "No",
-      key: "index",
-      render: (text, record, index) =>
-        (pagination.current - 1) * pagination.pageSize + index + 1,
+      dataIndex: "no",
+      align: "center",
+      width: 60,
+      render: (_, __, index) => (pagination && pagination.current ? (pagination.current - 1) * (pagination.pageSize || 10) + index + 1 : index + 1),
     },
-    { title: "Name", dataIndex: "name", key: "name" },
-    { title: "Room", dataIndex: "room", key: "room" },
-    { title: "Check-in Date", dataIndex: "checkInDate", key: "checkInDate" },
+    {
+      title: "Name",
+      dataIndex: "name",
+      align: "center",
+      width: 180,
+    },
+    {
+      title: "Room",
+      dataIndex: "room",
+      align: "center",
+      width: 120,
+    },
+    {
+      title: "Check-in Date",
+      dataIndex: "checkInDate",
+      align: "center",
+      width: 200,
+    },
   ];
 
   return (

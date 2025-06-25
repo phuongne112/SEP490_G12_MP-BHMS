@@ -59,6 +59,12 @@ export default function LandlordSidebar() {
       label: "Bill",
       path: "/landlord/bills",
     },
+    {
+      key: "/landlord/assets",
+      icon: <ToolOutlined />,
+      label: "Asset",
+      path: "/landlord/assets",
+    },
   ];
 
   const selectedKey = landlordMenu.find((item) =>
