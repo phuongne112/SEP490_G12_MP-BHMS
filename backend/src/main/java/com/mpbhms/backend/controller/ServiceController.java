@@ -14,8 +14,14 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.turkraft.springfilter.boot.Filter;
+import com.mpbhms.backend.repository.ServiceReadingRepository;
+import com.mpbhms.backend.entity.ServiceReading;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/mpbhms/services")
@@ -24,6 +30,8 @@ import java.util.List;
 public class ServiceController {
 
     private final ServiceService serviceService;
+    @Autowired
+    private ServiceReadingRepository serviceReadingRepository;
 
     @GetMapping
     public ResponseEntity<ResultPaginationDTO> getAllServices(
@@ -75,5 +83,40 @@ public class ServiceController {
     public ResponseEntity<Void> deleteService(@PathVariable Long id) {
         serviceService.deleteService(id);
         return ResponseEntity.noContent().build();
+    }
+
+    class ServiceReadingDTO {
+        public Long id;
+        public Long roomId;
+        public String roomNumber;
+        public BigDecimal oldReading;
+        public BigDecimal newReading;
+        public Long serviceId;
+        public Instant createdDate;
+        public ServiceReadingDTO(Long id, Long roomId, String roomNumber, BigDecimal oldReading, BigDecimal newReading, Long serviceId, Instant createdDate) {
+            this.id = id;
+            this.roomId = roomId;
+            this.roomNumber = roomNumber;
+            this.oldReading = oldReading;
+            this.newReading = newReading;
+            this.serviceId = serviceId;
+            this.createdDate = createdDate;
+        }
+    }
+
+    @GetMapping("/readings")
+    public List<ServiceReadingDTO> getServiceReadingsByServiceId(@RequestParam Long serviceId) {
+        return serviceReadingRepository.findByService_Id(serviceId)
+            .stream()
+            .map(sr -> new ServiceReadingDTO(
+                sr.getId(),
+                sr.getRoom() != null ? sr.getRoom().getId() : null,
+                sr.getRoom() != null ? sr.getRoom().getRoomNumber() : null,
+                sr.getOldReading(),
+                sr.getNewReading(),
+                sr.getService() != null ? sr.getService().getId() : null,
+                sr.getCreatedDate()
+            ))
+            .collect(Collectors.toList());
     }
 } 

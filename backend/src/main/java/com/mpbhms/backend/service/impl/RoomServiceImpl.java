@@ -21,6 +21,10 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.beans.factory.annotation.Value;
 import com.mpbhms.backend.exception.BusinessException;
 import com.mpbhms.backend.exception.ResourceNotFoundException;
+import com.mpbhms.backend.enums.ServiceType;
+import com.mpbhms.backend.entity.ServiceReading;
+import com.mpbhms.backend.repository.ServiceReadingRepository;
+import java.math.BigDecimal;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,8 +50,15 @@ public class RoomServiceImpl implements RoomService {
     @Autowired
     private ContractRepository contractRepository;
 
+    @Autowired
+    private com.mpbhms.backend.repository.ServiceRepository serviceRepository;
+
+    @Autowired
     @Value("${file.upload-dir}")
     private String uploadDir;
+
+    @Autowired
+    private ServiceReadingRepository serviceReadingRepository;
 
     @Override
     public Room addRoom(AddRoomDTO request, MultipartFile[] images) {
@@ -341,6 +352,54 @@ public class RoomServiceImpl implements RoomService {
     public Room getRoomById(Long id) {
         return roomRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
+    }
+
+    @Override
+    public void addServiceToRoom(Long roomId, Long serviceId) {
+        Room room = roomRepository.findById(roomId)
+            .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
+        com.mpbhms.backend.entity.CustomService service = serviceRepository.findById(serviceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + serviceId));
+        if (room.getServices() == null) room.setServices(new java.util.ArrayList<>());
+        boolean exists = room.getServices().stream().anyMatch(s -> s.getId().equals(serviceId));
+        if (!exists) {
+            room.getServices().add(service);
+            roomRepository.save(room);
+            // Nếu là serviceId == 1 (điện), tạo ServiceReading rỗng
+            if (serviceId == 1L) {
+                ServiceReading reading = new ServiceReading();
+                reading.setRoom(room);
+                reading.setService(service);
+                reading.setOldReading(null);
+                reading.setNewReading(null);
+                reading.setCreatedDate(java.time.Instant.now());
+                serviceReadingRepository.save(reading);
+            }
+        }
+    }
+
+    @Override
+    public void addServiceToRoom(Long roomId, Long serviceId, BigDecimal initialReading) {
+        Room room = roomRepository.findById(roomId)
+            .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
+        com.mpbhms.backend.entity.CustomService service = serviceRepository.findById(serviceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + serviceId));
+        if (room.getServices() == null) room.setServices(new java.util.ArrayList<>());
+        boolean exists = room.getServices().stream().anyMatch(s -> s.getId().equals(serviceId));
+        if (!exists) {
+            room.getServices().add(service);
+            roomRepository.save(room);
+            // Nếu là điện, tạo ServiceReading ban đầu
+            if (service.getServiceType() == ServiceType.ELECTRICITY && initialReading != null) {
+                ServiceReading reading = new ServiceReading();
+                reading.setRoom(room);
+                reading.setService(service);
+                reading.setOldReading(initialReading);
+                reading.setNewReading(initialReading);
+                reading.setCreatedDate(java.time.Instant.now());
+                serviceReadingRepository.save(reading);
+            }
+        }
     }
 
 }

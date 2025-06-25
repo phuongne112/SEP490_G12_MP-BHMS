@@ -8,6 +8,8 @@ import com.mpbhms.backend.exception.BusinessException;
 import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.exception.NotFoundException;
 import com.mpbhms.backend.repository.ServiceRepository;
+import com.mpbhms.backend.repository.ServiceReadingRepository;
+import com.mpbhms.backend.entity.ServiceReading;
 import com.mpbhms.backend.service.ServiceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -17,12 +19,15 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.math.BigDecimal;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
 public class ServiceServiceImpl implements ServiceService {
 
     private final ServiceRepository serviceRepository;
+    private final ServiceReadingRepository serviceReadingRepository;
 
     @Override
     public List<ServiceDTO> getAllServices() {
@@ -100,6 +105,22 @@ public class ServiceServiceImpl implements ServiceService {
             return false;
         }
         return serviceRepository.existsById(id);
+    }
+
+    @Override
+    public java.util.List<ServiceReadingDTO> getServiceReadingsByServiceId(Long serviceId) {
+        return serviceReadingRepository.findByService_Id(serviceId)
+            .stream()
+            .map(sr -> new ServiceReadingDTO(
+                sr.getId(),
+                sr.getRoom() != null ? sr.getRoom().getId() : null,
+                sr.getRoom() != null ? sr.getRoom().getRoomNumber() : null,
+                sr.getOldReading(),
+                sr.getNewReading(),
+                sr.getService() != null ? sr.getService().getId() : null,
+                sr.getCreatedDate()
+            ))
+            .collect(java.util.stream.Collectors.toList());
     }
 
     private ServiceDTO convertToServiceDTO(CustomService service) {

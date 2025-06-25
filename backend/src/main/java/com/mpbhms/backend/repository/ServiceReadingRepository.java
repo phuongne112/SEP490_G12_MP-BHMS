@@ -32,4 +32,6 @@ public interface ServiceReadingRepository extends JpaRepository<ServiceReading, 
             @Param("to") Instant to
     );
 
+    List<ServiceReading> findByService_Id(Long serviceId);
+
 }
