@@ -55,8 +55,13 @@ export const deleteRoom = async (roomId) => {
  * Thêm service cho phòng
  * @param {number} roomId
  * @param {number} serviceId
+ * @param {string} initialReading - Chỉ số ban đầu (tùy chọn, cho dịch vụ điện)
  */
-export const addServiceToRoom = async (roomId, serviceId) => {
-  const response = await axiosClient.post(`/rooms/${roomId}/add-service`, { serviceId });
+export const addServiceToRoom = async (roomId, serviceId, initialReading = null) => {
+  const requestBody = { serviceId };
+  if (initialReading !== null) {
+    requestBody.initialReading = initialReading;
+  }
+  const response = await axiosClient.post(`/rooms/${roomId}/add-service`, requestBody);
   return response.data;
 };

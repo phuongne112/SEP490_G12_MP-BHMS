@@ -38,6 +38,7 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
     const [electricFile, setElectricFile] = useState(null);
     const [electricValue, setElectricValue] = useState("");
     const [ocrLoading, setOcrLoading] = useState(false);
+    const [pendingServices, setPendingServices] = useState([]); // Lưu danh sách dịch vụ đang chờ thêm
 
     const handleStatusChange = async (roomId, newStatus) => {
         setUpdatingId(roomId);
@@ -76,7 +77,18 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
         // Lấy danh sách dịch vụ
         try {
             const res = await getAllServicesList();
-            setServices(res.data || []);
+            const allServices = res.data || [];
+            
+            // Lọc ra các dịch vụ chưa có trong phòng
+            const existingServiceIds = room.services?.map(s => s.id) || [];
+            const availableServices = allServices.filter(service => !existingServiceIds.includes(service.id));
+            
+            setServices(availableServices);
+            
+            // Nếu không còn dịch vụ nào để thêm
+            if (availableServices.length === 0) {
+                message.info("Phòng này đã có tất cả các dịch vụ!");
+            }
         } catch {
             setServices([]);
         }
@@ -87,16 +99,52 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
             message.error("Please select at least one service!");
             return;
         }
+
+        // Kiểm tra xem có dịch vụ điện không
+        const selectedServiceObjects = services.filter(s => selectedServices.includes(s.id));
+        const hasElectricityService = selectedServiceObjects.some(s => s.serviceType === 'ELECTRICITY');
+
+        if (hasElectricityService) {
+            // Nếu có dịch vụ điện, lưu danh sách dịch vụ và mở modal nhập số điện
+            setPendingServices(selectedServices);
+            setElectricModalOpen(true);
+            setServiceModalOpen(false);
+        } else {
+            // Nếu không có dịch vụ điện, thêm dịch vụ ngay
+            await addServicesToRoom(selectedServices);
+        }
+    };
+
+    // Hàm thêm dịch vụ vào phòng
+    const addServicesToRoom = async (serviceIds, electricReading = null) => {
         setAddingService(true);
         try {
-            await Promise.all(selectedServices.map(serviceId =>
-                addServiceToRoom(selectedRoom.id, serviceId)
-            ));
+            const selectedServiceObjects = services.filter(s => serviceIds.includes(s.id));
+            
+            // Thêm từng dịch vụ
+            for (const serviceId of serviceIds) {
+                const service = selectedServiceObjects.find(s => s.id === serviceId);
+                if (service && service.serviceType === 'ELECTRICITY' && electricReading) {
+                    // Nếu là dịch vụ điện và có chỉ số, sử dụng initialReading
+                    await addServiceToRoom(selectedRoom.id, serviceId, electricReading);
+                } else {
+                    // Các dịch vụ khác hoặc điện không có chỉ số
+                    await addServiceToRoom(selectedRoom.id, serviceId);
+                }
+            }
+            
             message.success("Added services to room!");
             setServiceModalOpen(false);
+            setSelectedServices([]);
+            setPendingServices([]);
             if (onRoomsUpdate) onRoomsUpdate();
         } catch (err) {
-            message.error("Error while adding services to room");
+            const errorMessage = err?.response?.data?.message || err?.response?.data?.error || "Error while adding services to room";
+            if (errorMessage.includes("already exists")) {
+                message.error("Dịch vụ này đã tồn tại trong phòng. Không thể thêm lại!");
+            } else {
+                message.error(errorMessage);
+            }
         } finally {
             setAddingService(false);
         }
@@ -112,15 +160,19 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
         try {
             let result = electricValue;
             if (electricFile) {
-                const res = await detectElectricOcr(electricFile, selectedRoom.id);
+                const res = await detectElectricOcr(electricFile);
                 result = res.data.data;
+                setElectricValue(result);
             }
-            // TODO: Gọi API tạo service reading thủ công nếu nhập tay (nếu backend có)
-            message.success(`Đã ghi nhận chỉ số điện: ${result}`);
+            
+            // Thêm dịch vụ vào phòng với chỉ số điện
+            await addServicesToRoom(pendingServices, result);
+            
+            message.success(`Đã ghi nhận chỉ số điện: ${result} và thêm dịch vụ thành công!`);
             setElectricModalOpen(false);
             setElectricFile(null);
             setElectricValue("");
-            if (onRoomsUpdate) onRoomsUpdate();
+            setPendingServices([]);
         } catch (err) {
             message.error("Lỗi khi ghi nhận chỉ số điện");
         } finally {
@@ -270,42 +322,87 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
                 onOk={handleAddService}
                 okText="Add Service"
                 confirmLoading={addingService}
+                okButtonProps={{ disabled: services.length === 0 }}
                 title={`Add service(s) to room ${selectedRoom?.roomNumber}`}
             >
-                <Select
-                    mode="multiple"
-                    style={{ width: "100%" }}
-                    placeholder="Select services"
-                    value={selectedServices}
-                    onChange={setSelectedServices}
-                >
-                    {services.map((s) => (
-                        <Option key={s.id} value={s.id}>{s.serviceName} ({s.serviceType})</Option>
-                    ))}
-                </Select>
+                {services.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                        <p>Phòng này đã có tất cả các dịch vụ!</p>
+                        <p>Không còn dịch vụ nào để thêm.</p>
+                    </div>
+                ) : (
+                    <>
+                        <div style={{ marginBottom: 16 }}>
+                            <p style={{ color: '#666', fontSize: 14 }}>
+                                Chọn dịch vụ để thêm vào phòng {selectedRoom?.roomNumber}:
+                            </p>
+                        </div>
+                        <Select
+                            mode="multiple"
+                            style={{ width: "100%" }}
+                            placeholder="Select services"
+                            value={selectedServices}
+                            onChange={setSelectedServices}
+                        >
+                            {services.map((s) => (
+                                <Option key={s.id} value={s.id}>{s.serviceName} ({s.serviceType})</Option>
+                            ))}
+                        </Select>
+                    </>
+                )}
             </Modal>
             {/* Modal nhập chỉ số điện hoặc OCR */}
             <Modal
                 open={electricModalOpen}
-                onCancel={() => setElectricModalOpen(false)}
+                onCancel={() => {
+                    setElectricModalOpen(false);
+                    setElectricFile(null);
+                    setElectricValue("");
+                    setPendingServices([]);
+                }}
                 onOk={handleElectricOcr}
-                okText="Ghi nhận"
+                okText="Ghi nhận & Thêm dịch vụ"
                 confirmLoading={ocrLoading}
-                title="Nhập chỉ số điện hoặc upload ảnh công tơ"
+                title={`Nhập chỉ số điện cho phòng ${selectedRoom?.roomNumber}`}
+                width={500}
             >
-                <Input
-                    style={{ marginBottom: 12 }}
-                    placeholder="Nhập số điện mới (nếu có)"
-                    value={electricValue}
-                    onChange={e => setElectricValue(e.target.value)}
-                />
-                <Upload
-                    beforeUpload={file => { setElectricFile(file); return false; }}
-                    accept="image/*"
-                    maxCount={1}
-                >
-                    <Button>Chọn ảnh công tơ (OCR)</Button>
-                </Upload>
+                <div style={{ marginBottom: 16 }}>
+                    <p style={{ color: '#666', marginBottom: 8 }}>
+                        Phòng này sẽ được thêm dịch vụ điện. Vui lòng nhập chỉ số điện hiện tại:
+                    </p>
+                </div>
+                
+                <div style={{ marginBottom: 16 }}>
+                    <Input
+                        placeholder="Nhập số điện mới (VD: 12345.6)"
+                        value={electricValue}
+                        onChange={e => setElectricValue(e.target.value)}
+                        style={{ marginBottom: 12 }}
+                    />
+                    <div style={{ textAlign: 'center', marginBottom: 12 }}>
+                        <span style={{ color: '#999' }}>hoặc</span>
+                    </div>
+                    <Upload
+                        beforeUpload={file => { setElectricFile(file); return false; }}
+                        accept="image/*"
+                        maxCount={1}
+                        showUploadList={electricFile ? [{ name: electricFile.name }] : false}
+                    >
+                        <Button block>📷 Chọn ảnh công tơ (OCR tự động)</Button>
+                    </Upload>
+                </div>
+                
+                {electricValue && (
+                    <div style={{ 
+                        padding: 12, 
+                        backgroundColor: '#f6ffed', 
+                        border: '1px solid #b7eb8f',
+                        borderRadius: 6,
+                        marginBottom: 16
+                    }}>
+                        <strong>Số điện sẽ được ghi nhận:</strong> {electricValue}
+                    </div>
+                )}
             </Modal>
         </>
     );

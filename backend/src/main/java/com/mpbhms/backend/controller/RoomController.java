@@ -123,7 +123,7 @@ public class RoomController {
     }
 
     @PostMapping("/{roomId}/add-service")
-    public ResponseEntity<?> addServiceToRoom(@PathVariable Long roomId, @RequestBody Map<String, Object> body) {
+    public ResponseEntity<Map<String, Object>> addServiceToRoom(@PathVariable Long roomId, @RequestBody Map<String, Object> body) {
         Long serviceId = ((Number) body.get("serviceId")).longValue();
         java.math.BigDecimal initialReading = null;
         if (body.containsKey("initialReading") && body.get("initialReading") != null) {
@@ -131,8 +131,10 @@ public class RoomController {
                 initialReading = new java.math.BigDecimal(body.get("initialReading").toString());
             } catch (Exception ignored) {}
         }
-        roomService.addServiceToRoom(roomId, serviceId, initialReading);
-        return ResponseEntity.ok().build();
+        boolean created = roomService.addServiceToRoom(roomId, serviceId, initialReading);
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("serviceReadingCreated", created);
+        return ResponseEntity.ok(resp);
     }
 
     // Xử lý lỗi validation toàn cục

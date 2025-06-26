@@ -13,6 +13,8 @@ import com.mpbhms.backend.repository.RoomRepository;
 import com.mpbhms.backend.repository.RoomUserRepository;
 import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.repository.ContractRenterInfoRepository;
+import com.mpbhms.backend.repository.ServiceRepository;
+import com.mpbhms.backend.repository.ServiceReadingRepository;
 import com.mpbhms.backend.service.RoomUserService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +32,8 @@ public class RoomUserServiceImpl implements RoomUserService {
     private final RoomUserRepository roomUserRepository;
     private final ContractRepository contractRepository;
     private final ContractRenterInfoRepository contractRenterInfoRepository;
+    private final ServiceRepository serviceRepository;
+    private final ServiceReadingRepository serviceReadingRepository;
 
     @Override
     @Transactional
@@ -65,14 +69,13 @@ public class RoomUserServiceImpl implements RoomUserService {
                 }
                 break;
         }
-        Room room = roomRepository.findById(request.getRoomId())
+        Room roomWithServices = roomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new RuntimeException("Room not found"));
 
         // Kiểm tra xem phòng đã có hợp đồng ACTIVE chưa
-        java.util.List<Contract> existingContracts = contractRepository.findByRoomId(room.getId());
+        java.util.List<Contract> existingContracts = contractRepository.findByRoomId(roomWithServices.getId());
         boolean hasActiveContract = existingContracts.stream()
             .anyMatch(contract -> {
-                // Kiểm tra trạng thái ACTIVE và thời gian hợp đồng còn hiệu lực
                 boolean isActive = contract.getContractStatus() == com.mpbhms.backend.enums.ContractStatus.ACTIVE;
                 boolean isInTimeRange = contract.getContractStartDate() != null && 
                                       contract.getContractEndDate() != null &&
@@ -85,19 +88,19 @@ public class RoomUserServiceImpl implements RoomUserService {
             throw new RuntimeException("Phòng này đã có hợp đồng đang hoạt động trong thời gian hiệu lực. Không thể assign thêm người thuê mới.");
         }
 
-        // Đếm số người hiện tại trong phòng (chỉ những người còn tồn tại, đã xóa hẳn những người rời phòng)
-        int currentCount = roomUserRepository.countByRoomId(room.getId());
-        if (currentCount + request.getUserIds().size() > room.getMaxOccupants()) {
+        // Đếm số người hiện tại trong phòng
+        int currentCount = roomUserRepository.countByRoomId(roomWithServices.getId());
+        if (currentCount + request.getUserIds().size() > roomWithServices.getMaxOccupants()) {
             throw new IllegalArgumentException("Vượt quá số người tối đa của phòng.");
         }
 
         // Tạo Contract trước
         Contract contract = new Contract();
-        contract.setRoom(room);
+        contract.setRoom(roomWithServices);
         contract.setContractStartDate(request.getContractStartDate());
         contract.setContractEndDate(request.getContractEndDate());
         contract.setDepositAmount(request.getDepositAmount());
-        contract.setRentAmount(room.getPricePerMonth());
+        contract.setRentAmount(roomWithServices.getPricePerMonth());
         contract.setPaymentCycle(PaymentCycle.valueOf(request.getPaymentCycle()));
         contract.setContractStatus(ContractStatus.ACTIVE);
         contract = contractRepository.save(contract);
@@ -108,7 +111,7 @@ public class RoomUserServiceImpl implements RoomUserService {
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             RoomUser roomUser = new RoomUser();
-            roomUser.setRoom(room);
+            roomUser.setRoom(roomWithServices);
             roomUser.setUser(user);
             roomUser.setJoinedAt(request.getContractStartDate());
             roomUser.setContract(contract);
@@ -123,6 +126,20 @@ public class RoomUserServiceImpl implements RoomUserService {
                 info.setNationalID(user.getUserInfo().getNationalID());
                 info.setPermanentAddress(user.getUserInfo().getPermanentAddress());
                 contractRenterInfoRepository.save(info);
+            }
+        }
+
+        // Tạo ServiceReading cho dịch vụ điện nếu phòng có dịch vụ này và chưa có reading nào
+        com.mpbhms.backend.entity.CustomService electricityService = serviceRepository.findByServiceType(com.mpbhms.backend.enums.ServiceType.ELECTRICITY);
+        if (electricityService != null && roomWithServices.getServices() != null && roomWithServices.getServices().contains(electricityService)) {
+            java.util.Optional<com.mpbhms.backend.entity.ServiceReading> existingReading = serviceReadingRepository.findTopByRoomAndServiceOrderByCreatedDateDesc(roomWithServices, electricityService);
+            if (existingReading.isEmpty()) {
+                com.mpbhms.backend.entity.ServiceReading reading = new com.mpbhms.backend.entity.ServiceReading();
+                reading.setRoom(roomWithServices);
+                reading.setService(electricityService);
+                reading.setOldReading(java.math.BigDecimal.ZERO);
+                reading.setNewReading(java.math.BigDecimal.ZERO);
+                serviceReadingRepository.save(reading);
             }
         }
     }
