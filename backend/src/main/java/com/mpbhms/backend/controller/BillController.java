@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/mpbhms/bills")
@@ -37,6 +38,14 @@ public class BillController {
         LocalDate to = LocalDate.parse(toDate);
         Bill bill = billService.generateBill(contractId, from, to, billType);
         return billService.toResponse(bill);
+    }
+
+    @PostMapping("/create")
+    public BillResponse createBill(@RequestBody Map<String, Object> request) {
+        Long roomId = Long.valueOf(request.get("roomId").toString());
+        Integer month = Integer.valueOf(request.get("month").toString());
+        Integer year = Integer.valueOf(request.get("year").toString());
+        return billService.createAndSaveServiceBill(roomId, month, year);
     }
 
     @GetMapping("/{id}")

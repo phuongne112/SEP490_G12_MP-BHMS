@@ -1,49 +1,87 @@
 import React, { useEffect, useState } from "react";
-import { Descriptions, Button, message, Spin } from "antd";
-import { getBillDetail } from "../../services/billApi";
 import { useParams, useNavigate } from "react-router-dom";
+import { Card, Descriptions, Table, Button, Spin, message, Tag } from "antd";
+import { getBillDetail } from "../../services/billApi";
+import LandlordSidebar from "../../components/layout/LandlordSidebar";
+import PageHeader from "../../components/common/PageHeader";
+import dayjs from "dayjs";
 
 export default function LandlordBillDetailPage() {
   const { id } = useParams();
-  const [bill, setBill] = useState(null);
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [bill, setBill] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchBill = async () => {
-      setLoading(true);
-      try {
-        const res = await getBillDetail(id);
-        setBill(res.data || res); // lấy đúng trường data nếu có
-      } catch {
-        message.error("Failed to load bill detail");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchBill();
+    // eslint-disable-next-line
   }, [id]);
 
-  if (loading) return <Spin style={{ margin: 40 }} />;
-  if (!bill) return <div style={{ padding: 24 }}>No bill found.</div>;
+  const fetchBill = async () => {
+    setLoading(true);
+    try {
+      const res = await getBillDetail(id);
+      setBill(res);
+    } catch {
+      message.error("Failed to load bill detail");
+    }
+    setLoading(false);
+  };
+
+  const columns = [
+    { title: "Description", dataIndex: "description" },
+    { title: "Type", dataIndex: "itemType" },
+    { title: "Service", dataIndex: "serviceName" },
+    { title: "Unit Price", dataIndex: "unitPriceAtBill", render: v => v ? v.toLocaleString() + ' VND' : '' },
+    { title: "Consumed", dataIndex: "consumedUnits" },
+    { title: "Amount", dataIndex: "itemAmount", render: v => v ? v.toLocaleString() + ' VND' : '' },
+  ];
 
   return (
-    <div style={{ padding: 24, maxWidth: 600, margin: '0 auto' }}>
-      <h2>Bill Detail</h2>
-      <Descriptions bordered column={1}>
-        <Descriptions.Item label="Bill ID">{bill.id}</Descriptions.Item>
-        <Descriptions.Item label="Room">{bill.roomNumber}</Descriptions.Item>
-        <Descriptions.Item label="Contract ID">{bill.contractId}</Descriptions.Item>
-        <Descriptions.Item label="From Date">{bill.fromDate}</Descriptions.Item>
-        <Descriptions.Item label="To Date">{bill.toDate}</Descriptions.Item>
-        <Descriptions.Item label="Bill Date">{bill.billDate}</Descriptions.Item>
-        <Descriptions.Item label="Due Date">{bill.dueDate}</Descriptions.Item>
-        <Descriptions.Item label="Paid Date">{bill.paidDate || 'N/A'}</Descriptions.Item>
-        <Descriptions.Item label="Total">{bill.totalAmount}</Descriptions.Item>
-        <Descriptions.Item label="Status">{bill.status === true ? 'Paid' : 'Unpaid'}</Descriptions.Item>
-        {/* Thêm các trường khác nếu cần */}
-      </Descriptions>
-      <Button style={{ marginTop: 16 }} onClick={() => navigate(-1)}>Back</Button>
+    <div style={{ display: "flex", minHeight: "100vh" }}>
+      <LandlordSidebar />
+      <div style={{ flex: 1, padding: 24 }}>
+        <PageHeader title="Bill Detail" />
+        <Card>
+          {loading ? (
+            <Spin />
+          ) : bill ? (
+            <>
+              <Descriptions bordered column={2}>
+                <Descriptions.Item label="Bill ID">#{bill.id}</Descriptions.Item>
+                <Descriptions.Item label="Room">{bill.roomNumber}</Descriptions.Item>
+                <Descriptions.Item label="Contract ID">{bill.contractId ? `#${bill.contractId}` : "N/A"}</Descriptions.Item>
+                <Descriptions.Item label="Type">
+                  <Tag color={bill.billType === "REGULAR" ? "blue" : bill.billType === "CUSTOM" ? "orange" : "green"}>
+                    {bill.billType}
+                  </Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="From">{dayjs(bill.fromDate).format("DD/MM/YYYY")}</Descriptions.Item>
+                <Descriptions.Item label="To">{dayjs(bill.toDate).format("DD/MM/YYYY")}</Descriptions.Item>
+                <Descriptions.Item label="Total">{bill.totalAmount?.toLocaleString()} VND</Descriptions.Item>
+                <Descriptions.Item label="Status">
+                  <Tag color={bill.status ? "green" : "red"}>
+                    {bill.status ? "Paid" : "Unpaid"}
+                  </Tag>
+                </Descriptions.Item>
+              </Descriptions>
+              <h3 style={{ marginTop: 24 }}>Bill Details</h3>
+              <Table
+                columns={columns}
+                dataSource={bill.details}
+                rowKey={(_, idx) => idx}
+                pagination={false}
+                size="small"
+              />
+              <Button style={{ marginTop: 24 }} onClick={() => navigate(-1)}>
+                Back
+              </Button>
+            </>
+          ) : (
+            <div>Bill not found</div>
+          )}
+        </Card>
+      </div>
     </div>
   );
 } 

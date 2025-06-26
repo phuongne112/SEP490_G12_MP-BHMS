@@ -448,6 +448,11 @@ public class BillServiceImpl implements BillService {
 
     @Override
     public void deleteBillById(Long id) {
+        Bill bill = billRepository.findById(id)
+            .orElseThrow(() -> new NotFoundException("Bill not found"));
+        if (Boolean.TRUE.equals(bill.getStatus())) {
+            throw new BusinessException("Cannot delete a paid bill.");
+        }
         billRepository.deleteById(id);
     }
 
@@ -473,5 +478,39 @@ public class BillServiceImpl implements BillService {
             ));
         }
         return billRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    public BillResponse createCustomBill(Long roomId, String name, String description, BigDecimal amount, Instant fromDate, Instant toDate) {
+        Room room = roomRepository.findById(roomId)
+            .orElseThrow(() -> new NotFoundException("Room not found"));
+        // Kiểm tra hợp đồng active
+        Contract contract = contractRepository.findActiveByRoomId(roomId)
+            .orElseThrow(() -> new BusinessException("Room does not have an active contract. Cannot create bill."));
+
+        Bill bill = new Bill();
+        bill.setRoom(room);
+        bill.setContract(contract);
+        bill.setBillType(com.mpbhms.backend.enums.BillType.CUSTOM);
+        bill.setBillDate(Instant.now());
+        bill.setFromDate(fromDate);
+        bill.setToDate(toDate);
+        bill.setTotalAmount(amount);
+        bill.setStatus(false);
+        bill.setPaymentCycle(contract.getPaymentCycle());
+
+        // Tạo bill detail
+        BillDetail detail = new BillDetail();
+        detail.setItemType(BillItemType.SERVICE);
+        detail.setDescription(name + (description != null && !description.isEmpty() ? (": " + description) : ""));
+        detail.setItemAmount(amount);
+        detail.setCreatedDate(Instant.now());
+        detail.setBill(bill);
+        List<BillDetail> details = new ArrayList<>();
+        details.add(detail);
+        bill.setBillDetails(details);
+
+        billRepository.save(bill);
+        return toResponse(bill);
     }
 }

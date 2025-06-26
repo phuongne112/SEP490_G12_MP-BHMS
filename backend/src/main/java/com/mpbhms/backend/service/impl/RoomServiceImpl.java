@@ -34,6 +34,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.nio.file.Files;
 import java.security.MessageDigest;
+import java.util.Optional;
 
 @Service
 public class RoomServiceImpl implements RoomService {
@@ -355,51 +356,69 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public void addServiceToRoom(Long roomId, Long serviceId) {
+    public boolean addServiceToRoom(Long roomId, Long serviceId) {
         Room room = roomRepository.findById(roomId)
             .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
         com.mpbhms.backend.entity.CustomService service = serviceRepository.findById(serviceId)
             .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + serviceId));
         if (room.getServices() == null) room.setServices(new java.util.ArrayList<>());
         boolean exists = room.getServices().stream().anyMatch(s -> s.getId().equals(serviceId));
-        if (!exists) {
-            room.getServices().add(service);
-            roomRepository.save(room);
-            // Nếu là serviceId == 1 (điện), tạo ServiceReading rỗng
-            if (serviceId == 1L) {
-                ServiceReading reading = new ServiceReading();
-                reading.setRoom(room);
-                reading.setService(service);
-                reading.setOldReading(null);
-                reading.setNewReading(null);
-                reading.setCreatedDate(java.time.Instant.now());
-                serviceReadingRepository.save(reading);
-            }
+        
+        // Nếu dịch vụ đã tồn tại, không cho phép thêm lại
+        if (exists) {
+            throw new BusinessException("Service already exists in this room. Cannot add duplicate service.");
         }
+        
+        // Thêm dịch vụ mới vào phòng
+        room.getServices().add(service);
+        roomRepository.save(room);
+        
+        // Nếu là điện, tạo ServiceReading ban đầu = 0
+        boolean created = false;
+        if (service.getServiceType() == ServiceType.ELECTRICITY) {
+            ServiceReading reading = new ServiceReading();
+            reading.setRoom(room);
+            reading.setService(service);
+            reading.setOldReading(java.math.BigDecimal.ZERO);
+            reading.setNewReading(java.math.BigDecimal.ZERO);
+            reading.setCreatedDate(java.time.Instant.now());
+            serviceReadingRepository.save(reading);
+            created = true;
+        }
+        return created;
     }
 
     @Override
-    public void addServiceToRoom(Long roomId, Long serviceId, BigDecimal initialReading) {
+    public boolean addServiceToRoom(Long roomId, Long serviceId, BigDecimal initialReading) {
         Room room = roomRepository.findById(roomId)
             .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
         com.mpbhms.backend.entity.CustomService service = serviceRepository.findById(serviceId)
             .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + serviceId));
         if (room.getServices() == null) room.setServices(new java.util.ArrayList<>());
         boolean exists = room.getServices().stream().anyMatch(s -> s.getId().equals(serviceId));
-        if (!exists) {
-            room.getServices().add(service);
-            roomRepository.save(room);
-            // Nếu là điện, tạo ServiceReading ban đầu
-            if (service.getServiceType() == ServiceType.ELECTRICITY && initialReading != null) {
-                ServiceReading reading = new ServiceReading();
-                reading.setRoom(room);
-                reading.setService(service);
-                reading.setOldReading(initialReading);
-                reading.setNewReading(initialReading);
-                reading.setCreatedDate(java.time.Instant.now());
-                serviceReadingRepository.save(reading);
-            }
+        
+        // Nếu dịch vụ đã tồn tại, không cho phép thêm lại
+        if (exists) {
+            throw new BusinessException("Service already exists in this room. Cannot add duplicate service.");
         }
+        
+        // Thêm dịch vụ mới vào phòng
+        room.getServices().add(service);
+        roomRepository.save(room);
+        
+        // Nếu là điện và có initialReading, tạo ServiceReading
+        boolean created = false;
+        if (service.getServiceType() == ServiceType.ELECTRICITY && initialReading != null) {
+            ServiceReading reading = new ServiceReading();
+            reading.setRoom(room);
+            reading.setService(service);
+            reading.setOldReading(initialReading);
+            reading.setNewReading(initialReading);
+            reading.setCreatedDate(java.time.Instant.now());
+            serviceReadingRepository.save(reading);
+            created = true;
+        }
+        return created;
     }
 
 }

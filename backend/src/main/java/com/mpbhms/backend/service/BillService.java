@@ -29,4 +29,6 @@ public interface BillService {
     void deleteBillById(Long id);
 
     Page<Bill> filterBills(Long roomId, Boolean status, BigDecimal minPrice, BigDecimal maxPrice, String search, Pageable pageable);
+
+    BillResponse createCustomBill(Long roomId, String name, String description, java.math.BigDecimal amount, java.time.Instant fromDate, java.time.Instant toDate);
 }
