@@ -10,11 +10,17 @@ import {
   Pagination,
   Popover,
   Select,
+  Tag,
+  Card,
 } from "antd";
 import {
   PlusOutlined,
   FilterOutlined,
   SearchOutlined,
+  EyeOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+  SendOutlined,
 } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
@@ -25,6 +31,7 @@ import {
   sendBillToRenter,
 } from "../../services/billApi";
 import { useNavigate } from "react-router-dom";
+import dayjs from "dayjs";
 
 const { Sider, Content } = Layout;
 
@@ -33,10 +40,12 @@ function BillFilterPopover({ onFilter }) {
   const [minPrice, setMinPrice] = useState();
   const [maxPrice, setMaxPrice] = useState();
   const [roomId, setRoomId] = useState();
+  
   const handleApply = () => {
     const roomIdNumber = roomId && !isNaN(roomId) ? Number(roomId) : undefined;
     onFilter({ status, minPrice, maxPrice, roomId: roomIdNumber });
   };
+  
   return (
     <div style={{ minWidth: 220 }}>
       <div style={{ marginBottom: 8 }}>Status</div>
@@ -81,15 +90,20 @@ export default function LandlordBillListPage() {
   const [filter, setFilter] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const pageSize = 6;
+  const pageSize = 10;
   const [filterOpen, setFilterOpen] = useState(false);
   const navigate = useNavigate();
 
   const fetchBills = async () => {
     setLoading(true);
     try {
-      const params = { ...filter, page: currentPage - 1, size: pageSize };
+      const params = { 
+        ...filter, 
+        page: currentPage - 1, 
+        size: pageSize 
+      };
       if (search) params.search = search;
+      
       const res = await getAllBills(params);
       setBills(res.content || []);
       setTotal(res.totalElements || 0);
@@ -108,9 +122,9 @@ export default function LandlordBillListPage() {
   const handleDelete = async (id) => {
     try {
       await deleteBill(id);
-      message.success("Bill deleted");
+      message.success("Bill deleted successfully");
       fetchBills();
-    } catch {
+    } catch (err) {
       message.error("Delete failed");
     }
   };
@@ -125,7 +139,8 @@ export default function LandlordBillListPage() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch {
+      message.success("Bill exported successfully");
+    } catch (err) {
       message.error("Export failed");
     }
   };
@@ -133,8 +148,8 @@ export default function LandlordBillListPage() {
   const handleSend = async (id) => {
     try {
       await sendBillToRenter(id);
-      message.success("Bill sent to renter");
-    } catch {
+      message.success("Bill sent to renter successfully");
+    } catch (err) {
       message.error("Send failed");
     }
   };
@@ -145,6 +160,17 @@ export default function LandlordBillListPage() {
     setFilterOpen(false);
   };
 
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  const formatDate = (date) => {
+    return dayjs(date).format('DD/MM/YYYY');
+  };
+
   const columns = [
     {
       title: "No.",
@@ -152,22 +178,80 @@ export default function LandlordBillListPage() {
       width: 70,
       render: (_, __, index) => (currentPage - 1) * pageSize + index + 1,
     },
-    { title: "Bill ID", dataIndex: "id", align: "center", width: 100 },
-    { title: "Room", dataIndex: "roomNumber", align: "center", width: 120 },
-    { title: "Total", dataIndex: "totalAmount", align: "center", width: 140 },
+    { 
+      title: "Bill ID", 
+      dataIndex: "id", 
+      align: "center", 
+      width: 100,
+      render: (id) => `#${id}`
+    },
+    { 
+      title: "Room", 
+      dataIndex: "roomNumber", 
+      align: "center", 
+      width: 120 
+    },
+    { 
+      title: "Contract ID", 
+      dataIndex: "contractId", 
+      align: "center", 
+      width: 120,
+      render: (contractId) => contractId ? `#${contractId}` : 'N/A'
+    },
+    { 
+      title: "Bill Type", 
+      dataIndex: "billType", 
+      align: "center", 
+      width: 120,
+      render: (billType) => (
+        <Tag color={billType === 'REGULAR' ? 'blue' : 'green'}>
+          {billType === 'REGULAR' ? 'Regular' : 'Service'}
+        </Tag>
+      )
+    },
+    { 
+      title: "From Date", 
+      dataIndex: "fromDate", 
+      align: "center", 
+      width: 120,
+      render: (date) => formatDate(date)
+    },
+    { 
+      title: "To Date", 
+      dataIndex: "toDate", 
+      align: "center", 
+      width: 120,
+      render: (date) => formatDate(date)
+    },
+    { 
+      title: "Total Amount", 
+      dataIndex: "totalAmount", 
+      align: "center", 
+      width: 140,
+      render: (amount) => formatCurrency(amount)
+    },
     {
       title: "Status",
       align: "center",
       width: 120,
-      render: (_, record) => (record.status === true ? "Paid" : "Unpaid"),
+      render: (_, record) => (
+        <Tag color={record.status ? "green" : "red"}>
+          {record.status ? "Paid" : "Unpaid"}
+        </Tag>
+      ),
     },
     {
       title: "Actions",
       align: "center",
-      width: 260,
+      width: 280,
       render: (_, record) => (
         <Space>
-          <Button onClick={() => navigate(`/landlord/bills/${record.id}`)}>
+          <Button 
+            type="primary" 
+            icon={<EyeOutlined />}
+            onClick={() => navigate(`/landlord/bills/${record.id}`)}
+            size="small"
+          >
             View
           </Button>
           <Popconfirm
@@ -176,10 +260,28 @@ export default function LandlordBillListPage() {
             cancelText="No"
             onConfirm={() => handleDelete(record.id)}
           >
-            <Button danger>Delete</Button>
+            <Button 
+              danger 
+              icon={<DeleteOutlined />}
+              size="small"
+            >
+              Delete
+            </Button>
           </Popconfirm>
-          <Button onClick={() => handleExport(record.id)}>Export</Button>
-          <Button onClick={() => handleSend(record.id)}>Send</Button>
+          <Button 
+            icon={<DownloadOutlined />}
+            onClick={() => handleExport(record.id)}
+            size="small"
+          >
+            Export
+          </Button>
+          <Button 
+            icon={<SendOutlined />}
+            onClick={() => handleSend(record.id)}
+            size="small"
+          >
+            Send
+          </Button>
         </Space>
       ),
     },
@@ -210,12 +312,13 @@ export default function LandlordBillListPage() {
             <PageHeader title="Bill List" />
             <Space>
               <Input
-                placeholder="Search by billID or room"
+                placeholder="Search by bill ID or room number"
                 allowClear
                 prefix={<SearchOutlined />}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onPressEnter={() => setCurrentPage(1)}
+                style={{ width: 300 }}
               />
               <Popover
                 open={filterOpen}
@@ -235,13 +338,18 @@ export default function LandlordBillListPage() {
               </Button>
             </Space>
           </div>
-          <Table
-            columns={columns}
-            dataSource={bills}
-            loading={loading}
-            rowKey="id"
-            pagination={false}
-          />
+          
+          <Card>
+            <Table
+              columns={columns}
+              dataSource={bills}
+              loading={loading}
+              rowKey="id"
+              pagination={false}
+              scroll={{ x: 1200 }}
+            />
+          </Card>
+          
           <div
             style={{
               marginTop: 24,
@@ -255,6 +363,11 @@ export default function LandlordBillListPage() {
               pageSize={pageSize}
               total={total}
               onChange={(page) => setCurrentPage(page)}
+              showSizeChanger={false}
+              showQuickJumper
+              showTotal={(total, range) => 
+                `${range[0]}-${range[1]} of ${total} bills`
+              }
             />
           </div>
         </Content>
