@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Button, Input, Space, Popover, Modal, Form, message } from "antd";
+import {
+  Layout,
+  Button,
+  Input,
+  Space,
+  Popover,
+  Modal,
+  Form,
+  message,
+} from "antd";
 import {
   FilterOutlined,
   PlusOutlined,
@@ -35,7 +44,9 @@ export default function LandlordUserListPage() {
     setLoading(true);
     try {
       let filterDSL = "";
-      if (searchText) filterDSL += `username~'*${searchText}*'`;
+      if (searchText) {
+        filterDSL += `(username~'*${searchText}*' or email~'*${searchText}*')`;
+      }
       if (filter.isActive !== undefined) {
         if (filterDSL) filterDSL += " and ";
         filterDSL += `isActive=${filter.isActive}`;
@@ -89,29 +100,15 @@ export default function LandlordUserListPage() {
     }
   };
 
-  const handleChangeRenter = (user) => {
-    // Nếu thiếu password thì mở modal nhập bổ sung
-    if (!user.password) {
-      setSelectedUser(user);
-      setRenterModalOpen(true);
-      renterForm.resetFields();
-      return;
-    }
-    handleSubmitRenter(user, user.password);
-  };
-
-  const handleSubmitRenter = async (user, password) => {
+  const handleChangeRenter = async (user) => {
     try {
-      await createRenter({
-        userId: user.id,
+      await updateUser({
+        id: user.id,
+        username: user.username,
         email: user.email,
-        phone: user.phoneNumber || user.userInfo?.phoneNumber,
-        password,
-        fullName: user.fullName || user.userInfo?.fullName,
+        role: { roleId: 2 },
       });
       message.success("Changed to Renter!");
-      setRenterModalOpen(false);
-      setSelectedUser(null);
       fetchUsers();
     } catch (err) {
       message.error(err?.response?.data?.message || "Failed to change role");
@@ -151,20 +148,6 @@ export default function LandlordUserListPage() {
                 onChange={handleSearch}
                 onPressEnter={handleSearchEnter}
               />
-              <Popover
-                content={<UserFilterPopover onFilter={handleFilter} />}
-                trigger="click"
-                placement="bottomRight"
-              >
-                <Button icon={<FilterOutlined />}>Filter</Button>
-              </Popover>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setAddModalOpen(true)}
-              >
-                Add User
-              </Button>
             </Space>
           </div>
 
@@ -176,7 +159,7 @@ export default function LandlordUserListPage() {
               pageSize,
               total,
               onChange: (page) => setCurrentPage(page),
-              showSizeChanger: false
+              showSizeChanger: false,
             }}
             onChangeRenter={handleChangeRenter}
           />
@@ -214,28 +197,8 @@ export default function LandlordUserListPage() {
               </Form.Item>
             </Form>
           </Modal>
-          <Modal
-            open={renterModalOpen}
-            title="Enter Password to Change Renter"
-            onCancel={() => setRenterModalOpen(false)}
-            onOk={async () => {
-              const values = await renterForm.validateFields();
-              handleSubmitRenter(selectedUser, values.password);
-            }}
-            okText="Change Renter"
-          >
-            <Form form={renterForm} layout="vertical">
-              <Form.Item
-                name="password"
-                label="Password"
-                rules={[{ required: true, min: 6, message: "Password is required (min 6 chars)" }]}
-              >
-                <Input.Password />
-              </Form.Item>
-            </Form>
-          </Modal>
         </Content>
       </Layout>
     </Layout>
   );
-} 
+}
