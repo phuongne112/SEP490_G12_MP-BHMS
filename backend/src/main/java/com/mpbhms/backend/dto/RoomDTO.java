@@ -24,5 +24,6 @@ public class RoomDTO {
     private List<ServiceDTO> services;  // ✅ cần thiết
     private List<AssetDTO> assets;      // ✅ cần thiết
     private String building;
+    private boolean hasActiveContract;
 }
 

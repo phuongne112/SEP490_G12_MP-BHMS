@@ -41,7 +41,8 @@ export const deleteBill = async (id) => {
 };
 
 export const exportBillPdf = async (id) => {
-  return axiosClient.get(`/bills/${id}/export`, { responseType: "blob" });
+  const response = await axiosClient.get(`/bills/${id}/export`, { responseType: "blob" });
+  return response.data;
 };
 
 export const sendBillToRenter = async (id) => {
@@ -50,5 +51,10 @@ export const sendBillToRenter = async (id) => {
 
 export const createCustomBill = async (data) => {
   const response = await axiosClient.post("/bills/custom", data);
+  return response.data;
+};
+
+export const getMyBills = async () => {
+  const response = await axiosClient.get("/bills/my");
   return response.data;
 }; 

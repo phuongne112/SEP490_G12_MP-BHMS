@@ -1,8 +1,9 @@
 package com.mpbhms.backend.enums;
 
 public enum BillType {
-    REGULAR,
+    CONTRACT_TOTAL,
     CONTRACT_INIT,
     OTHER,
-    CUSTOM
+    CUSTOM,
+    CONTRACT_ROOM_RENT
 }

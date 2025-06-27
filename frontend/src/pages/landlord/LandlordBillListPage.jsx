@@ -131,8 +131,8 @@ export default function LandlordBillListPage() {
 
   const handleExport = async (id) => {
     try {
-      const res = await exportBillPdf(id);
-      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const data = await exportBillPdf(id);
+      const url = window.URL.createObjectURL(new Blob([data]));
       const link = document.createElement("a");
       link.href = url;
       link.setAttribute("download", `bill_${id}.pdf`);
@@ -269,11 +269,12 @@ export default function LandlordBillListPage() {
             </Button>
           </Popconfirm>
           <Button 
-            icon={<DownloadOutlined />}
+            type="primary"
+            style={{ background: '#1677ff', borderColor: '#1677ff' }}
             onClick={() => handleExport(record.id)}
             size="small"
           >
-            Export
+            Export PDF
           </Button>
           <Button 
             icon={<SendOutlined />}

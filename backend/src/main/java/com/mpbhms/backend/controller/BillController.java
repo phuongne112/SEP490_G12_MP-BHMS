@@ -9,6 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -82,5 +85,22 @@ public class BillController {
                                           @RequestParam int month,
                                           @RequestParam int year) {
         return billService.createAndSaveServiceBill(roomId, month, year);
+    }
+
+    @GetMapping("/{id}/export")
+    public ResponseEntity<byte[]> exportBillPdf(@PathVariable Long id) {
+        byte[] pdfBytes = billService.generateBillPdf(id);
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=bill_" + id + ".pdf")
+            .contentType(MediaType.APPLICATION_PDF)
+            .body(pdfBytes);
+    }
+
+    @GetMapping("/my")
+    public Page<BillResponse> getMyBills(@RequestParam(defaultValue = "0") int page,
+                                         @RequestParam(defaultValue = "10") int size) {
+        Long userId = com.mpbhms.backend.util.SecurityUtil.getCurrentUserId();
+        Pageable pageable = PageRequest.of(page, size);
+        return billService.getBillsByUserId(userId, pageable).map(billService::toResponse);
     }
 }

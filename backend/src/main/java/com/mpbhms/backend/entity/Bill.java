@@ -56,7 +56,7 @@ public class Bill extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "bill_type", nullable = false)
-    private BillType billType = BillType.REGULAR;
+    private BillType billType = BillType.CONTRACT_TOTAL;
 
     @Column(columnDefinition = "TEXT")
     private String notes;

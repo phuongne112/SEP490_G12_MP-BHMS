@@ -46,6 +46,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Delete Room", "/mpbhms/rooms/{id}", "DELETE", "Room"));
             permissions.add(new Permission("Create Room", "/mpbhms/rooms", "POST", "Room"));
             permissions.add(new Permission("View Room", "/mpbhms/rooms", "GET", "Room"));
+            permissions.add(new Permission("Add Service to Room", "/mpbhms/rooms/{roomId}/add-service", "POST", "Room"));
             permissions.add(new Permission("Active/ De-Active Room", "/mpbhms/rooms/{id}/active", "PATCH", "Room"));
             //User
             permissions.add(new Permission("Create User", "/mpbhms/users", "POST", "User"));
@@ -72,18 +73,31 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("View Permissions", "/mpbhms/permissions", "GET", "Permission"));
             //Room User
             permissions.add(new Permission("Assign user to Room", "/mpbhms/room-users/add-many", "POST", "RoomUser"));
-            //
+            permissions.add(new Permission("Leave Room", "/mpbhms/room-users/leave/{roomUserId}", "POST", "RoomUser"));
+            //Contract
             permissions.add(new Permission("Export contract", "/mpbhms/contracts/{id}/export", "GET", "Contract"));
+            permissions.add(new Permission("View List Contract", "/mpbhms/contracts", "GET", "Contract"));
+            permissions.add(new Permission("Create Contract", "/mpbhms/contracts", "POST", "Contract"));
+            permissions.add(new Permission("Update Contract", "/mpbhms/contracts", "PUT", "Contract"));
+            permissions.add(new Permission("Delete Contract", "/mpbhms/contracts/{id}", "DELETE", "Contract"));
+            permissions.add(new Permission("Test Update User Info", "/mpbhms/contracts/test-update-user-info", "GET", "Contract"));
             //OCR
             permissions.add(new Permission("OCR", "/mpbhms/ocr/detect-ocr", "POST", "Ocr"));
+            permissions.add(new Permission("Save Reading", "/mpbhms/ocr/save-reading", "POST", "Ocr"));
             //Bill
             permissions.add(new Permission("Generate first", "/mpbhms/bills/generate-first", "POST", "Bill"));
             permissions.add(new Permission("Generate", "/mpbhms/bills/generate", "POST", "Bill"));
+            permissions.add(new Permission("Create Bill", "/mpbhms/bills/create", "POST", "Bill"));
+            permissions.add(new Permission("Get Bill", "/mpbhms/bills/{id}", "GET", "Bill"));
+            permissions.add(new Permission("Get Bills", "/mpbhms/bills", "GET", "Bill"));
+            permissions.add(new Permission("Delete Bill", "/mpbhms/bills/{id}", "DELETE", "Bill"));
             permissions.add(new Permission("Generate", "/mpbhms/bills/service-bill", "POST", "Bill"));
+            permissions.add(new Permission("Export Bill", "/mpbhms/bills/{id}/export", "GET", "Bill"));
             //Renter
             permissions.add(new Permission("Get Renter List", "/mpbhms/renters", "GET", "Renter"));
             permissions.add(new Permission("Create new Renter", "/mpbhms/renters", "POST", "Renter"));
             permissions.add(new Permission("Change renter status", "/mpbhms/renters/{id}/status", "PUT", "Renter"));
+            permissions.add(new Permission("Get Renters for Assign", "/mpbhms/renters/for-assign", "GET", "Renter"));
             //Service
             permissions.add(new Permission("Create Service", "/mpbhms/services", "POST", "Service"));
             permissions.add(new Permission("Update Service", "/mpbhms/services/{id}", "PUT", "Service"));
@@ -91,10 +105,14 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("View Services", "/mpbhms/services", "GET", "Service"));
             permissions.add(new Permission("View All Services", "/mpbhms/services/all", "GET", "Service"));
             permissions.add(new Permission("Get Service by ID", "/mpbhms/services/{id}", "GET", "Service"));
-            //Service
-            permissions.add(new Permission("View List Contract", "/mpbhms/contracts", "GET", "Contract"));
-            permissions.add(new Permission("Delete Contract", "/mpbhms/contracts/{id}", "DELETE", "Contract"));
-            permissions.add(new Permission("Update Contract", "/mpbhms/contracts", "PUT ", "Contract"));
+            permissions.add(new Permission("Get reading service", "/mpbhms/services/readings", "GET", "Service"));
+            //Schedule
+            permissions.add(new Permission("Create Schedule", "/api/schedules", "POST", "Schedule"));
+            permissions.add(new Permission("Get All Schedules", "/api/schedules", "GET", "Schedule"));
+            permissions.add(new Permission("Get Schedule", "/api/schedules/{id}", "GET", "Schedule"));
+            permissions.add(new Permission("Update Schedule Status", "/api/schedules/{id}/status", "PATCH", "Schedule"));
+            permissions.add(new Permission("Delete Schedule", "/api/schedules/{id}", "DELETE", "Schedule"));
+
             permissions = permissionRepository.saveAll(permissions);
         }
 
@@ -105,7 +123,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             List<Permission> adminPermissions = new ArrayList<>(permissionRepository.findAll()
                     .stream()
                     .filter(p ->
-                            List.of("User", "Role", "Permission", "Notification", "Service").contains(p.getModule()) ||
+                            List.of("User", "Role", "Permission", "Notification", "Service", "Renter", "Schedule").contains(p.getModule()) ||
                                     (p.getModule().equals("Room") && p.getMethod().equals("GET"))
                     )// hoặc theo API cụ thể
                     .toList());
@@ -144,7 +162,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             landlordRole.setRoleName("LANDLORD");
             List<Permission> landlordPermission = new ArrayList<>(permissionRepository.findAll()
                     .stream()
-                    .filter(p -> List.of("Room","RoomUser","Bill","Ocr","Contract","Service").contains(p.getModule())) // hoặc theo API cụ thể
+                    .filter(p -> List.of("Room","Renter","RoomUser","Bill","Ocr","Contract","Service","Schedule").contains(p.getModule())) // hoặc theo API cụ thể
                     .toList());
             if (viewMyNotification != null && !landlordPermission.contains(viewMyNotification)) {
                 landlordPermission.add(viewMyNotification);

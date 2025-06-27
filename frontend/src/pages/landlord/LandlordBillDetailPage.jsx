@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, Descriptions, Table, Button, Spin, message, Tag } from "antd";
-import { getBillDetail } from "../../services/billApi";
+import { getBillDetail, exportBillPdf } from "../../services/billApi";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import dayjs from "dayjs";
@@ -26,6 +26,21 @@ export default function LandlordBillDetailPage() {
       message.error("Failed to load bill detail");
     }
     setLoading(false);
+  };
+
+  const handleExport = async () => {
+    try {
+      const data = await exportBillPdf(bill.id);
+      const url = window.URL.createObjectURL(new Blob([data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `bill_${bill.id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      message.error('Export failed');
+    }
   };
 
   const columns = [
@@ -73,6 +88,7 @@ export default function LandlordBillDetailPage() {
                 pagination={false}
                 size="small"
               />
+              <Button onClick={handleExport} type="primary" style={{ marginBottom: 16 }}>Export PDF</Button>
               <Button style={{ marginTop: 24 }} onClick={() => navigate(-1)}>
                 Back
               </Button>
