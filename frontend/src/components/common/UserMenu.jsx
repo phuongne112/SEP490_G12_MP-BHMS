@@ -1,11 +1,14 @@
 import React, { useState } from "react";
 import { Dropdown, Menu, Modal, Spin } from "antd";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../store/accountSlice";
 import { getAccountInfo, getPersonalInfo } from "../../services/userApi";
+import { useNavigate } from "react-router-dom";
 
 export default function UserMenu() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const user = useSelector((state) => state.account.user);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [accountData, setAccountData] = useState(null);
@@ -40,13 +43,22 @@ export default function UserMenu() {
     }
   };
 
+  const isRenter = user?.role?.roleName?.toUpperCase() === "RENTER" || user?.role?.roleId === 2;
+  const isAdmin = user?.role?.roleName?.toUpperCase() === "ADMIN" || user?.role?.roleId === 1;
+
   const menu = (
     <Menu>
-      <Menu.Item onClick={openAccountModal}>Thông tin tài khoản</Menu.Item>
-      <Menu.Item onClick={openInfoModal}>Thông tin cá nhân</Menu.Item>
+      <Menu.Item onClick={openAccountModal}>Account Info</Menu.Item>
+      <Menu.Item onClick={openInfoModal}>Personal Info</Menu.Item>
+      {isRenter && (
+        <Menu.Item onClick={() => navigate("/room")}>Renter Dashboard</Menu.Item>
+      )}
+      {isAdmin && (
+        <Menu.Item onClick={() => navigate("/admin/users")}>Admin Dashboard</Menu.Item>
+      )}
       <Menu.Divider />
       <Menu.Item onClick={handleLogout} style={{ color: "red" }}>
-        Đăng xuất
+        Logout
       </Menu.Item>
     </Menu>
   );
@@ -54,7 +66,14 @@ export default function UserMenu() {
   return (
     <>
       <Dropdown overlay={menu} placement="bottomRight" arrow>
-        <div style={{ cursor: "pointer", color: "#fff" }}>Administrator</div>
+        <div style={{ cursor: "pointer", color: "#fff" }}>
+          {user?.email || user?.fullName || user?.username || "User"}
+          {user?.role?.roleName ? (
+            <span style={{ color: "#aaa", fontSize: 12, marginLeft: 4 }}>
+              ({user.role.roleName})
+            </span>
+          ) : null}
+        </div>
       </Dropdown>
 
       <Modal

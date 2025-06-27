@@ -1,5 +1,5 @@
 import React from "react";
-import { Table, Button, Space } from "antd";
+import { Table, Button, Space, Popconfirm } from "antd";
 
 export default function UserTable({ users, loading, pagination, onChangeRenter }) {
   const columns = [
@@ -36,9 +36,14 @@ export default function UserTable({ users, loading, pagination, onChangeRenter }
       render: (_, record) => (
         <Space>
           {(!record.role || !record.role.roleName) && onChangeRenter && (
-            <Button type="primary" onClick={() => onChangeRenter(record)}>
-              Change Renter
-            </Button>
+            <Popconfirm
+              title="Are you sure you want to change this user to renter?"
+              onConfirm={() => onChangeRenter(record)}
+              okText="Yes"
+              cancelText="No"
+            >
+              <Button type="primary">Change Renter</Button>
+            </Popconfirm>
           )}
         </Space>
       ),

@@ -112,12 +112,6 @@ export default function LandlordRenterListPage() {
               >
                 Add Renter
               </Button>
-              <Button
-                icon={<PlusOutlined />}
-                onClick={() => setAddModalOpen(true)}
-              >
-                Add New Renter
-              </Button>
             </Space>
           </div>
 

@@ -1,6 +1,7 @@
 package com.mpbhms.backend.dto;
 
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 
@@ -12,5 +13,6 @@ public class AssetDTO {
     private String conditionNote;
     private String assetStatus;
     private String assetImage;
+    private Long roomId;
 }
 

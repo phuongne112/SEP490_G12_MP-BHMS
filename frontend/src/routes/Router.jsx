@@ -32,6 +32,7 @@ import LandlordBookAppointmentPage from "../pages/landlord/LandlordBookAppointme
 import LandlordUserListPage from "../pages/landlord/LandlordUserListPage";
 import RenterBillListPage from '../pages/renter/RenterBillListPage';
 import RenterBillDetailPage from '../pages/renter/RenterBillDetailPage';
+import LandlordAssetListPage from "../pages/landlord/LandlordAssetListPage";
 
 export default function AppRouter() {
   return (
@@ -110,6 +111,7 @@ export default function AppRouter() {
       <Route path="/landlord/users" element={<LandlordUserListPage />} />
       <Route path="/renter/bills" element={<RenterBillListPage />} />
       <Route path="/renter/bills/:id" element={<RenterBillDetailPage />} />
+      <Route path="/landlord/assets" element={<LandlordAssetListPage />} />
     </Routes>
   );
 }

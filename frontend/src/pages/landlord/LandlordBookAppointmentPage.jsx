@@ -1,30 +1,34 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Button, Input, DatePicker, TimePicker, Form, message, Card, Row, Col, Typography, Tag } from "antd";
+import { Button, Input, DatePicker, TimePicker, Form, message, Card, Row, Col, Typography, Tag, Modal } from "antd";
 import dayjs from "dayjs";
+import { useSelector } from "react-redux";
 
 const { Title, Text } = Typography;
 
 export default function LandlordBookAppointmentPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  // Giả sử truyền room info qua location.state
+  const reduxUser = useSelector((state) => state.account.user);
+  // Ưu tiên lấy user từ redux, fallback localStorage
+  const user = reduxUser || JSON.parse(localStorage.getItem("account"));
   const room = location.state?.room || {};
-  // Giả sử có user info từ localStorage hoặc redux
-  const user = JSON.parse(localStorage.getItem("account"));
 
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
 
-  // Nếu chưa đăng nhập, chuyển về login
   useEffect(() => {
     if (!user) {
-      message.info("Please login to book an appointment.");
-      navigate("/login");
+      setLoginModalOpen(true);
     }
-  }, [user, navigate]);
+  }, [user]);
 
-  // Nếu phòng đã booked hoặc unavailable thì không cho đặt
+  const handleLoginConfirm = () => {
+    setLoginModalOpen(false);
+    navigate("/login");
+  };
+
   const isUnavailable = room.status === "Booked" || room.status === "Unavailable";
 
   const onFinish = async (values) => {
@@ -43,6 +47,21 @@ export default function LandlordBookAppointmentPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f5f6fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Modal
+        open={loginModalOpen}
+        onCancel={() => setLoginModalOpen(false)}
+        onOk={handleLoginConfirm}
+        okText="Login"
+        cancelText="Cancel"
+        closable={false}
+        maskClosable={false}
+        centered
+      >
+        <div style={{ textAlign: "center", fontSize: 16, fontWeight: 500 }}>
+          You need to login to book an appointment.<br />
+          Please login to continue.
+        </div>
+      </Modal>
       <Card style={{ maxWidth: 950, width: '100%', borderRadius: 18, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', padding: 0 }}>
         <Row gutter={[0, 0]} style={{ minHeight: 520 }}>
           {/* Info left */}
@@ -63,15 +82,16 @@ export default function LandlordBookAppointmentPage() {
             <div style={{ width: '100%', maxWidth: 370 }}>
               <Title level={4} style={{ marginBottom: 18 }}>Book Appointment</Title>
               <Form
+                key={user?.id || 'nouser'}
                 form={form}
                 layout="vertical"
                 onFinish={onFinish}
                 initialValues={{
-                  name: user?.fullName || user?.name || "",
-                  phone: user?.phone || "",
+                  name: user?.fullName || user?.name || user?.username || "",
+                  phone: user?.phone || user?.phoneNumber || "",
                   email: user?.email || "",
                 }}
-                disabled={isUnavailable}
+                disabled={isUnavailable || !user}
               >
                 <Form.Item label="Your Name" name="name" rules={[{ required: true, message: "Please enter your name" }]}> <Input size="large" /> </Form.Item>
                 <Form.Item label="Phone Number" name="phone" rules={[{ required: true, message: "Please enter your phone number" }]}> <Input size="large" /> </Form.Item>
@@ -79,7 +99,7 @@ export default function LandlordBookAppointmentPage() {
                 <Form.Item label="Date" name="date" rules={[{ required: true, message: "Please select a date" }]}> <DatePicker size="large" style={{ width: "100%" }} disabledDate={d => d && d < dayjs().startOf('day')} /> </Form.Item>
                 <Form.Item label="Time" name="time" rules={[{ required: true, message: "Please select a time" }]}> <TimePicker size="large" style={{ width: "100%" }} format="HH:mm" /> </Form.Item>
                 <Form.Item label="Note" name="note"> <Input.TextArea rows={3} placeholder="Any note for landlord?" /> </Form.Item>
-                <Button type="primary" htmlType="submit" block size="large" loading={submitting} disabled={isUnavailable} style={{ marginTop: 8 }}>Confirm Appointment</Button>
+                <Button type="primary" htmlType="submit" block size="large" loading={submitting} disabled={isUnavailable || !user} style={{ marginTop: 8 }}>Confirm Appointment</Button>
                 {isUnavailable && <div style={{ color: "red", marginTop: 12 }}>This room is not available for booking.</div>}
               </Form>
             </div>

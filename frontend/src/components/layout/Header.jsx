@@ -25,6 +25,7 @@ import {
 } from "../../services/notificationApi";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { getCurrentUser } from '../../services/authService';
 dayjs.extend(relativeTime);
 
 const { Title } = Typography;
@@ -57,33 +58,23 @@ export default function Header() {
   // ✅ Hàm xác định dashboard path theo role
   const getDashboardPath = () => {
     const role = user?.role?.roleName || user?.role;
-    switch (role) {
-      case "ADMIN":
-      case "SUBADMIN":
-        return "/admin/users";
-      case "LANDLORD":
-        return "/landlord/renters";
-      case "RENTER":
-        return "/renter/dashboard";
-      default:
-        return null;
-    }
+    const roleId = user?.role?.roleId || user?.role?.id;
+    if (roleId === 3 || (typeof role === 'string' && role.toUpperCase() === 'LANDLORD')) return '/landlord/renters';
+    if (roleId === 2 || (typeof role === 'string' && role.toUpperCase() === 'RENTER')) return '/renter/dashboard';
+    if (roleId === 1 || (typeof role === 'string' && role.toUpperCase() === 'ADMIN')) return '/admin/users';
+    if (typeof role === 'string' && role.toUpperCase() === 'SUBADMIN') return '/admin/users';
+    return null;
   };
   const dashboardPath = getDashboardPath();
 
   const getDashboardLabel = () => {
     const role = user?.role?.roleName || user?.role;
-    switch (role?.toUpperCase()) {
-      case "ADMIN":
-      case "SUBADMIN":
-        return "Admin Dashboard";
-      case "LANDLORD":
-        return "Landlord Dashboard";
-      case "RENTER":
-        return "Renter Dashboard";
-      default:
-        return "Dashboard";
-    }
+    const roleId = user?.role?.roleId || user?.role?.id;
+    if (roleId === 3 || (typeof role === 'string' && role.toUpperCase() === 'LANDLORD')) return 'Landlord Dashboard';
+    if (roleId === 2 || (typeof role === 'string' && role.toUpperCase() === 'RENTER')) return 'Renter Dashboard';
+    if (roleId === 1 || (typeof role === 'string' && role.toUpperCase() === 'ADMIN')) return 'Admin Dashboard';
+    if (typeof role === 'string' && role.toUpperCase() === 'SUBADMIN') return 'Admin Dashboard';
+    return 'Dashboard';
   };
 
   const handleLogout = () => {
@@ -126,6 +117,19 @@ export default function Header() {
     const interval = setInterval(() => {
       fetchNotifications();
     }, 20000); // 20 giây
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    // Polling mỗi 30s để cập nhật user (role)
+    const interval = setInterval(async () => {
+      try {
+        const res = await getCurrentUser();
+        if (res && res.role) {
+          setUser((prev) => ({ ...prev, ...res, role: res.role }));
+        }
+      } catch (e) {}
+    }, 30000); // đổi thành 30s
     return () => clearInterval(interval);
   }, []);
 
@@ -297,13 +301,11 @@ export default function Header() {
                   <Menu.Item onClick={() => setIsInfoModalOpen(true)}>
                     Personal Info
                   </Menu.Item>
-
                   {dashboardPath && (
                     <Menu.Item onClick={() => navigate(dashboardPath)}>
                       {getDashboardLabel()}
                     </Menu.Item>
                   )}
-
                   <Menu.Divider />
                   <Menu.Item onClick={handleLogout} danger>
                     Logout
@@ -328,7 +330,7 @@ export default function Header() {
                 <span
                   style={{ color: "#e2e8f0", fontSize: 15, fontWeight: 500 }}
                 >
-                  {user?.name || "No name"}
+                  {user?.email || user?.name || user?.fullName || user?.username || "User"}
                 </span>
               </div>
             </Dropdown>
