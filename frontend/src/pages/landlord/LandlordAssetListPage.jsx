@@ -10,6 +10,7 @@ import {
   Tag,
   Image,
   Popconfirm,
+  Select,
 } from "antd";
 import {
   SearchOutlined,
@@ -20,8 +21,8 @@ import {
 } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
-import { getAllAssets } from "../../services/assetApi";
 import LandlordAddAssetModal from "../../components/landlord/LandlordAddAssetModal";
+import { getAllAssets, deleteAsset } from "../../services/assetApi";
 
 const { Sider, Content } = Layout;
 
@@ -32,26 +33,34 @@ const assetStatusColor = {
   Maintenance: "blue",
 };
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+
+const pageSizeOptions = [5, 10, 20, 50];
+
 export default function LandlordAssetListPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [assets, setAssets] = useState([]);
   const [total, setTotal] = useState(0);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(5);
   const [loading, setLoading] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [editingAsset, setEditingAsset] = useState(null);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
-  const fetchAssets = async (page = currentPage, filters = filter) => {
+  const fetchAssets = async (
+    page = currentPage,
+    filters = filter,
+    size = pageSize
+  ) => {
     setLoading(true);
     try {
-      console.log("[fetchAssets] filters:", filters);
-      const res = await getAllAssets(page - 1, pageSize, filters);
-      console.log("[fetchAssets] API response:", res);
+      const res = await getAllAssets(page - 1, size, filters);
       setAssets(res.data || []);
       setTotal(res.meta?.total || res.data?.length || 0);
-      console.log("[fetchAssets] assets after set:", res.data || []);
+      console.log("assets state after set:", res.data || []);
     } catch (err) {
       message.error("Failed to load assets");
       console.error("getAllAssets error:", err);
@@ -61,27 +70,51 @@ export default function LandlordAssetListPage() {
 
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
-      fetchAssets(1, filter);
+      fetchAssets(1, filter, pageSize);
     }, 300); // debounce để không gọi API liên tục khi gõ search
 
     return () => clearTimeout(delayDebounce);
     // eslint-disable-next-line
-  }, [filter]);
+  }, [filter, pageSize]);
 
   const handleSearch = (e) => {
     setSearch(e.target.value);
-    // Không gọi fetchAssets ngay khi gõ, chỉ cập nhật state search
-  };
-
-  const handleSearchSubmit = () => {
-    setFilter((prev) => ({ ...prev, assetName: search }));
+    setFilter((prev) => ({ ...prev, assetName: e.target.value }));
     setCurrentPage(1);
-    fetchAssets(1, { ...filter, assetName: search });
   };
 
-  const handleInputKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      handleSearchSubmit();
+  const handlePageSizeChange = (value) => {
+    setPageSize(value);
+    setCurrentPage(1);
+    fetchAssets(1, filter, value);
+  };
+
+  const handleAddAsset = () => {
+    setIsAddModalVisible(true);
+  };
+
+  const handleAddSuccess = () => {
+    fetchAssets(currentPage, filter, pageSize);
+  };
+
+  const handleEditAsset = (asset) => {
+    setEditingAsset(asset);
+    setIsEditModalVisible(true);
+  };
+
+  const handleEditSuccess = () => {
+    setIsEditModalVisible(false);
+    setEditingAsset(null);
+    fetchAssets(currentPage, filter, pageSize);
+  };
+
+  const handleDeleteAsset = async (id) => {
+    try {
+      await deleteAsset(id);
+      message.success("Asset deleted successfully!");
+      fetchAssets(currentPage, filter, pageSize);
+    } catch (err) {
+      message.error(err.response?.data?.message || "Failed to delete asset");
     }
   };
 
@@ -118,7 +151,11 @@ export default function LandlordAssetListPage() {
       render: (url) =>
         url ? (
           <Image
-            src={url}
+            src={
+              url.startsWith("http")
+                ? url
+                : `${BACKEND_URL}${url.startsWith("/") ? "" : "/"}${url}`
+            }
             width={60}
             height={40}
             style={{ objectFit: "cover" }}
@@ -132,8 +169,17 @@ export default function LandlordAssetListPage() {
       key: "actions",
       render: (_, record) => (
         <Space>
-          <Button icon={<EditOutlined />} size="small" />
-          <Popconfirm title="Delete this asset?" okText="Yes" cancelText="No">
+          <Button
+            icon={<EditOutlined />}
+            size="small"
+            onClick={() => handleEditAsset(record)}
+          />
+          <Popconfirm
+            title="Delete this asset?"
+            okText="Yes"
+            cancelText="No"
+            onConfirm={() => handleDeleteAsset(record.id)}
+          >
             <Button icon={<DeleteOutlined />} size="small" danger />
           </Popconfirm>
         </Space>
@@ -172,21 +218,38 @@ export default function LandlordAssetListPage() {
                 prefix={<SearchOutlined />}
                 value={search}
                 onChange={handleSearch}
-                onKeyDown={handleInputKeyDown}
-                allowClear
               />
-              <Button type="primary" icon={<SearchOutlined />} onClick={handleSearchSubmit} />
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsAddModalOpen(true)}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleAddAsset}
+              >
                 Add Asset
               </Button>
             </Space>
           </div>
-
-          <LandlordAddAssetModal
-            open={isAddModalOpen}
-            onClose={() => setIsAddModalOpen(false)}
-            onSuccess={() => fetchAssets(1, filter)}
-          />
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
+            <div>
+              Show
+              <Select
+                style={{ width: 80, margin: "0 8px" }}
+                value={pageSize}
+                onChange={handlePageSizeChange}
+                options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
+              />
+              entries
+            </div>
+            <div style={{ fontWeight: 400, color: "#888" }}>
+              Tổng số: {total} assets
+            </div>
+          </div>
 
           <Table
             columns={columns}
@@ -197,15 +260,32 @@ export default function LandlordAssetListPage() {
               current: currentPage,
               pageSize,
               total,
-              onChange: (page) => {
+              onChange: (page, size) => {
                 setCurrentPage(page);
-                fetchAssets(page, filter);
+                setPageSize(size);
+                fetchAssets(page, filter, size);
               },
               showSizeChanger: false,
             }}
           />
         </Content>
       </Layout>
+      <LandlordAddAssetModal
+        open={isAddModalVisible}
+        onClose={() => setIsAddModalVisible(false)}
+        onSuccess={handleAddSuccess}
+        mode="add"
+      />
+      <LandlordAddAssetModal
+        open={isEditModalVisible}
+        onClose={() => {
+          setIsEditModalVisible(false);
+          setEditingAsset(null);
+        }}
+        onSuccess={handleEditSuccess}
+        asset={editingAsset}
+        mode="edit"
+      />
     </Layout>
   );
 }

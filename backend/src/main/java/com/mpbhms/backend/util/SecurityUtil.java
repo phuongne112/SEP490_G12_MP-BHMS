@@ -29,7 +29,7 @@ public class SecurityUtil {
     private final JwtEncoder jwtEncoder;
     private final JwtDecoder jwtDecoder;
     private final UserRepository userRepository;
-    public static final MacAlgorithm JWT_MAC_ALGORITHM = MacAlgorithm.HS512;
+    public static final MacAlgorithm JWT_MAC_ALGORITHM = com.mpbhms.backend.config.JwtConfiguration.JWT_MAC_ALGORITHM;
     @Value("${mpbhms.jwt.base64-secret}")
     private String jwtKey;
 

@@ -1,12 +1,12 @@
 package com.mpbhms.backend.config;
 
 
-import com.mpbhms.backend.util.SecurityUtil;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.nimbusds.jose.util.Base64;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
 
 import javax.crypto.SecretKey;
@@ -16,6 +16,8 @@ import javax.crypto.spec.SecretKeySpec;
 @Configuration
 public class JwtConfiguration {
 
+    public static final MacAlgorithm JWT_MAC_ALGORITHM = MacAlgorithm.HS512;
+
     @Value("${mpbhms.jwt.base64-secret}")
     private String jwtKey;
 
@@ -24,7 +26,7 @@ public class JwtConfiguration {
 
     private SecretKey getSecretKey() {
         byte[] keyBytes = Base64.from(jwtKey).decode();
-        return new SecretKeySpec(keyBytes,0,keyBytes.length, SecurityUtil.JWT_MAC_ALGORITHM.getName());
+        return new SecretKeySpec(keyBytes,0,keyBytes.length, JWT_MAC_ALGORITHM.getName());
     }
     @Bean
     public JwtEncoder jwtEncoder() {
@@ -33,7 +35,7 @@ public class JwtConfiguration {
     @Bean
     public JwtDecoder jwtDecoder() {
         NimbusJwtDecoder jwtEncoder = NimbusJwtDecoder.withSecretKey(getSecretKey()).macAlgorithm
-                (SecurityUtil.JWT_MAC_ALGORITHM).build();
+                (JWT_MAC_ALGORITHM).build();
     return token -> {
              try{
                  return jwtEncoder.decode(token);
