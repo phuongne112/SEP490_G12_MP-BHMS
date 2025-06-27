@@ -11,7 +11,8 @@ import {
   Col,
   DatePicker,
   Space,
-  Divider
+  Divider,
+  Radio
 } from "antd";
 import { createBill, generateBill, generateFirstBill, createCustomBill } from "../../services/billApi";
 import { getAllRooms } from "../../services/roomService";
@@ -32,6 +33,8 @@ export default function LandlordBillCreatePage() {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [selectedContract, setSelectedContract] = useState(null);
   const [billType, setBillType] = useState("SERVICE");
+  const [periodType, setPeriodType] = useState("1m");
+  const [selectedMonths, setSelectedMonths] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -51,7 +54,7 @@ export default function LandlordBillCreatePage() {
   const fetchContracts = async () => {
     try {
       const res = await getAllContracts();
-      setContracts(res.data || []);
+      setContracts(res.result || []);
     } catch (err) {
       message.error("Failed to load contracts");
     }
@@ -88,20 +91,33 @@ export default function LandlordBillCreatePage() {
           month: month,
           year: year
         });
-      } else if (billType === "CONTRACT") {
-        // Tạo bill hợp đồng
-        if (values.dateRange && values.dateRange.length === 2) {
-          const fromDate = values.dateRange[0].format("YYYY-MM-DD");
-          const toDate = values.dateRange[1].format("YYYY-MM-DD");
-          result = await generateBill(
-            values.contractId,
-            fromDate,
-            toDate,
-            "REGULAR"
-          );
-        } else {
-          result = await generateFirstBill(values.contractId);
+      } else if (billType === "CONTRACT_TOTAL" || billType === "CONTRACT_ROOM_RENT") {
+        let periods = [];
+        if (periodType !== "custom") {
+          // Dùng selectedMonths để tạo các kỳ hóa đơn
+          periods = selectedMonths.map(month => ({
+            fromDate: month.startOf('month').format("YYYY-MM-DD"),
+            toDate: month.endOf('month').format("YYYY-MM-DD")
+          }));
+        } else if (values.dateRange && values.dateRange.length === 2) {
+          periods = [{
+            fromDate: values.dateRange[0].format("YYYY-MM-DD"),
+            toDate: values.dateRange[1].format("YYYY-MM-DD")
+          }];
         }
+        // Gửi từng kỳ hóa đơn lên backend (hoặc gửi mảng nếu backend hỗ trợ)
+        for (const period of periods) {
+          await generateBill(
+            values.contractId,
+            period.fromDate,
+            period.toDate,
+            billType
+          );
+        }
+        message.success("Bill(s) created successfully");
+        navigate("/landlord/bills");
+        setLoading(false);
+        return;
       }
       
       message.success("Bill created successfully");
@@ -131,6 +147,32 @@ export default function LandlordBillCreatePage() {
     form.resetFields(["roomId", "month", "contractId", "dateRange"]);
     setSelectedRoom(null);
     setSelectedContract(null);
+  };
+
+  const handlePeriodTypeChange = (e) => {
+    setPeriodType(e.target.value);
+    form.setFieldsValue({ months: undefined, dateRange: undefined });
+    setSelectedMonths([]);
+  };
+
+  const handleMonthChange = (date) => {
+    if (!date) {
+      setSelectedMonths([]);
+      return;
+    }
+    let months = [];
+    if (periodType === "1m") {
+      months = [date];
+    } else if (periodType === "3m") {
+      months = [date, date.clone().add(1, 'month'), date.clone().add(2, 'month')];
+    } else if (periodType === "6m") {
+      months = [date];
+      for (let i = 1; i < 6; i++) {
+        months.push(date.clone().add(i, 'month'));
+      }
+    }
+    setSelectedMonths(months);
+    form.setFieldsValue({ months: months });
   };
 
   return (
@@ -189,7 +231,8 @@ export default function LandlordBillCreatePage() {
                 placeholder="Select bill type"
               >
                 <Option value="SERVICE">Service Bill (Dịch vụ)</Option>
-                <Option value="CONTRACT">Contract Bill (Hợp đồng)</Option>
+                <Option value="CONTRACT_TOTAL">Contract Total Bill (Phòng + dịch vụ)</Option>
+                <Option value="CONTRACT_ROOM_RENT">Contract Room Rent Bill (Chỉ tiền phòng)</Option>
                 <Option value="CUSTOM">Custom Bill (Tuỳ chỉnh)</Option>
               </Select>
             </Form.Item>
@@ -236,7 +279,7 @@ export default function LandlordBillCreatePage() {
               </>
             )}
 
-            {billType === "CONTRACT" && (
+            {(billType === "CONTRACT_TOTAL" || billType === "CONTRACT_ROOM_RENT") && (
               <>
                 <Form.Item 
                   name="contractId" 
@@ -253,21 +296,40 @@ export default function LandlordBillCreatePage() {
                   >
                     {contracts.map(contract => (
                       <Option key={contract.id} value={contract.id}>
-                        Contract #{contract.id} - Room {contract.room?.roomNumber}
+                        Contract #{contract.id} - Room {contract.roomNumber}
                       </Option>
                     ))}
                   </Select>
                 </Form.Item>
-
-                <Form.Item 
-                  name="dateRange" 
-                  label="Date Range (Optional)"
-                >
-                  <RangePicker 
-                    style={{ width: '100%' }}
-                    placeholder={['Start Date', 'End Date']}
-                  />
+                <Form.Item label="Bill Period">
+                  <Radio.Group onChange={handlePeriodTypeChange} value={periodType}>
+                    <Radio value="1m">1 tháng</Radio>
+                    <Radio value="3m">3 tháng</Radio>
+                    <Radio value="6m">6 tháng</Radio>
+                    <Radio value="custom">Tùy chọn</Radio>
+                  </Radio.Group>
                 </Form.Item>
+                {periodType !== "custom" ? (
+                  <Form.Item name="months" label="Chọn tháng bắt đầu" rules={[{ required: true, message: 'Chọn tháng bắt đầu' }]}> 
+                    <DatePicker 
+                      picker="month" 
+                      placeholder="Chọn tháng bắt đầu"
+                      style={{ width: '100%' }}
+                      onChange={handleMonthChange}
+                    />
+                  </Form.Item>
+                ) : (
+                  <Form.Item 
+                    name="dateRange" 
+                    label="Date Range (Optional)"
+                    rules={[{ required: true, message: 'Chọn khoảng ngày' }]}
+                  >
+                    <RangePicker 
+                      style={{ width: '100%' }}
+                      placeholder={['Start Date', 'End Date']}
+                    />
+                  </Form.Item>
+                )}
               </>
             )}
 

@@ -26,6 +26,18 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import com.lowagie.text.*;
+import com.lowagie.text.pdf.PdfWriter;
+import java.io.ByteArrayOutputStream;
+import com.lowagie.text.pdf.BaseFont;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.time.format.DateTimeFormatter;
+import java.text.NumberFormat;
+import java.util.Locale;
+import com.lowagie.text.FontFactory;
 
 @Service
 @RequiredArgsConstructor
@@ -101,8 +113,8 @@ public class BillServiceImpl implements BillService {
         // 4. Dịch vụ của phòng
         List<CustomService> services = room.getServices();
         for (CustomService service : services) {
-            if (service.getServiceType() == ServiceType.ELECTRICITY || service.getServiceType() == ServiceType.WATER) {
-                // Lấy tất cả reading trong kỳ cho service này
+            if (service.getServiceType() == ServiceType.ELECTRICITY) {
+                // Điện: tính theo chỉ số
                 List<ServiceReading> readings = serviceReadingRepository.findByRoomAndServiceAndDateRange(
                         room.getId(), service, fromInstant, toInstant);
                 BigDecimal totalConsumed = BigDecimal.ZERO;
@@ -127,8 +139,8 @@ public class BillServiceImpl implements BillService {
                     details.add(serviceDetail);
                     totalAmount = totalAmount.add(amount);
                 }
-            } else if (service.getServiceType() == ServiceType.OTHER) {
-                // Dịch vụ cố định
+            } else if (service.getServiceType() == ServiceType.WATER || service.getServiceType() == ServiceType.OTHER) {
+                // Nước & dịch vụ khác: tính cố định
                 BillDetail fixedDetail = new BillDetail();
                 fixedDetail.setItemType(BillItemType.SERVICE);
                 fixedDetail.setDescription("Dịch vụ cố định: " + service.getServiceName() + " từ " + fromDate + " đến " + toDate);
@@ -148,7 +160,7 @@ public class BillServiceImpl implements BillService {
         bill.setFromDate(fromInstant);
         bill.setToDate(toInstant);
         bill.setPaymentCycle(cycle);
-        bill.setBillType(BillType.REGULAR);
+        bill.setBillType(BillType.CONTRACT_TOTAL);
         bill.setBillDate(Instant.now());
         bill.setTotalAmount(totalAmount);
         bill.setStatus(false);
@@ -168,9 +180,13 @@ public class BillServiceImpl implements BillService {
         Room room = contract.getRoom();
         PaymentCycle cycle = contract.getPaymentCycle();
 
-        List<BillDetail> details = new ArrayList<>();
-        BigDecimal totalAmount = BigDecimal.ZERO;
-
+        // Kiểm tra null
+        if (fromDate == null || toDate == null) {
+            throw new BusinessException("Ngày bắt đầu hoặc ngày kết thúc không được để trống!");
+        }
+        if (fromDate.isAfter(toDate)) {
+            throw new BusinessException("Ngày bắt đầu phải trước hoặc bằng ngày kết thúc!");
+        }
         // Kiểm tra fromDate/toDate hợp lệ với paymentCycle
         int expectedMonths = switch (cycle) {
             case MONTHLY -> 1;
@@ -179,29 +195,45 @@ public class BillServiceImpl implements BillService {
         };
         LocalDate expectedToDate = fromDate.plusMonths(expectedMonths).minusDays(1);
         if (!toDate.equals(expectedToDate)) {
-            throw new BusinessException("fromDate/toDate không hợp lệ với chu kỳ thanh toán " + cycle + ". Kỳ đúng phải từ " + fromDate + " đến " + expectedToDate);
+            throw new BusinessException("Chu kỳ hóa đơn không hợp lệ với hợp đồng! Chu kỳ trong hợp đồng là " + cycle + ". Kỳ đúng phải từ " + fromDate + " đến " + expectedToDate);
+        }
+        // Kiểm tra chu kỳ truyền vào có khớp với hợp đồng không
+        if (billType == BillType.CONTRACT_TOTAL && contract.getPaymentCycle() != cycle) {
+            throw new BusinessException("Chu kỳ tính hóa đơn không khớp với chu kỳ trong hợp đồng! Chỉ được tạo hóa đơn theo đúng chu kỳ hợp đồng: " + cycle);
         }
 
-        // Tiền phòng
+        List<BillDetail> details = new ArrayList<>();
+        BigDecimal totalAmount = BigDecimal.ZERO;
+
         int months = countMonths(cycle);
         BigDecimal rent = BigDecimal.valueOf(room.getPricePerMonth()).multiply(BigDecimal.valueOf(months));
-        BillDetail rentDetail = new BillDetail();
-        rentDetail.setItemType(BillItemType.ROOM_RENT);
-        rentDetail.setDescription("Tiền phòng từ " + fromDate + " đến " + toDate);
-        rentDetail.setItemAmount(rent);
-        rentDetail.setCreatedDate(Instant.now());
-        details.add(rentDetail);
-        totalAmount = totalAmount.add(rent);
 
-        // Convert fromDate/toDate sang Instant
-        ZoneId vnZone = ZoneId.of("Asia/Ho_Chi_Minh");
-        Instant fromInstant = fromDate.atStartOfDay(vnZone).toInstant();
-        Instant toInstant = toDate.atTime(23, 59).atZone(vnZone).toInstant();
+        if (billType == BillType.CONTRACT_ROOM_RENT) {
+            // Chỉ tạo dòng tiền phòng
+            BillDetail rentDetail = new BillDetail();
+            rentDetail.setItemType(BillItemType.ROOM_RENT);
+            rentDetail.setDescription("Tiền phòng từ " + fromDate + " đến " + toDate);
+            rentDetail.setItemAmount(rent);
+            rentDetail.setCreatedDate(Instant.now());
+            details.add(rentDetail);
+            totalAmount = totalAmount.add(rent);
+        } else if (billType == BillType.CONTRACT_TOTAL) {
+            // Tổng hợp: tiền phòng + dịch vụ
+            BillDetail rentDetail = new BillDetail();
+            rentDetail.setItemType(BillItemType.ROOM_RENT);
+            rentDetail.setDescription("Tiền phòng từ " + fromDate + " đến " + toDate);
+            rentDetail.setItemAmount(rent);
+            rentDetail.setCreatedDate(Instant.now());
+            details.add(rentDetail);
+            totalAmount = totalAmount.add(rent);
 
-        // Nếu là MONTHLY thì mới tính dịch vụ
-        if (cycle == PaymentCycle.MONTHLY) {
+            // Convert fromDate/toDate sang Instant
+            ZoneId vnZone = ZoneId.of("Asia/Ho_Chi_Minh");
+            Instant fromInstant = fromDate.atStartOfDay(vnZone).toInstant();
+            Instant toInstant = toDate.atTime(23, 59).atZone(vnZone).toInstant();
+
             for (CustomService service : room.getServices()) {
-                if (service.getServiceType() == ServiceType.ELECTRICITY || service.getServiceType() == ServiceType.WATER) {
+                if (service.getServiceType() == ServiceType.ELECTRICITY) {
                     List<ServiceReading> readings = serviceReadingRepository.findByRoomAndServiceAndDateRange(
                             room.getId(), service, fromInstant, toInstant
                     );
@@ -227,7 +259,7 @@ public class BillServiceImpl implements BillService {
                         details.add(serviceDetail);
                         totalAmount = totalAmount.add(amount);
                     }
-                } else if (service.getServiceType() == ServiceType.OTHER) {
+                } else if (service.getServiceType() == ServiceType.WATER || service.getServiceType() == ServiceType.OTHER) {
                     BillDetail fixedDetail = new BillDetail();
                     fixedDetail.setItemType(BillItemType.SERVICE);
                     fixedDetail.setDescription("Dịch vụ cố định: " + service.getServiceName() + " từ " + fromDate + " đến " + toDate);
@@ -239,16 +271,19 @@ public class BillServiceImpl implements BillService {
                     totalAmount = totalAmount.add(service.getUnitPrice());
                 }
             }
+        } else {
+            // Các loại bill khác giữ nguyên logic cũ nếu có
+            // ...
         }
 
-        // Tạo Bill (nếu cần lưu DB)
+        // Tạo Bill
         Bill bill = new Bill();
         bill.setContract(contract);
         bill.setRoom(room);
-        bill.setFromDate(fromInstant);
-        bill.setToDate(toInstant);
+        bill.setFromDate(fromDate.atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant());
+        bill.setToDate(toDate.atTime(23, 59).atZone(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant());
         bill.setPaymentCycle(cycle);
-        bill.setBillType(BillType.REGULAR);
+        bill.setBillType(billType);
         bill.setBillDate(Instant.now());
         bill.setTotalAmount(totalAmount);
         bill.setStatus(false);
@@ -338,7 +373,7 @@ public class BillServiceImpl implements BillService {
         Instant toInstant = monthEnd.atTime(23, 59).atZone(vnZone).toInstant();
         List<BillDetailResponse> result = new ArrayList<>();
         for (CustomService service : room.getServices()) {
-            if (service.getServiceType() == ServiceType.ELECTRICITY || service.getServiceType() == ServiceType.WATER) {
+            if (service.getServiceType() == ServiceType.ELECTRICITY) {
                 List<ServiceReading> readings = serviceReadingRepository.findByRoomAndServiceAndDateRange(
                         room.getId(), service, fromInstant, toInstant
                 );
@@ -362,7 +397,7 @@ public class BillServiceImpl implements BillService {
                     detail.setItemAmount(amount);
                     result.add(detail);
                 }
-            } else if (service.getServiceType() == ServiceType.OTHER) {
+            } else if (service.getServiceType() == ServiceType.WATER || service.getServiceType() == ServiceType.OTHER) {
                 BillDetailResponse detail = new BillDetailResponse();
                 detail.setItemType(BillItemType.SERVICE);
                 detail.setDescription("Dịch vụ cố định: " + service.getServiceName() + " tháng " + String.format("%02d/%d", month, year));
@@ -390,7 +425,7 @@ public class BillServiceImpl implements BillService {
         List<BillDetail> details = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
         for (CustomService service : room.getServices()) {
-            if (service.getServiceType() == ServiceType.ELECTRICITY || service.getServiceType() == ServiceType.WATER) {
+            if (service.getServiceType() == ServiceType.ELECTRICITY) {
                 List<ServiceReading> readings = serviceReadingRepository.findByRoomAndServiceAndDateRange(
                         room.getId(), service, fromInstant, toInstant
                 );
@@ -416,7 +451,7 @@ public class BillServiceImpl implements BillService {
                     details.add(detail);
                     totalAmount = totalAmount.add(amount);
                 }
-            } else if (service.getServiceType() == ServiceType.OTHER) {
+            } else if (service.getServiceType() == ServiceType.WATER || service.getServiceType() == ServiceType.OTHER) {
                 BillDetail detail = new BillDetail();
                 detail.setItemType(BillItemType.SERVICE);
                 detail.setDescription("Dịch vụ cố định: " + service.getServiceName() + " tháng " + String.format("%02d/%d", month, year));
@@ -433,7 +468,7 @@ public class BillServiceImpl implements BillService {
         bill.setContract(contract);
         bill.setFromDate(fromInstant);
         bill.setToDate(toInstant);
-        bill.setBillType(BillType.REGULAR);
+        bill.setBillType(BillType.CONTRACT_TOTAL);
         bill.setBillDate(Instant.now());
         bill.setTotalAmount(totalAmount);
         bill.setStatus(false);
@@ -512,5 +547,106 @@ public class BillServiceImpl implements BillService {
 
         billRepository.save(bill);
         return toResponse(bill);
+    }
+
+    @Override
+    public byte[] generateBillPdf(Long billId) {
+        Bill bill = billRepository.findById(billId)
+            .orElseThrow(() -> new NotFoundException("Bill not found"));
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Document document = new Document(PageSize.A4, 50, 50, 50, 50);
+        try {
+            // Dùng font mặc định
+            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
+            Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 12);
+            Font smallBold = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
+            Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14);
+
+            PdfWriter.getInstance(document, baos);
+            document.open();
+
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneId.systemDefault());
+            DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+            NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+
+            // Header
+            Paragraph header = new Paragraph("HOA DON THANH TOAN", titleFont);
+            header.setAlignment(Element.ALIGN_CENTER);
+            header.setSpacingAfter(20f);
+            document.add(header);
+
+            // Thông tin hóa đơn
+            document.add(new Paragraph("THONG TIN HOA DON:", headerFont));
+            document.add(new Paragraph("Ma hoa don: " + bill.getId(), normalFont));
+            document.add(new Paragraph("Loai hoa don: " + bill.getBillType(), normalFont));
+            document.add(new Paragraph("Ngay lap: " + dateTimeFormatter.format(bill.getBillDate().atZone(ZoneId.systemDefault())), normalFont));
+            document.add(new Paragraph(" "));
+
+            // Thông tin phòng
+            document.add(new Paragraph("THONG TIN PHONG:", headerFont));
+            document.add(new Paragraph("So phong: " + bill.getRoom().getRoomNumber(), normalFont));
+            if (bill.getRoom().getBuilding() != null && !bill.getRoom().getBuilding().isEmpty()) {
+                document.add(new Paragraph("Toa nha: " + bill.getRoom().getBuilding(), normalFont));
+            }
+            document.add(new Paragraph(" "));
+
+            // Thông tin hợp đồng
+            if (bill.getContract() != null) {
+                document.add(new Paragraph("THONG TIN HOP DONG:", headerFont));
+                document.add(new Paragraph("Ma hop dong: " + bill.getContract().getId(), normalFont));
+                document.add(new Paragraph("Chu ky thanh toan: " + bill.getContract().getPaymentCycle(), normalFont));
+                document.add(new Paragraph(" "));
+            }
+
+            // Thông tin người thuê
+            if (bill.getContract() != null && bill.getContract().getRoomUsers() != null) {
+                document.add(new Paragraph("NGUOI THUE:", headerFont));
+                for (RoomUser roomUser : bill.getContract().getRoomUsers()) {
+                    if (roomUser.getUser() != null && roomUser.getUser().getUserInfo() != null) {
+                        document.add(new Paragraph("- " + roomUser.getUser().getUserInfo().getFullName() + 
+                            " (SDT: " + roomUser.getUser().getUserInfo().getPhoneNumber() + ")", normalFont));
+                    }
+                }
+                document.add(new Paragraph(" "));
+            }
+
+            // Thời gian tính tiền
+            document.add(new Paragraph("THOI GIAN TINH TIEN:", headerFont));
+            document.add(new Paragraph("Tu ngay: " + dateFormatter.format(bill.getFromDate().atZone(ZoneId.systemDefault())), normalFont));
+            document.add(new Paragraph("Den ngay: " + dateFormatter.format(bill.getToDate().atZone(ZoneId.systemDefault())), normalFont));
+            document.add(new Paragraph(" "));
+
+            // Chi tiết hóa đơn
+            document.add(new Paragraph("CHI TIET HOA DON:", headerFont));
+            BigDecimal totalAmount = BigDecimal.ZERO;
+            for (BillDetail detail : bill.getBillDetails()) {
+                String detailText = detail.getDescription();
+                if (detail.getConsumedUnits() != null) {
+                    detailText += " (So luong: " + detail.getConsumedUnits() + ")";
+                }
+                if (detail.getUnitPriceAtBill() != null) {
+                    detailText += " - Don gia: " + currencyFormat.format(detail.getUnitPriceAtBill());
+                }
+                if (detail.getItemAmount() != null) {
+                    detailText += " - Thanh tien: " + currencyFormat.format(detail.getItemAmount());
+                    totalAmount = totalAmount.add(detail.getItemAmount());
+                }
+                document.add(new Paragraph(detailText, normalFont));
+            }
+            document.add(new Paragraph(" "));
+
+            // Tổng tiền
+            document.add(new Paragraph("TONG CONG: " + currencyFormat.format(totalAmount), smallBold));
+            document.add(new Paragraph(" "));
+
+            // Trạng thái thanh toán
+            String status = bill.getStatus() ? "DA THANH TOAN" : "CHUA THANH TOAN";
+            document.add(new Paragraph("Trang thai: " + status, smallBold));
+
+            document.close();
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating PDF", e);
+        }
+        return baos.toByteArray();
     }
 }

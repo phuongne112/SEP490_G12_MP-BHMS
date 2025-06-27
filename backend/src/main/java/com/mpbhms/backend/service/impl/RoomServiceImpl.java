@@ -205,6 +205,10 @@ public class RoomServiceImpl implements RoomService {
         }).toList();
         dto.setAssets(assetDTOs);
 
+        // Set hasActiveContract: true nếu phòng có hợp đồng ACTIVE
+        boolean hasActiveContract = contractRepository.findActiveByRoomId(room.getId()).isPresent();
+        dto.setHasActiveContract(hasActiveContract);
+
         return dto;
     }
 
