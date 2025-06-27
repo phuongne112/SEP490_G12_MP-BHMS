@@ -649,4 +649,9 @@ public class BillServiceImpl implements BillService {
         }
         return baos.toByteArray();
     }
+
+    @Override
+    public Page<Bill> getBillsByUserId(Long userId, Pageable pageable) {
+        return billRepository.findDistinctByContract_RoomUsers_User_Id(userId, pageable);
+    }
 }

@@ -52,4 +52,9 @@ export const sendBillToRenter = async (id) => {
 export const createCustomBill = async (data) => {
   const response = await axiosClient.post("/bills/custom", data);
   return response.data;
+};
+
+export const getMyBills = async () => {
+  const response = await axiosClient.get("/bills/my");
+  return response.data;
 }; 

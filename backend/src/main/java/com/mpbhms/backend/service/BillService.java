@@ -33,4 +33,6 @@ public interface BillService {
     BillResponse createCustomBill(Long roomId, String name, String description, java.math.BigDecimal amount, java.time.Instant fromDate, java.time.Instant toDate);
 
     byte[] generateBillPdf(Long billId);
+
+    Page<Bill> getBillsByUserId(Long userId, Pageable pageable);
 }

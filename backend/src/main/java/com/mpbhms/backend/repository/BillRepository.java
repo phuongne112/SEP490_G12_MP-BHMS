@@ -15,4 +15,7 @@ public interface BillRepository extends JpaRepository<Bill, Long>, JpaSpecificat
 
     // Thêm hàm tìm bill đầu tiên theo hợp đồng
     Optional<Bill> findFirstByContractIdAndBillType(Long contractId, BillType billType);
+
+    // Tìm tất cả bill mà user là người thuê trong hợp đồng
+    Page<Bill> findDistinctByContract_RoomUsers_User_Id(Long userId, Pageable pageable);
 }

@@ -95,4 +95,12 @@ public class BillController {
             .contentType(MediaType.APPLICATION_PDF)
             .body(pdfBytes);
     }
+
+    @GetMapping("/my")
+    public Page<BillResponse> getMyBills(@RequestParam(defaultValue = "0") int page,
+                                         @RequestParam(defaultValue = "10") int size) {
+        Long userId = com.mpbhms.backend.util.SecurityUtil.getCurrentUserId();
+        Pageable pageable = PageRequest.of(page, size);
+        return billService.getBillsByUserId(userId, pageable).map(billService::toResponse);
+    }
 }
