@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Descriptions, Table, Button, Spin, message, Tag } from "antd";
-import { getBillDetail, exportBillPdf } from "../../services/billApi";
+import { Card, Descriptions, Table, Button, Spin, message, Tag, Layout } from "antd";
+import { getBillDetail, exportBillPdf, createVnPayUrl } from "../../services/billApi";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import dayjs from "dayjs";
-import { Layout } from "antd";
 
-const { Sider, Content } = Layout;
+const { Sider } = Layout;
 
 export default function LandlordBillDetailPage() {
   const { id } = useParams();
@@ -46,6 +45,20 @@ export default function LandlordBillDetailPage() {
     }
   };
 
+  const handlePayVnPay = async () => {
+    try {
+      const amount = Number(String(bill.totalAmount).replace(/[^0-9.-]+/g, ""));
+      const paymentUrl = await createVnPayUrl({
+        billId: bill.id,
+        amount,
+        orderInfo: `Thanh toán hóa đơn #${bill.id}`,
+      });
+      window.location.href = paymentUrl;
+    } catch (err) {
+      alert("Không tạo được link thanh toán!");
+    }
+  };
+
   const columns = [
     { title: "Description", dataIndex: "description" },
     { title: "Type", dataIndex: "itemType" },
@@ -76,12 +89,8 @@ export default function LandlordBillDetailPage() {
           ) : bill ? (
             <>
               <Descriptions bordered column={2}>
-                <Descriptions.Item label="Bill ID">
-                  #{bill.id}
-                </Descriptions.Item>
-                <Descriptions.Item label="Room">
-                  {bill.roomNumber}
-                </Descriptions.Item>
+                <Descriptions.Item label="Bill ID">#{bill.id}</Descriptions.Item>
+                <Descriptions.Item label="Room">{bill.roomNumber}</Descriptions.Item>
                 <Descriptions.Item label="Contract ID">
                   {bill.contractId ? `#${bill.contractId}` : "N/A"}
                 </Descriptions.Item>
@@ -113,6 +122,7 @@ export default function LandlordBillDetailPage() {
                   </Tag>
                 </Descriptions.Item>
               </Descriptions>
+
               <h3 style={{ marginTop: 24 }}>Bill Details</h3>
               <Table
                 columns={columns}
@@ -121,19 +131,26 @@ export default function LandlordBillDetailPage() {
                 pagination={false}
                 size="small"
               />
-              <Button
-                onClick={handleExport}
-                type="primary"
-                style={{ marginBottom: 16 }}
-              >
-                Export PDF
-              </Button>
-              <Button
-                style={{ marginLeft: 16, marginTop: 16, marginBottom: 16 }}
-                onClick={() => navigate(-1)}
-              >
-                Back
-              </Button>
+
+              <div style={{ marginTop: 24 }}>
+                <Button onClick={handleExport} type="primary">
+                  Export PDF
+                </Button>
+
+                {!bill.status && (
+                  <Button
+                    type="primary"
+                    style={{ marginLeft: 16 }}
+                    onClick={handlePayVnPay}
+                  >
+                    Thanh toán VNPay
+                  </Button>
+                )}
+
+                <Button style={{ marginLeft: 16 }} onClick={() => navigate(-1)}>
+                  Back
+                </Button>
+              </div>
             </>
           ) : (
             <div>Bill not found</div>
