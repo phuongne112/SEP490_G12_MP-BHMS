@@ -112,6 +112,18 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Get Schedule", "/api/schedules/{id}", "GET", "Schedule"));
             permissions.add(new Permission("Update Schedule Status", "/api/schedules/{id}/status", "PATCH", "Schedule"));
             permissions.add(new Permission("Delete Schedule", "/api/schedules/{id}", "DELETE", "Schedule"));
+            //Asset
+            permissions.add(new Permission("Create Asset", "/mpbhms/assets", "POST", "Asset"));
+            permissions.add(new Permission("Update Asset", "/mpbhms/assets/{id}", "PUT", "Asset"));
+            permissions.add(new Permission("Delete Asset", "/mpbhms/assets/{id}", "DELETE", "Asset"));
+            permissions.add(new Permission("View Assets", "/mpbhms/assets", "GET", "Asset"));
+            permissions.add(new Permission("Get Asset by ID", "/mpbhms/assets/{id}", "GET", "Asset"));
+            //Electric Reading
+            permissions.add(new Permission("Create Electric Reading", "/mpbhms/electric-readings", "POST", "ElectricReading"));
+            permissions.add(new Permission("Update Electric Reading", "/mpbhms/electric-readings/{id}", "PUT", "ElectricReading"));
+            permissions.add(new Permission("Delete Electric Reading", "/mpbhms/electric-readings/{id}", "DELETE", "ElectricReading"));
+            permissions.add(new Permission("View Electric Readings", "/mpbhms/electric-readings", "GET", "ElectricReading"));
+            permissions.add(new Permission("Get Electric Reading by ID", "/mpbhms/electric-readings/{id}", "GET", "ElectricReading"));
 
             permissions = permissionRepository.saveAll(permissions);
         }
@@ -162,7 +174,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             landlordRole.setRoleName("LANDLORD");
             List<Permission> landlordPermission = new ArrayList<>(permissionRepository.findAll()
                     .stream()
-                    .filter(p -> List.of("Room","Renter","RoomUser","Bill","Ocr","Contract","Service","Schedule").contains(p.getModule())) // hoặc theo API cụ thể
+                    .filter(p -> List.of("Room","Renter","RoomUser","Bill","Ocr","Contract","Service","Schedule","User","Asset","ElectricReading").contains(p.getModule())) // hoặc theo API cụ thể
                     .toList());
             if (viewMyNotification != null && !landlordPermission.contains(viewMyNotification)) {
                 landlordPermission.add(viewMyNotification);

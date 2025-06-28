@@ -12,6 +12,7 @@ import {
   Popconfirm,
   Space,
   Popover,
+  Pagination,
 } from "antd";
 import { PlusOutlined, SearchOutlined, FilterOutlined } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
@@ -29,7 +30,7 @@ export default function LandlordServiceListPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState(null);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 5, total: 0 });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [form] = Form.useForm();
   
@@ -44,6 +45,8 @@ export default function LandlordServiceListPage() {
     { label: "Water", value: "WATER" },
     { label: "Other", value: "OTHER" },
   ];
+
+  const pageSizeOptions = [5, 10, 20, 50];
 
   const fetchServices = useCallback(async (page, size, filters) => {
     setLoading(true);
@@ -169,6 +172,11 @@ export default function LandlordServiceListPage() {
     form.resetFields();
   };
 
+  const handlePageSizeChange = (value) => {
+    setPagination(p => ({ ...p, pageSize: value, current: 1 }));
+    fetchServices(1, value, activeFilters);
+  };
+
   return (
     <Layout style={{ minHeight: "100vh", flexDirection: "row" }}>
       <Sider width={220} style={{ background: "#001529" }}>
@@ -201,7 +209,28 @@ export default function LandlordServiceListPage() {
                 </Button>
             </Space>
           </div>
-
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
+            <div>
+              Show
+              <Select
+                style={{ width: 80, margin: "0 8px" }}
+                value={pagination.pageSize}
+                onChange={handlePageSizeChange}
+                options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
+              />
+              entries
+            </div>
+            <div style={{ fontWeight: 400, color: "#888" }}>
+              Tổng số: {pagination.total} services
+            </div>
+          </div>
           <div style={{ marginTop: 24 }}>
             <ServiceTable
                 services={services}

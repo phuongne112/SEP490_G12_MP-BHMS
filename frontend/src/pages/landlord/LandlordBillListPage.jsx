@@ -90,20 +90,20 @@ export default function LandlordBillListPage() {
   const [filter, setFilter] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(5);
+  const pageSizeOptions = [5, 10, 20, 50];
   const [filterOpen, setFilterOpen] = useState(false);
   const navigate = useNavigate();
 
-  const fetchBills = async () => {
+  const fetchBills = async (page = currentPage, size = pageSize) => {
     setLoading(true);
     try {
       const params = { 
         ...filter, 
-        page: currentPage - 1, 
-        size: pageSize 
+        page: page - 1, 
+        size: size 
       };
       if (search) params.search = search;
-      
       const res = await getAllBills(params);
       setBills(res.content || []);
       setTotal(res.totalElements || 0);
@@ -115,9 +115,9 @@ export default function LandlordBillListPage() {
   };
 
   useEffect(() => {
-    fetchBills();
+    fetchBills(currentPage, pageSize);
     // eslint-disable-next-line
-  }, [search, filter, currentPage]);
+  }, [search, filter, currentPage, pageSize]);
 
   const handleDelete = async (id) => {
     try {
@@ -169,6 +169,12 @@ export default function LandlordBillListPage() {
 
   const formatDate = (date) => {
     return dayjs(date).format('DD/MM/YYYY');
+  };
+
+  const handlePageSizeChange = (value) => {
+    setPageSize(value);
+    setCurrentPage(1);
+    fetchBills(1, value);
   };
 
   const columns = [
@@ -340,6 +346,29 @@ export default function LandlordBillListPage() {
             </Space>
           </div>
           
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
+            <div>
+              Show
+              <Select
+                style={{ width: 80, margin: "0 8px" }}
+                value={pageSize}
+                onChange={handlePageSizeChange}
+                options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
+              />
+              entries
+            </div>
+            <div style={{ fontWeight: 400, color: "#888" }}>
+              Total: {total} bills
+            </div>
+          </div>
+          
           <Card>
             <Table
               columns={columns}
@@ -363,7 +392,11 @@ export default function LandlordBillListPage() {
               current={currentPage}
               pageSize={pageSize}
               total={total}
-              onChange={(page) => setCurrentPage(page)}
+              onChange={(page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+                fetchBills(page, size);
+              }}
               showSizeChanger={false}
               showQuickJumper
               showTotal={(total, range) => 

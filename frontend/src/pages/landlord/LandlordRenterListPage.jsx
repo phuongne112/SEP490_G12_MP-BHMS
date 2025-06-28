@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Button, Input, Space, Popover, Modal, Form } from "antd";
+import { Layout, Button, Input, Space, Popover, Modal, Form, message, Select, Pagination } from "antd";
 import {
   FilterOutlined,
   PlusOutlined,
@@ -12,7 +12,7 @@ import PageHeader from "../../components/common/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { getRoomsWithRenter } from "../../services/roomService";
 import { createRenter } from "../../services/renterApi";
-import { message } from "antd";
+import { getAllRenters } from "../../services/renterApi";
 
 const { Sider, Content } = Layout;
 
@@ -20,6 +20,12 @@ export default function LandlordRenterListPage() {
   const [searchText, setSearchText] = useState("");
   const [filter, setFilter] = useState({});
   const [roomOptions, setRoomOptions] = useState([]);
+  const [renters, setRenters] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+  const pageSizeOptions = [5, 10, 20, 50];
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addForm] = Form.useForm();
@@ -38,6 +44,29 @@ export default function LandlordRenterListPage() {
     }
     fetchRooms();
   }, []);
+
+  const fetchRenters = async (page = currentPage, size = pageSize) => {
+    setLoading(true);
+    try {
+      const res = await getAllRenters(page - 1, size, filter);
+      setRenters(res.result || res.data || []);
+      setTotal(res.meta?.total ?? res.total ?? (res.result?.length ?? res.data?.length ?? 0));
+    } catch (err) {
+      message.error("Failed to load renters");
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchRenters(currentPage, pageSize);
+    // eslint-disable-next-line
+  }, [searchText, filter, currentPage, pageSize]);
+
+  const handlePageSizeChange = (value) => {
+    setPageSize(value);
+    setCurrentPage(1);
+    fetchRenters(1, value);
+  };
 
   const handleFilter = (filterValues) => {
     setFilter(filterValues);
@@ -113,6 +142,29 @@ export default function LandlordRenterListPage() {
                 Add Renter
               </Button>
             </Space>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
+            <div>
+              Show
+              <Select
+                style={{ width: 80, margin: "0 8px" }}
+                value={pageSize}
+                onChange={handlePageSizeChange}
+                options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
+              />
+              entries
+            </div>
+            <div style={{ fontWeight: 400, color: "#888" }}>
+              Total: {total} renters
+            </div>
           </div>
 
           <RenterTable search={searchText} filter={filter} />

@@ -247,7 +247,7 @@ export default function LandlordAssetListPage() {
               entries
             </div>
             <div style={{ fontWeight: 400, color: "#888" }}>
-              Tổng số: {total} assets
+              Total: {total} assets
             </div>
           </div>
 

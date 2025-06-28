@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Layout, message, Button, Popover } from "antd";
+import { Layout, message, Button, Popover, Select } from "antd";
 import PageHeader from "../../components/common/PageHeader";
 import { getAllContracts, deleteContract, exportContractPdf } from "../../services/contractApi";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
@@ -13,22 +13,28 @@ export default function LandlordContractListPage() {
   const [loading, setLoading] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
   const [filter, setFilter] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+  const [total, setTotal] = useState(0);
+  const pageSizeOptions = [5, 10, 20, 50];
 
-  const fetchContracts = async (params = {}) => {
+  const fetchContracts = async (page = currentPage, size = pageSize) => {
     setLoading(true);
     try {
+      const params = { ...filter, page: page - 1, size };
       const res = await getAllContracts(params);
       setContracts(res.result || []);
+      setTotal(res.meta?.total || 0);
     } catch (err) {
-      message.error("Failed to fetch contracts");
-    } finally {
-      setLoading(false);
+      message.error("Failed to load contracts");
     }
+    setLoading(false);
   };
 
   useEffect(() => {
-    fetchContracts(filter);
-  }, [filter]);
+    fetchContracts(currentPage, pageSize);
+    // eslint-disable-next-line
+  }, [filter, currentPage, pageSize]);
 
   const handleExport = async (id) => {
     try {
@@ -61,6 +67,12 @@ export default function LandlordContractListPage() {
     setFilterVisible(false);
   };
 
+  const handlePageSizeChange = (value) => {
+    setPageSize(value);
+    setCurrentPage(1);
+    fetchContracts(1, value);
+  };
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Sider width={240}>
@@ -83,6 +95,33 @@ export default function LandlordContractListPage() {
               </Popover>
             ]}
           />
+          <div
+            style={{
+              height: 16
+            }}
+          />
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
+            <div>
+              Show
+              <Select
+                style={{ width: 80, margin: "0 8px", marginLeft: 8, marginRight: 8 }}
+                value={pageSize}
+                onChange={handlePageSizeChange}
+                options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
+              />
+              entries
+            </div>
+            <div style={{ fontWeight: 400, color: "#888" }}>
+              Total: {total} contracts
+            </div>
+          </div>
           <ContractTable contracts={contracts} onExport={handleExport} onDelete={handleDelete} loading={loading} />
         </Content>
       </Layout>

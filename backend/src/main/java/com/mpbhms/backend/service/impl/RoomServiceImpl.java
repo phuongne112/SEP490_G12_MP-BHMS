@@ -93,14 +93,17 @@ public class RoomServiceImpl implements RoomService {
                         String fileName = null;
                         String imageUrl = null;
                         boolean isDuplicate = false;
-                        for (File existingFile : uploadDirectory.listFiles()) {
-                            byte[] existingBytes = Files.readAllBytes(existingFile.toPath());
-                            String existingHash = bytesToHex(MessageDigest.getInstance("SHA-256").digest(existingBytes));
-                            if (existingHash.equalsIgnoreCase(uploadedFileHash)) {
-                                isDuplicate = true;
-                                fileName = existingFile.getName();
-                                imageUrl = "/uploads/" + fileName;
-                                break;
+                        File[] existingFiles = uploadDirectory.listFiles();
+                        if (existingFiles != null) {
+                            for (File existingFile : existingFiles) {
+                                byte[] existingBytes = Files.readAllBytes(existingFile.toPath());
+                                String existingHash = bytesToHex(MessageDigest.getInstance("SHA-256").digest(existingBytes));
+                                if (existingHash.equalsIgnoreCase(uploadedFileHash)) {
+                                    isDuplicate = true;
+                                    fileName = existingFile.getName();
+                                    imageUrl = "/uploads/" + fileName;
+                                    break;
+                                }
                             }
                         }
                         if (!isDuplicate) {
@@ -253,14 +256,17 @@ public class RoomServiceImpl implements RoomService {
                             String fileName = null;
                             String imageUrl = null;
                             boolean isDuplicate = false;
-                            for (File existingFile : uploadDirectory.listFiles()) {
-                                byte[] existingBytes = Files.readAllBytes(existingFile.toPath());
-                                String existingHash = bytesToHex(MessageDigest.getInstance("SHA-256").digest(existingBytes));
-                                if (existingHash.equalsIgnoreCase(uploadedFileHash)) {
-                                    isDuplicate = true;
-                                    fileName = existingFile.getName();
-                                    imageUrl = "/uploads/" + fileName;
-                                    break;
+                            File[] existingFiles = uploadDirectory.listFiles();
+                            if (existingFiles != null) {
+                                for (File existingFile : existingFiles) {
+                                    byte[] existingBytes = Files.readAllBytes(existingFile.toPath());
+                                    String existingHash = bytesToHex(MessageDigest.getInstance("SHA-256").digest(existingBytes));
+                                    if (existingHash.equalsIgnoreCase(uploadedFileHash)) {
+                                        isDuplicate = true;
+                                        fileName = existingFile.getName();
+                                        imageUrl = "/uploads/" + fileName;
+                                        break;
+                                    }
                                 }
                             }
                             if (!isDuplicate) {

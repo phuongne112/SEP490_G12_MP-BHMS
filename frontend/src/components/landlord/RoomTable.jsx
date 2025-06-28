@@ -212,8 +212,14 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
         <>
             <Row gutter={[16, 16]}>
                 {rooms.map((room) => {
+                    const BACKEND_URL = "http://localhost:8080";
+                    const getImageUrl = (url) => {
+                        if (!url) return "/img/room-default.png";
+                        if (url.startsWith("http")) return url;
+                        return BACKEND_URL + url;
+                    };
                     const imageUrl = room.images && room.images.length > 0
-                        ? room.images[0].imageUrl
+                        ? getImageUrl(room.images[0].imageUrl)
                         : "/img/room-default.png";
                     const currentStatusProps = getStatusProps(room.roomStatus);
 
@@ -227,55 +233,6 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
                                         style={{ height: 200, objectFit: "cover", width: "100%" }}
                                     />
                                 }
-                                actions={[
-                                    <Button
-                                        type="primary"
-                                        onClick={() => navigate(`/landlord/rooms/${room.id}/edit`)}
-                                        style={{ marginLeft: 8 }}
-                                    >
-                                        Edit
-                                    </Button>,
-                                    <Button
-                                        type="default"
-                                        onClick={() => navigate(`/landlord/rooms/${room.id}/assign`)}
-                                        style={{ marginLeft: 8 }}
-                                    >
-                                        Assign Renter
-                                    </Button>,
-                                    <Button
-                                        type="primary"
-                                        danger
-                                        style={{ marginLeft: 8 }}
-                                        onClick={async () => {
-                                            if (window.confirm('Are you sure you want to delete this room?')) {
-                                                try {
-                                                    await deleteRoom(room.id);
-                                                    message.success('Room deleted successfully');
-                                                    if (onRoomsUpdate) onRoomsUpdate();
-                                                } catch (e) {
-                                                    const backendMsg = e?.response?.data?.message || e?.response?.data?.error || 'Failed to delete room';
-                                                    message.error(backendMsg);
-                                                }
-                                            }
-                                        }}
-                                    >
-                                        Delete
-                                    </Button>,
-                                    <Dropdown overlay={statusMenu(room)} trigger={['click']} disabled={updatingId === room.id}>
-                                        <a onClick={e => e.preventDefault()} style={{
-                                            opacity: updatingId === room.id ? 0.5 : 1,
-                                            cursor: updatingId === room.id ? 'wait' : 'pointer'
-                                        }}>
-                                            <Badge
-                                                status={currentStatusProps.status}
-                                                text={currentStatusProps.text}
-                                            />
-                                        </a>
-                                    </Dropdown>,
-                                    <Button type="dashed" onClick={() => openServiceModal(room)}>
-                                        Thêm dịch vụ
-                                    </Button>,
-                                ]}
                             >
                                 <Meta
                                     title={
@@ -310,6 +267,53 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
                                         </div>
                                     }
                                 />
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
+                                    <Button
+                                        type="primary"
+                                        onClick={() => navigate(`/landlord/rooms/${room.id}/edit`)}
+                                    >
+                                        Edit
+                                    </Button>
+                                    <Button
+                                        type="default"
+                                        onClick={() => navigate(`/landlord/rooms/${room.id}/assign`)}
+                                    >
+                                        Assign Renter
+                                    </Button>
+                                    <Button
+                                        type="primary"
+                                        danger
+                                        onClick={async () => {
+                                            if (window.confirm('Are you sure you want to delete this room?')) {
+                                                try {
+                                                    await deleteRoom(room.id);
+                                                    message.success('Room deleted successfully');
+                                                    if (onRoomsUpdate) onRoomsUpdate();
+                                                } catch (e) {
+                                                    const backendMsg = e?.response?.data?.message || e?.response?.data?.error || 'Failed to delete room';
+                                                    message.error(backendMsg);
+                                                }
+                                            }
+                                        }}
+                                    >
+                                        Delete
+                                    </Button>
+                                    <Dropdown overlay={statusMenu(room)} trigger={['click']} disabled={updatingId === room.id}>
+                                        <a onClick={e => e.preventDefault()} style={{
+                                            opacity: updatingId === room.id ? 0.5 : 1,
+                                            cursor: updatingId === room.id ? 'wait' : 'pointer',
+                                            display: 'inline-block'
+                                        }}>
+                                            <Badge
+                                                status={currentStatusProps.status}
+                                                text={currentStatusProps.text}
+                                            />
+                                        </a>
+                                    </Dropdown>
+                                    <Button type="dashed" onClick={() => openServiceModal(room)}>
+                                        Thêm dịch vụ
+                                    </Button>
+                                </div>
                             </Card>
                         </Col>
                     );

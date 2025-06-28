@@ -24,6 +24,22 @@ export default function LandlordBookAppointmentPage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (user) {
+      // Đảm bảo lấy đúng trường fullName cho name, không lấy nhầm email
+      const name = user.fullName || user.name || user.username || "";
+      const phone = user.phone || user.phoneNumber || "";
+      const email = user.email || "";
+      form.setFieldsValue({
+        name,
+        phone,
+        email,
+      });
+      console.log("[DEBUG] user info:", user);
+      console.log("[DEBUG] form values after set:", form.getFieldsValue());
+    }
+  }, [user, form]);
+
   const handleLoginConfirm = () => {
     setLoginModalOpen(false);
     navigate("/login");
