@@ -56,6 +56,8 @@ export default function LandlordAddRoomPage() {
         isActive: values.isActive,
         building: values.building,
       };
+      // Thêm log fileList để debug
+      console.log("[DEBUG] fileList submit:", fileList);
       const formData = new FormData();
       formData.append("room", JSON.stringify(roomDTO));
       fileList.forEach((file) => {

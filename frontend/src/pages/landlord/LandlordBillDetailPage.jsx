@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Descriptions, Table, Button, Spin, message, Tag } from "antd";
+import { Card, Descriptions, Table, Button, Spin, message, Tag, Layout } from "antd";
 import { getBillDetail, exportBillPdf, createVnPayUrl } from "../../services/billApi";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import dayjs from "dayjs";
+
+const { Sider } = Layout;
 
 export default function LandlordBillDetailPage() {
   const { id } = useParams();
@@ -32,14 +34,14 @@ export default function LandlordBillDetailPage() {
     try {
       const data = await exportBillPdf(bill.id);
       const url = window.URL.createObjectURL(new Blob([data]));
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', `bill_${bill.id}.pdf`);
+      link.setAttribute("download", `bill_${bill.id}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
     } catch (err) {
-      message.error('Export failed');
+      message.error("Export failed");
     }
   };
 
@@ -53,7 +55,7 @@ export default function LandlordBillDetailPage() {
       });
       window.location.href = paymentUrl;
     } catch (err) {
-      alert('Không tạo được link thanh toán!');
+      alert("Không tạo được link thanh toán!");
     }
   };
 
@@ -61,17 +63,27 @@ export default function LandlordBillDetailPage() {
     { title: "Description", dataIndex: "description" },
     { title: "Type", dataIndex: "itemType" },
     { title: "Service", dataIndex: "serviceName" },
-    { title: "Unit Price", dataIndex: "unitPriceAtBill", render: v => v ? v.toLocaleString() + ' VND' : '' },
+    {
+      title: "Unit Price",
+      dataIndex: "unitPriceAtBill",
+      render: (v) => (v ? v.toLocaleString() + " VND" : ""),
+    },
     { title: "Consumed", dataIndex: "consumedUnits" },
-    { title: "Amount", dataIndex: "itemAmount", render: v => v ? v.toLocaleString() + ' VND' : '' },
+    {
+      title: "Amount",
+      dataIndex: "itemAmount",
+      render: (v) => (v ? v.toLocaleString() + " VND" : ""),
+    },
   ];
 
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
-      <LandlordSidebar />
+      <Sider width={220} style={{ background: "#001529" }}>
+        <LandlordSidebar />
+      </Sider>
       <div style={{ flex: 1, padding: 24 }}>
         <PageHeader title="Bill Detail" />
-        <Card>
+        <Card style={{ marginTop: 20 }}>
           {loading ? (
             <Spin />
           ) : bill ? (
@@ -79,21 +91,38 @@ export default function LandlordBillDetailPage() {
               <Descriptions bordered column={2}>
                 <Descriptions.Item label="Bill ID">#{bill.id}</Descriptions.Item>
                 <Descriptions.Item label="Room">{bill.roomNumber}</Descriptions.Item>
-                <Descriptions.Item label="Contract ID">{bill.contractId ? `#${bill.contractId}` : "N/A"}</Descriptions.Item>
+                <Descriptions.Item label="Contract ID">
+                  {bill.contractId ? `#${bill.contractId}` : "N/A"}
+                </Descriptions.Item>
                 <Descriptions.Item label="Type">
-                  <Tag color={bill.billType === "REGULAR" ? "blue" : bill.billType === "CUSTOM" ? "orange" : "green"}>
+                  <Tag
+                    color={
+                      bill.billType === "REGULAR"
+                        ? "blue"
+                        : bill.billType === "CUSTOM"
+                        ? "orange"
+                        : "green"
+                    }
+                  >
                     {bill.billType}
                   </Tag>
                 </Descriptions.Item>
-                <Descriptions.Item label="From">{dayjs(bill.fromDate).format("DD/MM/YYYY")}</Descriptions.Item>
-                <Descriptions.Item label="To">{dayjs(bill.toDate).format("DD/MM/YYYY")}</Descriptions.Item>
-                <Descriptions.Item label="Total">{bill.totalAmount?.toLocaleString()} VND</Descriptions.Item>
+                <Descriptions.Item label="From">
+                  {dayjs(bill.fromDate).format("DD/MM/YYYY")}
+                </Descriptions.Item>
+                <Descriptions.Item label="To">
+                  {dayjs(bill.toDate).format("DD/MM/YYYY")}
+                </Descriptions.Item>
+                <Descriptions.Item label="Total">
+                  {bill.totalAmount?.toLocaleString()} VND
+                </Descriptions.Item>
                 <Descriptions.Item label="Status">
                   <Tag color={bill.status ? "green" : "red"}>
                     {bill.status ? "Paid" : "Unpaid"}
                   </Tag>
                 </Descriptions.Item>
               </Descriptions>
+
               <h3 style={{ marginTop: 24 }}>Bill Details</h3>
               <Table
                 columns={columns}
@@ -102,15 +131,26 @@ export default function LandlordBillDetailPage() {
                 pagination={false}
                 size="small"
               />
-              <Button onClick={handleExport} type="primary" style={{ marginBottom: 16 }}>Export PDF</Button>
-              {bill && !bill.status && (
-                <button onClick={handlePayVnPay} className="btn btn-primary">
-                  Thanh toán VNPay
-                </button>
-              )}
-              <Button style={{ marginTop: 24 }} onClick={() => navigate(-1)}>
-                Back
-              </Button>
+
+              <div style={{ marginTop: 24 }}>
+                <Button onClick={handleExport} type="primary">
+                  Export PDF
+                </Button>
+
+                {!bill.status && (
+                  <Button
+                    type="primary"
+                    style={{ marginLeft: 16 }}
+                    onClick={handlePayVnPay}
+                  >
+                    Thanh toán VNPay
+                  </Button>
+                )}
+
+                <Button style={{ marginLeft: 16 }} onClick={() => navigate(-1)}>
+                  Back
+                </Button>
+              </div>
             </>
           ) : (
             <div>Bill not found</div>
@@ -119,4 +159,4 @@ export default function LandlordBillDetailPage() {
       </div>
     </div>
   );
-} 
+}

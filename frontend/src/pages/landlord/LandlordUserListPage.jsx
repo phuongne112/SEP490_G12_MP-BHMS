@@ -8,6 +8,7 @@ import {
   Modal,
   Form,
   message,
+  Select,
 } from "antd";
 import {
   FilterOutlined,
@@ -30,17 +31,18 @@ export default function LandlordUserListPage() {
   const [users, setUsers] = useState([]);
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+  const pageSizeOptions = [5, 10, 20, 50];
   const [loading, setLoading] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addForm] = Form.useForm();
   const [addLoading, setAddLoading] = useState(false);
-  const pageSize = 6;
   const navigate = useNavigate();
   const [renterModalOpen, setRenterModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [renterForm] = Form.useForm();
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (page = currentPage, size = pageSize) => {
     setLoading(true);
     try {
       let filterDSL = "";
@@ -54,7 +56,7 @@ export default function LandlordUserListPage() {
       // Chỉ lấy user chưa có role
       if (filterDSL) filterDSL += " and ";
       filterDSL += "(role is null or role.roleName is null)";
-      const res = await getAllUsers(currentPage - 1, pageSize, filterDSL);
+      const res = await getAllUsers(page - 1, size, filterDSL);
       setUsers(res.result || []);
       setTotal(res.meta?.total || 0);
     } catch (err) {
@@ -64,9 +66,9 @@ export default function LandlordUserListPage() {
   };
 
   useEffect(() => {
-    fetchUsers();
+    fetchUsers(currentPage, pageSize);
     // eslint-disable-next-line
-  }, [searchText, filter, currentPage]);
+  }, [searchText, filter, currentPage, pageSize]);
 
   const handleFilter = (filterValues) => {
     setFilter(filterValues);
@@ -115,6 +117,12 @@ export default function LandlordUserListPage() {
     }
   };
 
+  const handlePageSizeChange = (value) => {
+    setPageSize(value);
+    setCurrentPage(1);
+    fetchUsers(1, value);
+  };
+
   return (
     <Layout style={{ minHeight: "100vh", flexDirection: "row" }}>
       <Sider width={220} style={{ background: "#001529" }}>
@@ -151,6 +159,29 @@ export default function LandlordUserListPage() {
             </Space>
           </div>
 
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
+            <div>
+              Show
+              <Select
+                style={{ width: 80, margin: "0 8px" }}
+                value={pageSize}
+                onChange={handlePageSizeChange}
+                options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
+              />
+              entries
+            </div>
+            <div style={{ fontWeight: 400, color: "#888" }}>
+              Total: {total} users
+            </div>
+          </div>
+
           <UserTable
             users={users}
             loading={loading}
@@ -158,7 +189,11 @@ export default function LandlordUserListPage() {
               current: currentPage,
               pageSize,
               total,
-              onChange: (page) => setCurrentPage(page),
+              onChange: (page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+                fetchUsers(page, size);
+              },
               showSizeChanger: false,
             }}
             onChangeRenter={handleChangeRenter}

@@ -68,8 +68,8 @@ export default function ServiceTable({ services, pagination, loading, onEdit, on
       columns={columns}
       pagination={{
         ...pagination,
-        showSizeChanger: true,
-        showQuickJumper: true,
+        showSizeChanger: false,
+        showQuickJumper: false,
         showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
       }}
       bordered
