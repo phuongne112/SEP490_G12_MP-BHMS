@@ -103,4 +103,25 @@ public class BillController {
         Pageable pageable = PageRequest.of(page, size);
         return billService.getBillsByUserId(userId, pageable).map(billService::toResponse);
     }
+
+    @PostMapping("/custom")
+    public BillResponse createCustomBill(@RequestBody Map<String, Object> request) {
+        Long roomId = Long.valueOf(request.get("roomId").toString());
+        String name = request.get("name").toString();
+        String description = request.get("description") != null ? request.get("description").toString() : "";
+        java.math.BigDecimal amount = new java.math.BigDecimal(request.get("amount").toString());
+
+        // Xử lý fromDate/toDate nếu có
+        java.time.Instant fromDate = null;
+        java.time.Instant toDate = null;
+        if (request.get("fromDate") != null && request.get("toDate") != null) {
+            fromDate = java.time.LocalDate.parse(request.get("fromDate").toString())
+                    .atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+            toDate = java.time.LocalDate.parse(request.get("toDate").toString())
+                    .atTime(23, 59).atZone(java.time.ZoneId.systemDefault()).toInstant();
+        }
+
+        // Tạo Bill và BillDetail qua service (service đã xử lý đúng thứ tự và cascade)
+        return billService.createCustomBill(roomId, name, description, amount, fromDate, toDate);
+    }
 }
