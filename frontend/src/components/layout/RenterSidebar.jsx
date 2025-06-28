@@ -17,7 +17,7 @@ export default function RenterSidebar() {
       key: "/renter/rooms",
       icon: <HomeOutlined />,
       label: "Room",
-      path: "/renter/rooms/detail",
+      path: "/renter/rooms",
     },
     {
       key: "/renter/contracts",

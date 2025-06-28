@@ -39,7 +39,8 @@ public class SecurityConfiguration {
             "/mpbhms/auth/reset-password",
             "/mpbhms/auth/signup",
             "/mpbhms/users/me/account",
-            "/mpbhms/users/me/info"
+            "/mpbhms/users/me/info",
+            "/uploads/**"
     };
     @Bean
     public SecurityFilterChain filterChain(

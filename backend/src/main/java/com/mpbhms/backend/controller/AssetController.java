@@ -1,6 +1,7 @@
 package com.mpbhms.backend.controller;
 
 import com.mpbhms.backend.dto.AssetDTO;
+import com.mpbhms.backend.dto.AssetResponseDTO;
 import com.mpbhms.backend.service.AssetService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -9,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.RequestPart;
 
 @RestController
 @RequestMapping("/mpbhms/assets")
@@ -37,17 +39,20 @@ public class AssetController {
 
     @PostMapping
     public ResponseEntity<AssetDTO> createAsset(
-        @ModelAttribute AssetDTO assetDTO,
+        @RequestParam String assetName,
+        @RequestParam java.math.BigDecimal quantity,
+        @RequestParam String assetStatus,
+        @RequestParam(required = false) String conditionNote,
         @RequestParam(value = "assetImage", required = false) MultipartFile assetImage
     ) {
-        System.out.println("==> assetName: " + assetDTO.getAssetName());
-        System.out.println("==> quantity: " + assetDTO.getQuantity());
-        System.out.println("==> assetStatus: " + assetDTO.getAssetStatus());
-        System.out.println("==> conditionNote: " + assetDTO.getConditionNote());
-        System.out.println("==> assetImage: " + (assetImage != null ? assetImage.getOriginalFilename() : "null"));
+        AssetDTO assetDTO = new AssetDTO();
+        assetDTO.setAssetName(assetName);
+        assetDTO.setQuantity(quantity);
+        assetDTO.setAssetStatus(assetStatus);
+        assetDTO.setConditionNote(conditionNote);
         if (assetImage != null && !assetImage.isEmpty()) {
             String fileName = System.currentTimeMillis() + "_" + assetImage.getOriginalFilename();
-            String uploadDir = "uploads/";
+            String uploadDir = System.getProperty("user.dir") + "/uploads/";
             java.io.File uploadPath = new java.io.File(uploadDir);
             if (!uploadPath.exists()) uploadPath.mkdirs();
             try {
@@ -61,7 +66,31 @@ public class AssetController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AssetDTO> updateAsset(@PathVariable Long id, @RequestBody AssetDTO assetDTO) {
+    public ResponseEntity<AssetDTO> updateAsset(
+        @PathVariable Long id,
+        @RequestParam String assetName,
+        @RequestParam java.math.BigDecimal quantity,
+        @RequestParam String assetStatus,
+        @RequestParam(required = false) String conditionNote,
+        @RequestParam(value = "assetImage", required = false) MultipartFile assetImage
+    ) {
+        AssetDTO assetDTO = new AssetDTO();
+        assetDTO.setAssetName(assetName);
+        assetDTO.setQuantity(quantity);
+        assetDTO.setAssetStatus(assetStatus);
+        assetDTO.setConditionNote(conditionNote);
+        if (assetImage != null && !assetImage.isEmpty()) {
+            String fileName = System.currentTimeMillis() + "_" + assetImage.getOriginalFilename();
+            String uploadDir = System.getProperty("user.dir") + "/uploads/";
+            java.io.File uploadPath = new java.io.File(uploadDir);
+            if (!uploadPath.exists()) uploadPath.mkdirs();
+            try {
+                assetImage.transferTo(new java.io.File(uploadDir + fileName));
+                assetDTO.setAssetImage("/uploads/" + fileName);
+            } catch (Exception e) {
+                throw new RuntimeException("Lỗi khi lưu file ảnh: " + e.getMessage());
+            }
+        }
         return ResponseEntity.ok(assetService.updateAsset(id, assetDTO));
     }
 

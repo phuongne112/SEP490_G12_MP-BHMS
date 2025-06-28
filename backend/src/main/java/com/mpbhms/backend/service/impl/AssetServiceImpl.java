@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.mpbhms.backend.dto.AssetResponseDTO;
 
 @Service
 @RequiredArgsConstructor
@@ -80,22 +81,27 @@ public class AssetServiceImpl implements AssetService {
 
     private AssetDTO toDTO(Asset asset) {
         AssetDTO dto = new AssetDTO();
-        BeanUtils.copyProperties(asset, dto);
-        if (asset.getAssetStatus() != null) {
-            dto.setAssetStatus(asset.getAssetStatus().name());
-        }
-        if (asset.getRoom() != null) {
-            dto.setRoomId(asset.getRoom().getId());
-        }
+        dto.setId(asset.getId());
+        dto.setAssetName(asset.getAssetName());
+        dto.setQuantity(asset.getQuantity());
+        dto.setConditionNote(asset.getConditionNote());
+        dto.setAssetStatus(asset.getAssetStatus() != null ? asset.getAssetStatus().name() : null);
+        dto.setAssetImage(asset.getAssetImage());
+        dto.setRoomId(asset.getRoom() != null ? asset.getRoom().getId() : null);
         return dto;
     }
 
     private Asset toEntity(AssetDTO dto) {
         Asset asset = new Asset();
-        BeanUtils.copyProperties(dto, asset);
+        asset.setAssetName(dto.getAssetName());
+        asset.setQuantity(dto.getQuantity());
+        asset.setConditionNote(dto.getConditionNote());
         if (dto.getAssetStatus() != null) {
             asset.setAssetStatus(AssetStatus.valueOf(dto.getAssetStatus()));
         }
+        asset.setAssetImage(dto.getAssetImage());
+        // Không set id ở đây (id sẽ được set = null khi tạo mới)
+        // Room sẽ được set ở createAsset nếu có roomId
         return asset;
     }
 } 

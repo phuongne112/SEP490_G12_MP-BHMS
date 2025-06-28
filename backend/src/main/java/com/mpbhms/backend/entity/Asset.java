@@ -16,8 +16,8 @@ public class Asset extends BaseEntity {
 
     // FK đến RoomEntity
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "room_id", nullable = false)
-    @JsonIgnoreProperties("assets") // nếu bạn muốn tránh vòng lặp
+    @JoinColumn(name = "room_id", nullable = true)
+    @JsonIgnoreProperties("assets")
     private Room room;
 
     private String assetName;

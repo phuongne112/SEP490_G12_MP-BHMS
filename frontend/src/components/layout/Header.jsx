@@ -25,7 +25,7 @@ import {
 } from "../../services/notificationApi";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { getCurrentUser } from '../../services/authService';
+import { getCurrentUser } from "../../services/authService";
 dayjs.extend(relativeTime);
 
 const { Title } = Typography;
@@ -59,10 +59,23 @@ export default function Header() {
   const getDashboardPath = () => {
     const role = user?.role?.roleName || user?.role;
     const roleId = user?.role?.roleId || user?.role?.id;
-    if (roleId === 3 || (typeof role === 'string' && role.toUpperCase() === 'LANDLORD')) return '/landlord/renters';
-    if (roleId === 2 || (typeof role === 'string' && role.toUpperCase() === 'RENTER')) return '/renter/dashboard';
-    if (roleId === 1 || (typeof role === 'string' && role.toUpperCase() === 'ADMIN')) return '/admin/users';
-    if (typeof role === 'string' && role.toUpperCase() === 'SUBADMIN') return '/admin/users';
+    if (
+      roleId === 3 ||
+      (typeof role === "string" && role.toUpperCase() === "LANDLORD")
+    )
+      return "/landlord/renters";
+    if (
+      roleId === 2 ||
+      (typeof role === "string" && role.toUpperCase() === "RENTER")
+    )
+      return "/renter/room";
+    if (
+      roleId === 1 ||
+      (typeof role === "string" && role.toUpperCase() === "ADMIN")
+    )
+      return "/admin/users";
+    if (typeof role === "string" && role.toUpperCase() === "SUBADMIN")
+      return "/admin/users";
     return null;
   };
   const dashboardPath = getDashboardPath();
@@ -70,11 +83,24 @@ export default function Header() {
   const getDashboardLabel = () => {
     const role = user?.role?.roleName || user?.role;
     const roleId = user?.role?.roleId || user?.role?.id;
-    if (roleId === 3 || (typeof role === 'string' && role.toUpperCase() === 'LANDLORD')) return 'Landlord Dashboard';
-    if (roleId === 2 || (typeof role === 'string' && role.toUpperCase() === 'RENTER')) return 'Renter Dashboard';
-    if (roleId === 1 || (typeof role === 'string' && role.toUpperCase() === 'ADMIN')) return 'Admin Dashboard';
-    if (typeof role === 'string' && role.toUpperCase() === 'SUBADMIN') return 'Admin Dashboard';
-    return 'Dashboard';
+    if (
+      roleId === 3 ||
+      (typeof role === "string" && role.toUpperCase() === "LANDLORD")
+    )
+      return "Landlord Dashboard";
+    if (
+      roleId === 2 ||
+      (typeof role === "string" && role.toUpperCase() === "RENTER")
+    )
+      return "Renter Dashboard";
+    if (
+      roleId === 1 ||
+      (typeof role === "string" && role.toUpperCase() === "ADMIN")
+    )
+      return "Admin Dashboard";
+    if (typeof role === "string" && role.toUpperCase() === "SUBADMIN")
+      return "Admin Dashboard";
+    return "Dashboard";
   };
 
   const handleLogout = () => {
@@ -330,7 +356,11 @@ export default function Header() {
                 <span
                   style={{ color: "#e2e8f0", fontSize: 15, fontWeight: 500 }}
                 >
-                  {user?.email || user?.name || user?.fullName || user?.username || "User"}
+                  {user?.email ||
+                    user?.name ||
+                    user?.fullName ||
+                    user?.username ||
+                    "User"}
                 </span>
               </div>
             </Dropdown>
