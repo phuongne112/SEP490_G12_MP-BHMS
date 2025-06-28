@@ -57,4 +57,13 @@ export const createCustomBill = async (data) => {
 export const getMyBills = async () => {
   const response = await axiosClient.get("/bills/my");
   return response.data;
+};
+
+export const createVnPayUrl = async ({ billId, amount, orderInfo }) => {
+  const res = await axiosClient.post("/payment/create-vnpay-url", {
+    billId,
+    amount,
+    orderInfo,
+  });
+  return res.data.paymentUrl;
 }; 

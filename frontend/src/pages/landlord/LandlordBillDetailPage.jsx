@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, Descriptions, Table, Button, Spin, message, Tag } from "antd";
-import { getBillDetail, exportBillPdf } from "../../services/billApi";
+import { getBillDetail, exportBillPdf, createVnPayUrl } from "../../services/billApi";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import dayjs from "dayjs";
@@ -40,6 +40,20 @@ export default function LandlordBillDetailPage() {
       link.remove();
     } catch (err) {
       message.error('Export failed');
+    }
+  };
+
+  const handlePayVnPay = async () => {
+    try {
+      const amount = Number(String(bill.totalAmount).replace(/[^0-9.-]+/g, ""));
+      const paymentUrl = await createVnPayUrl({
+        billId: bill.id,
+        amount,
+        orderInfo: `Thanh toán hóa đơn #${bill.id}`,
+      });
+      window.location.href = paymentUrl;
+    } catch (err) {
+      alert('Không tạo được link thanh toán!');
     }
   };
 
@@ -89,6 +103,11 @@ export default function LandlordBillDetailPage() {
                 size="small"
               />
               <Button onClick={handleExport} type="primary" style={{ marginBottom: 16 }}>Export PDF</Button>
+              {bill && !bill.status && (
+                <button onClick={handlePayVnPay} className="btn btn-primary">
+                  Thanh toán VNPay
+                </button>
+              )}
               <Button style={{ marginTop: 24 }} onClick={() => navigate(-1)}>
                 Back
               </Button>
