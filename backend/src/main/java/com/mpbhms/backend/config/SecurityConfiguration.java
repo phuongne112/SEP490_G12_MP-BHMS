@@ -40,7 +40,10 @@ public class SecurityConfiguration {
             "/mpbhms/auth/signup",
             "/mpbhms/users/me/account",
             "/mpbhms/users/me/info",
-            "/uploads/**"
+            "/uploads/**",
+            "/mpbhms/payment/vnpay-return",
+            "/mpbhms/payment/vnpay-ipn",
+            "/mpbhms/payment/debug/**"
     };
     @Bean
     public SecurityFilterChain filterChain(
