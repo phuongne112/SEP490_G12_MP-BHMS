@@ -38,9 +38,11 @@ public class VnPayService {
             throw new IllegalArgumentException("Số tiền không hợp lệ");
         }
 
-        String vnp_OrderInfo = "Thanh toán hóa đơn #" + billId;
-        String vnp_TxnRef = String.valueOf(System.currentTimeMillis());
-        String vnp_Amount = String.valueOf(amount * 100);
+        // Làm sạch orderInfo: chỉ cho phép chữ, số, khoảng trắng
+        String vnp_OrderInfo = orderInfo;
+        String vnp_TxnRef = billId + "-" + System.currentTimeMillis();
+        String vnp_OrderType = "other";
+        String vnp_Amount = String.valueOf(amount * 100); // VNPay yêu cầu x100
 
         // ✅ Dùng thời gian thực tế
         String vnp_CreateDate = LocalDateTime.now()
@@ -58,7 +60,7 @@ public class VnPayService {
         vnp_Params.put("vnp_CurrCode", "VND");
         vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
         vnp_Params.put("vnp_OrderInfo", vnp_OrderInfo);
-        vnp_Params.put("vnp_OrderType", "other");
+        vnp_Params.put("vnp_OrderType", vnp_OrderType);
         vnp_Params.put("vnp_Locale", "vn");
         vnp_Params.put("vnp_ReturnUrl", VnPayConfig.vnp_ReturnUrl);
         vnp_Params.put("vnp_IpAddr", "127.0.0.1");
@@ -93,20 +95,38 @@ public class VnPayService {
     }
 
     public boolean validateSignature(Map<String, String> fields, String secureHash) throws Exception {
+        System.out.println("=== VNPAY SIGNATURE VALIDATION DEBUG ===");
+        System.out.println("Received secureHash: " + secureHash);
+        System.out.println("Config HashSecret: " + VnPayConfig.vnp_HashSecret);
+        
         List<String> fieldNames = new ArrayList<>(fields.keySet());
         Collections.sort(fieldNames);
         StringBuilder hashData = new StringBuilder();
 
+        System.out.println("Sorted field names: " + fieldNames);
+
         for (String fieldName : fieldNames) {
-            if ("vnp_SecureHash".equals(fieldName) || "vnp_SecureHashType".equals(fieldName)) continue;
+            if ("vnp_SecureHash".equals(fieldName) || "vnp_SecureHashType".equals(fieldName)) {
+                System.out.println("Skipping field: " + fieldName);
+                continue;
+            }
             String value = fields.get(fieldName);
             if (value != null && !value.isEmpty()) {
-                hashData.append(fieldName).append('=').append(value).append('&');
+                // URL encode the value as VNPAY expects
+                String encodedValue = URLEncoder.encode(value, StandardCharsets.UTF_8.toString());
+                hashData.append(fieldName).append('=').append(encodedValue).append('&');
+                System.out.println("Adding to hashData: " + fieldName + "=" + encodedValue + " (original: " + value + ")");
             }
         }
 
         hashData.setLength(hashData.length() - 1);
-        String signValue = hmacSHA512(VnPayConfig.vnp_HashSecret, hashData.toString());
+        String finalHashData = hashData.toString();
+        System.out.println("Final hashData: " + finalHashData);
+        
+        String signValue = hmacSHA512(VnPayConfig.vnp_HashSecret, finalHashData);
+        System.out.println("Calculated signValue: " + signValue);
+        System.out.println("Signature match: " + signValue.equals(secureHash));
+        
         return signValue.equals(secureHash);
     }
 
@@ -125,4 +145,15 @@ public class VnPayService {
         }
         return hash.toString();
     }
+    public Long extractBillIdFromTxnRef(String txnRef) {
+        if (txnRef != null && txnRef.contains("-")) {
+            try {
+                return Long.valueOf(txnRef.split("-")[0]);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
 }
