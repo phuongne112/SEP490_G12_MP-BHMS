@@ -14,6 +14,7 @@ import RoomSection from "../components/home/RoomSection";
 import Error403 from "../pages/Error403";
 import AdminRoute from "./AdminRoute";
 import LandlordRoute from "./LandlordRoute";
+import RenterRoute from "./RenterRoute";
 import GuestRoute from "./GuestRoute";
 import LandlordRenterListPage from "../pages/landlord/LandlordRenterListPage";
 import LandlordRoomListPage from "../pages/landlord/LandlordRoomListPage";
@@ -35,6 +36,10 @@ import RenterBillListPage from '../pages/renter/RenterBillListPage';
 import RenterBillDetailPage from '../pages/renter/RenterBillDetailPage';
 import LandlordAssetListPage from "../pages/landlord/LandlordAssetListPage";
 import UserRoute from "./UserRoute";
+import LandlordBookingListPage from "../pages/landlord/LandlordBookingListPage";
+import RenterContractPage from "../pages/renter/RenterContractPage";
+import RenterCheckinAssetPage from "../pages/renter/RenterCheckinAssetPage";
+import RenterCheckoutAssetPage from "../pages/renter/RenterCheckoutAssetPage";
 
 export default function AppRouter() {
   return (
@@ -218,11 +223,64 @@ export default function AppRouter() {
           </LandlordRoute>
         }
       />
+      <Route
+        path="/landlord/bookings"
+        element={
+          <LandlordRoute>
+            <LandlordBookingListPage />
+          </LandlordRoute>
+        }
+      />
       
       {/* Renter Routes */}
-      <Route path="/renter/room" element={<RenterRoomDetailPage />} />
-      <Route path="/renter/bills" element={<RenterBillListPage />} />
-      <Route path="/renter/bills/:id" element={<RenterBillDetailPage />} />
+      <Route 
+        path="/renter/room" 
+        element={
+          <RenterRoute>
+            <RenterRoomDetailPage />
+          </RenterRoute>
+        } 
+      />
+      <Route 
+        path="/renter/contracts" 
+        element={
+          <RenterRoute>
+            <RenterContractPage />
+          </RenterRoute>
+        } 
+      />
+      <Route 
+        path="/renter/bills" 
+        element={
+          <RenterRoute>
+            <RenterBillListPage />
+          </RenterRoute>
+        } 
+      />
+      <Route 
+        path="/renter/bills/:id" 
+        element={
+          <RenterRoute>
+            <RenterBillDetailPage />
+          </RenterRoute>
+        } 
+      />
+      <Route 
+        path="/renter/rooms/checkin-assets" 
+        element={
+          <RenterRoute>
+            <RenterCheckinAssetPage />
+          </RenterRoute>
+        } 
+      />
+      <Route 
+        path="/renter/rooms/checkout-assets" 
+        element={
+          <RenterRoute>
+            <RenterCheckoutAssetPage />
+          </RenterRoute>
+        } 
+      />
     </Routes>
   );
 }

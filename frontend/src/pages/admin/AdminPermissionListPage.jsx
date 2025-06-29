@@ -342,6 +342,7 @@ export default function AdminPermissionListPage() {
                       <Option value="Contract">Contract</Option>
                       <Option value="Ocr">Ocr</Option>
                       <Option value="Payment">Payment</Option>
+                      <Option value="Schedule">Schedule</Option>
                     </Select>
                   </Form.Item>
                 </Col>

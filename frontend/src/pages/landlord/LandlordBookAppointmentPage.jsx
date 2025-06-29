@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Button, Input, DatePicker, TimePicker, Form, message, Card, Row, Col, Typography, Tag, Modal } from "antd";
 import dayjs from "dayjs";
 import { useSelector } from "react-redux";
+import axiosClient from "../../services/axiosClient";
+import { getPersonalInfo } from "../../services/userApi";
 
 const { Title, Text } = Typography;
 
@@ -25,19 +27,38 @@ export default function LandlordBookAppointmentPage() {
   }, [user]);
 
   useEffect(() => {
-    if (user) {
-      // Đảm bảo lấy đúng trường fullName cho name, không lấy nhầm email
-      const name = user.fullName || user.name || user.username || "";
-      const phone = user.phone || user.phoneNumber || "";
-      const email = user.email || "";
-      form.setFieldsValue({
-        name,
-        phone,
-        email,
-      });
-      console.log("[DEBUG] user info:", user);
-      console.log("[DEBUG] form values after set:", form.getFieldsValue());
+    async function fetchAndSetUserInfo() {
+      if (!user) return;
+
+      try {
+        const info = await getPersonalInfo();
+        console.log("[DEBUG] getPersonalInfo response:", info);
+
+        // Ưu tiên thông tin chi tiết từ API
+        const name = info.fullName || user.fullName || user.name || user.username || "";
+        const email = info.email || user.email || "";
+        const phone = info.phoneNumber || user.phone || user.phoneNumber || "";
+
+        form.setFieldsValue({
+          name,
+          email,
+          phone,
+          date: dayjs(),           // preset hôm nay
+          time: dayjs("08:00", "HH:mm") // preset 08:00
+        });
+        console.log("[DEBUG] Form values sau setFieldsValue:", form.getFieldsValue());
+      } catch (e) {
+        console.error("[DEBUG] getPersonalInfo error:", e);
+        // fallback nếu lỗi API
+        const name = user.fullName || user.name || user.username || "";
+        const email = user.email || "";
+        const phone = user.phone || user.phoneNumber || "";
+
+        form.setFieldsValue({ name, email, phone });
+      }
     }
+
+    fetchAndSetUserInfo();
   }, [user, form]);
 
   const handleLoginConfirm = () => {
@@ -50,12 +71,34 @@ export default function LandlordBookAppointmentPage() {
   const onFinish = async (values) => {
     setSubmitting(true);
     try {
-      // Gửi API đặt lịch hẹn ở đây
-      // await bookAppointment({ ...values, roomId: room.id });
+      console.log('[DEBUG] onFinish values:', values);
+      console.log('[DEBUG] typeof date:', typeof values.date, values.date);
+      console.log('[DEBUG] typeof time:', typeof values.time, values.time);
+      // Gộp date và time thành 1 dayjs object
+      const appointmentDate = values.date; // dayjs object
+      const appointmentTime = values.time; // dayjs object
+      let appointmentDateTime = null;
+      if (appointmentDate && appointmentTime) {
+        appointmentDateTime = appointmentDate
+          .hour(appointmentTime.hour())
+          .minute(appointmentTime.minute())
+          .second(0)
+          .millisecond(0);
+      }
+      console.log('[DEBUG] appointmentDateTime:', appointmentDateTime);
+      await axiosClient.post("/schedules", {
+        roomId: room.id,
+        fullName: values.name,
+        phone: values.phone,
+        email: values.email,
+        appointmentTime: appointmentDateTime ? appointmentDateTime.toISOString() : null,
+        note: values.note,
+      });
       message.success("Appointment booked successfully!");
       navigate(-1);
-    } catch {
+    } catch (err) {
       message.error("Failed to book appointment");
+      console.error('[DEBUG] booking error:', err);
     } finally {
       setSubmitting(false);
     }
@@ -98,15 +141,9 @@ export default function LandlordBookAppointmentPage() {
             <div style={{ width: '100%', maxWidth: 370 }}>
               <Title level={4} style={{ marginBottom: 18 }}>Book Appointment</Title>
               <Form
-                key={user?.id || 'nouser'}
                 form={form}
                 layout="vertical"
                 onFinish={onFinish}
-                initialValues={{
-                  name: user?.fullName || user?.name || user?.username || "",
-                  phone: user?.phone || user?.phoneNumber || "",
-                  email: user?.email || "",
-                }}
                 disabled={isUnavailable || !user}
               >
                 <Form.Item label="Your Name" name="name" rules={[{ required: true, message: "Please enter your name" }]}> <Input size="large" /> </Form.Item>

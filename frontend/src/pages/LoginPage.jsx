@@ -19,27 +19,18 @@ export default function Login() {
     setError({});
     try {
       const user = await login(email, password);
-      dispatch(
-        setUser({
-          id: user.id,
-          fullName: user.name,
-          role: user.role,
-          permissions: user.role?.permissionEntities?.map((p) => p.name) || [],
-        })
-      );
+      const userObj = {
+        id: user.id,
+        fullName: user.fullName || user.name || user.username || "",
+        email: user.email || "",
+        phone: user.phone || user.phoneNumber || "",
+        role: user.role,
+        permissions: user.role?.permissionEntities?.map((p) => p.name) || [],
+      };
+      dispatch(setUser(userObj));
+      localStorage.setItem("account", JSON.stringify(userObj));
       localStorage.setItem("showWelcome", "true");
       const roleName = user?.role?.roleName?.toUpperCase();
-      // switch (roleName) {
-      //   case "ADMIN":
-      //   case "SUBADMIN":
-      //     navigate("/admin/users");
-      //     break;
-      //   case "RENTER":
-      //     navigate("/room");
-      //     break;
-      //   default:
-      //     navigate("/home");
-      // }
       navigate("/home");
     } catch (err) {
       const response = err.response?.data;
