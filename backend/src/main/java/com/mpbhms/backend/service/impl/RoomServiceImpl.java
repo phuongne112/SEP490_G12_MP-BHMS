@@ -25,6 +25,7 @@ import com.mpbhms.backend.enums.ServiceType;
 import com.mpbhms.backend.entity.ServiceReading;
 import com.mpbhms.backend.repository.ServiceReadingRepository;
 import java.math.BigDecimal;
+import jakarta.persistence.criteria.Predicate;
 
 import java.io.File;
 import java.io.IOException;
@@ -129,7 +130,15 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public ResultPaginationDTO getAllRooms(Specification<Room> spec, Pageable pageable) {
-        Page<Room> roomsPage = roomRepository.findAll(spec, pageable);
+        // Tạo specification để lọc room chưa bị xóa mềm
+        Specification<Room> notDeletedSpec = (root, query, criteriaBuilder) -> 
+            criteriaBuilder.equal(root.get("deleted"), false);
+        
+        // Kết hợp specification hiện tại với điều kiện chưa bị xóa
+        Specification<Room> combinedSpec = spec != null ? 
+            spec.and(notDeletedSpec) : notDeletedSpec;
+        
+        Page<Room> roomsPage = roomRepository.findAll(combinedSpec, pageable);
         List<RoomDTO> roomDTOs = convertToRoomDTOList(roomsPage.getContent());
         Meta meta = new Meta();
         meta.setPage(roomsPage.getNumber() + 1);
@@ -217,7 +226,7 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public Room updateRoom(Long id, AddRoomDTO request, List<Long> keepImageIds, MultipartFile[] images) {
-        Room room = roomRepository.findById(id)
+        Room room = roomRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new IdInvalidException("Room với id  không tồn tại."));
 
         // Cập nhật thông tin phòng
@@ -295,6 +304,9 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public void deleteRoom(Long id) {
+        Room room = roomRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
+        
         // Kiểm tra người ở
         int userCount = roomUserRepository.countByRoomId(id);
         if (userCount > 0) {
@@ -305,12 +317,25 @@ public class RoomServiceImpl implements RoomService {
         if (hasActiveContract) {
             throw new BusinessException("Cannot delete room: There is an active contract for this room.");
         }
-        roomRepository.deleteById(id);
+        
+        // Soft delete - set deleted = true thay vì xóa cứng
+        room.setDeleted(true);
+        roomRepository.save(room);
+    }
+
+    @Override
+    public void restoreRoom(Long id) {
+        Room room = roomRepository.findByIdAndDeletedTrue(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found or not deleted with id: " + id));
+        
+        // Restore room - set deleted = false
+        room.setDeleted(false);
+        roomRepository.save(room);
     }
 
     @Override
     public void updateRoomStatus(Long id, String status) {
-        Room room = roomRepository.findById(id)
+        Room room = roomRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
         try {
             RoomStatus newStatus = RoomStatus.valueOf(status);
@@ -323,7 +348,7 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public void toggleActiveStatus(Long id) {
-        Room room = roomRepository.findById(id)
+        Room room = roomRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
         room.setIsActive(!room.getIsActive());
         roomRepository.save(room);
@@ -360,14 +385,30 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    public ResultPaginationDTO getDeletedRooms(Pageable pageable) {
+        Page<Room> roomsPage = roomRepository.findByDeletedTrue(pageable);
+        List<RoomDTO> roomDTOs = convertToRoomDTOList(roomsPage.getContent());
+        Meta meta = new Meta();
+        meta.setPage(roomsPage.getNumber() + 1);
+        meta.setPageSize(roomsPage.getSize());
+        meta.setPages(roomsPage.getTotalPages());
+        meta.setTotal(roomsPage.getTotalElements());
+
+        ResultPaginationDTO result = new ResultPaginationDTO();
+        result.setMeta(meta);
+        result.setResult(roomDTOs);
+        return result;
+    }
+
+    @Override
     public Room getRoomById(Long id) {
-        return roomRepository.findById(id)
+        return roomRepository.findByIdAndDeletedFalse(id)
             .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
     }
 
     @Override
     public boolean addServiceToRoom(Long roomId, Long serviceId) {
-        Room room = roomRepository.findById(roomId)
+        Room room = roomRepository.findByIdAndDeletedFalse(roomId)
             .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
         com.mpbhms.backend.entity.CustomService service = serviceRepository.findById(serviceId)
             .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + serviceId));
@@ -400,7 +441,7 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public boolean addServiceToRoom(Long roomId, Long serviceId, BigDecimal initialReading) {
-        Room room = roomRepository.findById(roomId)
+        Room room = roomRepository.findByIdAndDeletedFalse(roomId)
             .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
         com.mpbhms.backend.entity.CustomService service = serviceRepository.findById(serviceId)
             .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + serviceId));
