@@ -11,6 +11,8 @@ import RoomFilterPopover from "../../components/landlord/RoomFilterPopover";
 import PageHeader from "../../components/common/PageHeader"; // ✅ Dùng PageHeader
 import { useNavigate } from "react-router-dom"; 
 import { getAllRooms } from "../../services/roomService";
+import { useSelector } from "react-redux";
+import AdminSidebar from "../../components/layout/AdminSidebar";
 
 import image1 from "../../assets/RoomImage/image1.png";
 import image2 from "../../assets/RoomImage/image2.png";
@@ -72,6 +74,7 @@ export default function LandlordRoomListPage() {
   const pageSize = 6;
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const user = useSelector((state) => state.account.user);
 
   // Tạo filter DSL cho backend
   const buildFilterDSL = () => {
@@ -128,7 +131,11 @@ export default function LandlordRoomListPage() {
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Sider width={220}>
-        <LandlordSidebar />
+        {user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
+          <AdminSidebar />
+        ) : (
+          <LandlordSidebar />
+        )}
       </Sider>
 
       <Layout>
@@ -168,7 +175,13 @@ export default function LandlordRoomListPage() {
               </Popover>
               <Button type="primary" 
               icon={<PlusOutlined />}
-              onClick={() => navigate("/landlord/rooms/add")}
+              onClick={() => {
+                if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
+                  navigate("/admin/rooms/add");
+                } else {
+                  navigate("/landlord/rooms/add");
+                }
+              }}
               >
                 Add Room
               </Button>

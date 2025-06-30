@@ -7,6 +7,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { getAllRooms } from "../../services/roomService";
 import { getRentersForAssign } from "../../services/renterApi";
 import axiosClient from "../../services/axiosClient";
+import { useSelector } from "react-redux";
+import AdminSidebar from "../../components/layout/AdminSidebar";
 
 const { Sider, Content } = Layout;
 const { Option } = Select;
@@ -20,6 +22,7 @@ export default function LandlordAssignRenterPage() {
   const [renters, setRenters] = useState([]);
   const [loading, setLoading] = useState(false);
   const [roomLoading, setRoomLoading] = useState(true);
+  const user = useSelector((state) => state.account.user);
 
   useEffect(() => {
     fetchRoomDetails();
@@ -79,7 +82,11 @@ export default function LandlordAssignRenterPage() {
     return (
       <Layout style={{ minHeight: "100vh" }}>
         <Sider width={220}>
-          <LandlordSidebar />
+          {user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
+            <AdminSidebar />
+          ) : (
+            <LandlordSidebar />
+          )}
         </Sider>
         <Layout>
           <Content style={{ padding: "24px", textAlign: "center" }}>
@@ -94,7 +101,11 @@ export default function LandlordAssignRenterPage() {
     return (
       <Layout style={{ minHeight: "100vh" }}>
         <Sider width={220}>
-          <LandlordSidebar />
+          {user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
+            <AdminSidebar />
+          ) : (
+            <LandlordSidebar />
+          )}
         </Sider>
         <Layout>
           <Content style={{ padding: "24px", textAlign: "center" }}>
@@ -108,7 +119,11 @@ export default function LandlordAssignRenterPage() {
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Sider width={220}>
-        <LandlordSidebar />
+        {user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
+          <AdminSidebar />
+        ) : (
+          <LandlordSidebar />
+        )}
       </Sider>
       <Layout>
         <Content
@@ -122,7 +137,13 @@ export default function LandlordAssignRenterPage() {
           <div style={{ marginBottom: 24 }}>
             <Button
               icon={<ArrowLeftOutlined />}
-              onClick={() => navigate("/landlord/rooms")}
+              onClick={() => {
+                if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
+                  navigate("/admin/rooms");
+                } else {
+                  navigate("/landlord/rooms");
+                }
+              }}
               style={{ marginBottom: 16 }}
             >
               Back to Rooms
@@ -243,7 +264,13 @@ export default function LandlordAssignRenterPage() {
                     >
                       Assign Renters
                     </Button>
-                    <Button onClick={() => navigate("/landlord/rooms")}>
+                    <Button onClick={() => {
+                      if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
+                        navigate("/admin/rooms");
+                      } else {
+                        navigate("/landlord/rooms");
+                      }
+                    }}>
                       Cancel
                     </Button>
                   </Space>

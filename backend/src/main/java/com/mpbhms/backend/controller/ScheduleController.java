@@ -26,6 +26,11 @@ public class ScheduleController {
         return ResponseEntity.ok(scheduleService.getAllSchedules());
     }
 
+    @GetMapping("/landlord")
+    public ResponseEntity<List<ScheduleDTO>> getSchedulesForLandlord(@RequestParam Long landlordId) {
+        return ResponseEntity.ok(scheduleService.getSchedulesByLandlord(landlordId));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ScheduleDTO> getSchedule(@PathVariable Long id) {
         return ResponseEntity.ok(scheduleService.getSchedule(id));

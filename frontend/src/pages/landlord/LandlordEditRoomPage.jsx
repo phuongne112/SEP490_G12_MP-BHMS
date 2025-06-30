@@ -12,11 +12,13 @@ import {
   Col,
   Switch,
 } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import axiosClient from "../../services/axiosClient";
 import { useNavigate, useParams } from "react-router-dom";
+import { useSelector } from "react-redux";
+import AdminSidebar from "../../components/layout/AdminSidebar";
 
 const { Sider, Content } = Layout;
 const { TextArea } = Input;
@@ -31,6 +33,7 @@ export default function LandlordEditRoomPage() {
   const [keepImageIds, setKeepImageIds] = useState([]);
   const navigate = useNavigate();
   const { id } = useParams();
+  const user = useSelector((state) => state.account.user);
 
   useEffect(() => {
     // Fetch room data by id
@@ -119,11 +122,13 @@ export default function LandlordEditRoomPage() {
           formData.append("images", file.originFileObj);
         }
       });
-      await axiosClient.post(`/rooms/${id}`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await axiosClient.post(`/rooms/${id}`, formData);
       message.success("Room updated successfully!");
-      navigate("/landlord/rooms");
+      if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
+        navigate("/admin/rooms");
+      } else {
+        navigate("/landlord/rooms");
+      }
     } catch (err) {
       const res = err.response?.data;
       setFormError(null);
@@ -148,10 +153,27 @@ export default function LandlordEditRoomPage() {
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Sider width={220}>
-        <LandlordSidebar />
+        {user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
+          <AdminSidebar />
+        ) : (
+          <LandlordSidebar />
+        )}
       </Sider>
       <Layout style={{ marginTop: 20, marginLeft: 15 }}>
         <PageHeader title="Edit Room" />
+        <Button
+          icon={<ArrowLeftOutlined />}
+          style={{ marginBottom: 16 }}
+          onClick={() => {
+            if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
+              navigate("/admin/rooms");
+            } else {
+              navigate("/landlord/rooms");
+            }
+          }}
+        >
+          Back to Room
+        </Button>
         <Content style={{ padding: "24px" }}>
           {formError && (
             <div style={{ color: "red", marginBottom: 16 }}>{formError}</div>

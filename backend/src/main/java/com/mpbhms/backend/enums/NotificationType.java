@@ -7,5 +7,6 @@ public enum NotificationType {
     ANNOUNCEMENT,
     PAYMENT_SUCCESS,
     PAYMENT_FAILED,
+    SCHEDULE,
     CUSTOM
 }

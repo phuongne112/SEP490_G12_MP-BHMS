@@ -17,6 +17,8 @@ import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import axiosClient from "../../services/axiosClient";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import AdminSidebar from "../../components/layout/AdminSidebar";
 
 const { Sider, Content } = Layout;
 const { TextArea } = Input;
@@ -29,6 +31,7 @@ export default function LandlordAddRoomPage() {
   const [formError, setFormError] = useState(null);
   const [roomNumberSuffix, setRoomNumberSuffix] = useState("");
   const navigate = useNavigate();
+  const user = useSelector((state) => state.account.user);
 
   const handleUploadChange = ({ fileList: newFileList }) => {
     if (newFileList.length <= 8) {
@@ -70,7 +73,11 @@ export default function LandlordAddRoomPage() {
       });
       message.success("Room added successfully!");
       // Navigate back to room list page
-      navigate("/landlord/rooms");
+      if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
+        navigate("/admin/rooms");
+      } else {
+        navigate("/landlord/rooms");
+      }
     } catch (err) {
       const res = err.response?.data;
       setFormError(null);
@@ -92,7 +99,11 @@ export default function LandlordAddRoomPage() {
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Sider width={220}>
-        <LandlordSidebar />
+        {user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
+          <AdminSidebar />
+        ) : (
+          <LandlordSidebar />
+        )}
       </Sider>
       <Layout style={{ marginTop: 20, marginLeft: 15 }}>
         <PageHeader title="Add Room" />

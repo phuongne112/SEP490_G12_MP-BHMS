@@ -6,6 +6,7 @@ import {
   ToolOutlined,
   TeamOutlined,
   FileTextOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 import Sidebar from "./Sidebar";
 import { useSelector } from "react-redux";
@@ -64,6 +65,12 @@ export default function LandlordSidebar() {
       icon: <ToolOutlined />,
       label: "Asset",
       path: "/landlord/assets",
+    },
+    {
+      key: "/landlord/bookings",
+      icon: <CalendarOutlined />,
+      label: "Booking List",
+      path: "/landlord/bookings",
     },
   ];
 
