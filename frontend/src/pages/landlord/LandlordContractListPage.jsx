@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Layout, message, Button, Popover, Select } from "antd";
 import PageHeader from "../../components/common/PageHeader";
 import { getAllContracts, deleteContract, exportContractPdf } from "../../services/contractApi";
+import { useSelector } from "react-redux";
+import AdminSidebar from "../../components/layout/AdminSidebar";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import ContractTable from "../../components/landlord/ContractTable";
 import ContractFilterPopover from "../../components/landlord/ContractFilterPopover";
@@ -17,6 +19,8 @@ export default function LandlordContractListPage() {
   const [pageSize, setPageSize] = useState(5);
   const [total, setTotal] = useState(0);
   const pageSizeOptions = [5, 10, 20, 50];
+
+  const user = useSelector((state) => state.account.user);
 
   const fetchContracts = async (page = currentPage, size = pageSize) => {
     setLoading(true);
@@ -76,7 +80,11 @@ export default function LandlordContractListPage() {
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Sider width={240}>
-        <LandlordSidebar />
+        {user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
+          <AdminSidebar />
+        ) : (
+          <LandlordSidebar />
+        )}
       </Sider>
       <Layout>
         <Content style={{ padding: "24px" }}>

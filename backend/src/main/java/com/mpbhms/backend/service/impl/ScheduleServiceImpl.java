@@ -14,16 +14,11 @@ import com.mpbhms.backend.service.NotificationService;
 import com.mpbhms.backend.dto.NotificationDTO;
 import com.mpbhms.backend.enums.NotificationType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import com.mpbhms.backend.dto.Meta;
-import com.mpbhms.backend.dto.ResultPaginationDTO;
 
 @Service
 public class ScheduleServiceImpl implements ScheduleService {
@@ -92,23 +87,6 @@ public class ScheduleServiceImpl implements ScheduleService {
     public List<ScheduleDTO> getSchedulesByLandlord(Long landlordId) {
         List<Schedule> schedules = scheduleRepository.findByRoom_Landlord_Id(landlordId);
         return schedules.stream().map(this::toDTO).collect(Collectors.toList());
-    }
-
-    @Override
-    public ResultPaginationDTO getSchedulesByLandlordPaged(Long landlordId, String email, String fullName, Pageable pageable) {
-        if (email == null) email = "";
-        if (fullName == null) fullName = "";
-        Page<Schedule> page = scheduleRepository.findByRoom_Landlord_IdAndEmailContainingIgnoreCaseAndFullNameContainingIgnoreCase(landlordId, email, fullName, pageable);
-        List<ScheduleDTO> dtos = page.getContent().stream().map(this::toDTO).toList();
-        Meta meta = new Meta();
-        meta.setPage(page.getNumber() + 1);
-        meta.setPageSize(page.getSize());
-        meta.setPages(page.getTotalPages());
-        meta.setTotal(page.getTotalElements());
-        ResultPaginationDTO result = new ResultPaginationDTO();
-        result.setMeta(meta);
-        result.setResult(dtos);
-        return result;
     }
 
     private ScheduleDTO toDTO(Schedule schedule) {

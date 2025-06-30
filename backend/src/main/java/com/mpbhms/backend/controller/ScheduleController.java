@@ -2,19 +2,16 @@ package com.mpbhms.backend.controller;
 
 import com.mpbhms.backend.dto.CreateScheduleRequest;
 import com.mpbhms.backend.dto.ScheduleDTO;
-import com.mpbhms.backend.dto.ResultPaginationDTO;
 import com.mpbhms.backend.enums.ScheduleStatus;
 import com.mpbhms.backend.service.ScheduleService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/mpbhms/schedules")
+@RequestMapping("/api/schedules")
 public class ScheduleController {
     @Autowired
     private ScheduleService scheduleService;
@@ -30,15 +27,8 @@ public class ScheduleController {
     }
 
     @GetMapping("/landlord")
-    public ResponseEntity<ResultPaginationDTO> getSchedulesForLandlord(
-            @RequestParam Long landlordId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size,
-            @RequestParam(required = false) String email,
-            @RequestParam(required = false) String fullName
-    ) {
-        Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(scheduleService.getSchedulesByLandlordPaged(landlordId, email, fullName, pageable));
+    public ResponseEntity<List<ScheduleDTO>> getSchedulesForLandlord(@RequestParam Long landlordId) {
+        return ResponseEntity.ok(scheduleService.getSchedulesByLandlord(landlordId));
     }
 
     @GetMapping("/{id}")

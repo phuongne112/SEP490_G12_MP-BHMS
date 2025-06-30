@@ -4,6 +4,7 @@ import { updateRoomStatus, toggleRoomActiveStatus, deleteRoom, addServiceToRoom 
 import { getAllServicesList } from "../../services/serviceApi";
 import { detectElectricOcr } from "../../services/electricOcrApi";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const { Meta } = Card;
 const { Option } = Select;
@@ -39,6 +40,8 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
     const [electricValue, setElectricValue] = useState("");
     const [ocrLoading, setOcrLoading] = useState(false);
     const [pendingServices, setPendingServices] = useState([]); // Lưu danh sách dịch vụ đang chờ thêm
+
+    const user = useSelector((state) => state.account.user);
 
     const handleStatusChange = async (roomId, newStatus) => {
         setUpdatingId(roomId);
@@ -270,13 +273,25 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
                                     <Button
                                         type="primary"
-                                        onClick={() => navigate(`/landlord/rooms/${room.id}/edit`)}
+                                        onClick={() => {
+                                            if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
+                                                navigate(`/admin/rooms/${room.id}/edit`);
+                                            } else {
+                                                navigate(`/landlord/rooms/${room.id}/edit`);
+                                            }
+                                        }}
                                     >
                                         Edit
                                     </Button>
                                     <Button
                                         type="default"
-                                        onClick={() => navigate(`/landlord/rooms/${room.id}/assign`)}
+                                        onClick={() => {
+                                            if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
+                                                navigate(`/admin/rooms/${room.id}/assign`);
+                                            } else {
+                                                navigate(`/landlord/rooms/${room.id}/assign`);
+                                            }
+                                        }}
                                     >
                                         Assign Renter
                                     </Button>

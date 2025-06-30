@@ -32,8 +32,8 @@ import LandlordBillCreatePage from "../pages/landlord/LandlordBillCreatePage";
 import LandlordBillDetailPage from "../pages/landlord/LandlordBillDetailPage";
 import LandlordBookAppointmentPage from "../pages/landlord/LandlordBookAppointmentPage";
 import LandlordUserListPage from "../pages/landlord/LandlordUserListPage";
-import RenterBillListPage from '../pages/renter/RenterBillListPage';
-import RenterBillDetailPage from '../pages/renter/RenterBillDetailPage';
+import RenterBillListPage from "../pages/renter/RenterBillListPage";
+import RenterBillDetailPage from "../pages/renter/RenterBillDetailPage";
 import LandlordAssetListPage from "../pages/landlord/LandlordAssetListPage";
 import UserRoute from "./UserRoute";
 import LandlordBookingListPage from "../pages/landlord/LandlordBookingListPage";
@@ -97,11 +97,51 @@ export default function AppRouter() {
           </AdminRoute>
         }
       />
+      <Route
+        path="/admin/rooms"
+        element={
+          <AdminRoute>
+            <LandlordRoomListPage />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/rooms/add"
+        element={
+          <AdminRoute>
+            <LandlordAddRoomPage />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/rooms/:id/edit"
+        element={
+          <AdminRoute>
+            <LandlordEditRoomPage />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/rooms/:roomId/assign"
+        element={
+          <AdminRoute>
+            <LandlordAssignRenterPage />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/contract"
+        element={
+          <AdminRoute>
+            <LandlordContractListPage />
+          </AdminRoute>
+        }
+      />
       <Route path="*" element={<Error403 />} />
       <Route path="/room" element={<RoomSection />} />
       <Route path="/403" element={<Error403 />} />
       <Route path="/" element={<Navigate to="/home" replace />} />
-      
+
       {/* Landlord Routes */}
       <Route
         path="/landlord/renters"
@@ -231,55 +271,55 @@ export default function AppRouter() {
           </LandlordRoute>
         }
       />
-      
+
       {/* Renter Routes */}
-      <Route 
-        path="/renter/room" 
+      <Route
+        path="/renter/room"
         element={
           <RenterRoute>
             <RenterRoomDetailPage />
           </RenterRoute>
-        } 
+        }
       />
-      <Route 
-        path="/renter/contracts" 
+      <Route
+        path="/renter/contracts"
         element={
           <RenterRoute>
             <RenterContractPage />
           </RenterRoute>
-        } 
+        }
       />
-      <Route 
-        path="/renter/bills" 
+      <Route
+        path="/renter/bills"
         element={
           <RenterRoute>
             <RenterBillListPage />
           </RenterRoute>
-        } 
+        }
       />
-      <Route 
-        path="/renter/bills/:id" 
+      <Route
+        path="/renter/bills/:id"
         element={
           <RenterRoute>
             <RenterBillDetailPage />
           </RenterRoute>
-        } 
+        }
       />
-      <Route 
-        path="/renter/rooms/checkin-assets" 
+      <Route
+        path="/renter/rooms/checkin-assets"
         element={
           <RenterRoute>
             <RenterCheckinAssetPage />
           </RenterRoute>
-        } 
+        }
       />
-      <Route 
-        path="/renter/rooms/checkout-assets" 
+      <Route
+        path="/renter/rooms/checkout-assets"
         element={
           <RenterRoute>
             <RenterCheckoutAssetPage />
           </RenterRoute>
-        } 
+        }
       />
     </Routes>
   );
