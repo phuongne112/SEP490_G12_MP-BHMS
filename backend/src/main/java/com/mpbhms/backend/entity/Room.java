@@ -71,4 +71,7 @@ public class Room extends BaseEntity {
 
     @Column(length = 100)
     private String building;
+
+    @Column(name = "deleted", nullable = false)
+    private Boolean deleted = false;
 }

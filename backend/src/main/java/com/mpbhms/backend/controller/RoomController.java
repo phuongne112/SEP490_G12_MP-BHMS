@@ -109,9 +109,21 @@ public class RoomController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{id}/restore")
+    public ResponseEntity<Void> restoreRoom(@PathVariable Long id) {
+        roomService.restoreRoom(id);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/with-renter")
     public ResponseEntity<ResultPaginationDTO> getAllRoomsWithRenter(Pageable pageable) {
         ResultPaginationDTO response = roomService.getAllRoomsWithRenter(pageable);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/deleted")
+    public ResponseEntity<ResultPaginationDTO> getDeletedRooms(Pageable pageable) {
+        ResultPaginationDTO response = roomService.getDeletedRooms(pageable);
         return ResponseEntity.ok(response);
     }
 
