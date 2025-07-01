@@ -26,3 +26,7 @@ export const deleteContract = async (id) => {
   const response = await axiosClient.delete(`/contracts/${id}`);
   return response.data;
 };
+
+export const getRenterContracts = () => {
+  return axiosClient.get('/contracts/my-contracts');
+};
