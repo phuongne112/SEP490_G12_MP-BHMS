@@ -75,4 +75,10 @@ public class ContractController {
         java.util.List<com.mpbhms.backend.dto.ContractDTO> contracts = contractService.getContractsByRenterId(userId);
         return ResponseEntity.ok(contracts);
     }
+
+    @GetMapping("/room/{roomId}/history")
+    public ResponseEntity<?> getContractHistoryByRoom(@PathVariable Long roomId) {
+        java.util.List<ContractDTO> contracts = contractService.getContractsByRoomId(roomId);
+        return ResponseEntity.ok(contracts);
+    }
 }

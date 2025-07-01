@@ -1,10 +1,67 @@
-import React from "react";
-import { Table, Button, Popconfirm, Statistic, Space } from "antd";
+import React, { useState } from "react";
+import { Table, Button, Popconfirm, Statistic, Space, Spin } from "antd";
 import { FilePdfOutlined, EditOutlined, HistoryOutlined, ReloadOutlined, StopOutlined } from "@ant-design/icons";
+import { getContractHistoryByRoom } from "../../services/contractApi";
 
 const { Countdown } = Statistic;
 
-export default function ContractTable({ contracts = [], onExport, onDelete, onUpdate, onRenew, onViewAmendments, onTerminate, loading, onFilter }) {
+function ContractHistoryTable({ roomId, onExport }) {
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
+  React.useEffect(() => {
+    setLoading(true);
+    getContractHistoryByRoom(roomId)
+      .then(setHistory)
+      .finally(() => setLoading(false));
+  }, [roomId]);
+  const columns = [
+    { title: "Contract No.", dataIndex: "contractNumber", key: "contractNumber", render: (num, record) => num || `#${record.id}` },
+    { title: "Status", dataIndex: "contractStatus", key: "contractStatus" },
+    { title: "Start Date", dataIndex: "contractStartDate", key: "contractStartDate", render: (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—" },
+    { title: "End Date", dataIndex: "contractEndDate", key: "contractEndDate", render: (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—" },
+    { title: "Created At", dataIndex: "createdDate", key: "createdDate", render: (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—" },
+    {
+      title: "PDF",
+      key: "pdf",
+      render: (_, record) => (
+        <Button
+          type="primary"
+          icon={<FilePdfOutlined />}
+          size="small"
+          onClick={() => onExport && onExport(record.id)}
+        >
+          PDF
+        </Button>
+      )
+    }
+  ];
+  if (loading) return <Spin />;
+  const pagedData = history.slice((page - 1) * pageSize, page * pageSize);
+  return (
+    <div style={{ background: '#fafbfc', border: '1px solid #eee', borderRadius: 8, margin: '16px 0', padding: 16, overflowX: 'auto' }}>
+      <Table
+        columns={columns}
+        dataSource={pagedData}
+        rowKey="id"
+        pagination={false}
+        size="small"
+        style={{ background: '#fafbfc', minWidth: 800 }}
+        footer={() => history.length > pageSize ? (
+          <div style={{ textAlign: 'right' }}>
+            <span>Page: </span>
+            <Button size="small" disabled={page === 1} onClick={() => setPage(page - 1)} style={{ marginRight: 8 }}>Prev</Button>
+            <span>{page}</span>
+            <Button size="small" disabled={page * pageSize >= history.length} onClick={() => setPage(page + 1)} style={{ marginLeft: 8 }}>Next</Button>
+          </div>
+        ) : null}
+      />
+    </div>
+  );
+}
+
+export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate, onRenew, onViewAmendments, onTerminate, loading, onFilter, pageSize = 5, currentPage = 1, total = 0, onPageChange }) {
   const columns = [
     {
       title: "Contract ID",
@@ -101,10 +158,45 @@ export default function ContractTable({ contracts = [], onExport, onDelete, onUp
       }
     },
     {
+      title: "Contract Number",
+      dataIndex: "contractNumber",
+      render: (num, record) => num || `#${record.id}`,
+    },
+    {
+      title: "Tenant(s)",
+      dataIndex: "roomUsers",
+      key: "tenants",
+      render: (users) => users?.map(u => u.fullName).join(", ") || "—"
+    },
+    {
+      title: "Phone(s)",
+      dataIndex: "roomUsers",
+      key: "phones",
+      render: (users) => users?.map(u => u.phoneNumber).join(", ") || "—"
+    },
+    {
+      title: "Deposit",
+      dataIndex: "depositAmount",
+      key: "deposit",
+      render: (amount) => amount ? amount.toLocaleString() + " VND" : "—"
+    },
+    {
+      title: "Rent",
+      dataIndex: "rentAmount",
+      key: "rent",
+      render: (amount) => amount ? amount.toLocaleString() + " VND" : "—"
+    },
+    {
+      title: "Payment Cycle",
+      dataIndex: "paymentCycle",
+      key: "paymentCycle",
+      render: (cycle) => cycle || "—"
+    },
+    {
       title: "Actions",
       align: "center",
       render: (_, record) => {
-        const isTerminated = record.contractStatus === "TERMINATED" || record.contractStatus === "EXPIRED";
+        const isTerminatedOrExpired = record.contractStatus === "TERMINATED" || record.contractStatus === "EXPIRED";
         return (
           <Space size="middle">
             <Button
@@ -112,7 +204,6 @@ export default function ContractTable({ contracts = [], onExport, onDelete, onUp
               icon={<FilePdfOutlined />}
               onClick={() => onExport(record.id)}
               size="small"
-              disabled={isTerminated}
             >
               PDF
             </Button>
@@ -122,7 +213,7 @@ export default function ContractTable({ contracts = [], onExport, onDelete, onUp
               onClick={() => onUpdate && onUpdate(record)}
               size="small"
               style={{ color: "#faad14", borderColor: "#faad14" }}
-              disabled={isTerminated}
+              disabled={isTerminatedOrExpired}
             >
               Cập nhật
             </Button>
@@ -132,7 +223,7 @@ export default function ContractTable({ contracts = [], onExport, onDelete, onUp
               onClick={() => onRenew && onRenew(record)}
               size="small"
               style={{ color: "#52c41a", borderColor: "#52c41a" }}
-              disabled={isTerminated}
+              disabled={isTerminatedOrExpired}
             >
               Gia hạn
             </Button>
@@ -141,7 +232,7 @@ export default function ContractTable({ contracts = [], onExport, onDelete, onUp
               icon={<HistoryOutlined />}
               onClick={() => onViewAmendments && onViewAmendments(record.id)}
               size="small"
-              disabled={isTerminated}
+              disabled={isTerminatedOrExpired}
             >
               Lịch sử
             </Button>
@@ -151,7 +242,7 @@ export default function ContractTable({ contracts = [], onExport, onDelete, onUp
                 danger
                 icon={<StopOutlined />}
                 size="small"
-                disabled={isTerminated}
+                disabled={isTerminatedOrExpired}
               >
                 Kết thúc
               </Button>
@@ -162,14 +253,35 @@ export default function ContractTable({ contracts = [], onExport, onDelete, onUp
     },
   ];
 
+  // Mỗi phòng 1 dòng, lấy hợp đồng mới nhất từ latestContract
+  const dataSource = rooms.map(room => {
+    const c = room.latestContract || {};
+    return {
+      ...c,
+      roomId: room.id,
+      roomNumber: room.roomNumber,
+    };
+  });
+
   return (
     <Table
       columns={columns}
-      dataSource={contracts}
-      rowKey="id"
-      pagination={{ pageSize: 5 }}
+      dataSource={dataSource}
+      rowKey="roomId"
+      expandable={{
+        expandedRowRender: (record) => <ContractHistoryTable roomId={record.roomId} onExport={onExport} />,
+        rowExpandable: () => true,
+      }}
+      pagination={{
+        pageSize: pageSize,
+        current: currentPage,
+        total: total,
+        showSizeChanger: false,
+        onChange: onPageChange
+      }}
       style={{ background: "#fff", borderRadius: 8, padding: 16 }}
       loading={loading}
+      scroll={{ x: 1400 }}
     />
   );
 }

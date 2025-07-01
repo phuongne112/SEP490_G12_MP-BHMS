@@ -150,6 +150,10 @@ public class RenterServiceImpl implements RenterService {
         dto.setCreatedDate(user.getCreatedDate());
         dto.setUpdatedBy(user.getUpdatedBy());
         dto.setUpdatedDate(user.getUpdatedDate());
+        if (user.getUserInfo() != null) {
+            dto.setFullName(user.getUserInfo().getFullName());
+            dto.setPhoneNumber(user.getUserInfo().getPhoneNumber());
+        }
         return dto;
     }
 
@@ -169,5 +173,17 @@ public class RenterServiceImpl implements RenterService {
             dto.setRenterRoomInfo(info);
         }
         return dto;
+    }
+
+    @Override
+    public List<UserDTO> getAllRentersWithInfo() {
+        List<User> users = userRepository.findAll();
+        List<UserDTO> renters = new ArrayList<>();
+        for (User user : users) {
+            if (user.getRole() != null && user.getRole().getId() == 2) {
+                renters.add(convertToUserDTO(user));
+            }
+        }
+        return renters;
     }
 }

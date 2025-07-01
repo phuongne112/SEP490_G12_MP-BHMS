@@ -30,3 +30,13 @@ export const deleteContract = async (id) => {
 export const getRenterContracts = () => {
   return axiosClient.get('/contracts/my-contracts');
 };
+
+export const getContractAmendments = async (contractId) => {
+  const response = await axiosClient.get(`/room-users/contract-amendments/${contractId}`);
+  return response.data;
+};
+
+export const getContractHistoryByRoom = async (roomId) => {
+  const response = await axiosClient.get(`/contracts/room/${roomId}/history`);
+  return response.data;
+};

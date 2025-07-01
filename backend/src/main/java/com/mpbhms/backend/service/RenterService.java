@@ -15,4 +15,6 @@ public interface RenterService {
     void updateRenterStatus(Long userId, boolean isActive);
 
     List<UserDTO> getRentersForAssign(String keyword);
+
+    List<UserDTO> getAllRentersWithInfo();
 }

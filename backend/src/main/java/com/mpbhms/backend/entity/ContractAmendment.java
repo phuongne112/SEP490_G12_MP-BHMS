@@ -55,6 +55,22 @@ public class ContractAmendment extends BaseEntity {
     @Convert(converter = com.mpbhms.backend.util.JsonListLongConverter.class)
     private List<Long> approvedBy;
     
+    @Column(name = "new_rent_amount")
+    private Double newRentAmount;
+
+    @Column(name = "new_deposit_amount", precision = 15, scale = 2)
+    private BigDecimal newDepositAmount;
+
+    @Column(name = "new_end_date")
+    private Instant newEndDate;
+
+    @Column(name = "new_terms", columnDefinition = "TEXT")
+    private String newTerms;
+
+    @Column(name = "new_renter_ids", columnDefinition = "TEXT")
+    @Convert(converter = com.mpbhms.backend.util.JsonListLongConverter.class)
+    private List<Long> newRenterIds;
+    
     public enum AmendmentType {
         RENT_INCREASE,
         DEPOSIT_CHANGE,

@@ -23,6 +23,8 @@ public class UserDTO {
     private Instant updatedDate;
     private RoleUser role;
     private RenterRoomInfoDTO renterRoomInfo;
+    private String fullName;
+    private String phoneNumber;
 
 
     @Getter
