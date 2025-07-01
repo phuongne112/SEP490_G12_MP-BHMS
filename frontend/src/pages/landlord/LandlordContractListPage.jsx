@@ -8,7 +8,7 @@ import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import ContractTable from "../../components/landlord/ContractTable";
 import ContractFilterPopover from "../../components/landlord/ContractFilterPopover";
 import dayjs from "dayjs";
-import { getAllRenters, getRentersForAssign } from "../../services/renterApi";
+import { getAllRenters, getRentersForAssign, getAllRentersForAssignFull } from "../../services/renterApi";
 import {
   renewContract,
   terminateContract,
@@ -17,6 +17,7 @@ import {
   processExpiredContracts,
   approveAmendment
 } from "../../services/roomUserApi";
+import { getAllRooms } from "../../services/roomService";
 
 const { Sider, Content } = Layout;
 
@@ -51,26 +52,42 @@ export default function LandlordContractListPage() {
   const [updateSpecialTerms, setUpdateSpecialTerms] = useState("");
   const [updateRenters, setUpdateRenters] = useState([]);
   const [allRenters, setAllRenters] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [selectedRoomId, setSelectedRoomId] = useState();
+  const [filterPaymentCycle, setFilterPaymentCycle] = useState();
+  const [filterDateRange, setFilterDateRange] = useState();
+  const [filterRoomId, setFilterRoomId] = useState();
+  const [roomContracts, setRoomContracts] = useState([]);
 
   const user = useSelector((state) => state.account.user);
 
-  const fetchContracts = async (page = currentPage, size = pageSize) => {
+  const fetchRoomsAndLatestContracts = async (page = currentPage, size = pageSize) => {
     setLoading(true);
     try {
-      const params = { ...filter, page: page - 1, size };
-      const res = await getAllContracts(params);
-      setContracts(res.result || []);
-      setTotal(res.meta?.total || 0);
+      const roomRes = await getAllRooms(page - 1, size);
+      const roomsData = roomRes.result || [];
+      const contractRes = await getAllContracts({});
+      const allContracts = contractRes.result || [];
+      const data = roomsData.map(room => {
+        const contractsOfRoom = allContracts.filter(c => (c.room?.id || c.roomId) === room.id);
+        const latestContract = contractsOfRoom.sort((a, b) => new Date(b.contractStartDate) - new Date(a.contractStartDate))[0] || {};
+        return {
+          ...room,
+          latestContract: latestContract ? { ...latestContract, roomId: room.id, roomNumber: room.roomNumber } : null
+        };
+      });
+      setRoomContracts(data);
+      setTotal(roomRes.meta?.total || data.length);
     } catch (err) {
-      message.error("Failed to load contracts");
+      message.error("Failed to load rooms/contracts");
     }
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchContracts(currentPage, pageSize);
+    fetchRoomsAndLatestContracts(currentPage, pageSize);
     // eslint-disable-next-line
-  }, [filter, currentPage, pageSize]);
+  }, [filter, currentPage, pageSize, selectedRoomId]);
 
   const handleExport = async (id) => {
     try {
@@ -86,7 +103,7 @@ export default function LandlordContractListPage() {
     try {
       await deleteContract(id);
       message.success("Contract deleted");
-      fetchContracts();
+      fetchRoomsAndLatestContracts();
     } catch {
       message.error("Delete failed");
     }
@@ -101,12 +118,6 @@ export default function LandlordContractListPage() {
     }
     setFilter(params);
     setFilterVisible(false);
-  };
-
-  const handlePageSizeChange = (value) => {
-    setPageSize(value);
-    setCurrentPage(1);
-    fetchContracts(1, value);
   };
 
   const handleRenewContract = (contract) => {
@@ -134,7 +145,7 @@ export default function LandlordContractListPage() {
   
       message.success("Gia hạn thành công");
       setRenewModalOpen(false);
-      fetchContracts();
+      fetchRoomsAndLatestContracts();
     } catch (e) {
       console.error("Lỗi khi gia hạn hợp đồng:", e);
       message.error("Gia hạn thất bại");
@@ -149,7 +160,7 @@ export default function LandlordContractListPage() {
     try {
       await terminateContract(contractId);
       message.success("Đã kết thúc hợp đồng");
-      fetchContracts();
+      fetchRoomsAndLatestContracts();
     } catch (e) {
       message.error("Kết thúc hợp đồng thất bại");
     } finally { setUpdating(false); }
@@ -167,8 +178,7 @@ export default function LandlordContractListPage() {
       contract.roomUsers?.filter(u => u.isActive !== false).map(u => u.userId || u.id) || []
     );
     setUpdateModalOpen(true);
-    getRentersForAssign().then(res => {
-      console.log('API getRentersForAssign trả về:', res);
+    getAllRentersForAssignFull().then(res => {
       if (Array.isArray(res.data)) {
         setAllRenters(res.data);
       } else if (res.data && Array.isArray(res.data.result)) {
@@ -185,17 +195,17 @@ export default function LandlordContractListPage() {
     try {
       await updateRoomUserContract({
         contractId: updateContract.id,
+        newRentAmount: updateRentAmount,
+        newDepositAmount: updateDeposit,
+        newEndDate: updateEndDate ? dayjs(updateEndDate).endOf('day').toISOString() : null,
+        newTerms: updateSpecialTerms,
         reasonForUpdate: updateReason,
-        rentAmount: updateRentAmount,
-        depositAmount: updateDeposit,
-        contractEndDate: updateEndDate ? dayjs(updateEndDate).endOf('day').toISOString() : null,
-        paymentCycle: updatePaymentCycle,
-        specialTerms: updateSpecialTerms,
+        requiresTenantApproval: true,
         renterIds: updateRenters
       });
       message.success("Đã gửi yêu cầu cập nhật");
       setUpdateModalOpen(false);
-      fetchContracts();
+      fetchRoomsAndLatestContracts();
     } catch (e) {
       message.error("Cập nhật thất bại");
     } finally { setUpdating(false); }
@@ -216,7 +226,7 @@ export default function LandlordContractListPage() {
     try {
       await processExpiredContracts();
       message.success('Đã xử lý hợp đồng hết hạn');
-      fetchContracts();
+      fetchRoomsAndLatestContracts();
     } catch (e) {
       message.error('Lỗi khi xử lý hợp đồng hết hạn');
     }
@@ -265,35 +275,62 @@ export default function LandlordContractListPage() {
   const currentCount = currentRenters.length;
   const maxCount = updateContract?.maxOccupants || 0;
 
+  const handleAdvancedFilter = () => {
+    const params = { ...filter };
+    if (filterPaymentCycle) params.paymentCycle = filterPaymentCycle;
+    if (filterDateRange && filterDateRange.length === 2) {
+      params.contractStartDateFrom = filterDateRange[0]?.startOf("day").toISOString();
+      params.contractStartDateTo = filterDateRange[1]?.endOf("day").toISOString();
+    }
+    if (filterRoomId) params.roomId = filterRoomId;
+    setFilter(params);
+    setCurrentPage(1);
+  };
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <Sider width={240}>
-        {user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
-          <AdminSidebar />
-        ) : (
-          <LandlordSidebar />
-        )}
+      <Sider width={220}>
+        <LandlordSidebar />
       </Sider>
       <Layout>
-        <Content style={{ padding: "24px" }}>
-          <PageHeader
-            title="Contract List"
-            extra={[
-              <Button danger key="expired" onClick={handleProcessExpiredContracts}>
-                Xử lý hợp đồng hết hạn
-              </Button>,
-              <Popover
-                key="filter"
-                content={<ContractFilterPopover onApply={handleFilterApply} />}
-                title={null}
-                trigger="click"
-                open={filterVisible}
-                onOpenChange={setFilterVisible}
-              >
-                <Button>Filter</Button>
-              </Popover>
-            ]}
-          />
+        <Content style={{ padding: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <PageHeader title="Contract List" />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <Select
+                style={{ width: 150 }}
+                placeholder="Payment Cycle"
+                value={filterPaymentCycle}
+                onChange={setFilterPaymentCycle}
+                allowClear
+                options={[
+                  { label: "Tất cả", value: "" },
+                  { label: "Hàng tháng", value: "MONTHLY" },
+                  { label: "Hàng quý", value: "QUARTERLY" },
+                  { label: "Hàng năm", value: "YEARLY" }
+                ]}
+              />
+              <DatePicker.RangePicker
+                style={{ width: 240 }}
+                value={filterDateRange}
+                onChange={setFilterDateRange}
+                placeholder={["Start date", "End date"]}
+                format="DD/MM/YYYY"
+              />
+              <Select
+                showSearch
+                style={{ width: 150 }}
+                placeholder="Room Number"
+                value={filterRoomId}
+                onChange={setFilterRoomId}
+                allowClear
+                optionFilterProp="children"
+                options={rooms.map(room => ({ value: room.id, label: room.roomNumber }))}
+              />
+              <Button type="primary" onClick={handleAdvancedFilter}>Lọc</Button>
+              <Button onClick={() => { setFilterPaymentCycle(); setFilterDateRange(); setFilterRoomId(); setFilter({}); setCurrentPage(1); }}>Xóa lọc</Button>
+            </div>
+          </div>
           <div
             style={{
               height: 16
@@ -310,10 +347,14 @@ export default function LandlordContractListPage() {
             <div>
               Show
               <Select
-                style={{ width: 80, margin: "0 8px", marginLeft: 8, marginRight: 8 }}
+                style={{ width: 120, margin: "0 8px" }}
                 value={pageSize}
-                onChange={handlePageSizeChange}
-                options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
+                onChange={value => {
+                  setPageSize(value);
+                  setCurrentPage(1);
+                  fetchRoomsAndLatestContracts(1, value);
+                }}
+                options={pageSizeOptions.map((v) => ({ value: v, label: `${v} / page` }))}
               />
               entries
             </div>
@@ -322,7 +363,7 @@ export default function LandlordContractListPage() {
             </div>
           </div>
           <ContractTable
-            contracts={contracts}
+            rooms={roomContracts}
             onExport={handleExport}
             onDelete={handleDelete}
             onUpdate={handleUpdateContract}
@@ -330,6 +371,13 @@ export default function LandlordContractListPage() {
             onViewAmendments={handleViewAmendments}
             onTerminate={handleTerminateContract}
             loading={loading || updating}
+            pageSize={pageSize}
+            currentPage={currentPage}
+            total={total}
+            onPageChange={(page) => {
+              setCurrentPage(page);
+              fetchRoomsAndLatestContracts(page, pageSize);
+            }}
           />
           <Modal open={renewModalOpen} onCancel={() => setRenewModalOpen(false)} onOk={doRenewContract} okText="Gia hạn" confirmLoading={updating} title="Gia hạn hợp đồng">
             <div>Chọn ngày kết thúc mới:</div>
@@ -349,49 +397,58 @@ export default function LandlordContractListPage() {
             <div style={{ marginBottom: 8 }}>Điều khoản đặc biệt (ghi chú):</div>
             <Input.TextArea value={updateSpecialTerms} onChange={e => setUpdateSpecialTerms(e.target.value)} rows={2} style={{ marginBottom: 12 }} />
             <div style={{ marginBottom: 8 }}>
-              Chọn người thuê ({currentCount}/{maxCount}):
+              Người thuê trong hợp đồng mới ({updateRenters.length}/{maxCount}):
             </div>
-            <Select
-              mode="multiple"
-              value={updateRenters}
-              onChange={setUpdateRenters}
-              style={{ width: '100%' }}
-              options={selectOptions}
-              placeholder={`Chọn người thuê mới cho hợp đồng (${updateRenters.length}/${updateContract?.maxOccupants || 0})`}
-            />
-            {/* Danh sách người đang thuê hiện tại */}
-            {updateContract && Array.isArray(updateContract.roomUsers) && (
-              <div style={{ marginTop: 16 }}>
-                <b>Người đang thuê hiện tại:</b>
-                <ul style={{ margin: '8px 0 0 16px', padding: 0 }}>
-                  {updateContract.roomUsers
-                    .filter(u => u.isActive !== false && updateRenters.includes(u.userId || u.id))
-                    .map(u => (
-                      <li key={u.userId || u.id} style={{ marginBottom: 4, display: 'flex', alignItems: 'center' }}>
-                        <span>
-                          {u.fullName || 'Không rõ tên'}
-                          {u.phoneNumber ? ` (${u.phoneNumber})` : ''}
-                          {u.joinedAt ? ` - từ ${dayjs(u.joinedAt).format('DD/MM/YYYY')}` : ''}
-                        </span>
-                        <Button
-                          type="link"
-                          danger
-                          size="small"
-                          style={{ marginLeft: 8 }}
-                          onClick={() => {
-                            setUpdateRenters(prev => prev.filter(id => id !== (u.userId || u.id)));
-                          }}
-                        >
-                          X
-                        </Button>
-                      </li>
-                    ))}
-                  {updateContract.roomUsers.filter(u => u.isActive !== false && updateRenters.includes(u.userId || u.id)).length === 0 && (
-                    <li>Không có người thuê nào đang ở</li>
-                  )}
-                </ul>
-              </div>
+            <ul style={{ margin: '8px 0 8px 16px', padding: 0 }}>
+              {updateRenters.length === 0 && <li>Chưa có người thuê nào</li>}
+              {updateRenters.map(id => {
+                const user = allRenters.find(r => r.id === id);
+                return (
+                  <li key={id} style={{ marginBottom: 4, display: 'flex', alignItems: 'center' }}>
+                    <span>
+                      {user?.fullName || 'Không rõ tên'}
+                      {user?.phoneNumber ? ` (${user.phoneNumber})` : ''}
+                      {updateContract?.roomUsers?.some(u => (u.userId || u.id) === id && u.isActive !== false) ? ' (Đang ở)' : ' (Mới)'}
+                    </span>
+                    <Button
+                      type="link"
+                      danger
+                      size="small"
+                      style={{ marginLeft: 8 }}
+                      onClick={() => setUpdateRenters(prev => prev.filter(uid => uid !== id))}
+                    >
+                      X
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+            {updateRenters.length < maxCount && (
+              <Select
+                style={{ width: '100%', marginBottom: 8 }}
+                showSearch
+                placeholder="Thêm người thuê vào hợp đồng"
+                optionFilterProp="children"
+                value={null}
+                onChange={id => {
+                  if (!updateRenters.includes(id)) setUpdateRenters(prev => [...prev, id]);
+                }}
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+                options={allRenters
+                  .filter(r => !updateRenters.includes(r.id))
+                  .map(r => ({
+                    value: r.id,
+                    label: `${r.fullName || 'Không rõ tên'}${r.phoneNumber ? ` (${r.phoneNumber})` : ''}`
+                  }))}
+              />
             )}
+            <div style={{ color: '#888', fontSize: 12, marginTop: 8 }}>
+              * Nếu bạn bỏ chọn người thuê đang ở, họ sẽ bị xóa khỏi hợp đồng mới.<br/>
+              * Nếu bạn thêm người mới, họ sẽ được thêm vào hợp đồng mới.<br/>
+              * Số người thuê tối đa: {maxCount}
+            </div>
           </Modal>
           <Modal open={amendmentsModalOpen} onCancel={() => setAmendmentsModalOpen(false)} footer={null} title="Lịch sử thay đổi hợp đồng">
             <List

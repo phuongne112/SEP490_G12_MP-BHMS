@@ -17,3 +17,7 @@ export const createRenter = async (data) => {
   const res = await axiosClient.post("/renters", data);
   return res.data;
 };
+
+export const getAllRentersForAssignFull = () => {
+  return axiosClient.get('/renters/for-assign-full');
+};

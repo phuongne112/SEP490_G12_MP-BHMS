@@ -95,6 +95,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Process Expired Contracts Service", "/mpbhms/contracts/process-expired", "POST", "Contract"));
             permissions.add(new Permission("Renew Contract Service", "/mpbhms/contracts/renew/{contractId}", "POST", "Contract"));
             permissions.add(new Permission("Get Expiring Contracts Service", "/mpbhms/contracts/expiring", "GET", "Contract"));
+            permissions.add(new Permission("Get My Contracts", "/mpbhms/contracts/my-contracts", "GET", "Contract"));
             permissions.add(new Permission("Update Contract Terms", "/mpbhms/contracts/update", "POST", "Contract"));
             permissions.add(new Permission("Approve Contract Amendment", "/mpbhms/contracts/approve-amendment/{amendmentId}", "POST", "Contract"));
             permissions.add(new Permission("Reject Contract Amendment", "/mpbhms/contracts/reject-amendment/{amendmentId}", "POST", "Contract"));
@@ -116,6 +117,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Create new Renter", "/mpbhms/renters", "POST", "Renter"));
             permissions.add(new Permission("Change renter status", "/mpbhms/renters/{id}/status", "PUT", "Renter"));
             permissions.add(new Permission("Get Renters for Assign", "/mpbhms/renters/for-assign", "GET", "Renter"));
+            permissions.add(new Permission("Get Renters for Assign Full", "/mpbhms/renters/for-assign-full", "GET", "Renter"));
             //Service
             permissions.add(new Permission("Create Service", "/mpbhms/services", "POST", "Service"));
             permissions.add(new Permission("Update Service", "/mpbhms/services/{id}", "PUT", "Service"));

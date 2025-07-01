@@ -9,10 +9,13 @@ import {
   Spin,
   message,
   Divider,
+  Table,
+  Button,
 } from "antd";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { getAllRooms } from "../services/roomService";
 import { useSelector } from "react-redux";
+import { getContractHistoryByRoom } from "../services/contractApi";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -26,6 +29,7 @@ export default function RoomDetailPage() {
   const [room, setRoom] = useState(location.state?.room || null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [loading, setLoading] = useState(!room);
+  const [contractHistory, setContractHistory] = useState([]);
 
   useEffect(() => {
     const hasLandlordInfo = room?.landlordName && room?.landlordPhone;
@@ -35,6 +39,11 @@ export default function RoomDetailPage() {
     } else {
       setSelectedImage(room.images?.[0]?.imageUrl);
       setLoading(false); // Bổ sung chỗ này để tránh bị treo khi chỉ truyền location.state
+    }
+    if (room?.id) {
+      getContractHistoryByRoom(room.id)
+        .then((data) => setContractHistory(data))
+        .catch(() => setContractHistory([]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -243,6 +252,44 @@ export default function RoomDetailPage() {
               )}
             </Col>
           </Row>
+          <Divider style={{ margin: '32px 0 16px 0' }} />
+          <Title level={4} style={{ marginBottom: 16 }}>Contract History</Title>
+          <Table
+            dataSource={contractHistory}
+            rowKey="id"
+            pagination={false}
+            columns={[
+              {
+                title: "Contract No.",
+                dataIndex: "contractNumber",
+                key: "contractNumber",
+                render: (num, record) => num || `#${record.id}`,
+              },
+              {
+                title: "Status",
+                dataIndex: "contractStatus",
+                key: "contractStatus",
+                render: (status) => <Tag color={status === 'ACTIVE' ? 'green' : status === 'EXPIRED' ? 'red' : 'default'}>{status}</Tag>,
+              },
+              {
+                title: "Start Date",
+                dataIndex: "contractStartDate",
+                key: "contractStartDate",
+                render: (date) => date ? new Date(date).toLocaleDateString() : '',
+              },
+              {
+                title: "End Date",
+                dataIndex: "contractEndDate",
+                key: "contractEndDate",
+                render: (date) => date ? new Date(date).toLocaleDateString() : '',
+              },
+              {
+                title: "Action",
+                key: "action",
+                render: (_, record) => <Button size="small" onClick={() => navigate(`/landlord/contracts/${record.id}`)}>View</Button>,
+              },
+            ]}
+          />
         </div>
       </Content>
     </Layout>

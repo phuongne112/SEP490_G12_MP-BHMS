@@ -24,4 +24,10 @@ export const approveAmendment = (amendmentId, isLandlordApproval) => {
   return axiosClient.post(`/room-users/approve-amendment/${amendmentId}`, {
     isLandlordApproval
   });
+};
+
+export const rejectAmendment = (amendmentId, reason) => {
+  return axiosClient.post(`/room-users/reject-amendment/${amendmentId}`, {
+    reason
+  });
 }; 

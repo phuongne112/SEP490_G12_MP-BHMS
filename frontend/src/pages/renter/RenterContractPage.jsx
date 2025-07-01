@@ -1,52 +1,53 @@
 import React, { useEffect, useState } from "react";
-import { Card, Descriptions, Tag, Spin, Typography, Button, message, Row, Col } from "antd";
+import { Card, Descriptions, Tag, Spin, Typography, Button, message, Row, Col, Modal, List } from "antd";
 import { FileTextOutlined } from "@ant-design/icons";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import dayjs from "dayjs";
+import { getRenterContracts } from "../../services/contractApi";
+import { getPersonalInfo } from "../../services/userApi";
+import { getContractAmendments, approveAmendment, rejectAmendment } from "../../services/roomUserApi";
 
 const { Title, Text } = Typography;
 
 export default function RenterContractPage() {
   const [contract, setContract] = useState(null);
+  const [renterInfo, setRenterInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [amendmentsModalOpen, setAmendmentsModalOpen] = useState(false);
+  const [amendments, setAmendments] = useState([]);
+  const [amendmentLoading, setAmendmentLoading] = useState(false);
+  const [approvingId, setApprovingId] = useState(null);
+  const [rejectingId, setRejectingId] = useState(null);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   useEffect(() => {
-    fetchContract();
+    fetchData();
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const fetchContract = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      // TODO: Implement API call to get renter's contract
-      // const res = await getMyContract();
-      // setContract(res);
-      
-      // Mock data for now
-      setContract({
-        id: 1,
-        contractNumber: "CTR-2024-001",
-        roomNumber: "A101",
-        startDate: "2024-01-01",
-        endDate: "2024-12-31",
-        monthlyRent: 5000000,
-        deposit: 10000000,
-        status: "ACTIVE",
-        landlordName: "Nguyen Van A",
-        landlordPhone: "0123456789",
-        terms: [
-          "Pay rent on the 1st of every month",
-          "Keep the room clean",
-          "No pets allowed",
-          "Turn off electricity when leaving the room"
-        ]
-      });
+      // Lấy hợp đồng của người thuê hiện tại
+      const contractRes = await getRenterContracts();
+      const contracts = contractRes.data || contractRes; // tuỳ backend trả về
+      if (contracts && contracts.length > 0) {
+        setContract(contracts[0]); // Hiện hợp đồng đầu tiên
+      } else {
+        setContract(null);
+      }
+      // Lấy thông tin người thuê hiện tại
+      const renter = await getPersonalInfo();
+      setRenterInfo(renter);
     } catch (err) {
-      message.error("Failed to load contract information");
+      message.error("Không thể tải thông tin hợp đồng hoặc người thuê");
+      setContract(null);
+      setRenterInfo(null);
     }
     setLoading(false);
   };
@@ -69,6 +70,54 @@ export default function RenterContractPage() {
     }
   };
 
+  const handleViewAmendments = async () => {
+    if (!contract?.id) return;
+    setAmendmentsModalOpen(true);
+    setAmendmentLoading(true);
+    try {
+      const res = await getContractAmendments(contract.id);
+      setAmendments(res.data || res);
+    } catch {
+      setAmendments([]);
+    }
+    setAmendmentLoading(false);
+  };
+
+  const handleApproveAmendment = async (amendmentId) => {
+    setApprovingId(amendmentId);
+    try {
+      await approveAmendment(amendmentId, false); // false = tenant/renter duyệt
+      message.success("Đã duyệt thay đổi!");
+      handleViewAmendments();
+    } catch {
+      message.error("Duyệt thất bại!");
+    }
+    setApprovingId(null);
+  };
+
+  const handleRejectAmendment = (amendmentId) => {
+    setRejectingId(amendmentId);
+    setRejectReason("");
+    setRejectModalOpen(true);
+  };
+
+  const doRejectAmendment = async () => {
+    if (!rejectReason) {
+      message.error("Vui lòng nhập lý do từ chối!");
+      return;
+    }
+    try {
+      await rejectAmendment(rejectingId, rejectReason);
+      message.success("Đã từ chối thay đổi!");
+      setRejectModalOpen(false);
+      setRejectingId(null);
+      setRejectReason("");
+      handleViewAmendments();
+    } catch {
+      message.error("Từ chối thất bại!");
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ display: "flex", minHeight: "100vh" }}>
@@ -76,7 +125,7 @@ export default function RenterContractPage() {
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ textAlign: "center" }}>
             <Spin size="large" />
-            <div style={{ marginTop: 16 }}>Loading contract information...</div>
+            <div style={{ marginTop: 16 }}>Đang tải thông tin hợp đồng...</div>
           </div>
         </div>
       </div>
@@ -89,8 +138,8 @@ export default function RenterContractPage() {
         <RenterSidebar />
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ textAlign: "center" }}>
-            <Title level={3}>No contract</Title>
-            <Text type="secondary">You do not have any rental contract.</Text>
+            <Title level={3}>Không có hợp đồng</Title>
+            <Text type="secondary">Bạn chưa có hợp đồng thuê phòng nào.</Text>
           </div>
         </div>
       </div>
@@ -121,10 +170,10 @@ export default function RenterContractPage() {
             <div style={{ marginBottom: isMobile ? 16 : 24 }}>
               <Title level={2} style={{ margin: 0, color: "#1890ff", textAlign: "center", fontSize: isMobile ? 22 : 32 }}>
                 <FileTextOutlined style={{ marginRight: 8 }} />
-                Rental Contract
+                Hợp đồng thuê phòng
               </Title>
               <Text type="secondary" style={{ display: "block", textAlign: "center", marginBottom: isMobile ? 16 : 24, fontSize: isMobile ? 14 : 16 }}>
-                Detailed information about your rental contract
+                Thông tin chi tiết về hợp đồng thuê phòng của bạn
               </Text>
             </div>
             <div
@@ -137,63 +186,63 @@ export default function RenterContractPage() {
               }}
             >
               <div style={{ flex: 1, minWidth: isMobile ? "100%" : 340, maxWidth: isMobile ? "100%" : 600 }}>
-                <Card title="Contract Information" style={{ marginBottom: 24 }}>
+                <Card title="Thông tin hợp đồng" style={{ marginBottom: 24 }}>
                   <Descriptions bordered column={2} size={isMobile ? "small" : "default"}>
-                    <Descriptions.Item label="Contract No.">
+                    <Descriptions.Item label="Mã hợp đồng">
                       <Text strong style={{ color: "#1890ff" }}>
-                        {contract.contractNumber}
+                        {contract.id || contract.contractNumber}
                       </Text>
                     </Descriptions.Item>
-                    <Descriptions.Item label="Room">
+                    <Descriptions.Item label="Phòng">
                       <Tag color="blue" style={{ fontWeight: "bold" }}>
                         {contract.roomNumber}
                       </Tag>
                     </Descriptions.Item>
-                    <Descriptions.Item label="Start Date">
-                      <Text>{dayjs(contract.startDate).format("DD/MM/YYYY")}</Text>
+                    <Descriptions.Item label="Ngày bắt đầu">
+                      <Text>{dayjs(contract.contractStartDate || contract.startDate).format("DD/MM/YYYY")}</Text>
                     </Descriptions.Item>
-                    <Descriptions.Item label="End Date">
-                      <Text>{dayjs(contract.endDate).format("DD/MM/YYYY")}</Text>
+                    <Descriptions.Item label="Ngày kết thúc">
+                      <Text>{dayjs(contract.contractEndDate || contract.endDate).format("DD/MM/YYYY")}</Text>
                     </Descriptions.Item>
-                    <Descriptions.Item label="Monthly Rent">
+                    <Descriptions.Item label="Tiền thuê/tháng">
                       <Text strong style={{ color: "#52c41a", fontSize: "16px" }}>
-                        {contract.monthlyRent?.toLocaleString()} ₫
+                        {contract.rentAmount?.toLocaleString() || contract.monthlyRent?.toLocaleString()} ₫
                       </Text>
                     </Descriptions.Item>
-                    <Descriptions.Item label="Deposit">
+                    <Descriptions.Item label="Tiền cọc">
                       <Text strong style={{ color: "#faad14", fontSize: "16px" }}>
-                        {contract.deposit?.toLocaleString()} ₫
+                        {contract.depositAmount?.toLocaleString() || contract.deposit?.toLocaleString()} ₫
                       </Text>
                     </Descriptions.Item>
-                    <Descriptions.Item label="Status" span={2}>
+                    <Descriptions.Item label="Trạng thái" span={2}>
                       <Tag 
-                        color={getStatusColor(contract.status)}
+                        color={getStatusColor(contract.contractStatus || contract.status)}
                         style={{ fontSize: "14px", padding: "4px 8px" }}
                       >
-                        {getStatusText(contract.status)}
+                        {getStatusText(contract.contractStatus || contract.status)}
                       </Tag>
                     </Descriptions.Item>
                   </Descriptions>
                 </Card>
-                <Card title="Landlord Information">
+                <Card title="Thông tin người thuê">
                   <Descriptions bordered column={1} size={isMobile ? "small" : "default"}>
-                    <Descriptions.Item label="Landlord Name">
-                      <Text strong>{contract.landlordName}</Text>
+                    <Descriptions.Item label="Họ tên">
+                      <Text strong>{renterInfo?.fullName}</Text>
                     </Descriptions.Item>
-                    <Descriptions.Item label="Phone Number">
-                      <Text>{contract.landlordPhone}</Text>
+                    <Descriptions.Item label="Số điện thoại">
+                      <Text>{renterInfo?.phoneNumber}</Text>
                     </Descriptions.Item>
                   </Descriptions>
                 </Card>
               </div>
               <div style={{ flex: 1, minWidth: isMobile ? "100%" : 280, maxWidth: isMobile ? "100%" : 350, marginTop: isMobile ? 16 : 0 }}>
-                <Card title="Contract Terms" style={{ position: isMobile ? "static" : "sticky", top: 20 }}>
+                <Card title="Điều khoản hợp đồng" style={{ position: isMobile ? "static" : "sticky", top: 20 }}>
                   <div>
-                    {contract.terms?.map((term, index) => (
+                    {contract.terms?.length > 0 ? contract.terms.map((term, index) => (
                       <div key={index} style={{ marginBottom: 12 }}>
                         <Text style={{ fontSize: isMobile ? 14 : 16 }}>• {term}</Text>
                       </div>
-                    ))}
+                    )) : <Text type="secondary">Không có điều khoản cụ thể.</Text>}
                   </div>
                   <div style={{ marginTop: 24 }}>
                     <Button
@@ -201,15 +250,82 @@ export default function RenterContractPage() {
                       icon={<FileTextOutlined />}
                       block
                       size={isMobile ? "middle" : "large"}
+                      // TODO: Thêm chức năng tải hợp đồng nếu cần
                     >
-                      Download Contract
+                      Tải hợp đồng
                     </Button>
                   </div>
                 </Card>
               </div>
             </div>
+            <div style={{ marginTop: 24, textAlign: "center" }}>
+              <Button type="default" onClick={handleViewAmendments}>
+                Xem lịch sử thay đổi hợp đồng
+              </Button>
+            </div>
           </Card>
         </div>
+        <Modal
+          open={amendmentsModalOpen}
+          onCancel={() => setAmendmentsModalOpen(false)}
+          footer={null}
+          title="Lịch sử thay đổi hợp đồng"
+        >
+          {amendmentLoading ? (
+            <Spin />
+          ) : (
+            <List
+              dataSource={amendments}
+              renderItem={item => (
+                <List.Item
+                  actions={[
+                    item.status === 'PENDING' && (
+                      <>
+                        <Button
+                          type="primary"
+                          loading={approvingId === item.id}
+                          onClick={() => handleApproveAmendment(item.id)}
+                        >
+                          Duyệt
+                        </Button>
+                        <Button
+                          danger
+                          loading={rejectingId === item.id && rejectModalOpen}
+                          onClick={() => handleRejectAmendment(item.id)}
+                          style={{ marginLeft: 8 }}
+                        >
+                          Từ chối
+                        </Button>
+                      </>
+                    )
+                  ]}
+                >
+                  <div>
+                    <b>{item.amendmentType}</b> | {item.oldValue} → {item.newValue} | {item.status}
+                    <div style={{ color: '#888', fontSize: 12 }}>{item.reason}</div>
+                  </div>
+                </List.Item>
+              )}
+              locale={{ emptyText: "Không có thay đổi nào" }}
+            />
+          )}
+        </Modal>
+        <Modal
+          open={rejectModalOpen}
+          onCancel={() => setRejectModalOpen(false)}
+          onOk={doRejectAmendment}
+          okText="Xác nhận từ chối"
+          title="Lý do từ chối thay đổi hợp đồng"
+          confirmLoading={rejectingId !== null && rejectModalOpen}
+        >
+          <div>Vui lòng nhập lý do từ chối:</div>
+          <textarea
+            value={rejectReason}
+            onChange={e => setRejectReason(e.target.value)}
+            rows={3}
+            style={{ width: '100%', marginTop: 8 }}
+          />
+        </Modal>
       </div>
     </div>
   );

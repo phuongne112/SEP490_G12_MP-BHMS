@@ -56,4 +56,9 @@ public class RenterController {
     public ResponseEntity<List<UserDTO>> getRentersForAssign(@RequestParam(required = false) String keyword) {
         return ResponseEntity.ok(renterService.getRentersForAssign(keyword));
     }
+
+    @GetMapping("/for-assign-full")
+    public ResponseEntity<List<UserDTO>> getAllRentersForAssignFull() {
+        return ResponseEntity.ok(renterService.getAllRentersWithInfo());
+    }
 }

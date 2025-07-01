@@ -54,7 +54,7 @@ export default function LandlordBillCreatePage() {
   const fetchContracts = async () => {
     try {
       const res = await getAllContracts();
-      setContracts(res.result || []);
+      setContracts((res.result || []).filter(c => c.contractStatus === 'ACTIVE'));
     } catch (err) {
       message.error("Failed to load contracts");
     }
