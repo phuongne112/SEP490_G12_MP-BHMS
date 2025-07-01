@@ -13,4 +13,16 @@ public interface ContractRepository extends JpaRepository<Contract, Long>, JpaSp
     java.util.Optional<Contract> findActiveByRoomId(@Param("roomId") Long roomId);
     
     List<Contract> findByRoomId(Long roomId);
+    
+    // Tìm hợp đồng ACTIVE đã hết hạn
+    List<Contract> findByContractStatusAndContractEndDateBefore(
+        com.mpbhms.backend.enums.ContractStatus contractStatus, 
+        java.time.Instant endDate);
+    
+    // Tìm hợp đồng sắp hết hạn
+    org.springframework.data.domain.Page<Contract> findByContractStatusAndContractEndDateBetween(
+        com.mpbhms.backend.enums.ContractStatus contractStatus,
+        java.time.Instant startDate,
+        java.time.Instant endDate,
+        org.springframework.data.domain.Pageable pageable);
 }

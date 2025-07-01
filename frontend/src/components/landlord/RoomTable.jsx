@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { Card, Row, Col, Button, Badge, Skeleton, Tag, Dropdown, Menu, message, Modal, Select, Input, Upload } from "antd";
+import { Card, Row, Col, Button, Badge, Skeleton, Tag, Dropdown, Menu, message, Modal, Select, Input, Upload, Tooltip } from "antd";
 import { updateRoomStatus, toggleRoomActiveStatus, deleteRoom, addServiceToRoom } from "../../services/roomService";
 import { getAllServicesList } from "../../services/serviceApi";
 import { detectElectricOcr } from "../../services/electricOcrApi";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { UserOutlined, ClockCircleOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 
 const { Meta } = Card;
 const { Option } = Select;
@@ -41,7 +42,27 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
     const [ocrLoading, setOcrLoading] = useState(false);
     const [pendingServices, setPendingServices] = useState([]); // Lưu danh sách dịch vụ đang chờ thêm
 
-    const user = useSelector((state) => state.account.user);
+// For contract management
+const [contractModalOpen, setContractModalOpen] = useState(false);
+const [selectedContract, setSelectedContract] = useState(null);
+const [renewalDate, setRenewalDate] = useState("");
+const [renewingContract, setRenewingContract] = useState(false);
+
+// For contract updates
+const [updateContractModalOpen, setUpdateContractModalOpen] = useState(false);
+const [updateContractData, setUpdateContractData] = useState({
+    newRentAmount: "",
+    newDepositAmount: "",
+    newTerms: "",
+    reasonForUpdate: "",
+    requiresTenantApproval: true
+});
+const [updatingContract, setUpdatingContract] = useState(false);
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+
+const user = useSelector((state) => state.account.user);
+
 
     const handleStatusChange = async (roomId, newStatus) => {
         setUpdatingId(roomId);
@@ -183,6 +204,137 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
         }
     };
 
+    // Function để xử lý khi người thuê rời phòng
+    const handleRenterLeave = async (roomUserId) => {
+        try {
+            // Gọi API để xử lý người thuê rời phòng
+            const response = await fetch(`${BACKEND_URL}/mpbhms/room-users/leave/${roomUserId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            if (response.ok) {
+                message.success('Người thuê đã rời phòng thành công');
+                if (onRoomsUpdate) onRoomsUpdate();
+            } else {
+                const errorData = await response.text();
+                message.error(errorData);
+            }
+        } catch (error) {
+            message.error('Có lỗi xảy ra khi xử lý người thuê rời phòng');
+        }
+    };
+
+    // Function để gia hạn hợp đồng
+    const handleRenewContract = async () => {
+        if (!renewalDate) {
+            message.error('Vui lòng chọn ngày gia hạn');
+            return;
+        }
+
+        setRenewingContract(true);
+        try {
+            const response = await fetch(`${BACKEND_URL}/mpbhms/room-users/renew-contract/${selectedContract.id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    newEndDate: new Date(renewalDate).toISOString()
+                })
+            });
+
+            if (response.ok) {
+                message.success('Gia hạn hợp đồng thành công');
+                setContractModalOpen(false);
+                setRenewalDate("");
+                setSelectedContract(null);
+                if (onRoomsUpdate) onRoomsUpdate();
+            } else {
+                const errorData = await response.text();
+                message.error(errorData);
+            }
+        } catch (error) {
+            message.error('Có lỗi xảy ra khi gia hạn hợp đồng');
+        } finally {
+            setRenewingContract(false);
+        }
+    };
+
+    // Function để xử lý hợp đồng hết hạn
+    const handleProcessExpiredContracts = async () => {
+        try {
+            const response = await fetch(`${BACKEND_URL}/mpbhms/room-users/process-expired-contracts`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (response.ok) {
+                message.success('Đã xử lý tất cả hợp đồng hết hạn');
+                if (onRoomsUpdate) onRoomsUpdate();
+            } else {
+                const errorData = await response.text();
+                message.error(errorData);
+            }
+        } catch (error) {
+            message.error('Có lỗi xảy ra khi xử lý hợp đồng hết hạn');
+        }
+    };
+
+    // Function để cập nhật hợp đồng
+    const handleUpdateContract = async () => {
+        if (!updateContractData.reasonForUpdate) {
+            message.error('Vui lòng nhập lý do cập nhật');
+            return;
+        }
+
+        setUpdatingContract(true);
+        try {
+            const requestData = {
+                contractId: selectedContract.id,
+                newRentAmount: updateContractData.newRentAmount ? parseFloat(updateContractData.newRentAmount) : null,
+                newDepositAmount: updateContractData.newDepositAmount ? parseFloat(updateContractData.newDepositAmount) : null,
+                newTerms: updateContractData.newTerms || null,
+                reasonForUpdate: updateContractData.reasonForUpdate,
+                requiresTenantApproval: updateContractData.requiresTenantApproval,
+                tenantIds: selectedContract.roomUsers?.map(ru => ru.user.id) || []
+            };
+
+            const response = await fetch(`${BACKEND_URL}/mpbhms/room-users/update-contract`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            if (response.ok) {
+                message.success('Đã tạo yêu cầu cập nhật hợp đồng thành công');
+                setUpdateContractModalOpen(false);
+                setUpdateContractData({
+                    newRentAmount: "",
+                    newDepositAmount: "",
+                    newTerms: "",
+                    reasonForUpdate: "",
+                    requiresTenantApproval: true
+                });
+                setSelectedContract(null);
+                if (onRoomsUpdate) onRoomsUpdate();
+            } else {
+                const errorData = await response.text();
+                message.error(errorData);
+            }
+        } catch (error) {
+            message.error('Có lỗi xảy ra khi cập nhật hợp đồng');
+        } finally {
+            setUpdatingContract(false);
+        }
+    };
+
     const statusMenu = (room) => (
         <Menu
             onClick={({ key }) => {
@@ -215,7 +367,6 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
         <>
             <Row gutter={[16, 16]}>
                 {rooms.map((room) => {
-                    const BACKEND_URL = "http://localhost:8080";
                     const getImageUrl = (url) => {
                         if (!url) return "/img/room-default.png";
                         if (url.startsWith("http")) return url;
@@ -325,7 +476,10 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
                                             />
                                         </a>
                                     </Dropdown>
-                                    <Button type="dashed" onClick={() => openServiceModal(room)}>
+                                    <Button
+                                        type="dashed" 
+                                        onClick={() => openServiceModal(room)}
+                                    >
                                         Thêm dịch vụ
                                     </Button>
                                 </div>

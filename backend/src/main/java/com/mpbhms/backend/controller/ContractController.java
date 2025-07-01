@@ -11,6 +11,7 @@ import com.mpbhms.backend.dto.ResultPaginationDTO;
 import com.turkraft.springfilter.boot.Filter;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import com.mpbhms.backend.util.SecurityUtil;
 
 @RestController
 @RequestMapping("/mpbhms/contracts")
@@ -66,5 +67,12 @@ public class ContractController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/my-contracts")
+    public ResponseEntity<?> getMyContracts() {
+        Long userId = SecurityUtil.getCurrentUserId();
+        java.util.List<com.mpbhms.backend.dto.ContractDTO> contracts = contractService.getContractsByRenterId(userId);
+        return ResponseEntity.ok(contracts);
     }
 }

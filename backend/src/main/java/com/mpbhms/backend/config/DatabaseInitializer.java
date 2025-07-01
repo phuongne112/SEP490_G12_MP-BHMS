@@ -48,6 +48,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("View Room", "/mpbhms/rooms", "GET", "Room"));
             permissions.add(new Permission("Add Service to Room", "/mpbhms/rooms/{roomId}/add-service", "POST", "Room"));
             permissions.add(new Permission("Active/ De-Active Room", "/mpbhms/rooms/{id}/active", "PATCH", "Room"));
+            permissions.add(new Permission("Restore Room", "/mpbhms/rooms/{id}/restore", "PATCH", "Room"));
+            permissions.add(new Permission("View Deleted Rooms", "/mpbhms/rooms/deleted", "GET", "Room"));
+            permissions.add(new Permission("View Room with Renter", "/mpbhms/rooms/with-renter", "GET", "Room"));
+            permissions.add(new Permission("Get Room by ID", "/mpbhms/rooms/{id}", "GET", "Room"));
             //User
             permissions.add(new Permission("Create User", "/mpbhms/users", "POST", "User"));
             permissions.add(new Permission("Update User", "/mpbhms/users", "PUT", "User"));
@@ -74,6 +78,13 @@ public class DatabaseInitializer implements CommandLineRunner {
             //Room User
             permissions.add(new Permission("Assign user to Room", "/mpbhms/room-users/add-many", "POST", "RoomUser"));
             permissions.add(new Permission("Leave Room", "/mpbhms/room-users/leave/{roomUserId}", "POST", "RoomUser"));
+            permissions.add(new Permission("Process Expired Contracts", "/mpbhms/room-users/process-expired-contracts", "POST", "RoomUser"));
+            permissions.add(new Permission("Renew Contract", "/mpbhms/room-users/renew-contract/{contractId}", "POST", "RoomUser"));
+            permissions.add(new Permission("Get Expiring Contracts", "/mpbhms/room-users/expiring-contracts", "GET", "RoomUser"));
+            permissions.add(new Permission("Update Contract", "/mpbhms/room-users/update-contract", "POST", "RoomUser"));
+            permissions.add(new Permission("Approve Amendment", "/mpbhms/room-users/approve-amendment/{amendmentId}", "POST", "RoomUser"));
+            permissions.add(new Permission("Reject Amendment", "/mpbhms/room-users/reject-amendment/{amendmentId}", "POST", "RoomUser"));
+            permissions.add(new Permission("Get Contract Amendments", "/mpbhms/room-users/contract-amendments/{contractId}", "GET", "RoomUser"));
             //Contract
             permissions.add(new Permission("Export contract", "/mpbhms/contracts/{id}/export", "GET", "Contract"));
             permissions.add(new Permission("View List Contract", "/mpbhms/contracts", "GET", "Contract"));
@@ -81,6 +92,13 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Update Contract", "/mpbhms/contracts", "PUT", "Contract"));
             permissions.add(new Permission("Delete Contract", "/mpbhms/contracts/{id}", "DELETE", "Contract"));
             permissions.add(new Permission("Test Update User Info", "/mpbhms/contracts/test-update-user-info", "GET", "Contract"));
+            permissions.add(new Permission("Process Expired Contracts Service", "/mpbhms/contracts/process-expired", "POST", "Contract"));
+            permissions.add(new Permission("Renew Contract Service", "/mpbhms/contracts/renew/{contractId}", "POST", "Contract"));
+            permissions.add(new Permission("Get Expiring Contracts Service", "/mpbhms/contracts/expiring", "GET", "Contract"));
+            permissions.add(new Permission("Update Contract Terms", "/mpbhms/contracts/update", "POST", "Contract"));
+            permissions.add(new Permission("Approve Contract Amendment", "/mpbhms/contracts/approve-amendment/{amendmentId}", "POST", "Contract"));
+            permissions.add(new Permission("Reject Contract Amendment", "/mpbhms/contracts/reject-amendment/{amendmentId}", "POST", "Contract"));
+            permissions.add(new Permission("Get Contract Amendments History", "/mpbhms/contracts/amendments/{contractId}", "GET", "Contract"));
             //OCR
             permissions.add(new Permission("OCR", "/mpbhms/ocr/detect-ocr", "POST", "Ocr"));
             permissions.add(new Permission("Save Reading", "/mpbhms/ocr/save-reading", "POST", "Ocr"));

@@ -29,6 +29,10 @@ import com.mpbhms.backend.service.NotificationService;
 import com.mpbhms.backend.service.EmailService;
 import com.mpbhms.backend.dto.NotificationDTO;
 import com.mpbhms.backend.enums.NotificationType;
+import com.mpbhms.backend.entity.ContractAmendment;
+import com.mpbhms.backend.repository.ContractAmendmentRepository;
+import com.mpbhms.backend.dto.UpdateContractRequest;
+import com.mpbhms.backend.enums.ContractStatus;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -44,6 +48,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -55,6 +60,7 @@ public class ContractServiceImpl implements ContractService {
     private final ContractRenterInfoRepository contractRenterInfoRepository;
     private final NotificationService notificationService;
     private final EmailService emailService;
+    private final ContractAmendmentRepository contractAmendmentRepository;
     private static final Logger logger = LoggerFactory.getLogger(ContractServiceImpl.class);
 
     @Override
@@ -167,6 +173,12 @@ public class ContractServiceImpl implements ContractService {
             contractTitle.setAlignment(Element.ALIGN_CENTER);
             contractTitle.setSpacingAfter(20f);
             document.add(contractTitle);
+
+            // Thêm số hợp đồng vào đầu file PDF
+            Paragraph contractNum = new Paragraph("Số hợp đồng: " + (contract.getContractNumber() != null ? contract.getContractNumber() : contract.getId()), smallBold);
+            contractNum.setAlignment(Element.ALIGN_RIGHT);
+            contractNum.setSpacingAfter(10f);
+            document.add(contractNum);
 
             // Mở đầu
             Paragraph intro = new Paragraph(String.format(
@@ -312,6 +324,11 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
         contract.setRentAmount(dto.getRentAmount());
         contract.setContractImage(dto.getContractImage());
         contract = contractRepository.save(contract);
+        // Sinh số hợp đồng tự động
+        String year = java.time.LocalDate.now().getYear() + "";
+        String contractNumber = String.format("HD-%s-%05d", year, contract.getId());
+        contract.setContractNumber(contractNumber);
+        contract = contractRepository.save(contract);
         // Gán contract cho các RoomUser
         if (dto.getRoomUserIds() != null) {
             for (Long roomUserId : dto.getRoomUserIds()) {
@@ -411,26 +428,432 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
     private ContractDTO toDTO(Contract contract) {
         ContractDTO dto = new ContractDTO();
         dto.setId(contract.getId());
-        dto.setRoomId(contract.getRoom() != null ? contract.getRoom().getId() : null);
-        dto.setRoomUserIds(contract.getRoomUsers() != null ? contract.getRoomUsers().stream().map(RoomUser::getId).toList() : null);
+        dto.setRoomId(contract.getRoom().getId());
+        if (contract.getRoom() != null) {
+            dto.setRoomNumber(contract.getRoom().getRoomNumber());
+        }
         dto.setContractStartDate(contract.getContractStartDate());
         dto.setContractEndDate(contract.getContractEndDate());
         dto.setContractStatus(contract.getContractStatus());
         dto.setPaymentCycle(contract.getPaymentCycle());
         dto.setDepositAmount(contract.getDepositAmount());
         dto.setRentAmount(contract.getRentAmount());
-        dto.setContractImage(contract.getContractImage());
-        if (contract.getRoom() != null) {
-            dto.setRoomNumber(contract.getRoom().getRoomNumber());
-        }
-        // Thêm danh sách tên người thuê - bây giờ chỉ lấy những RoomUser còn tồn tại (đã xóa hẳn những người rời phòng)
+        // Map roomUsers sang RoomUserDTO
         if (contract.getRoomUsers() != null) {
-            dto.setRenterNames(contract.getRoomUsers().stream()
-                .map(ru -> ru.getUser() != null && ru.getUser().getUserInfo() != null ? ru.getUser().getUserInfo().getFullName() : "Unknown")
-                .toList());
+            java.util.List<com.mpbhms.backend.dto.RoomUserDTO> roomUserDTOs = new java.util.ArrayList<>();
+            for (com.mpbhms.backend.entity.RoomUser ru : contract.getRoomUsers()) {
+                com.mpbhms.backend.dto.RoomUserDTO rudto = new com.mpbhms.backend.dto.RoomUserDTO();
+                if (ru.getUser() != null) {
+                    rudto.setUserId(ru.getUser().getId());
+                    if (ru.getUser().getUserInfo() != null) {
+                        rudto.setFullName(ru.getUser().getUserInfo().getFullName());
+                        rudto.setPhoneNumber(ru.getUser().getUserInfo().getPhoneNumber());
+                    }
+                }
+                rudto.setJoinedAt(ru.getJoinedAt());
+                rudto.setIsActive(ru.getIsActive());
+                roomUserDTOs.add(rudto);
+            }
+            dto.setRoomUsers(roomUserDTOs);
+        }
+        if (contract.getRoom() != null) {
+            dto.setMaxOccupants(contract.getRoom().getMaxOccupants());
         }
         return dto;
     }
 
+    @Override
+    @Transactional
+    public void processExpiredContracts() {
+        java.time.Instant now = java.time.Instant.now();
+        
+        // Tìm tất cả hợp đồng ACTIVE đã hết hạn
+        java.util.List<Contract> expiredContracts = contractRepository.findByContractStatusAndContractEndDateBefore(
+            com.mpbhms.backend.enums.ContractStatus.ACTIVE, now);
+        
+        for (Contract contract : expiredContracts) {
+            try {
+                // Đánh dấu hợp đồng là EXPIRED
+                contract.setContractStatus(com.mpbhms.backend.enums.ContractStatus.EXPIRED);
+                contractRepository.save(contract);
+                
+                // Cập nhật trạng thái phòng thành Available
+                Room room = contract.getRoom();
+                room.setRoomStatus(com.mpbhms.backend.enums.RoomStatus.Available);
+                // Lưu room ở đây nếu cần
+                
+                // Gửi thông báo cho người thuê
+                sendExpirationNotifications(contract);
+                
+                logger.info("Processed expired contract: {}", contract.getId());
+            } catch (Exception e) {
+                logger.error("Error processing expired contract {}: {}", contract.getId(), e.getMessage());
+            }
+        }
+    }
+    
+    @Override
+    @Transactional
+    public void renewContract(Long contractId, java.time.Instant newEndDate) {
+        Contract contract = contractRepository.findById(contractId)
+            .orElseThrow(() -> new RuntimeException("Contract not found"));
+        
+        if (contract.getContractStatus() != com.mpbhms.backend.enums.ContractStatus.EXPIRED) {
+            throw new RuntimeException("Only expired contracts can be renewed");
+        }
+        
+        // Gia hạn hợp đồng
+        contract.setContractEndDate(newEndDate);
+        contract.setContractStatus(com.mpbhms.backend.enums.ContractStatus.ACTIVE);
+        contractRepository.save(contract);
+        
+        // Cập nhật trạng thái phòng
+        Room room = contract.getRoom();
+        room.setRoomStatus(com.mpbhms.backend.enums.RoomStatus.Occupied);
+        // Lưu room ở đây nếu cần
+        
+        // Gửi thông báo gia hạn
+        sendRenewalNotifications(contract);
+    }
+    
+    @Override
+    public ResultPaginationDTO getExpiringContracts(Pageable pageable) {
+        java.time.Instant thirtyDaysFromNow = java.time.Instant.now().plusSeconds(30 * 24 * 60 * 60);
+        
+        Page<Contract> contractsPage = contractRepository.findByContractStatusAndContractEndDateBetween(
+            com.mpbhms.backend.enums.ContractStatus.ACTIVE,
+            java.time.Instant.now(),
+            thirtyDaysFromNow,
+            pageable
+        );
+        
+        java.util.List<ContractDTO> contractDTOs = contractsPage.getContent().stream()
+            .map(this::toDTO)
+            .collect(java.util.stream.Collectors.toList());
+        
+        com.mpbhms.backend.dto.Meta meta = new com.mpbhms.backend.dto.Meta();
+        meta.setPage(contractsPage.getNumber() + 1);
+        meta.setPageSize(contractsPage.getSize());
+        meta.setPages(contractsPage.getTotalPages());
+        meta.setTotal(contractsPage.getTotalElements());
+        
+        ResultPaginationDTO result = new ResultPaginationDTO();
+        result.setMeta(meta);
+        result.setResult(contractDTOs);
+        
+        return result;
+    }
+    
+    /**
+     * Gửi thông báo cho người thuê khi hợp đồng hết hạn
+     */
+    private void sendExpirationNotifications(Contract contract) {
+        if (contract.getRoomUsers() != null) {
+            for (RoomUser roomUser : contract.getRoomUsers()) {
+                if (roomUser.getIsActive() && roomUser.getUser() != null) {
+                    // Gửi notification
+                    NotificationDTO notification = new NotificationDTO();
+                    notification.setRecipientId(roomUser.getUser().getId());
+                    notification.setTitle("Hợp đồng thuê phòng đã hết hạn");
+                    notification.setMessage(String.format(
+                        "Hợp đồng thuê phòng %s đã hết hạn vào ngày %s. Vui lòng liên hệ chủ trọ để gia hạn.",
+                        contract.getRoom().getRoomNumber(),
+                        java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                            .format(contract.getContractEndDate().atZone(java.time.ZoneId.systemDefault()))
+                    ));
+                    notification.setType(com.mpbhms.backend.enums.NotificationType.CONTRACT_EXPIRED);
+                    
+                    try {
+                        notificationService.createAndSend(notification);
+                    } catch (Exception e) {
+                        logger.error("Error sending expiration notification: {}", e.getMessage());
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Gửi thông báo khi hợp đồng được gia hạn
+     */
+    private void sendRenewalNotifications(Contract contract) {
+        if (contract.getRoomUsers() != null) {
+            for (RoomUser roomUser : contract.getRoomUsers()) {
+                if (roomUser.getIsActive() && roomUser.getUser() != null) {
+                    NotificationDTO notification = new NotificationDTO();
+                    notification.setRecipientId(roomUser.getUser().getId());
+                    notification.setTitle("Hợp đồng thuê phòng đã được gia hạn");
+                    notification.setMessage(String.format(
+                        "Hợp đồng thuê phòng %s đã được gia hạn đến ngày %s.",
+                        contract.getRoom().getRoomNumber(),
+                        java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                            .format(contract.getContractEndDate().atZone(java.time.ZoneId.systemDefault()))
+                    ));
+                    notification.setType(com.mpbhms.backend.enums.NotificationType.CONTRACT_RENEWED);
+                    
+                    try {
+                        notificationService.createAndSend(notification);
+                    } catch (Exception e) {
+                        logger.error("Error sending renewal notification: {}", e.getMessage());
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Scheduled task để xử lý hợp đồng hết hạn hàng ngày
+     */
+    @org.springframework.scheduling.annotation.Scheduled(cron = "0 0 1 * * ?") // Chạy lúc 1h sáng hàng ngày
+    public void processExpiredContractsScheduled() {
+        logger.info("Starting scheduled task to process expired contracts");
+        processExpiredContracts();
+        logger.info("Completed scheduled task to process expired contracts");
+    }
+
+    @Override
+    @Transactional
+    public void updateContract(UpdateContractRequest request) {
+        Contract contract = contractRepository.findById(request.getContractId())
+            .orElseThrow(() -> new RuntimeException("Contract not found"));
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        if (!contract.getRoom().getLandlord().getId().equals(currentUserId)) {
+            throw new RuntimeException("Only landlord can update contract");
+        }
+        // Lấy danh sách renter đang active
+        java.util.List<Long> renterIds = contract.getRoomUsers().stream()
+            .filter(RoomUser::getIsActive)
+            .map(ru -> ru.getUser().getId())
+            .collect(java.util.stream.Collectors.toList());
+        // Tạo amendment cho từng thay đổi
+        if (request.getNewRentAmount() != null && !request.getNewRentAmount().equals(contract.getRentAmount())) {
+            ContractAmendment amendment = new ContractAmendment();
+            amendment.setContract(contract);
+            amendment.setAmendmentType(ContractAmendment.AmendmentType.RENT_INCREASE);
+            amendment.setOldValue(contract.getRentAmount().toString());
+            amendment.setNewValue(request.getNewRentAmount().toString());
+            amendment.setReason(request.getReasonForUpdate());
+            amendment.setEffectiveDate(request.getNewEndDate() != null ? request.getNewEndDate() : Instant.now());
+            amendment.setRequiresApproval(request.getRequiresTenantApproval());
+            amendment.setPendingApprovals(renterIds);
+            amendment.setApprovedBy(new ArrayList<>());
+            contractAmendmentRepository.save(amendment);
+        }
+        if (request.getNewDepositAmount() != null && !request.getNewDepositAmount().equals(contract.getDepositAmount())) {
+            ContractAmendment amendment = new ContractAmendment();
+            amendment.setContract(contract);
+            amendment.setAmendmentType(ContractAmendment.AmendmentType.DEPOSIT_CHANGE);
+            amendment.setOldValue(contract.getDepositAmount().toString());
+            amendment.setNewValue(request.getNewDepositAmount().toString());
+            amendment.setReason(request.getReasonForUpdate());
+            amendment.setEffectiveDate(request.getNewEndDate() != null ? request.getNewEndDate() : Instant.now());
+            amendment.setRequiresApproval(request.getRequiresTenantApproval());
+            amendment.setPendingApprovals(renterIds);
+            amendment.setApprovedBy(new ArrayList<>());
+            contractAmendmentRepository.save(amendment);
+        }
+        if (request.getNewTerms() != null && !request.getNewTerms().isEmpty()) {
+            ContractAmendment amendment = new ContractAmendment();
+            amendment.setContract(contract);
+            amendment.setAmendmentType(ContractAmendment.AmendmentType.TERMS_UPDATE);
+            amendment.setOldValue("Previous terms");
+            amendment.setNewValue(request.getNewTerms());
+            amendment.setReason(request.getReasonForUpdate());
+            amendment.setEffectiveDate(request.getNewEndDate() != null ? request.getNewEndDate() : Instant.now());
+            amendment.setRequiresApproval(request.getRequiresTenantApproval());
+            amendment.setPendingApprovals(renterIds);
+            amendment.setApprovedBy(new ArrayList<>());
+            contractAmendmentRepository.save(amendment);
+        }
+        if (request.getNewEndDate() != null && !request.getNewEndDate().equals(contract.getContractEndDate())) {
+            ContractAmendment amendment = new ContractAmendment();
+            amendment.setContract(contract);
+            amendment.setAmendmentType(ContractAmendment.AmendmentType.DURATION_EXTENSION);
+            amendment.setOldValue(contract.getContractEndDate().toString());
+            amendment.setNewValue(request.getNewEndDate().toString());
+            amendment.setReason(request.getReasonForUpdate());
+            amendment.setEffectiveDate(request.getNewEndDate());
+            amendment.setRequiresApproval(request.getRequiresTenantApproval());
+            amendment.setPendingApprovals(renterIds);
+            amendment.setApprovedBy(new ArrayList<>());
+            contractAmendmentRepository.save(amendment);
+        }
+        if (request.getRenterIds() != null) {
+            ContractAmendment amendment = new ContractAmendment();
+            amendment.setContract(contract);
+            amendment.setAmendmentType(ContractAmendment.AmendmentType.RENTER_CHANGE);
+            amendment.setOldValue("current renters");
+            amendment.setNewValue(request.getRenterIds().toString());
+            amendment.setReason(request.getReasonForUpdate());
+            amendment.setEffectiveDate(request.getNewEndDate() != null ? request.getNewEndDate() : Instant.now());
+            amendment.setRequiresApproval(true);
+            amendment.setPendingApprovals(renterIds);
+            amendment.setApprovedBy(new ArrayList<>());
+            contractAmendmentRepository.save(amendment);
+        }
+        sendContractUpdateNotifications(contract, request);
+    }
+
+    @Override
+    @Transactional
+    public void approveAmendment(Long amendmentId, Boolean isLandlordApproval) {
+        ContractAmendment amendment = contractAmendmentRepository.findById(amendmentId)
+            .orElseThrow(() -> new RuntimeException("Amendment not found"));
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        if (isLandlordApproval != null && isLandlordApproval) {
+            amendment.setApprovedByLandlord(true);
+        } else {
+            // Renter duyệt
+            java.util.List<Long> approvedBy = amendment.getApprovedBy();
+            if (approvedBy == null) approvedBy = new ArrayList<>();
+            if (!approvedBy.contains(currentUserId)) {
+                approvedBy.add(currentUserId);
+            }
+            amendment.setApprovedBy(approvedBy);
+        }
+        boolean allRentersApproved = amendment.getPendingApprovals() != null
+            && amendment.getApprovedBy() != null
+            && amendment.getPendingApprovals().stream().allMatch(id -> amendment.getApprovedBy().contains(id));
+        if (amendment.getApprovedByLandlord() && allRentersApproved) {
+            amendment.setStatus(ContractAmendment.AmendmentStatus.APPROVED);
+            applyAmendmentToContract(amendment);
+        }
+        contractAmendmentRepository.save(amendment);
+    }
+
+    @Override
+    @Transactional
+    public void rejectAmendment(Long amendmentId, String reason) {
+        ContractAmendment amendment = contractAmendmentRepository.findById(amendmentId)
+            .orElseThrow(() -> new RuntimeException("Amendment not found"));
+        
+        amendment.setStatus(ContractAmendment.AmendmentStatus.REJECTED);
+        amendment.setReason(reason);
+        contractAmendmentRepository.save(amendment);
+    }
+    
+    @Override
+    public java.util.List<ContractAmendment> getContractAmendments(Long contractId) {
+        return contractAmendmentRepository.findByContractIdOrderByCreatedDateDesc(contractId);
+    }
+    
+    /**
+     * Áp dụng amendment vào hợp đồng
+     */
+    private void applyAmendmentToContract(ContractAmendment amendment) {
+        Contract contract = amendment.getContract();
+        switch (amendment.getAmendmentType()) {
+            case RENT_INCREASE:
+                contract.setRentAmount(Double.parseDouble(amendment.getNewValue()));
+                break;
+            case DEPOSIT_CHANGE:
+                contract.setDepositAmount(new BigDecimal(amendment.getNewValue()));
+                break;
+            case DURATION_EXTENSION:
+                contract.setContractEndDate(Instant.parse(amendment.getNewValue()));
+                break;
+            case TERMS_UPDATE:
+                // Có thể lưu terms mới vào contract hoặc tạo field riêng
+                break;
+            case RENTER_CHANGE:
+                // Xử lý cập nhật RoomUser ở đây
+                // 1. Đánh dấu tất cả RoomUser hiện tại của contract là inactive
+                if (contract.getRoomUsers() != null) {
+                    for (RoomUser ru : contract.getRoomUsers()) {
+                        ru.setIsActive(false);
+                        roomUserRepository.save(ru);
+                    }
+                }
+                // 2. Thêm mới RoomUser cho các renterId mới
+                String newValue = amendment.getNewValue();
+                if (newValue != null && !newValue.isEmpty()) {
+                    String[] idStrings = newValue.replace("[","").replace("]","").split(",");
+                    for (String idStr : idStrings) {
+                        Long userId = null;
+                        try { userId = Long.parseLong(idStr.trim()); } catch (Exception ignore) {}
+                        if (userId != null) {
+                            User user = userRepository.findById(userId).orElse(null);
+                            if (user != null) {
+                                RoomUser ru = new RoomUser();
+                                ru.setRoom(contract.getRoom());
+                                ru.setUser(user);
+                                ru.setJoinedAt(Instant.now());
+                                ru.setContract(contract);
+                                ru.setIsActive(true);
+                                roomUserRepository.save(ru);
+                            }
+                        }
+                    }
+                }
+                break;
+        }
+        contractRepository.save(contract);
+    }
+    
+    /**
+     * Gửi thông báo khi có thay đổi hợp đồng
+     */
+    private void sendContractUpdateNotifications(Contract contract, UpdateContractRequest request) {
+        if (contract.getRoomUsers() != null) {
+            for (RoomUser roomUser : contract.getRoomUsers()) {
+                if (roomUser.getIsActive() && roomUser.getUser() != null) {
+                    NotificationDTO notification = new NotificationDTO();
+                    notification.setRecipientId(roomUser.getUser().getId());
+                    notification.setTitle("Hợp đồng thuê phòng có thay đổi");
+                    notification.setMessage(String.format(
+                        "Hợp đồng thuê phòng %s có thay đổi: %s. Vui lòng xem xét và phê duyệt.",
+                        contract.getRoom().getRoomNumber(),
+                        request.getReasonForUpdate()
+                    ));
+                    notification.setType(com.mpbhms.backend.enums.NotificationType.CUSTOM);
+                    
+                    try {
+                        notificationService.createAndSend(notification);
+                    } catch (Exception e) {
+                        logger.error("Error sending contract update notification: {}", e.getMessage());
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public java.util.List<com.mpbhms.backend.dto.ContractDTO> getContractsByRenterId(Long renterId) {
+        java.util.List<com.mpbhms.backend.entity.RoomUser> roomUsers = roomUserRepository.findByUserIdAndIsActiveTrue(renterId);
+        java.util.Set<com.mpbhms.backend.entity.Contract> contracts = new java.util.HashSet<>();
+        for (com.mpbhms.backend.entity.RoomUser ru : roomUsers) {
+            if (ru.getContract() != null) {
+                contracts.add(ru.getContract());
+            }
+        }
+        return contracts.stream().map(this::toDTO).toList();
+    }
+
+    @Override
+    @Transactional
+    public void terminateContract(Long contractId) {
+        Contract contract = contractRepository.findById(contractId)
+            .orElseThrow(() -> new RuntimeException("Contract not found"));
+        contract.setContractStatus(ContractStatus.TERMINATED);
+        contractRepository.save(contract);
+        if (contract.getRoomUsers() != null) {
+            for (RoomUser ru : contract.getRoomUsers()) {
+                if (ru.getIsActive() != null && ru.getIsActive()) {
+                    // Lưu lịch sử vào ContractRenterInfo
+                    ContractRenterInfo history = new ContractRenterInfo();
+                    history.setContract(contract);
+                    if (ru.getUser() != null && ru.getUser().getUserInfo() != null) {
+                        history.setFullName(ru.getUser().getUserInfo().getFullName());
+                        history.setPhoneNumber(ru.getUser().getUserInfo().getPhoneNumber());
+                        history.setNationalID(ru.getUser().getUserInfo().getNationalID());
+                        history.setPermanentAddress(ru.getUser().getUserInfo().getPermanentAddress());
+                    }
+                    contractRenterInfoRepository.save(history);
+                    ru.setIsActive(false);
+                    roomUserRepository.save(ru);
+                }
+            }
+        }
+    }
 }
 

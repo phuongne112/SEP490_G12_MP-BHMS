@@ -7,6 +7,8 @@ public enum NotificationType {
     ANNOUNCEMENT,
     PAYMENT_SUCCESS,
     PAYMENT_FAILED,
+    CONTRACT_EXPIRED,
+    CONTRACT_RENEWED,
     SCHEDULE,
     CUSTOM
 }
