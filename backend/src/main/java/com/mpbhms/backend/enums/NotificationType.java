@@ -9,5 +9,6 @@ public enum NotificationType {
     PAYMENT_FAILED,
     CONTRACT_EXPIRED,
     CONTRACT_RENEWED,
+    SCHEDULE,
     CUSTOM
 }

@@ -1,12 +1,45 @@
 import React, { useEffect, useState } from "react";
-import { Table, Button, Tag, message, Spin } from "antd";
+import {
+  Table,
+  Button,
+  Tag,
+  message,
+  Spin,
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Typography,
+  Space,
+  Tooltip,
+} from "antd";
 import { useNavigate } from "react-router-dom";
 import { getMyBills } from "../../services/billApi";
+import {
+  EyeOutlined,
+  DollarOutlined,
+  FileTextOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+} from "@ant-design/icons";
+import RenterSidebar from "../../components/layout/RenterSidebar";
 import dayjs from "dayjs";
+import { Layout } from "antd";
+
+const { Sider, Content } = Layout;
+
+const { Title, Text } = Typography;
 
 export default function RenterBillListPage() {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState({
+    total: 0,
+    paid: 0,
+    unpaid: 0,
+    totalAmount: 0,
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,43 +50,258 @@ export default function RenterBillListPage() {
     setLoading(true);
     try {
       const res = await getMyBills();
-      setBills(res.content || []);
+      const billsData = res.content || [];
+      setBills(billsData);
+
+      // Tính toán thống kê
+      const total = billsData.length;
+      const paid = billsData.filter((bill) => bill.status).length;
+      const unpaid = total - paid;
+      const totalAmount = billsData.reduce(
+        (sum, bill) => sum + (bill.totalAmount || 0),
+        0
+      );
+
+      setStats({ total, paid, unpaid, totalAmount });
     } catch (err) {
-      message.error("Failed to load bills");
+      message.error("Không thể tải danh sách hóa đơn");
     }
     setLoading(false);
   };
 
+  const getStatusColor = (status) => {
+    return status ? "success" : "error";
+  };
+
+  const getStatusIcon = (status) => {
+    return status ? <CheckCircleOutlined /> : <CloseCircleOutlined />;
+  };
+
+  const getStatusText = (status) => {
+    return status ? "Đã thanh toán" : "Chưa thanh toán";
+  };
+
+  const getBillTypeColor = (type) => {
+    switch (type) {
+      case "REGULAR":
+        return "blue";
+      case "CUSTOM":
+        return "orange";
+      case "DEPOSIT":
+        return "purple";
+      default:
+        return "default";
+    }
+  };
+
   const columns = [
-    { title: "Bill ID", dataIndex: "id", align: "center", render: id => `#${id}` },
-    { title: "Room", dataIndex: "roomNumber", align: "center" },
-    { title: "Type", dataIndex: "billType", align: "center", render: t => <Tag>{t}</Tag> },
-    { title: "From", dataIndex: "fromDate", align: "center", render: d => dayjs(d).format("DD/MM/YYYY") },
-    { title: "To", dataIndex: "toDate", align: "center", render: d => dayjs(d).format("DD/MM/YYYY") },
-    { title: "Total", dataIndex: "totalAmount", align: "center", render: v => v?.toLocaleString() + " VND" },
-    { title: "Status", dataIndex: "status", align: "center", render: s => <Tag color={s ? "green" : "red"}>{s ? "Paid" : "Unpaid"}</Tag> },
+    {
+      title: "Bill ID",
+      dataIndex: "id",
+      align: "center",
+      render: (id) => (
+        <Text strong style={{ color: "#1890ff" }}>
+          #{id}
+        </Text>
+      ),
+      width: 120,
+    },
+    {
+      title: "Room",
+      dataIndex: "roomNumber",
+      align: "center",
+      render: (roomNumber) => (
+        <Tag color="blue" style={{ fontWeight: "bold" }}>
+          {roomNumber}
+        </Tag>
+      ),
+      width: 100,
+    },
+    {
+      title: "Bill Type",
+      dataIndex: "billType",
+      align: "center",
+      render: (type) => (
+        <Tag color={getBillTypeColor(type)}>
+          {type === "REGULAR"
+            ? "Regular"
+            : type === "CUSTOM"
+            ? "Custom"
+            : "Deposit"}
+        </Tag>
+      ),
+      width: 120,
+    },
+    {
+      title: "From",
+      dataIndex: "fromDate",
+      align: "center",
+      render: (date) => <Text>{dayjs(date).format("DD/MM/YYYY")}</Text>,
+      width: 100,
+    },
+    {
+      title: "To",
+      dataIndex: "toDate",
+      align: "center",
+      render: (date) => <Text>{dayjs(date).format("DD/MM/YYYY")}</Text>,
+      width: 100,
+    },
+    {
+      title: "Total",
+      dataIndex: "totalAmount",
+      align: "center",
+      render: (amount) => (
+        <Text strong style={{ color: "#52c41a", fontSize: "16px" }}>
+          {amount?.toLocaleString()} ₫
+        </Text>
+      ),
+      width: 120,
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      align: "center",
+      render: (status) => (
+        <Tag
+          color={getStatusColor(status)}
+          icon={getStatusIcon(status)}
+          style={{ fontWeight: "bold" }}
+        >
+          {getStatusText(status)}
+        </Tag>
+      ),
+      width: 120,
+    },
     {
       title: "Actions",
       align: "center",
       render: (_, record) => (
-        <Button type="primary" onClick={() => navigate(`/renter/bills/${record.id}`)}>
-          View
-        </Button>
+        <Space>
+          <Tooltip title="View details">
+            <Button
+              type="primary"
+              icon={<EyeOutlined />}
+              onClick={() => navigate(`/renter/bills/${record.id}`)}
+              size="small"
+            >
+              View
+            </Button>
+          </Tooltip>
+          {!record.status && (
+            <Tooltip title="Pay now">
+              <Button
+                type="primary"
+                danger
+                icon={<DollarOutlined />}
+                onClick={() =>
+                  navigate(`/renter/bills/${record.id}?action=pay`)
+                }
+                size="small"
+              >
+                Pay
+              </Button>
+            </Tooltip>
+          )}
+        </Space>
       ),
+      width: 150,
     },
   ];
 
   return (
-    <div style={{ maxWidth: 900, margin: "40px auto", background: "#fff", padding: 24, borderRadius: 12 }}>
-      <h2>My Bills</h2>
-      {loading ? <Spin /> : (
-        <Table
-          columns={columns}
-          dataSource={bills}
-          rowKey="id"
-          pagination={false}
-        />
-      )}
+    <div style={{ display: "flex", minHeight: "100vh" }}>
+      <Sider width={220} style={{ background: "#001529" }}>
+        <RenterSidebar />
+      </Sider>
+
+      <div style={{ flex: 1, padding: "20px", backgroundColor: "#f5f5f5" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <Card
+            style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+          >
+            <div style={{ marginBottom: 24 }}>
+              <Title level={2} style={{ margin: 0, color: "#1890ff" }}>
+                <FileTextOutlined style={{ marginRight: 8 }} />
+                My Bills
+              </Title>
+              <Text type="secondary">Manage and track your bills</Text>
+            </div>
+
+            {/* Thống kê */}
+            <Row gutter={16} style={{ marginBottom: 24 }}>
+              <Col span={6}>
+                <Card>
+                  <Statistic
+                    title="Total Bills"
+                    value={stats.total}
+                    prefix={<FileTextOutlined />}
+                    valueStyle={{ color: "#1890ff" }}
+                  />
+                </Card>
+              </Col>
+              <Col span={6}>
+                <Card>
+                  <Statistic
+                    title="Paid"
+                    value={stats.paid}
+                    prefix={<CheckCircleOutlined />}
+                    valueStyle={{ color: "#52c41a" }}
+                  />
+                </Card>
+              </Col>
+              <Col span={6}>
+                <Card>
+                  <Statistic
+                    title="Unpaid"
+                    value={stats.unpaid}
+                    prefix={<ClockCircleOutlined />}
+                    valueStyle={{ color: "#faad14" }}
+                  />
+                </Card>
+              </Col>
+              <Col span={6}>
+                <Card>
+                  <Statistic
+                    title="Total Amount"
+                    value={stats.totalAmount}
+                    prefix={<DollarOutlined />}
+                    suffix="₫"
+                    valueStyle={{ color: "#52c41a" }}
+                    formatter={(value) => value.toLocaleString()}
+                  />
+                </Card>
+              </Col>
+            </Row>
+
+            {/* Bảng hóa đơn */}
+            <Card title="Bill List" style={{ marginTop: 16 }}>
+              {loading ? (
+                <div style={{ textAlign: "center", padding: "40px" }}>
+                  <Spin size="large" />
+                  <div style={{ marginTop: 16 }}>Loading...</div>
+                </div>
+              ) : (
+                <Table
+                  columns={columns}
+                  dataSource={bills}
+                  rowKey="id"
+                  pagination={{
+                    pageSize: 10,
+                    showSizeChanger: true,
+                    showQuickJumper: true,
+                    showTotal: (total, range) =>
+                      `${range[0]}-${range[1]} của ${total} hóa đơn`,
+                    position: ["bottomCenter"],
+                  }}
+                  scroll={{ x: 1000 }}
+                  size="middle"
+                  bordered
+                />
+              )}
+            </Card>
+          </Card>
+        </div>
+      </div>
     </div>
   );
-} 
+}

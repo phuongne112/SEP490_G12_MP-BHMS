@@ -10,6 +10,9 @@ import com.mpbhms.backend.repository.RoomRepository;
 import com.mpbhms.backend.repository.ScheduleRepository;
 import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.service.ScheduleService;
+import com.mpbhms.backend.service.NotificationService;
+import com.mpbhms.backend.dto.NotificationDTO;
+import com.mpbhms.backend.enums.NotificationType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +28,8 @@ public class ScheduleServiceImpl implements ScheduleService {
     private RoomRepository roomRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private NotificationService notificationService;
 
     @Override
     public ScheduleDTO createSchedule(CreateScheduleRequest request) {
@@ -42,6 +47,14 @@ public class ScheduleServiceImpl implements ScheduleService {
         schedule.setNote(request.getNote());
         schedule.setStatus(ScheduleStatus.PENDING);
         schedule = scheduleRepository.save(schedule);
+        if (room.getLandlord() != null) {
+            NotificationDTO noti = new NotificationDTO();
+            noti.setRecipientId(room.getLandlord().getId());
+            noti.setTitle("Có lịch hẹn mới");
+            noti.setMessage("Bạn có lịch hẹn mới từ " + request.getFullName() + " cho phòng " + room.getRoomNumber());
+            noti.setType(NotificationType.SCHEDULE);
+            notificationService.createAndSend(noti);
+        }
         return toDTO(schedule);
     }
 
@@ -68,6 +81,12 @@ public class ScheduleServiceImpl implements ScheduleService {
     @Override
     public void deleteSchedule(Long id) {
         scheduleRepository.deleteById(id);
+    }
+
+    @Override
+    public List<ScheduleDTO> getSchedulesByLandlord(Long landlordId) {
+        List<Schedule> schedules = scheduleRepository.findByRoom_Landlord_Id(landlordId);
+        return schedules.stream().map(this::toDTO).collect(Collectors.toList());
     }
 
     private ScheduleDTO toDTO(Schedule schedule) {

@@ -46,6 +46,20 @@ export default function AdminSidebar() {
       requiredPermissions: ["View Permissions"],
     },
     {
+      key: "/admin/rooms",
+      icon: <TeamOutlined />,
+      label: "Room",
+      path: "/admin/rooms",
+      requiredPermissions: ["View Room"],
+    },
+    {
+      key: "/admin/contract",
+      icon: <SettingOutlined />,
+      label: "Contract",
+      path: "/admin/contract",
+      requiredPermissions: ["View List Contract"],
+    },
+    {
       key: "/admin/settings",
       icon: <SettingOutlined />,
       label: "Other options",

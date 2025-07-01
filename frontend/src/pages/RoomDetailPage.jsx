@@ -9,7 +9,6 @@ import {
   Spin,
   message,
   Divider,
-  Modal,
 } from "antd";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { getAllRooms } from "../services/roomService";
@@ -22,15 +21,11 @@ export default function RoomDetailPage() {
   const { roomNumber } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const reduxUser = useSelector((state) => state.account.user);
 
   const [room, setRoom] = useState(location.state?.room || null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [loading, setLoading] = useState(!room);
-  const [loginModalOpen, setLoginModalOpen] = useState(false);
-
-  const account = useSelector((state) => state.account.user);
-  const forbiddenRoles = ["LANDLORD", "ADMIN", "SUBADMIN", "RENTER"];
-  const roleName = account?.role?.roleName;
 
   useEffect(() => {
     const hasLandlordInfo = room?.landlordName && room?.landlordPhone;
@@ -58,14 +53,6 @@ export default function RoomDetailPage() {
       message.error("Failed to load room detail.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleBookAppointment = () => {
-    if (!account) {
-      setLoginModalOpen(true);
-    } else {
-      navigate(`/landlord/rooms/${room.id}/book`, { state: { room } });
     }
   };
 
@@ -153,26 +140,40 @@ export default function RoomDetailPage() {
                 size="middle"
                 style={{ width: "100%" }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <Title level={3} style={{ margin: 0 }}>Room {room.roomNumber}</Title>
-                  {(!account || !forbiddenRoles.includes(roleName)) && (
-                    <button
-                      style={{
-                        background: '#1890ff',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: 6,
-                        padding: '8px 20px',
-                        fontWeight: 500,
-                        fontSize: 16,
-                        cursor: 'pointer',
-                        marginLeft: 16,
-                      }}
-                      onClick={handleBookAppointment}
-                    >
-                      Book Appointment
-                    </button>
-                  )}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 8,
+                  }}
+                >
+                  <Title level={3} style={{ margin: 0 }}>
+                    Room {room.roomNumber}
+                  </Title>
+                  <button
+                    style={{
+                      background: "#1890ff",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 6,
+                      padding: "8px 20px",
+                      fontWeight: 500,
+                      fontSize: 16,
+                      cursor: "pointer",
+                      marginLeft: 16,
+                    }}
+                    onClick={() => {
+                      navigate(`/landlord/rooms/${room.id}/book`, {
+                        state: {
+                          room,
+                          user: reduxUser,
+                        },
+                      });
+                    }}
+                  >
+                    Book Appointment
+                  </button>
                 </div>
                 <Text>
                   <strong>Area:</strong> {room.area} m²
@@ -244,18 +245,6 @@ export default function RoomDetailPage() {
           </Row>
         </div>
       </Content>
-      <Modal
-        open={loginModalOpen}
-        onCancel={() => setLoginModalOpen(false)}
-        onOk={() => {
-          setLoginModalOpen(false);
-          navigate('/login');
-        }}
-        okText="Login"
-        cancelText="Cancel"
-      >
-        You need to login to book an appointment.
-      </Modal>
     </Layout>
   );
 }

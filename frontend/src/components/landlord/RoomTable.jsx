@@ -4,6 +4,7 @@ import { updateRoomStatus, toggleRoomActiveStatus, deleteRoom, addServiceToRoom 
 import { getAllServicesList } from "../../services/serviceApi";
 import { detectElectricOcr } from "../../services/electricOcrApi";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { UserOutlined, ClockCircleOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 
 const { Meta } = Card;
@@ -41,24 +42,27 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
     const [ocrLoading, setOcrLoading] = useState(false);
     const [pendingServices, setPendingServices] = useState([]); // Lưu danh sách dịch vụ đang chờ thêm
 
-    // For contract management
-    const [contractModalOpen, setContractModalOpen] = useState(false);
-    const [selectedContract, setSelectedContract] = useState(null);
-    const [renewalDate, setRenewalDate] = useState("");
-    const [renewingContract, setRenewingContract] = useState(false);
+// For contract management
+const [contractModalOpen, setContractModalOpen] = useState(false);
+const [selectedContract, setSelectedContract] = useState(null);
+const [renewalDate, setRenewalDate] = useState("");
+const [renewingContract, setRenewingContract] = useState(false);
 
-    // For contract updates
-    const [updateContractModalOpen, setUpdateContractModalOpen] = useState(false);
-    const [updateContractData, setUpdateContractData] = useState({
-        newRentAmount: "",
-        newDepositAmount: "",
-        newTerms: "",
-        reasonForUpdate: "",
-        requiresTenantApproval: true
-    });
-    const [updatingContract, setUpdatingContract] = useState(false);
+// For contract updates
+const [updateContractModalOpen, setUpdateContractModalOpen] = useState(false);
+const [updateContractData, setUpdateContractData] = useState({
+    newRentAmount: "",
+    newDepositAmount: "",
+    newTerms: "",
+    reasonForUpdate: "",
+    requiresTenantApproval: true
+});
+const [updatingContract, setUpdatingContract] = useState(false);
 
-    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+
+const user = useSelector((state) => state.account.user);
+
 
     const handleStatusChange = async (roomId, newStatus) => {
         setUpdatingId(roomId);
@@ -420,13 +424,25 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
                                     <Button
                                         type="primary"
-                                        onClick={() => navigate(`/landlord/rooms/${room.id}/edit`)}
+                                        onClick={() => {
+                                            if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
+                                                navigate(`/admin/rooms/${room.id}/edit`);
+                                            } else {
+                                                navigate(`/landlord/rooms/${room.id}/edit`);
+                                            }
+                                        }}
                                     >
                                         Edit
                                     </Button>
                                     <Button
                                         type="default"
-                                        onClick={() => navigate(`/landlord/rooms/${room.id}/assign`)}
+                                        onClick={() => {
+                                            if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
+                                                navigate(`/admin/rooms/${room.id}/assign`);
+                                            } else {
+                                                navigate(`/landlord/rooms/${room.id}/assign`);
+                                            }
+                                        }}
                                     >
                                         Assign Renter
                                     </Button>

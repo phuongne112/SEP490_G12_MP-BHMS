@@ -14,6 +14,7 @@ import RoomSection from "../components/home/RoomSection";
 import Error403 from "../pages/Error403";
 import AdminRoute from "./AdminRoute";
 import LandlordRoute from "./LandlordRoute";
+import RenterRoute from "./RenterRoute";
 import GuestRoute from "./GuestRoute";
 import LandlordRenterListPage from "../pages/landlord/LandlordRenterListPage";
 import LandlordRoomListPage from "../pages/landlord/LandlordRoomListPage";
@@ -31,207 +32,68 @@ import LandlordBillCreatePage from "../pages/landlord/LandlordBillCreatePage";
 import LandlordBillDetailPage from "../pages/landlord/LandlordBillDetailPage";
 import LandlordBookAppointmentPage from "../pages/landlord/LandlordBookAppointmentPage";
 import LandlordUserListPage from "../pages/landlord/LandlordUserListPage";
-import RenterBillListPage from '../pages/renter/RenterBillListPage';
-import RenterBillDetailPage from '../pages/renter/RenterBillDetailPage';
+import RenterBillListPage from "../pages/renter/RenterBillListPage";
+import RenterBillDetailPage from "../pages/renter/RenterBillDetailPage";
 import LandlordAssetListPage from "../pages/landlord/LandlordAssetListPage";
 import UserRoute from "./UserRoute";
-import RenterContractListPage from "../pages/renter/RenterContractListPage";
+import LandlordBookingListPage from "../pages/landlord/LandlordBookingListPage";
+import RenterContractPage from "../pages/renter/RenterContractPage";
+import RenterCheckinAssetPage from "../pages/renter/RenterCheckinAssetPage";
+import RenterCheckoutAssetPage from "../pages/renter/RenterCheckoutAssetPage";
 
 export default function AppRouter() {
   return (
     <Routes>
-      <Route
-        path="/login"
-        element={
-          <GuestRoute>
-            <LoginPage />
-          </GuestRoute>
-        }
-      />
-      <Route
-        path="/signUp"
-        element={
-          <GuestRoute>
-            <Register />
-          </GuestRoute>
-        }
-      />
+      <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
+      <Route path="/signUp" element={<GuestRoute><Register /></GuestRoute>} />
       <Route path="/home" element={<HomePage />} />
       <Route path="/rooms/:roomNumber" element={<RoomDetailPage />} />
       <Route path="/forgotPassword" element={<ForgotPasswordPage />} />
       <Route path="/resetPassword" element={<ResetPasswordPage />} />
       <Route path="/layout/adminSidebar" element={<AdminSidebar />} />
-      <Route
-        path="/admin/users"
-        element={
-          <AdminRoute>
-            <AdminUserListPage />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/admin/notification"
-        element={
-          <AdminRoute>
-            <AdminNotificationPage />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/admin/roles"
-        element={
-          <AdminRoute>
-            <AdminRoleListPage />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/admin/permissions"
-        element={
-          <AdminRoute>
-            <AdminPermissionListPage />
-          </AdminRoute>
-        }
-      />
+
+      {/* Admin Routes */}
+      <Route path="/admin/users" element={<AdminRoute><AdminUserListPage /></AdminRoute>} />
+      <Route path="/admin/notification" element={<AdminRoute><AdminNotificationPage /></AdminRoute>} />
+      <Route path="/admin/roles" element={<AdminRoute><AdminRoleListPage /></AdminRoute>} />
+      <Route path="/admin/permissions" element={<AdminRoute><AdminPermissionListPage /></AdminRoute>} />
+      <Route path="/admin/rooms" element={<AdminRoute><LandlordRoomListPage /></AdminRoute>} />
+      <Route path="/admin/rooms/add" element={<AdminRoute><LandlordAddRoomPage /></AdminRoute>} />
+      <Route path="/admin/rooms/:id/edit" element={<AdminRoute><LandlordEditRoomPage /></AdminRoute>} />
+      <Route path="/admin/rooms/:roomId/assign" element={<AdminRoute><LandlordAssignRenterPage /></AdminRoute>} />
+      <Route path="/admin/contract" element={<AdminRoute><LandlordContractListPage /></AdminRoute>} />
+
+      {/* Landlord Routes */}
+      <Route path="/landlord/renters" element={<LandlordRoute><LandlordRenterListPage /></LandlordRoute>} />
+      <Route path="/landlord/rooms" element={<LandlordRoute><LandlordRoomListPage /></LandlordRoute>} />
+      <Route path="/landlord/rooms/add" element={<LandlordRoute><LandlordAddRoomPage /></LandlordRoute>} />
+      <Route path="/landlord/renters/add" element={<LandlordRoute><LandlordAddRenterPage /></LandlordRoute>} />
+      <Route path="/landlord/services" element={<LandlordRoute><LandlordServiceListPage /></LandlordRoute>} />
+      <Route path="/landlord/electric" element={<LandlordRoute><LandlordElectricListPage /></LandlordRoute>} />
+      <Route path="/landlord/contract" element={<LandlordRoute><LandlordContractListPage /></LandlordRoute>} />
+      <Route path="/landlord/rooms/:roomId/assign" element={<LandlordRoute><LandlordAssignRenterPage /></LandlordRoute>} />
+      <Route path="/landlord/rooms/:id/edit" element={<LandlordRoute><LandlordEditRoomPage /></LandlordRoute>} />
+      <Route path="/landlord/bills" element={<LandlordRoute><LandlordBillListPage /></LandlordRoute>} />
+      <Route path="/landlord/bills/create" element={<LandlordRoute><LandlordBillCreatePage /></LandlordRoute>} />
+      <Route path="/landlord/bills/:id" element={<LandlordRoute><LandlordBillDetailPage /></LandlordRoute>} />
+      <Route path="/landlord/rooms/:roomId/book" element={<UserRoute><LandlordBookAppointmentPage /></UserRoute>} />
+      <Route path="/landlord/users" element={<LandlordRoute><LandlordUserListPage /></LandlordRoute>} />
+      <Route path="/landlord/assets" element={<LandlordRoute><LandlordAssetListPage /></LandlordRoute>} />
+      <Route path="/landlord/bookings" element={<LandlordRoute><LandlordBookingListPage /></LandlordRoute>} />
+
+      {/* Renter Routes */}
+      <Route path="/renter/room" element={<RenterRoute><RenterRoomDetailPage /></RenterRoute>} />
+      <Route path="/renter/contracts" element={<RenterRoute><RenterContractPage /></RenterRoute>} />
+      <Route path="/renter/bills" element={<RenterRoute><RenterBillListPage /></RenterRoute>} />
+      <Route path="/renter/bills/:id" element={<RenterRoute><RenterBillDetailPage /></RenterRoute>} />
+      <Route path="/renter/rooms/checkin-assets" element={<RenterRoute><RenterCheckinAssetPage /></RenterRoute>} />
+      <Route path="/renter/rooms/checkout-assets" element={<RenterRoute><RenterCheckoutAssetPage /></RenterRoute>} />
+
+      {/* Common Routes */}
       <Route path="*" element={<Error403 />} />
       <Route path="/room" element={<RoomSection />} />
       <Route path="/403" element={<Error403 />} />
       <Route path="/" element={<Navigate to="/home" replace />} />
-      
-      {/* Landlord Routes */}
-      <Route
-        path="/landlord/renters"
-        element={
-          <LandlordRoute>
-            <LandlordRenterListPage />
-          </LandlordRoute>
-        }
-      />
-      <Route
-        path="/landlord/rooms"
-        element={
-          <LandlordRoute>
-            <LandlordRoomListPage />
-          </LandlordRoute>
-        }
-      />
-      <Route
-        path="/landlord/rooms/add"
-        element={
-          <LandlordRoute>
-            <LandlordAddRoomPage />
-          </LandlordRoute>
-        }
-      />
-      <Route
-        path="/landlord/renters/add"
-        element={
-          <LandlordRoute>
-            <LandlordAddRenterPage />
-          </LandlordRoute>
-        }
-      />
-      <Route
-        path="/landlord/services"
-        element={
-          <LandlordRoute>
-            <LandlordServiceListPage />
-          </LandlordRoute>
-        }
-      />
-      <Route
-        path="/landlord/electric"
-        element={
-          <LandlordRoute>
-            <LandlordElectricListPage />
-          </LandlordRoute>
-        }
-      />
-      <Route
-        path="/landlord/contract"
-        element={
-          <LandlordRoute>
-            <LandlordContractListPage />
-          </LandlordRoute>
-        }
-      />
-      <Route
-        path="/landlord/rooms/:roomId/assign"
-        element={
-          <LandlordRoute>
-            <LandlordAssignRenterPage />
-          </LandlordRoute>
-        }
-      />
-      <Route
-        path="/landlord/rooms/:id/edit"
-        element={
-          <LandlordRoute>
-            <LandlordEditRoomPage />
-          </LandlordRoute>
-        }
-      />
-      <Route
-        path="/landlord/bills"
-        element={
-          <LandlordRoute>
-            <LandlordBillListPage />
-          </LandlordRoute>
-        }
-      />
-      <Route
-        path="/landlord/bills/create"
-        element={
-          <LandlordRoute>
-            <LandlordBillCreatePage />
-          </LandlordRoute>
-        }
-      />
-      <Route
-        path="/landlord/bills/:id"
-        element={
-          <LandlordRoute>
-            <LandlordBillDetailPage />
-          </LandlordRoute>
-        }
-      />
-      <Route
-        path="/landlord/rooms/:roomId/book"
-        element={
-          <UserRoute>
-            <LandlordBookAppointmentPage />
-          </UserRoute>
-        }
-      />
-      <Route
-        path="/landlord/users"
-        element={
-          <LandlordRoute>
-            <LandlordUserListPage />
-          </LandlordRoute>
-        }
-      />
-      <Route
-        path="/landlord/assets"
-        element={
-          <LandlordRoute>
-            <LandlordAssetListPage />
-          </LandlordRoute>
-        }
-      />
-      
-      {/* Renter Routes */}
-      <Route path="/renter/room" element={<RenterRoomDetailPage />} />
-      <Route path="/renter/bills" element={<RenterBillListPage />} />
-      <Route path="/renter/bills/:id" element={<RenterBillDetailPage />} />
-      <Route
-        path="/renter/contracts"
-        element={
-          <UserRoute>
-            <RenterContractListPage />
-          </UserRoute>
-        }
-      />
     </Routes>
   );
 }

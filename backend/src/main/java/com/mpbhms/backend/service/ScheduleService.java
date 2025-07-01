@@ -12,4 +12,5 @@ public interface ScheduleService {
     ScheduleDTO getSchedule(Long id);
     ScheduleDTO updateStatus(Long id, ScheduleStatus status);
     void deleteSchedule(Long id);
+    List<ScheduleDTO> getSchedulesByLandlord(Long landlordId);
 } 

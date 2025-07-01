@@ -14,10 +14,10 @@ export default function RenterSidebar() {
 
   const renterMenu = [
     {
-      key: "/renter/rooms",
+      key: "/renter/room",
       icon: <HomeOutlined />,
-      label: "Room",
-      path: "/renter/rooms",
+      label: "My Room",
+      path: "/renter/room",
     },
     {
       key: "/renter/contracts",
@@ -28,7 +28,7 @@ export default function RenterSidebar() {
     {
       key: "/renter/bills",
       icon: <DollarOutlined />,
-      label: "Bill",
+      label: "Bills",
       path: "/renter/bills",
     },
   ];

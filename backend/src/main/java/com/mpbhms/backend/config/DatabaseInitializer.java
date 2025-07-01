@@ -136,6 +136,9 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Delete Asset", "/mpbhms/assets/{id}", "DELETE", "Asset"));
             permissions.add(new Permission("View Assets", "/mpbhms/assets", "GET", "Asset"));
             permissions.add(new Permission("Get Asset by ID", "/mpbhms/assets/{id}", "GET", "Asset"));
+            // Asset check-in/check-out (nếu có API riêng)
+            permissions.add(new Permission("Check-in Asset", "/mpbhms/assets/checkin", "POST", "Asset"));
+            permissions.add(new Permission("Check-out Asset", "/mpbhms/assets/checkout", "POST", "Asset"));
             //Electric Reading
             permissions.add(new Permission("Create Electric Reading", "/mpbhms/electric-readings", "POST", "ElectricReading"));
             permissions.add(new Permission("Update Electric Reading", "/mpbhms/electric-readings/{id}", "PUT", "ElectricReading"));
@@ -148,6 +151,13 @@ public class DatabaseInitializer implements CommandLineRunner {
 
         // --- Init Roles ---
         if (countRoles == 0) {
+            // Khai báo 1 lần ở đây
+            Permission viewMyNotification = permissionRepository.findByModuleAndApiPathAndMethod(
+                "Notification", "/mpbhms/notifications", "GET"
+            );
+            Permission markReadNotification = permissionRepository.findByModuleAndApiPathAndMethod(
+                "Notification", "/mpbhms/notifications/{id}/read", "PUT"
+            );
             Role adminRole = new Role();
             adminRole.setRoleName("ADMIN");
             List<Permission> adminPermissions = new ArrayList<>(permissionRepository.findAll()
@@ -158,12 +168,6 @@ public class DatabaseInitializer implements CommandLineRunner {
                     )// hoặc theo API cụ thể
                     .toList());
 
-            Permission viewMyNotification = permissionRepository.findByModuleAndApiPathAndMethod(
-                "Notification", "/mpbhms/notifications", "GET"
-            );
-            Permission markReadNotification = permissionRepository.findByModuleAndApiPathAndMethod(
-                "Notification", "/mpbhms/notifications/{id}/read", "PUT"
-            );
             if (viewMyNotification != null && !adminPermissions.contains(viewMyNotification)) {
                 adminPermissions.add(viewMyNotification);
             }
@@ -175,10 +179,36 @@ public class DatabaseInitializer implements CommandLineRunner {
 
             Role renterRole = new Role();
             renterRole.setRoleName("RENTER");
-            List<Permission> renterPermission = new ArrayList<>(permissionRepository.findAll()
-                    .stream()
-                    .filter(p -> List.of().contains(p.getModule())) // hoặc theo API cụ thể
-                    .toList());
+            List<Permission> renterPermission = new ArrayList<>();
+            // Quyền cho RENTER:
+            // Contract
+            Permission viewContractList = permissionRepository.findByModuleAndApiPathAndMethod("Contract", "/mpbhms/contracts", "GET");
+            if (viewContractList != null) renterPermission.add(viewContractList);
+            // Asset
+            Permission viewAssets = permissionRepository.findByModuleAndApiPathAndMethod("Asset", "/mpbhms/assets", "GET");
+            if (viewAssets != null) renterPermission.add(viewAssets);
+            Permission getAssetById = permissionRepository.findByModuleAndApiPathAndMethod("Asset", "/mpbhms/assets/{id}", "GET");
+            if (getAssetById != null) renterPermission.add(getAssetById);
+            Permission checkinAsset = permissionRepository.findByModuleAndApiPathAndMethod("Asset", "/mpbhms/assets/checkin", "POST");
+            if (checkinAsset != null) renterPermission.add(checkinAsset);
+            Permission checkoutAsset = permissionRepository.findByModuleAndApiPathAndMethod("Asset", "/mpbhms/assets/checkout", "POST");
+            if (checkoutAsset != null) renterPermission.add(checkoutAsset);
+            // Bill
+            Permission getBills = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills", "GET");
+            if (getBills != null) renterPermission.add(getBills);
+            Permission getBillById = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/{id}", "GET");
+            if (getBillById != null) renterPermission.add(getBillById);
+            // Room
+            Permission viewRoom = permissionRepository.findByModuleAndApiPathAndMethod("Room", "/mpbhms/rooms", "GET");
+            if (viewRoom != null) renterPermission.add(viewRoom);
+            // Schedule/Booking
+            Permission getAllSchedules = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/api/schedules", "GET");
+            if (getAllSchedules != null) renterPermission.add(getAllSchedules);
+            Permission getScheduleById = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/api/schedules/{id}", "GET");
+            if (getScheduleById != null) renterPermission.add(getScheduleById);
+            Permission createSchedule = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/api/schedules", "POST");
+            if (createSchedule != null) renterPermission.add(createSchedule);
+            // Notification
             if (viewMyNotification != null && !renterPermission.contains(viewMyNotification)) {
                 renterPermission.add(viewMyNotification);
             }
@@ -194,6 +224,13 @@ public class DatabaseInitializer implements CommandLineRunner {
                     .stream()
                     .filter(p -> List.of("Room","Renter","RoomUser","Bill","Ocr","Contract","Service","Schedule","User","Asset","ElectricReading").contains(p.getModule())) // hoặc theo API cụ thể
                     .toList());
+            // Đảm bảo LANDLORD có quyền xem booking (schedule)
+            if (getAllSchedules != null && !landlordPermission.contains(getAllSchedules)) {
+                landlordPermission.add(getAllSchedules);
+            }
+            if (getScheduleById != null && !landlordPermission.contains(getScheduleById)) {
+                landlordPermission.add(getScheduleById);
+            }
             if (viewMyNotification != null && !landlordPermission.contains(viewMyNotification)) {
                 landlordPermission.add(viewMyNotification);
             }
