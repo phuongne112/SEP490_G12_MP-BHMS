@@ -49,4 +49,7 @@ public class Contract extends BaseEntity {
     @Column(name = "contract_image")
     private String contractImage;
 
+    @Column(name = "contract_number", unique = true, length = 32)
+    private String contractNumber;
+
 }

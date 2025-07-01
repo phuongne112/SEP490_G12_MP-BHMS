@@ -151,35 +151,71 @@ public class RoomUserServiceImpl implements RoomUserService {
             .orElseThrow(() -> new RuntimeException("RoomUser not found"));
         
         Contract contract = roomUser.getContract();
+        Room room = roomUser.getRoom();
         
-        // Xóa hẳn RoomUser
-        roomUserRepository.delete(roomUser);
+        // Đánh dấu người dùng đã rời phòng thay vì xóa hẳn
+        roomUser.setIsActive(false);
+        roomUser.setLeftAt(Instant.now());
+        roomUserRepository.save(roomUser);
         
-        // Nếu có hợp đồng liên quan, cập nhật lại hợp đồng
+        // Nếu có hợp đồng liên quan, xử lý logic phức tạp
         if (contract != null) {
-            // Lấy lại danh sách RoomUser còn lại của hợp đồng này
-            java.util.List<RoomUser> remainingRoomUsers = roomUserRepository.findByContractId(contract.getId());
+            // Lấy lại danh sách RoomUser còn active của hợp đồng này
+            java.util.List<RoomUser> activeRoomUsers = roomUserRepository.findByContractIdAndIsActiveTrue(contract.getId());
             
-            // Nếu không còn ai trong phòng, có thể xóa hợp đồng hoặc đánh dấu là không active
-            if (remainingRoomUsers.isEmpty()) {
-                // Tùy chọn: Xóa hợp đồng hoặc đánh dấu không active
+            if (activeRoomUsers.isEmpty()) {
+                // Không còn ai trong phòng - kết thúc hợp đồng
                 contract.setContractStatus(ContractStatus.TERMINATED);
                 contractRepository.save(contract);
-            }
-            
-            // Xóa ContractRenterInfo của người vừa rời khỏi phòng
-            if (roomUser.getUser() != null && roomUser.getUser().getUserInfo() != null) {
-                java.util.List<com.mpbhms.backend.entity.ContractRenterInfo> renterInfos = 
-                    contractRenterInfoRepository.findByContractId(contract.getId());
                 
-                for (com.mpbhms.backend.entity.ContractRenterInfo info : renterInfos) {
-                    if (roomUser.getUser().getUserInfo().getFullName().equals(info.getFullName()) &&
-                        roomUser.getUser().getUserInfo().getPhoneNumber().equals(info.getPhoneNumber())) {
-                        contractRenterInfoRepository.delete(info);
-                        break;
-                    }
+                // Cập nhật trạng thái phòng thành Available
+                room.setRoomStatus(com.mpbhms.backend.enums.RoomStatus.Available);
+                roomRepository.save(room);
+            } else {
+                // Vẫn còn người ở lại - cần xử lý logic phân chia tiền phòng
+                handlePartialContractTermination(contract, roomUser, activeRoomUsers);
+            }
+        }
+    }
+    
+    /**
+     * Xử lý logic khi chỉ 1 số người rời phòng, những người khác vẫn ở lại
+     */
+    private void handlePartialContractTermination(Contract contract, RoomUser leavingUser, 
+                                                 java.util.List<RoomUser> remainingUsers) {
+        // Logic 1: Tạo hợp đồng mới cho những người ở lại
+        if (remainingUsers.size() > 0) {
+            // Tạo hợp đồng mới với thời gian còn lại
+            Contract newContract = new Contract();
+            newContract.setRoom(contract.getRoom());
+            newContract.setContractStartDate(Instant.now());
+            newContract.setContractEndDate(contract.getContractEndDate()); // Giữ nguyên ngày kết thúc
+            newContract.setDepositAmount(contract.getDepositAmount());
+            newContract.setRentAmount(contract.getRentAmount());
+            newContract.setPaymentCycle(contract.getPaymentCycle());
+            newContract.setContractStatus(ContractStatus.ACTIVE);
+            newContract = contractRepository.save(newContract);
+            
+            // Cập nhật contract cho những người ở lại
+            for (RoomUser remainingUser : remainingUsers) {
+                remainingUser.setContract(newContract);
+                roomUserRepository.save(remainingUser);
+                
+                // Tạo ContractRenterInfo mới cho hợp đồng mới
+                if (remainingUser.getUser() != null && remainingUser.getUser().getUserInfo() != null) {
+                    ContractRenterInfo info = new ContractRenterInfo();
+                    info.setContract(newContract);
+                    info.setFullName(remainingUser.getUser().getUserInfo().getFullName());
+                    info.setPhoneNumber(remainingUser.getUser().getUserInfo().getPhoneNumber());
+                    info.setNationalID(remainingUser.getUser().getUserInfo().getNationalID());
+                    info.setPermanentAddress(remainingUser.getUser().getUserInfo().getPermanentAddress());
+                    contractRenterInfoRepository.save(info);
                 }
             }
+            
+            // Đánh dấu hợp đồng cũ là TERMINATED
+            contract.setContractStatus(ContractStatus.TERMINATED);
+            contractRepository.save(contract);
         }
     }
 }

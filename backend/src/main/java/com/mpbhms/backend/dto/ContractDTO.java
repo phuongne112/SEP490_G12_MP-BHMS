@@ -14,6 +14,7 @@ public class ContractDTO {
     private String roomNumber;
     private List<Long> roomUserIds;
     private List<String> renterNames;
+    private List<RoomUserDTO> roomUsers;
     private Instant contractStartDate;
     private Instant contractEndDate;
     private ContractStatus contractStatus;
@@ -21,4 +22,5 @@ public class ContractDTO {
     private BigDecimal depositAmount;
     private Double rentAmount;
     private String contractImage;
+    private Integer maxOccupants;
 } 
