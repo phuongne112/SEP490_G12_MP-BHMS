@@ -30,4 +30,8 @@ export const rejectAmendment = (amendmentId, reason) => {
   return axiosClient.post(`/room-users/reject-amendment/${amendmentId}`, {
     reason
   });
+};
+
+export const requestTerminateContract = (contractId, reason) => {
+  return axiosClient.post(`/room-users/request-terminate-contract/${contractId}`, { reason });
 }; 

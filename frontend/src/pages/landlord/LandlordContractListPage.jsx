@@ -15,7 +15,8 @@ import {
   updateContract as updateRoomUserContract,
   getContractAmendments,
   processExpiredContracts,
-  approveAmendment
+  approveAmendment,
+  requestTerminateContract
 } from "../../services/roomUserApi";
 import { getAllRooms } from "../../services/roomService";
 
@@ -60,6 +61,9 @@ export default function LandlordContractListPage() {
   const [roomContracts, setRoomContracts] = useState([]);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [detailContract, setDetailContract] = useState(null);
+  const [terminateReason, setTerminateReason] = useState("");
+  const [terminateModalOpen, setTerminateModalOpen] = useState(false);
+  const [terminateContractId, setTerminateContractId] = useState(null);
 
   const user = useSelector((state) => state.account.user);
 
@@ -74,9 +78,9 @@ export default function LandlordContractListPage() {
         const contractsOfRoom = allContracts.filter(c => (c.room?.id || c.roomId) === room.id);
         const latestContract = contractsOfRoom
           .sort((a, b) => {
-            if (a.contractStatus === "ACTIVE" && b.contractStatus !== "ACTIVE") return -1;
-            if (b.contractStatus === "ACTIVE" && a.contractStatus !== "ACTIVE") return 1;
-            return new Date(b.contractEndDate) - new Date(a.contractEndDate);
+            const dateA = b.updatedDate || b.createdDate || 0;
+            const dateB = a.updatedDate || a.createdDate || 0;
+            return new Date(dateA) - new Date(dateB);
           })[0] || {};
         return {
           ...room,
@@ -162,15 +166,28 @@ export default function LandlordContractListPage() {
   };
   
 
-  const handleTerminateContract = async (contractId) => {
+  const handleTerminateContract = (contractId) => {
+    setTerminateContractId(contractId);
+    setTerminateModalOpen(true);
+  };
+
+  const doRequestTerminate = async () => {
+    if (!terminateReason) {
+      message.error("Nhập lý do kết thúc hợp đồng!");
+      return;
+    }
     setUpdating(true);
     try {
-      await terminateContract(contractId);
-      message.success("Đã kết thúc hợp đồng");
+      await requestTerminateContract(terminateContractId, terminateReason);
+      message.success("Đã gửi yêu cầu kết thúc hợp đồng, chờ các bên phê duyệt.");
+      setTerminateModalOpen(false);
+      setTerminateReason("");
       fetchRoomsAndLatestContracts();
-    } catch (e) {
-      message.error("Kết thúc hợp đồng thất bại");
-    } finally { setUpdating(false); }
+    } catch {
+      message.error("Gửi yêu cầu thất bại!");
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const handleUpdateContract = (contract) => {
@@ -546,6 +563,20 @@ export default function LandlordContractListPage() {
                 </ul>
               </>
             ) : null}
+          </Modal>
+          <Modal
+            open={terminateModalOpen}
+            onCancel={() => setTerminateModalOpen(false)}
+            onOk={doRequestTerminate}
+            okText="Gửi yêu cầu"
+            title="Yêu cầu kết thúc hợp đồng"
+          >
+            <div>Lý do kết thúc hợp đồng:</div>
+            <Input.TextArea
+              value={terminateReason}
+              onChange={e => setTerminateReason(e.target.value)}
+              rows={3}
+            />
           </Modal>
         </Content>
       </Layout>

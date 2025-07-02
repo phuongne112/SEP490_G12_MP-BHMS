@@ -79,6 +79,7 @@ public class ContractAmendment extends BaseEntity {
         TERMS_UPDATE,
         DURATION_EXTENSION,
         RENTER_CHANGE,
+        TERMINATION,
         OTHER
     }
     

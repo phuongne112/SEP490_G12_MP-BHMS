@@ -82,7 +82,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Renew Contract", "/mpbhms/room-users/renew-contract/{contractId}", "POST", "RoomUser"));
             permissions.add(new Permission("Get Expiring Contracts", "/mpbhms/room-users/expiring-contracts", "GET", "RoomUser"));
             permissions.add(new Permission("Update Contract", "/mpbhms/room-users/update-contract", "POST", "RoomUser"));
-            permissions.add(new Permission("Terminate Contract", "/mpbhms/room-users/terminate-contract/{contractId}", "POST", "RoomUser"));
+            permissions.add(new Permission("Terminate Contract", "/mpbhms/room-users/request-terminate-contract/{contractId}", "POST", "RoomUser"));
             permissions.add(new Permission("Approve Amendment", "/mpbhms/room-users/approve-amendment/{amendmentId}", "POST", "RoomUser"));
             permissions.add(new Permission("Reject Amendment", "/mpbhms/room-users/reject-amendment/{amendmentId}", "POST", "RoomUser"));
             permissions.add(new Permission("Get Contract Amendments", "/mpbhms/room-users/contract-amendments/{contractId}", "GET", "RoomUser"));
