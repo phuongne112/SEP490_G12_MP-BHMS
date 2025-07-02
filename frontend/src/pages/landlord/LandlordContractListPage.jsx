@@ -49,7 +49,7 @@ export default function LandlordContractListPage() {
   const [updateDeposit, setUpdateDeposit] = useState();
   const [updateEndDate, setUpdateEndDate] = useState();
   const [updatePaymentCycle, setUpdatePaymentCycle] = useState();
-  const [updateSpecialTerms, setUpdateSpecialTerms] = useState("");
+  const [updateTerms, setUpdateTerms] = useState([]);
   const [updateRenters, setUpdateRenters] = useState([]);
   const [allRenters, setAllRenters] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -58,6 +58,8 @@ export default function LandlordContractListPage() {
   const [filterDateRange, setFilterDateRange] = useState();
   const [filterRoomId, setFilterRoomId] = useState();
   const [roomContracts, setRoomContracts] = useState([]);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [detailContract, setDetailContract] = useState(null);
 
   const user = useSelector((state) => state.account.user);
 
@@ -173,7 +175,7 @@ export default function LandlordContractListPage() {
     setUpdateDeposit(contract.depositAmount);
     setUpdateEndDate(contract.contractEndDate ? dayjs(contract.contractEndDate) : null);
     setUpdatePaymentCycle(contract.paymentCycle);
-    setUpdateSpecialTerms(contract.contractImage || "");
+    setUpdateTerms(Array.isArray(contract.terms) ? contract.terms : (contract.terms ? [contract.terms] : []));
     setUpdateRenters(
       contract.roomUsers?.filter(u => u.isActive !== false).map(u => u.userId || u.id) || []
     );
@@ -198,7 +200,7 @@ export default function LandlordContractListPage() {
         newRentAmount: updateRentAmount,
         newDepositAmount: updateDeposit,
         newEndDate: updateEndDate ? dayjs(updateEndDate).endOf('day').toISOString() : null,
-        newTerms: updateSpecialTerms,
+        newTerms: updateTerms,
         reasonForUpdate: updateReason,
         requiresTenantApproval: true,
         renterIds: updateRenters
@@ -370,6 +372,7 @@ export default function LandlordContractListPage() {
             onRenew={handleRenewContract}
             onViewAmendments={handleViewAmendments}
             onTerminate={handleTerminateContract}
+            onViewDetail={contract => { setDetailContract(contract); setDetailModalOpen(true); }}
             loading={loading || updating}
             pageSize={pageSize}
             currentPage={currentPage}
@@ -394,8 +397,39 @@ export default function LandlordContractListPage() {
             <Input type="number" value={updateDeposit} onChange={e => setUpdateDeposit(e.target.value)} style={{ marginBottom: 12 }} />
             <div style={{ marginBottom: 8 }}>Chu kỳ thanh toán:</div>
             <Select value={updatePaymentCycle} onChange={setUpdatePaymentCycle} style={{ width: '100%', marginBottom: 12 }} options={paymentCycleOptions} />
-            <div style={{ marginBottom: 8 }}>Điều khoản đặc biệt (ghi chú):</div>
-            <Input.TextArea value={updateSpecialTerms} onChange={e => setUpdateSpecialTerms(e.target.value)} rows={2} style={{ marginBottom: 12 }} />
+            <div style={{ marginBottom: 8, fontWeight: 500 }}>Danh sách điều khoản hợp đồng:</div>
+            <ul style={{ margin: '8px 0 8px 16px', padding: 0 }}>
+              {updateTerms.length === 0 && <li>Chưa có điều khoản nào</li>}
+              {updateTerms.map((term, idx) => (
+                <li key={idx} style={{ marginBottom: 4, display: 'flex', alignItems: 'center' }}>
+                  <Input.TextArea
+                    value={term}
+                    onChange={e => {
+                      const newTerms = [...updateTerms];
+                      newTerms[idx] = e.target.value;
+                      setUpdateTerms(newTerms);
+                    }}
+                    autoSize
+                    style={{ flex: 1, marginRight: 8 }}
+                  />
+                  <Button
+                    type="link"
+                    danger
+                    size="small"
+                    onClick={() => setUpdateTerms(prev => prev.filter((_, i) => i !== idx))}
+                  >
+                    Xóa
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            <Button
+              type="dashed"
+              style={{ width: '100%', marginBottom: 12 }}
+              onClick={() => setUpdateTerms(prev => [...prev, ""])}
+            >
+              + Thêm điều khoản
+            </Button>
             <div style={{ marginBottom: 8 }}>
               Người thuê trong hợp đồng mới ({updateRenters.length}/{maxCount}):
             </div>
@@ -450,30 +484,63 @@ export default function LandlordContractListPage() {
               * Số người thuê tối đa: {maxCount}
             </div>
           </Modal>
-          <Modal open={amendmentsModalOpen} onCancel={() => setAmendmentsModalOpen(false)} footer={null} title="Lịch sử thay đổi hợp đồng">
+          <Modal open={amendmentsModalOpen} onCancel={() => setAmendmentsModalOpen(false)} footer={null} title="Contract Change Requests">
             <List
               dataSource={amendments}
               renderItem={item => (
                 <List.Item
-                  actions={[
-                    item.status === 'PENDING' && !item.approvedByLandlord && (
-                      <Button
-                        type="primary"
-                        onClick={() => handleApproveAmendment(item.id, true)}
-                      >
-                        Landlord duyệt
-                      </Button>
-                    )
-                  ]}
+                  style={{ flexDirection: 'column', alignItems: 'flex-start', padding: 16, borderBottom: '1px solid #f0f0f0' }}
+                  actions={[]}
                 >
-                  <div>
-                    <b>{item.amendmentType}</b> | {item.oldValue} → {item.newValue} | {item.status}
-                    <div style={{ color: '#888', fontSize: 12 }}>{item.reason}</div>
+                  <div style={{ width: '100%' }}>
+                    <div style={{ fontWeight: 600, color: '#d46b08', marginBottom: 4 }}>
+                      Reason for change:
+                    </div>
+                    <div style={{ marginBottom: 8, color: '#222' }}>{item.reason || <span style={{ color: '#888' }}>No reason provided</span>}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 8 }}>
+                      <div><b>Type:</b> {item.amendmentType}</div>
+                      <div><b>Status:</b> {item.status}</div>
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <b>Change:</b> <span style={{ color: '#1677ff' }}>{item.oldValue}</span> &rarr; <span style={{ color: '#52c41a' }}>{item.newValue}</span>
+                    </div>
+                    {item.status === 'PENDING' && !item.approvedByLandlord && (
+                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                        <Button
+                          type="primary"
+                          onClick={() => handleApproveAmendment(item.id, true)}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          danger
+                          onClick={() => message.info('Reject action not yet implemented')}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </List.Item>
               )}
-              locale={{ emptyText: "Không có thay đổi nào" }}
+              locale={{ emptyText: "No change requests" }}
             />
+          </Modal>
+          <Modal open={detailModalOpen} onCancel={() => setDetailModalOpen(false)} footer={null} title="Chi tiết hợp đồng">
+            {detailContract ? (
+              <>
+                <div><b>Mã hợp đồng:</b> {detailContract.contractNumber || detailContract.id}</div>
+                <div><b>Phòng:</b> {detailContract.roomNumber}</div>
+                <div><b>Ngày bắt đầu:</b> {detailContract.contractStartDate ? new Date(detailContract.contractStartDate).toLocaleDateString() : ''}</div>
+                <div><b>Ngày kết thúc:</b> {detailContract.contractEndDate ? new Date(detailContract.contractEndDate).toLocaleDateString() : ''}</div>
+                <div style={{ margin: '16px 0 8px 0', fontWeight: 500 }}>Danh sách điều khoản:</div>
+                <ul style={{ marginLeft: 16 }}>
+                  {detailContract.terms && detailContract.terms.length > 0 ? detailContract.terms.map((term, idx) => (
+                    <li key={idx}>{term}</li>
+                  )) : <li>Không có điều khoản cụ thể.</li>}
+                </ul>
+              </>
+            ) : null}
           </Modal>
         </Content>
       </Layout>

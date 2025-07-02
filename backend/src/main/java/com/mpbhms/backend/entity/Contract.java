@@ -52,4 +52,10 @@ public class Contract extends BaseEntity {
     @Column(name = "contract_number", unique = true, length = 32)
     private String contractNumber;
 
+    @OneToMany(mappedBy = "contract", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private java.util.List<ContractTerm> terms;
+
+    @OneToMany(mappedBy = "contract", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private java.util.List<ContractLandlordInfo> landlordInfos;
+
 }

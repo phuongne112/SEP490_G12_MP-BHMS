@@ -11,7 +11,7 @@ public class UpdateContractRequest {
     private Instant newEndDate;
     private Double newRentAmount;
     private BigDecimal newDepositAmount;
-    private String newTerms; // Điều khoản mới
+    private java.util.List<String> newTerms;
     private String reasonForUpdate; // Lý do cập nhật
     private Boolean requiresTenantApproval; // Có cần sự đồng ý của người thuê không
     private List<Long> tenantIds; // Danh sách ID người thuê cần thông báo

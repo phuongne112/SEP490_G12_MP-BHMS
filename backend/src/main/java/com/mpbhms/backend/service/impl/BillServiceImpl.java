@@ -180,6 +180,14 @@ public class BillServiceImpl implements BillService {
         Room room = contract.getRoom();
         PaymentCycle cycle = contract.getPaymentCycle();
 
+        // Lấy ngày bắt đầu/kết thúc hợp đồng
+        LocalDate contractStart = contract.getContractStartDate().atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate contractEnd = contract.getContractEndDate().atZone(ZoneId.systemDefault()).toLocalDate();
+        // Kiểm tra fromDate/toDate phải nằm trong khoảng hợp đồng
+        if (fromDate.isBefore(contractStart) || toDate.isAfter(contractEnd)) {
+            throw new BusinessException("Bill date must be within contract period: " + contractStart + " to " + contractEnd);
+        }
+
         // Kiểm tra null
         if (fromDate == null || toDate == null) {
             throw new BusinessException("Ngày bắt đầu hoặc ngày kết thúc không được để trống!");
@@ -187,12 +195,21 @@ public class BillServiceImpl implements BillService {
         if (fromDate.isAfter(toDate)) {
             throw new BusinessException("Ngày bắt đầu phải trước hoặc bằng ngày kết thúc!");
         }
-        // Kiểm tra fromDate/toDate hợp lệ với paymentCycle
         int expectedMonths = switch (cycle) {
             case MONTHLY -> 1;
             case QUARTERLY -> 3;
             case YEARLY -> 12;
         };
+        // Kiểm tra fromDate phải là ngày bắt đầu hợp đồng hoặc là ngày đầu kỳ tiếp theo
+        if (!fromDate.equals(contractStart)) {
+            // Tính số tháng giữa contractStart và fromDate
+            int monthsBetween = (fromDate.getYear() - contractStart.getYear()) * 12 + (fromDate.getMonthValue() - contractStart.getMonthValue());
+            int cycleMonths = expectedMonths;
+            if (monthsBetween % cycleMonths != 0 || fromDate.isBefore(contractStart)) {
+                throw new BusinessException("Bill start date must be the contract start date or the first day of a valid billing cycle after contract start. Invalid fromDate: " + fromDate);
+            }
+        }
+        // Kiểm tra fromDate/toDate hợp lệ với paymentCycle
         LocalDate expectedToDate = fromDate.plusMonths(expectedMonths).minusDays(1);
         if (!toDate.equals(expectedToDate)) {
             throw new BusinessException("Chu kỳ hóa đơn không hợp lệ với hợp đồng! Chu kỳ trong hợp đồng là " + cycle + ". Kỳ đúng phải từ " + fromDate + " đến " + expectedToDate);

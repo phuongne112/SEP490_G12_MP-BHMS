@@ -82,6 +82,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Renew Contract", "/mpbhms/room-users/renew-contract/{contractId}", "POST", "RoomUser"));
             permissions.add(new Permission("Get Expiring Contracts", "/mpbhms/room-users/expiring-contracts", "GET", "RoomUser"));
             permissions.add(new Permission("Update Contract", "/mpbhms/room-users/update-contract", "POST", "RoomUser"));
+            permissions.add(new Permission("Terminate Contract", "/mpbhms/room-users/terminate-contract/{contractId}", "POST", "RoomUser"));
             permissions.add(new Permission("Approve Amendment", "/mpbhms/room-users/approve-amendment/{amendmentId}", "POST", "RoomUser"));
             permissions.add(new Permission("Reject Amendment", "/mpbhms/room-users/reject-amendment/{amendmentId}", "POST", "RoomUser"));
             permissions.add(new Permission("Get Contract Amendments", "/mpbhms/room-users/contract-amendments/{contractId}", "GET", "RoomUser"));
@@ -92,13 +93,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Update Contract", "/mpbhms/contracts", "PUT", "Contract"));
             permissions.add(new Permission("Delete Contract", "/mpbhms/contracts/{id}", "DELETE", "Contract"));
             permissions.add(new Permission("Test Update User Info", "/mpbhms/contracts/test-update-user-info", "GET", "Contract"));
-            permissions.add(new Permission("Process Expired Contracts Service", "/mpbhms/contracts/process-expired", "POST", "Contract"));
-            permissions.add(new Permission("Renew Contract Service", "/mpbhms/contracts/renew/{contractId}", "POST", "Contract"));
-            permissions.add(new Permission("Get Expiring Contracts Service", "/mpbhms/contracts/expiring", "GET", "Contract"));
             permissions.add(new Permission("Get My Contracts", "/mpbhms/contracts/my-contracts", "GET", "Contract"));
-            permissions.add(new Permission("Update Contract Terms", "/mpbhms/contracts/update", "POST", "Contract"));
-            permissions.add(new Permission("Approve Contract Amendment", "/mpbhms/contracts/approve-amendment/{amendmentId}", "POST", "Contract"));
-            permissions.add(new Permission("Reject Contract Amendment", "/mpbhms/contracts/reject-amendment/{amendmentId}", "POST", "Contract"));
             permissions.add(new Permission("Get Contract Amendments History", "/mpbhms/contracts/amendments/{contractId}", "GET", "Contract"));
             //OCR
             permissions.add(new Permission("OCR", "/mpbhms/ocr/detect-ocr", "POST", "Ocr"));

@@ -33,6 +33,9 @@ import com.mpbhms.backend.entity.ContractAmendment;
 import com.mpbhms.backend.repository.ContractAmendmentRepository;
 import com.mpbhms.backend.dto.UpdateContractRequest;
 import com.mpbhms.backend.enums.ContractStatus;
+import com.mpbhms.backend.entity.ContractTerm;
+import com.mpbhms.backend.repository.ContractTermRepository;
+import com.mpbhms.backend.repository.ContractLandlordInfoRepository;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -61,6 +64,8 @@ public class ContractServiceImpl implements ContractService {
     private final NotificationService notificationService;
     private final EmailService emailService;
     private final ContractAmendmentRepository contractAmendmentRepository;
+    private final ContractTermRepository contractTermRepository;
+    private final ContractLandlordInfoRepository contractLandlordInfoRepository;
     private static final Logger logger = LoggerFactory.getLogger(ContractServiceImpl.class);
 
     @Override
@@ -69,9 +74,24 @@ public class ContractServiceImpl implements ContractService {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new RuntimeException("Cannot found Contract with id: " + contractId));
         Room room = contract.getRoom();
-        // Lấy landlord từ user đang đăng nhập
-        Long landlordId = SecurityUtil.getCurrentUserId();
-        User landlord = landlordId != null ? userRepository.findById(landlordId).orElse(null) : null;
+        // Lấy snapshot landlord từ ContractLandlordInfo
+        java.util.List<com.mpbhms.backend.entity.ContractLandlordInfo> landlordInfos = contractLandlordInfoRepository.findByContractId(contractId);
+        String landlordName = "Chưa rõ";
+        String landlordPhone = "Chưa rõ";
+        String landlordCCCD = "Chưa rõ";
+        String landlordAddress = "Chưa rõ";
+        if (landlordInfos != null && !landlordInfos.isEmpty()) {
+            com.mpbhms.backend.entity.ContractLandlordInfo info = landlordInfos.get(0);
+            landlordName = info.getFullName();
+            landlordPhone = info.getPhoneNumber();
+            landlordCCCD = info.getNationalID();
+            landlordAddress = info.getPermanentAddress();
+        } else if (room.getLandlord() != null && room.getLandlord().getUserInfo() != null) {
+            landlordName = room.getLandlord().getUserInfo().getFullName();
+            landlordPhone = room.getLandlord().getUserInfo().getPhoneNumber();
+            landlordCCCD = room.getLandlord().getUserInfo().getNationalID();
+            landlordAddress = room.getLandlord().getUserInfo().getPermanentAddress();
+        }
         // Lấy snapshot người thuê từ ContractRenterInfo
         java.util.List<ContractRenterInfo> renters = contractRenterInfoRepository.findByContractId(contractId);
         if (renters == null || renters.isEmpty()) {
@@ -108,19 +128,6 @@ public class ContractServiceImpl implements ContractService {
             DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
             NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
 
-            // Lấy thông tin landlord
-            String landlordName = "Chưa rõ";
-            String landlordPhone = "Chưa rõ";
-            String landlordCCCD = "Chưa rõ";
-            String landlordAddress = "Chưa rõ";
-
-            if (landlord != null && landlord.getUserInfo() != null) {
-                landlordName = landlord.getUserInfo().getFullName();
-                landlordPhone = landlord.getUserInfo().getPhoneNumber();
-                landlordCCCD = landlord.getUserInfo().getNationalID();
-                landlordAddress = landlord.getUserInfo().getPermanentAddress();
-            }
-
             // Lấy thông tin renter (nhiều người)
             StringBuilder renterInfo = new StringBuilder();
             if (renters != null && !renters.isEmpty()) {
@@ -149,11 +156,11 @@ public class ContractServiceImpl implements ContractService {
             Instant end = contract.getContractEndDate();
 
             // Quốc hiệu
-            Paragraph header = new Paragraph("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM", smallBold);
+            Paragraph header = new Paragraph("SOCIALIST REPUBLIC OF VIETNAM", smallBold);
             header.setAlignment(Element.ALIGN_CENTER);
             document.add(header);
 
-            Paragraph slogan = new Paragraph("Độc lập - Tự do - Hạnh phúc", smallBold);
+            Paragraph slogan = new Paragraph("Independence - Freedom - Happiness", smallBold);
             slogan.setAlignment(Element.ALIGN_CENTER);
             slogan.setSpacingAfter(10f);
             document.add(slogan);
@@ -163,61 +170,61 @@ public class ContractServiceImpl implements ContractService {
             separator.setSpacingAfter(10f);
             document.add(separator);
 
-            Paragraph contractTitle = new Paragraph("HỢP ĐỒNG THUÊ NHÀ TRỌ", titleFont);
+            Paragraph contractTitle = new Paragraph("RENTAL CONTRACT", titleFont);
             contractTitle.setAlignment(Element.ALIGN_CENTER);
             contractTitle.setSpacingAfter(20f);
             document.add(contractTitle);
 
             // Thêm số hợp đồng vào đầu file PDF
-            Paragraph contractNum = new Paragraph("Số hợp đồng: " + (contract.getContractNumber() != null ? contract.getContractNumber() : contract.getId()), smallBold);
+            Paragraph contractNum = new Paragraph("Contract No.: " + (contract.getContractNumber() != null ? contract.getContractNumber() : contract.getId()), smallBold);
             contractNum.setAlignment(Element.ALIGN_RIGHT);
             contractNum.setSpacingAfter(10f);
             document.add(contractNum);
 
             // Mở đầu
             Paragraph intro = new Paragraph(String.format(
-                    "Hôm nay, ngày %s, tại phòng số %s, chúng tôi gồm có:",
+                    "Today, %s, at room number %s, we include:",
                     dateTimeFormatter.format(LocalDateTime.now()), roomNumber), normalFont);
             intro.setSpacingAfter(10f);
             document.add(intro);
 
             // BÊN A
             Paragraph benA = new Paragraph(String.format(
-                    "BÊN CHO THUÊ (BÊN A):" +
-                    "\n- Chủ trọ: %s" +
-                    "\n- Số điện thoại: %s" +
-                    "\n- Số CCCD: %s" +
-                    "\n- Địa chỉ thường trú: %s",
+                    "LANDLORD (PARTY A):" +
+                    "\n- Landlord: %s" +
+                    "\n- Phone: %s" +
+                    "\n- National ID: %s" +
+                    "\n- Permanent address: %s",
                     landlordName, landlordPhone, landlordCCCD, landlordAddress), normalFont);
             benA.setSpacingAfter(10f);
             document.add(benA);
 
             // BÊN B
             Paragraph benB = new Paragraph(String.format(
-                "BÊN THUÊ (BÊN B):\n%s", renterInfo.toString()
+                "TENANT (PARTY B):\n%s", renterInfo.toString()
             ), normalFont);
             benB.setSpacingAfter(10f);
             document.add(benB);
 
             // Điều khoản (KHÔNG lặp lại renters)
             Paragraph content = new Paragraph(String.format("""
-Hai bên đồng ý ký kết hợp đồng thuê phòng trọ với các điều khoản sau:
+The two parties agree to sign the rental contract with the following terms:
 
-1. Thông tin phòng thuê:
-   - Phòng số: %s
-   - Giá thuê: %s / tháng
-   - Tiền cọc: %s
-   - Thời hạn thuê: từ ngày %s đến ngày %s
-   - Hình thức thanh toán: %s
+1. Room information:
+   - Room number: %s
+   - Rent: %s / month
+   - Deposit: %s
+   - Rental period: from %s to %s
+   - Payment cycle: %s
 
-2. Quy định sử dụng:
-   - Bên B cam kết sử dụng phòng đúng mục đích, giữ gìn vệ sinh, an ninh.
-   - Mọi hư hỏng do Bên B gây ra sẽ phải đền bù theo thoả thuận.
+2. Usage regulations:
+   - Party B commits to use the room for the right purpose, maintain hygiene and security.
+   - Any damage caused by Party B must be compensated as agreed.
 
-3. Chấm dứt hợp đồng:
-   - Hai bên thông báo trước 15 ngày khi muốn chấm dứt hợp đồng.
+3. Termination of contract:
+   - Both parties must notify at least 15 days in advance if they wish to terminate the contract.
 
-Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá trị pháp lý như nhau.
+This contract is made in 02 copies, each party keeps 01 copy with the same legal value.
 """,
     roomNumber,
     currencyFormat.format(rentAmount),
@@ -232,10 +239,29 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
             content.setAlignment(Element.ALIGN_JUSTIFIED);
             document.add(content);
 
+            // Nếu có điều khoản thì chèn vào đây
+            if (contract.getTerms() != null && !contract.getTerms().isEmpty()) {
+                Paragraph termsTitle = new Paragraph("CONTRACT TERMS", smallBold);
+                termsTitle.setSpacingBefore(10f);
+                termsTitle.setSpacingAfter(8f);
+                termsTitle.setAlignment(Element.ALIGN_LEFT);
+                document.add(termsTitle);
+
+                int idx = 1;
+                for (ContractTerm term : contract.getTerms()) {
+                    Paragraph termPara = new Paragraph(idx + ". " + term.getContent(), normalFont);
+                    termPara.setFirstLineIndent(20f);
+                    termPara.setSpacingAfter(4f);
+                    termPara.setAlignment(Element.ALIGN_JUSTIFIED);
+                    document.add(termPara);
+                    idx++;
+                }
+            }
+
             // Chữ ký
             Paragraph sign = new Paragraph("""
-            BÊN CHO THUÊ (BÊN A)                BÊN THUÊ (BÊN B)
-            (Ký và ghi rõ họ tên)               (Ký và ghi rõ họ tên)
+            LANDLORD (PARTY A)                TENANT (PARTY B)
+            (Sign and write full name)        (Sign and write full name)
             """, normalFont);
             sign.setSpacingBefore(20f);
             sign.setAlignment(Element.ALIGN_CENTER);
@@ -285,6 +311,22 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
                 roomUserRepository.save(ru);
             }
         }
+        // Xóa các điều khoản cũ
+        if (contract.getTerms() != null) {
+            for (ContractTerm oldTerm : contract.getTerms()) {
+                contractTermRepository.delete(oldTerm);
+            }
+        }
+        // Thêm các điều khoản mới
+        if (dto.getTerms() != null && !dto.getTerms().isEmpty()) {
+            for (String termContent : dto.getTerms()) {
+                ContractTerm term = new ContractTerm();
+                term.setContract(contract);
+                term.setContent(termContent);
+                term.setCreatedAt(java.time.Instant.now());
+                contractTermRepository.save(term);
+            }
+        }
         return toDTO(contract);
     }
 
@@ -308,6 +350,13 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
 
     @Override
     public ContractDTO createContract(ContractDTO dto) {
+        // Check if the room already has an ACTIVE contract
+        if (dto.getRoomId() != null) {
+            java.util.List<Contract> activeContracts = contractRepository.findByRoomIdAndContractStatus(dto.getRoomId(), com.mpbhms.backend.enums.ContractStatus.ACTIVE);
+            if (!activeContracts.isEmpty()) {
+                throw new RuntimeException("This room already has an ACTIVE contract. Cannot create a new contract.");
+            }
+        }
         Contract contract = new Contract();
         contract.setRoom(new com.mpbhms.backend.entity.Room() {{ setId(dto.getRoomId()); }});
         contract.setContractStartDate(dto.getContractStartDate());
@@ -339,6 +388,29 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
                     info.setPermanentAddress(ru.getUser().getUserInfo().getPermanentAddress());
                     contractRenterInfoRepository.save(info);
                 }
+            }
+        }
+        // Lưu snapshot thông tin landlord vào ContractLandlordInfo
+        if (contract.getRoom() != null && contract.getRoom().getLandlord() != null && contract.getRoom().getLandlord().getId() != null) {
+            User landlord = userRepository.findById(contract.getRoom().getLandlord().getId()).orElse(null);
+            if (landlord != null && landlord.getUserInfo() != null) {
+                com.mpbhms.backend.entity.ContractLandlordInfo landlordInfo = new com.mpbhms.backend.entity.ContractLandlordInfo();
+                landlordInfo.setContract(contract);
+                landlordInfo.setFullName(landlord.getUserInfo().getFullName());
+                landlordInfo.setPhoneNumber(landlord.getUserInfo().getPhoneNumber());
+                landlordInfo.setNationalID(landlord.getUserInfo().getNationalID());
+                landlordInfo.setPermanentAddress(landlord.getUserInfo().getPermanentAddress());
+                contractLandlordInfoRepository.save(landlordInfo);
+            }
+        }
+        // Lưu các điều khoản hợp đồng
+        if (dto.getTerms() != null && !dto.getTerms().isEmpty()) {
+            for (String termContent : dto.getTerms()) {
+                ContractTerm term = new ContractTerm();
+                term.setContract(contract);
+                term.setContent(termContent);
+                term.setCreatedAt(java.time.Instant.now());
+                contractTermRepository.save(term);
             }
         }
         return toDTO(contract);
@@ -382,7 +454,7 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
                         existingInfo.setPermanentAddress(ru.getUser().getUserInfo().getPermanentAddress());
                         contractRenterInfoRepository.save(existingInfo);
                         
-                        logger.info("[UpdateUserInfo] Đã cập nhật thông tin user {} trong hợp đồng {} (phòng {})", 
+                        logger.info("[UpdateUserInfo] Updated user info for {} in contract {} (room {})", 
                             ru.getUser().getUserInfo().getFullName(), contract.getId(), contract.getRoom().getRoomNumber());
                     } else {
                         // Tạo mới thông tin nếu chưa có
@@ -394,7 +466,7 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
                         newInfo.setPermanentAddress(ru.getUser().getUserInfo().getPermanentAddress());
                         contractRenterInfoRepository.save(newInfo);
                         
-                        logger.info("[UpdateUserInfo] Đã tạo mới thông tin user {} trong hợp đồng {} (phòng {})", 
+                        logger.info("[UpdateUserInfo] Created new user info for {} in contract {} (room {})", 
                             ru.getUser().getUserInfo().getFullName(), contract.getId(), contract.getRoom().getRoomNumber());
                     }
                 }
@@ -416,7 +488,7 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
             }
         }
         
-        logger.info("[UpdateUserInfo] Hoàn thành cập nhật thông tin user cho {} hợp đồng", activeContracts.size());
+        logger.info("[UpdateUserInfo] Successfully updated user info for {} contracts", activeContracts.size());
     }
 
     private ContractDTO toDTO(Contract contract) {
@@ -452,6 +524,13 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
         }
         if (contract.getRoom() != null) {
             dto.setMaxOccupants(contract.getRoom().getMaxOccupants());
+        }
+        // Thêm danh sách điều khoản
+        if (contract.getTerms() != null) {
+            java.util.List<String> terms = contract.getTerms().stream()
+                .map(com.mpbhms.backend.entity.ContractTerm::getContent)
+                .collect(java.util.stream.Collectors.toList());
+            dto.setTerms(terms);
         }
         return dto;
     }
@@ -545,12 +624,12 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
         if (contract.getRoomUsers() != null) {
             for (RoomUser roomUser : contract.getRoomUsers()) {
                 if (roomUser.getIsActive() && roomUser.getUser() != null) {
-                    // Gửi notification
+                    // Notification for contract expiration
                     NotificationDTO notification = new NotificationDTO();
                     notification.setRecipientId(roomUser.getUser().getId());
-                    notification.setTitle("Hợp đồng thuê phòng đã hết hạn");
+                    notification.setTitle("Contract has expired");
                     notification.setMessage(String.format(
-                        "Hợp đồng thuê phòng %s đã hết hạn vào ngày %s. Vui lòng liên hệ chủ trọ để gia hạn.",
+                        "Contract for room %s has expired on %s. Please contact the landlord to renew.",
                         contract.getRoom().getRoomNumber(),
                         java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
                             .format(contract.getContractEndDate().atZone(java.time.ZoneId.systemDefault()))
@@ -576,9 +655,9 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
                 if (roomUser.getIsActive() && roomUser.getUser() != null) {
                     NotificationDTO notification = new NotificationDTO();
                     notification.setRecipientId(roomUser.getUser().getId());
-                    notification.setTitle("Hợp đồng thuê phòng đã được gia hạn");
+                    notification.setTitle("Contract has been renewed");
                     notification.setMessage(String.format(
-                        "Hợp đồng thuê phòng %s đã được gia hạn đến ngày %s.",
+                        "Contract for room %s has been renewed until %s.",
                         contract.getRoom().getRoomNumber(),
                         java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
                             .format(contract.getContractEndDate().atZone(java.time.ZoneId.systemDefault()))
@@ -688,6 +767,14 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
      */
     private void applyAmendmentToContract(ContractAmendment amendment) {
         Contract oldContract = amendment.getContract();
+        // Check if the room already has an ACTIVE contract (excluding the old contract about to expire)
+        if (oldContract.getRoom() != null) {
+            java.util.List<Contract> activeContracts = contractRepository.findByRoomIdAndContractStatus(oldContract.getRoom().getId(), com.mpbhms.backend.enums.ContractStatus.ACTIVE);
+            // If there is another ACTIVE contract (not the old one), do not allow creating a new one
+            if (!activeContracts.isEmpty() && activeContracts.stream().anyMatch(c -> !c.getId().equals(oldContract.getId()))) {
+                throw new RuntimeException("This room already has an ACTIVE contract. Cannot create a new contract.");
+            }
+        }
         oldContract.setContractStatus(ContractStatus.EXPIRED);
         contractRepository.save(oldContract);
 
@@ -703,7 +790,7 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
             amendment.getNewRentAmount() != null ? amendment.getNewRentAmount() : oldContract.getRentAmount()
         );
         newContract.setContractImage(
-            amendment.getNewTerms() != null ? amendment.getNewTerms() : oldContract.getContractImage()
+            oldContract.getContractImage()
         );
         newContract.setContractNumber(generateNewContractNumber());
         newContract.setContractEndDate(
@@ -711,6 +798,16 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
         );
         contractRepository.save(newContract);
 
+        // Thêm điều khoản mới cho hợp đồng mới
+        if (amendment.getNewTerms() != null && !amendment.getNewTerms().isEmpty()) {
+            for (String termContent : amendment.getNewTerms()) {
+                ContractTerm term = new ContractTerm();
+                term.setContract(newContract);
+                term.setContent(termContent);
+                term.setCreatedAt(java.time.Instant.now());
+                contractTermRepository.save(term);
+            }
+        }
         // RoomUser cho hợp đồng mới nếu có newRenterIds
         if (amendment.getNewRenterIds() != null && !amendment.getNewRenterIds().isEmpty()) {
             // Đánh dấu RoomUser cũ là inactive
@@ -744,6 +841,19 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
                 }
             }
         }
+        // Lưu snapshot thông tin landlord vào ContractLandlordInfo cho hợp đồng mới
+        if (newContract.getRoom() != null && newContract.getRoom().getLandlord() != null && newContract.getRoom().getLandlord().getId() != null) {
+            User landlord = userRepository.findById(newContract.getRoom().getLandlord().getId()).orElse(null);
+            if (landlord != null && landlord.getUserInfo() != null) {
+                com.mpbhms.backend.entity.ContractLandlordInfo landlordInfo = new com.mpbhms.backend.entity.ContractLandlordInfo();
+                landlordInfo.setContract(newContract);
+                landlordInfo.setFullName(landlord.getUserInfo().getFullName());
+                landlordInfo.setPhoneNumber(landlord.getUserInfo().getPhoneNumber());
+                landlordInfo.setNationalID(landlord.getUserInfo().getNationalID());
+                landlordInfo.setPermanentAddress(landlord.getUserInfo().getPermanentAddress());
+                contractLandlordInfoRepository.save(landlordInfo);
+            }
+        }
     }
 
     // Thêm hàm sinh số hợp đồng mới
@@ -761,9 +871,9 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
                 if (roomUser.getIsActive() && roomUser.getUser() != null) {
                     NotificationDTO notification = new NotificationDTO();
                     notification.setRecipientId(roomUser.getUser().getId());
-                    notification.setTitle("Hợp đồng thuê phòng có thay đổi");
+                    notification.setTitle("Contract has been updated");
                     notification.setMessage(String.format(
-                        "Hợp đồng thuê phòng %s có thay đổi: %s. Vui lòng xem xét và phê duyệt.",
+                        "Contract for room %s has been updated: %s. Please review and approve.",
                         contract.getRoom().getRoomNumber(),
                         request.getReasonForUpdate()
                     ));
