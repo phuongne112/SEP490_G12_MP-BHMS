@@ -28,6 +28,23 @@ const paymentCycleOptions = [
   { value: "YEARLY", label: "Hàng năm" },
 ];
 
+// Thêm hàm tự động lấy hết hợp đồng qua nhiều trang
+async function fetchAllContractsAuto() {
+  let page = 0;
+  const size = 200;
+  let allContracts = [];
+  let hasMore = true;
+
+  while (hasMore) {
+    const res = await getAllContracts({ page, size });
+    const contracts = res.result || [];
+    allContracts = allContracts.concat(contracts);
+    hasMore = contracts.length === size;
+    page += 1;
+  }
+  return allContracts;
+}
+
 export default function LandlordContractListPage() {
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -72,16 +89,21 @@ export default function LandlordContractListPage() {
     try {
       const roomRes = await getAllRooms(page - 1, size);
       const roomsData = roomRes.result || [];
-      const contractRes = await getAllContracts({});
-      const allContracts = contractRes.result || [];
+      // Lấy toàn bộ hợp đồng qua nhiều trang
+      const allContracts = await fetchAllContractsAuto();
       const data = roomsData.map(room => {
-        const contractsOfRoom = allContracts.filter(c => (c.room?.id || c.roomId) === room.id);
+        const contractsOfRoom = allContracts.filter(c => {
+          const contractRoomId = c.roomId || (c.room && c.room.id);
+          return String(contractRoomId) === String(room.id);
+        });
+        // Debug log
+        console.log('Room:', room.roomNumber, 'room.id:', room.id, 'contractsOfRoom:', contractsOfRoom);
         const latestContract = contractsOfRoom
           .sort((a, b) => {
-            const dateA = b.updatedDate || b.createdDate || 0;
-            const dateB = a.updatedDate || a.createdDate || 0;
-            return new Date(dateA) - new Date(dateB);
-          })[0] || {};
+            const dateA = new Date(a.updatedDate || a.createdDate || 0);
+            const dateB = new Date(b.updatedDate || b.createdDate || 0);
+            return dateB - dateA;
+          })[0] || null;
         return {
           ...room,
           latestContract: latestContract ? { ...latestContract, roomId: room.id, roomNumber: room.roomNumber } : null

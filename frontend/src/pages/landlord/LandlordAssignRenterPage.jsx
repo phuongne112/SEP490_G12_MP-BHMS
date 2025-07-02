@@ -27,12 +27,41 @@ export default function LandlordAssignRenterPage() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [cycle, setCycle] = useState("MONTHLY");
+  const [isCustomEndDate, setIsCustomEndDate] = useState(false);
+  const [customEndDate, setCustomEndDate] = useState(null);
+
+  const paymentCycleOptions = [
+    { value: 'MONTHLY', label: 'Monthly' },
+    { value: 'QUARTERLY', label: 'Quarterly' },
+    { value: 'YEARLY', label: 'Annually' },
+  ];
+
+  const getValidEndDates = (start, cycle) => {
+    if (!start) return [];
+    let months = 1;
+    if (cycle === 'MONTHLY') months = 1;
+    if (cycle === 'QUARTERLY') months = 3;
+    if (cycle === 'YEARLY') months = 12;
+    return Array.from({ length: 24 }, (_, i) => dayjs(start).add(months * (i + 1), 'month'));
+  };
 
   useEffect(() => {
     fetchRoomDetails();
     fetchRenters();
+    if (startDate && cycle) {
+      let months = 1;
+      if (cycle === 'MONTHLY') months = 1;
+      if (cycle === 'QUARTERLY') months = 3;
+      if (cycle === 'YEARLY') months = 12;
+      const date = dayjs(startDate).add(months, 'month');
+      setEndDate(date);
+      form.setFieldsValue({ contractEndDate: date.toISOString() });
+    } else {
+      setEndDate(null);
+      form.setFieldsValue({ contractEndDate: null });
+    }
     // eslint-disable-next-line
-  }, [roomId]);
+  }, [roomId, startDate, cycle]);
 
   const fetchRoomDetails = async () => {
     try {
@@ -62,31 +91,28 @@ export default function LandlordAssignRenterPage() {
       message.error("Ngày bắt đầu phải ở tương lai!");
       return;
     }
-    if (dayjs(values.contractEndDate).isBefore(dayjs(), 'day')) {
-      message.error("Ngày kết thúc phải ở tương lai!");
+    let end = isCustomEndDate ? customEndDate : endDate;
+    if (!end) {
+      message.error("Vui lòng chọn ngày kết thúc hợp lệ!");
       return;
     }
-    if (dayjs(values.contractEndDate).isBefore(dayjs(values.contractStartDate), 'day')) {
+    if (end.isBefore(dayjs(values.contractStartDate), 'day')) {
       message.error("Ngày kết thúc phải sau ngày bắt đầu!");
       return;
     }
     // Validate đúng chu kỳ
-    const diffMonth = dayjs(values.contractEndDate).diff(dayjs(values.contractStartDate), 'month');
+    const diffMonth = end.diff(dayjs(values.contractStartDate), 'month');
     let valid = false;
     let errorMsg = '';
-    if (values.paymentCycle === 'MONTHLY') {
+    if (cycle === 'MONTHLY') {
       valid = diffMonth > 0 && diffMonth % 1 === 0;
       if (!valid) errorMsg = 'Thời gian hợp đồng phải là bội số của 1 tháng cho chu kỳ thanh toán hàng tháng.';
     }
-    if (values.paymentCycle === 'QUARTERLY') {
+    if (cycle === 'QUARTERLY') {
       valid = diffMonth > 0 && diffMonth % 3 === 0;
       if (!valid) errorMsg = 'Thời gian hợp đồng phải là bội số của 3 tháng cho chu kỳ thanh toán hàng quý.';
     }
-    if (values.paymentCycle === 'SEMI_ANNUALLY') {
-      valid = diffMonth > 0 && diffMonth % 6 === 0;
-      if (!valid) errorMsg = 'Thời gian hợp đồng phải là bội số của 6 tháng cho chu kỳ thanh toán nửa năm.';
-    }
-    if (values.paymentCycle === 'ANNUALLY') {
+    if (cycle === 'YEARLY') {
       valid = diffMonth > 0 && diffMonth % 12 === 0;
       if (!valid) errorMsg = 'Thời gian hợp đồng phải là bội số của 12 tháng cho chu kỳ thanh toán hàng năm.';
     }
@@ -103,11 +129,10 @@ export default function LandlordAssignRenterPage() {
           return renter.id;
         }),
         contractStartDate: values.contractStartDate.toISOString(),
-        contractEndDate: values.contractEndDate.toISOString(),
+        contractEndDate: dayjs(values.contractEndDate).toISOString(),
         depositAmount: values.depositAmount,
         paymentCycle: values.paymentCycle
       };
-
       await axiosClient.post("/room-users/add-many", requestData);
       message.success("Đã gán người thuê vào phòng thành công!");
       navigate("/landlord/rooms");
@@ -261,40 +286,30 @@ export default function LandlordAssignRenterPage() {
                     value={startDate}
                     onChange={d => {
                       setStartDate(d);
-                      // Nếu đã có chu kỳ, tự động gợi ý ngày kết thúc
-                      if (d && cycle) {
-                        let months = 1;
-                        if (cycle === 'MONTHLY') months = 1;
-                        if (cycle === 'QUARTERLY') months = 3;
-                        if (cycle === 'SEMI_ANNUALLY') months = 6;
-                        if (cycle === 'ANNUALLY') months = 12;
-                        setEndDate(dayjs(d).add(months, 'month'));
-                        form.setFieldsValue({ contractEndDate: dayjs(d).add(months, 'month') });
-                      }
                     }}
                     disabledDate={d => d && d < dayjs().startOf('day')}
                   />
                 </Form.Item>
-                <div style={{ margin: '8px 0' }}>
-                  <Button onClick={() => {
-                    if (startDate) {
-                      setEndDate(dayjs(startDate).add(3, 'month'));
-                      form.setFieldsValue({ contractEndDate: dayjs(startDate).add(3, 'month') });
-                    }
-                  }}>+3 tháng</Button>
-                  <Button style={{ marginLeft: 8 }} onClick={() => {
-                    if (startDate) {
-                      setEndDate(dayjs(startDate).add(6, 'month'));
-                      form.setFieldsValue({ contractEndDate: dayjs(startDate).add(6, 'month') });
-                    }
-                  }}>+6 tháng</Button>
-                  <Button style={{ marginLeft: 8 }} onClick={() => {
-                    if (startDate) {
-                      setEndDate(dayjs(startDate).add(12, 'month'));
-                      form.setFieldsValue({ contractEndDate: dayjs(startDate).add(12, 'month') });
-                    }
-                  }}>+12 tháng</Button>
-                </div>
+                {startDate && cycle === 'QUARTERLY' && (
+                  <div style={{ margin: '8px 0' }}>
+                    <Button onClick={() => {
+                      const base = endDate || startDate;
+                      const date = dayjs(base).add(3, 'month');
+                      setEndDate(date);
+                      form.setFieldsValue({ contractEndDate: date.toISOString() });
+                    }}>+3 tháng</Button>
+                  </div>
+                )}
+                {startDate && cycle === 'YEARLY' && (
+                  <div style={{ margin: '8px 0' }}>
+                    <Button onClick={() => {
+                      const base = endDate || startDate;
+                      const date = dayjs(base).add(12, 'month');
+                      setEndDate(date);
+                      form.setFieldsValue({ contractEndDate: date.toISOString() });
+                    }}>+12 tháng</Button>
+                  </div>
+                )}
                 <Form.Item
                   label="Contract End Date"
                   name="contractEndDate"
@@ -302,14 +317,45 @@ export default function LandlordAssignRenterPage() {
                     { required: true, message: "Please select contract end date" }
                   ]}
                 >
-                  <DatePicker 
-                    style={{ width: "100%" }} 
+                  <Select
                     placeholder="Select end date"
-                    value={endDate}
-                    onChange={d => setEndDate(d)}
-                    disabledDate={d => d && (d < dayjs().startOf('day') || (startDate && d < startDate))}
-                  />
+                    value={isCustomEndDate ? 'custom' : (endDate ? endDate.toISOString() : undefined)}
+                    onChange={v => {
+                      if (v === 'custom') {
+                        setIsCustomEndDate(true);
+                        setCustomEndDate(null);
+                        form.setFieldsValue({ contractEndDate: 'custom' });
+                      } else {
+                        setIsCustomEndDate(false);
+                        setEndDate(dayjs(v));
+                        form.setFieldsValue({ contractEndDate: v });
+                      }
+                    }}
+                    disabled={!startDate}
+                    showSearch={false}
+                  >
+                    {getValidEndDates(startDate, cycle).map(date => (
+                      <Option key={date.toISOString()} value={date.toISOString()}>
+                        {date.format("DD/MM/YYYY")}
+                      </Option>
+                    ))}
+                    <Option value="custom">Chọn ngày khác...</Option>
+                  </Select>
                 </Form.Item>
+                {isCustomEndDate && (
+                  <Form.Item label="Chọn ngày kết thúc tuỳ ý">
+                    <DatePicker
+                      style={{ width: '100%' }}
+                      value={customEndDate}
+                      onChange={d => {
+                        setCustomEndDate(d);
+                        form.setFieldsValue({ contractEndDate: d ? d.toISOString() : undefined });
+                      }}
+                      disabledDate={d => d && (!startDate || d <= startDate)}
+                      placeholder="Chọn ngày kết thúc"
+                    />
+                  </Form.Item>
+                )}
                 <Form.Item
                   label="Payment Cycle"
                   name="paymentCycle"
@@ -317,11 +363,18 @@ export default function LandlordAssignRenterPage() {
                     { required: true, message: "Please select payment cycle" }
                   ]}
                 >
-                  <Select placeholder="Select payment cycle" value={cycle} onChange={v => setCycle(v)}>
-                    <Option value="MONTHLY">Monthly</Option>
-                    <Option value="QUARTERLY">Quarterly</Option>
-                    <Option value="SEMI_ANNUALLY">Semi-annually</Option>
-                    <Option value="ANNUALLY">Annually</Option>
+                  <Select
+                    placeholder="Select payment cycle"
+                    value={cycle}
+                    onChange={v => {
+                      setCycle(v);
+                      setEndDate(null);
+                      form.setFieldsValue({ contractEndDate: null });
+                    }}
+                  >
+                    {paymentCycleOptions.map(opt => (
+                      <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+                    ))}
                   </Select>
                 </Form.Item>
                 <Form.Item

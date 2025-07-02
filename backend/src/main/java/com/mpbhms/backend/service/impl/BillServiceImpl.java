@@ -15,6 +15,9 @@ import com.mpbhms.backend.repository.ServiceReadingRepository;
 import com.mpbhms.backend.repository.ServiceRepository;
 import com.mpbhms.backend.repository.RoomRepository;
 import com.mpbhms.backend.service.BillService;
+import com.mpbhms.backend.dto.NotificationDTO;
+import com.mpbhms.backend.enums.NotificationType;
+import com.mpbhms.backend.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -48,6 +51,7 @@ public class BillServiceImpl implements BillService {
     private final ServiceReadingRepository serviceReadingRepository;
     private final ServiceRepository serviceRepository;
     private final RoomRepository roomRepository;
+    private final NotificationService notificationService;
 
     @Override
     public Bill generateFirstBill(Long contractId) {
@@ -170,7 +174,9 @@ public class BillServiceImpl implements BillService {
             detail.setBill(bill);
         }
 
-        return billRepository.save(bill);
+        billRepository.save(bill);
+        sendBillNotificationToAllUsers(bill);
+        return bill;
     }
 
     @Override
@@ -309,6 +315,7 @@ public class BillServiceImpl implements BillService {
             detail.setBill(bill);
         }
         billRepository.save(bill);
+        sendBillNotificationToAllUsers(bill);
         return bill;
     }
 
@@ -495,6 +502,7 @@ public class BillServiceImpl implements BillService {
             detail.setBill(bill);
         }
         billRepository.save(bill);
+        sendBillNotificationToAllUsers(bill);
         return toResponse(bill);
     }
 
@@ -510,7 +518,8 @@ public class BillServiceImpl implements BillService {
 
     @Override
     public Page<Bill> filterBills(Long roomId, Boolean status, BigDecimal minPrice, BigDecimal maxPrice, String search, Pageable pageable) {
-        Specification<Bill> spec = Specification.where(null);
+        Specification<Bill> spec = (root, query, cb) -> cb.conjunction();
+
         if (roomId != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("room").get("id"), roomId));
         }
@@ -525,10 +534,11 @@ public class BillServiceImpl implements BillService {
         }
         if (search != null && !search.isEmpty()) {
             spec = spec.and((root, query, cb) -> cb.or(
-                cb.like(cb.lower(root.get("room").get("roomNumber")), "%" + search.toLowerCase() + "%"),
-                cb.like(cb.function("str", String.class, root.get("id")), "%" + search + "%")
+                    cb.like(cb.lower(root.get("room").get("roomNumber")), "%" + search.toLowerCase() + "%"),
+                    cb.like(cb.function("str", String.class, root.get("id")), "%" + search + "%")
             ));
         }
+
         return billRepository.findAll(spec, pageable);
     }
 
@@ -563,6 +573,7 @@ public class BillServiceImpl implements BillService {
         bill.setBillDetails(details);
 
         billRepository.save(bill);
+        sendBillNotificationToAllUsers(bill);
         return toResponse(bill);
     }
 
@@ -670,5 +681,25 @@ public class BillServiceImpl implements BillService {
     @Override
     public Page<Bill> getBillsByUserId(Long userId, Pageable pageable) {
         return billRepository.findDistinctByContract_RoomUsers_User_Id(userId, pageable);
+    }
+
+    // Gửi notification cho từng user trong phòng ứng với hợp đồng khi gửi bill
+    private void sendBillNotificationToAllUsers(Bill bill) {
+        Contract contract = bill.getContract();
+        if (contract.getRoomUsers() != null) {
+            for (RoomUser ru : contract.getRoomUsers()) {
+                if (ru.getUser() != null && Boolean.TRUE.equals(ru.getIsActive())) {
+                    NotificationDTO noti = new NotificationDTO();
+                    noti.setRecipientId(ru.getUser().getId());
+                    noti.setTitle("Hóa đơn mới cho phòng " + contract.getRoom().getRoomNumber());
+                    noti.setMessage("Bạn có hóa đơn mới #" + bill.getId() + " từ " +
+                        bill.getFromDate().atZone(java.time.ZoneId.systemDefault()).toLocalDate() + " đến " +
+                        bill.getToDate().atZone(java.time.ZoneId.systemDefault()).toLocalDate() + ". Vui lòng kiểm tra và thanh toán.");
+                    noti.setType(NotificationType.CUSTOM); // Có thể thêm mới BILL nếu muốn
+                    noti.setMetadata("{\"billId\":" + bill.getId() + "}");
+                    notificationService.createAndSend(noti);
+                }
+            }
+        }
     }
 }
