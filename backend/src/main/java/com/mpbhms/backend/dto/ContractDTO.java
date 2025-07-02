@@ -24,4 +24,6 @@ public class ContractDTO {
     private String contractImage;
     private Integer maxOccupants;
     private java.util.List<String> terms;
+    private Instant createdDate;
+    private Instant updatedDate;
 } 

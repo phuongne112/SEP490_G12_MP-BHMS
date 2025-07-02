@@ -162,4 +162,13 @@ public class RoomUserController {
         contractService.terminateContract(contractId);
         return ResponseEntity.ok(new ApiResponse<>(200, null, "Đã kết thúc hợp đồng.", null));
     }
+
+    @PostMapping("/request-terminate-contract/{contractId}")
+    public ResponseEntity<ApiResponse<?>> requestTerminateContract(
+            @PathVariable Long contractId,
+            @RequestBody java.util.Map<String, String> request) {
+        String reason = request.get("reason");
+        contractService.requestTerminateContract(contractId, reason);
+        return ResponseEntity.ok(new ApiResponse<>(200, null, "Đã gửi yêu cầu kết thúc hợp đồng.", null));
+    }
 }

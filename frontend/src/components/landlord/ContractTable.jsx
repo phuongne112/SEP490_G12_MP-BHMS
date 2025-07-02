@@ -193,6 +193,16 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       render: (cycle) => cycle || "—"
     },
     {
+      title: "Created At",
+      dataIndex: "createdDate",
+      render: (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—"
+    },
+    {
+      title: "Updated At",
+      dataIndex: "updatedDate",
+      render: (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—"
+    },
+    {
       title: "Actions",
       align: "center",
       render: (_, record) => {
@@ -254,13 +264,19 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
   ];
 
   // Mỗi phòng 1 dòng, lấy hợp đồng mới nhất từ latestContract
-  const dataSource = rooms.map(room => {
+  let dataSource = rooms.map(room => {
     const c = room.latestContract || {};
     return {
       ...c,
       roomId: room.id,
       roomNumber: room.roomNumber,
     };
+  });
+  // Sắp xếp theo updatedDate mới nhất, nếu không có thì theo createdDate
+  dataSource = dataSource.sort((a, b) => {
+    const dateA = a.updatedDate || a.createdDate || 0;
+    const dateB = b.updatedDate || b.createdDate || 0;
+    return new Date(dateB) - new Date(dateA);
   });
 
   return (

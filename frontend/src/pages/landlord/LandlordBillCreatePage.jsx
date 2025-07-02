@@ -35,6 +35,8 @@ export default function LandlordBillCreatePage() {
   const [billType, setBillType] = useState("SERVICE");
   const [periodType, setPeriodType] = useState("1m");
   const [selectedMonths, setSelectedMonths] = useState([]);
+  const [billPeriods, setBillPeriods] = useState([]);
+  const [selectedBillPeriod, setSelectedBillPeriod] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -93,19 +95,38 @@ export default function LandlordBillCreatePage() {
         });
       } else if (billType === "CONTRACT_TOTAL" || billType === "CONTRACT_ROOM_RENT") {
         let periods = [];
-        if (periodType !== "custom") {
-          // Dùng selectedMonths để tạo các kỳ hóa đơn
-          periods = selectedMonths.map(month => ({
-            fromDate: month.startOf('month').format("YYYY-MM-DD"),
-            toDate: month.endOf('month').format("YYYY-MM-DD")
-          }));
-        } else if (values.dateRange && values.dateRange.length === 2) {
+        if (selectedContract && selectedContract.paymentCycle === 'MONTHLY' && billPeriods.length > 0 && selectedBillPeriod) {
+          const period = billPeriods.find(p => p.fromDate.format('YYYY-MM-DD') === selectedBillPeriod);
+          if (period) {
+            periods = [{
+              fromDate: period.fromDate.format('YYYY-MM-DD'),
+              toDate: period.toDate.format('YYYY-MM-DD')
+            }];
+          }
+        } else if (selectedContract) {
+          const contractStart = dayjs(selectedContract.contractStartDate);
+          const contractEnd = dayjs(selectedContract.contractEndDate);
+          let monthsPerBill = 1;
+          if (periodType === "3m") monthsPerBill = 3;
+          if (periodType === "6m") monthsPerBill = 6;
+          if (periodType === "1m") monthsPerBill = 1;
+          let current = contractStart;
+          while (current.isBefore(contractEnd)) {
+            let next = current.add(monthsPerBill, 'month');
+            let to = next.isBefore(contractEnd) ? next.subtract(1, 'day') : contractEnd;
+            periods.push({
+              fromDate: current.format("YYYY-MM-DD"),
+              toDate: to.format("YYYY-MM-DD")
+            });
+            current = next;
+          }
+        }
+        if (periodType === "custom" && values.dateRange && values.dateRange.length === 2) {
           periods = [{
             fromDate: values.dateRange[0].format("YYYY-MM-DD"),
             toDate: values.dateRange[1].format("YYYY-MM-DD")
           }];
         }
-        // Gửi từng kỳ hóa đơn lên backend (hoặc gửi mảng nếu backend hỗ trợ)
         for (const period of periods) {
           await generateBill(
             values.contractId,
@@ -139,6 +160,29 @@ export default function LandlordBillCreatePage() {
   const handleContractChange = (contractId) => {
     const contract = contracts.find(c => c.id === contractId);
     setSelectedContract(contract);
+    // Sinh các kỳ bill hợp lệ nếu là MONTHLY
+    if (contract && contract.paymentCycle === 'MONTHLY') {
+      let periods = [];
+      let current = dayjs(contract.contractStartDate);
+      let idx = 1;
+      const contractEnd = dayjs(contract.contractEndDate);
+      while (current.isBefore(contractEnd)) {
+        let next = current.add(1, 'month');
+        let to = next.isBefore(contractEnd) ? next.subtract(1, 'day') : contractEnd;
+        periods.push({
+          label: `Kỳ ${idx}: ${current.format('DD/MM/YYYY')} - ${to.format('DD/MM/YYYY')}`,
+          fromDate: current,
+          toDate: to
+        });
+        current = next;
+        idx++;
+      }
+      setBillPeriods(periods);
+      setSelectedBillPeriod(periods[0]?.fromDate ? periods[0].fromDate.format('YYYY-MM-DD') : null);
+    } else {
+      setBillPeriods([]);
+      setSelectedBillPeriod(null);
+    }
   };
 
   // Sửa lỗi nhảy form: reset các trường phụ thuộc khi đổi billType
@@ -328,6 +372,20 @@ export default function LandlordBillCreatePage() {
                       style={{ width: '100%' }}
                       placeholder={['Start Date', 'End Date']}
                     />
+                  </Form.Item>
+                )}
+                {selectedContract && selectedContract.paymentCycle === 'MONTHLY' && billPeriods.length > 0 && (
+                  <Form.Item label="Chọn kỳ hóa đơn" required>
+                    <Radio.Group
+                      value={selectedBillPeriod}
+                      onChange={e => setSelectedBillPeriod(e.target.value)}
+                    >
+                      {billPeriods.map(period => (
+                        <Radio key={period.fromDate.format('YYYY-MM-DD')} value={period.fromDate.format('YYYY-MM-DD')}>
+                          {period.label}
+                        </Radio>
+                      ))}
+                    </Radio.Group>
                   </Form.Item>
                 )}
               </>

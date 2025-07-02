@@ -111,7 +111,7 @@ export default function LandlordBillDetailPage() {
                   {dayjs(bill.fromDate).format("DD/MM/YYYY")}
                 </Descriptions.Item>
                 <Descriptions.Item label="To">
-                  {dayjs(bill.toDate).format("DD/MM/YYYY")}
+                  {bill.toDate && dayjs(bill.toDate).isValid() ? dayjs(bill.toDate).format("DD/MM/YYYY") : "—"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Total">
                   {bill.totalAmount?.toLocaleString()} VND

@@ -9,6 +9,7 @@ import { getRentersForAssign } from "../../services/renterApi";
 import axiosClient from "../../services/axiosClient";
 import { useSelector } from "react-redux";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import dayjs from "dayjs";
 
 const { Sider, Content } = Layout;
 const { Option } = Select;
@@ -23,6 +24,9 @@ export default function LandlordAssignRenterPage() {
   const [loading, setLoading] = useState(false);
   const [roomLoading, setRoomLoading] = useState(true);
   const user = useSelector((state) => state.account.user);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [cycle, setCycle] = useState("MONTHLY");
 
   useEffect(() => {
     fetchRoomDetails();
@@ -53,6 +57,43 @@ export default function LandlordAssignRenterPage() {
   };
 
   const onFinish = async (values) => {
+    // Validate ngày bắt đầu/kết thúc phải ở tương lai
+    if (dayjs(values.contractStartDate).isBefore(dayjs(), 'day')) {
+      message.error("Ngày bắt đầu phải ở tương lai!");
+      return;
+    }
+    if (dayjs(values.contractEndDate).isBefore(dayjs(), 'day')) {
+      message.error("Ngày kết thúc phải ở tương lai!");
+      return;
+    }
+    if (dayjs(values.contractEndDate).isBefore(dayjs(values.contractStartDate), 'day')) {
+      message.error("Ngày kết thúc phải sau ngày bắt đầu!");
+      return;
+    }
+    // Validate đúng chu kỳ
+    const diffMonth = dayjs(values.contractEndDate).diff(dayjs(values.contractStartDate), 'month');
+    let valid = false;
+    let errorMsg = '';
+    if (values.paymentCycle === 'MONTHLY') {
+      valid = diffMonth > 0 && diffMonth % 1 === 0;
+      if (!valid) errorMsg = 'Thời gian hợp đồng phải là bội số của 1 tháng cho chu kỳ thanh toán hàng tháng.';
+    }
+    if (values.paymentCycle === 'QUARTERLY') {
+      valid = diffMonth > 0 && diffMonth % 3 === 0;
+      if (!valid) errorMsg = 'Thời gian hợp đồng phải là bội số của 3 tháng cho chu kỳ thanh toán hàng quý.';
+    }
+    if (values.paymentCycle === 'SEMI_ANNUALLY') {
+      valid = diffMonth > 0 && diffMonth % 6 === 0;
+      if (!valid) errorMsg = 'Thời gian hợp đồng phải là bội số của 6 tháng cho chu kỳ thanh toán nửa năm.';
+    }
+    if (values.paymentCycle === 'ANNUALLY') {
+      valid = diffMonth > 0 && diffMonth % 12 === 0;
+      if (!valid) errorMsg = 'Thời gian hợp đồng phải là bội số của 12 tháng cho chu kỳ thanh toán hàng năm.';
+    }
+    if (!valid) {
+      message.error(errorMsg);
+      return;
+    }
     setLoading(true);
     try {
       const requestData = {
@@ -214,8 +255,46 @@ export default function LandlordAssignRenterPage() {
                     { required: true, message: "Please select contract start date" }
                   ]}
                 >
-                  <DatePicker style={{ width: "100%" }} placeholder="Select start date" />
+                  <DatePicker 
+                    style={{ width: "100%" }} 
+                    placeholder="Select start date"
+                    value={startDate}
+                    onChange={d => {
+                      setStartDate(d);
+                      // Nếu đã có chu kỳ, tự động gợi ý ngày kết thúc
+                      if (d && cycle) {
+                        let months = 1;
+                        if (cycle === 'MONTHLY') months = 1;
+                        if (cycle === 'QUARTERLY') months = 3;
+                        if (cycle === 'SEMI_ANNUALLY') months = 6;
+                        if (cycle === 'ANNUALLY') months = 12;
+                        setEndDate(dayjs(d).add(months, 'month'));
+                        form.setFieldsValue({ contractEndDate: dayjs(d).add(months, 'month') });
+                      }
+                    }}
+                    disabledDate={d => d && d < dayjs().startOf('day')}
+                  />
                 </Form.Item>
+                <div style={{ margin: '8px 0' }}>
+                  <Button onClick={() => {
+                    if (startDate) {
+                      setEndDate(dayjs(startDate).add(3, 'month'));
+                      form.setFieldsValue({ contractEndDate: dayjs(startDate).add(3, 'month') });
+                    }
+                  }}>+3 tháng</Button>
+                  <Button style={{ marginLeft: 8 }} onClick={() => {
+                    if (startDate) {
+                      setEndDate(dayjs(startDate).add(6, 'month'));
+                      form.setFieldsValue({ contractEndDate: dayjs(startDate).add(6, 'month') });
+                    }
+                  }}>+6 tháng</Button>
+                  <Button style={{ marginLeft: 8 }} onClick={() => {
+                    if (startDate) {
+                      setEndDate(dayjs(startDate).add(12, 'month'));
+                      form.setFieldsValue({ contractEndDate: dayjs(startDate).add(12, 'month') });
+                    }
+                  }}>+12 tháng</Button>
+                </div>
                 <Form.Item
                   label="Contract End Date"
                   name="contractEndDate"
@@ -223,7 +302,13 @@ export default function LandlordAssignRenterPage() {
                     { required: true, message: "Please select contract end date" }
                   ]}
                 >
-                  <DatePicker style={{ width: "100%" }} placeholder="Select end date" />
+                  <DatePicker 
+                    style={{ width: "100%" }} 
+                    placeholder="Select end date"
+                    value={endDate}
+                    onChange={d => setEndDate(d)}
+                    disabledDate={d => d && (d < dayjs().startOf('day') || (startDate && d < startDate))}
+                  />
                 </Form.Item>
                 <Form.Item
                   label="Payment Cycle"
@@ -232,7 +317,7 @@ export default function LandlordAssignRenterPage() {
                     { required: true, message: "Please select payment cycle" }
                   ]}
                 >
-                  <Select placeholder="Select payment cycle">
+                  <Select placeholder="Select payment cycle" value={cycle} onChange={v => setCycle(v)}>
                     <Option value="MONTHLY">Monthly</Option>
                     <Option value="QUARTERLY">Quarterly</Option>
                     <Option value="SEMI_ANNUALLY">Semi-annually</Option>

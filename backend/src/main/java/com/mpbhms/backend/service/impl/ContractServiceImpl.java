@@ -532,6 +532,8 @@ This contract is made in 02 copies, each party keeps 01 copy with the same legal
                 .collect(java.util.stream.Collectors.toList());
             dto.setTerms(terms);
         }
+        dto.setCreatedDate(contract.getCreatedDate());
+        dto.setUpdatedDate(contract.getUpdatedDate());
         return dto;
     }
 
@@ -730,7 +732,7 @@ This contract is made in 02 copies, each party keeps 01 copy with the same legal
         } else {
             // Renter duyệt
             java.util.List<Long> approvedBy = amendment.getApprovedBy();
-            if (approvedBy == null) approvedBy = new ArrayList<>();
+            if (approvedBy == null) approvedBy = new java.util.ArrayList<>();
             if (!approvedBy.contains(currentUserId)) {
                 approvedBy.add(currentUserId);
             }
@@ -741,7 +743,11 @@ This contract is made in 02 copies, each party keeps 01 copy with the same legal
             && amendment.getPendingApprovals().stream().allMatch(id -> amendment.getApprovedBy().contains(id));
         if (amendment.getApprovedByLandlord() && allRentersApproved) {
             amendment.setStatus(ContractAmendment.AmendmentStatus.APPROVED);
-            applyAmendmentToContract(amendment);
+            if (amendment.getAmendmentType() == ContractAmendment.AmendmentType.TERMINATION) {
+                terminateContract(amendment.getContract().getId());
+            } else {
+                applyAmendmentToContract(amendment);
+            }
         }
         contractAmendmentRepository.save(amendment);
     }
@@ -932,6 +938,29 @@ This contract is made in 02 copies, each party keeps 01 copy with the same legal
     public java.util.List<ContractDTO> getContractsByRoomId(Long roomId) {
         java.util.List<Contract> contracts = contractRepository.findByRoomId(roomId);
         return contracts.stream().map(this::toDTO).toList();
+    }
+
+    @Transactional
+    public void requestTerminateContract(Long contractId, String reason) {
+        Contract contract = contractRepository.findById(contractId)
+            .orElseThrow(() -> new RuntimeException("Contract not found"));
+        java.util.List<Long> renterIds = contract.getRoomUsers().stream()
+            .filter(RoomUser::getIsActive)
+            .map(ru -> ru.getUser().getId())
+            .collect(java.util.stream.Collectors.toList());
+
+        ContractAmendment amendment = new ContractAmendment();
+        amendment.setContract(contract);
+        amendment.setAmendmentType(ContractAmendment.AmendmentType.TERMINATION);
+        amendment.setOldValue("ACTIVE");
+        amendment.setNewValue("TERMINATED");
+        amendment.setReason(reason);
+        amendment.setRequiresApproval(true);
+        amendment.setPendingApprovals(renterIds);
+        amendment.setApprovedBy(new java.util.ArrayList<>());
+        amendment.setStatus(ContractAmendment.AmendmentStatus.PENDING);
+        amendment.setApprovedByLandlord(false);
+        contractAmendmentRepository.save(amendment);
     }
 }
 

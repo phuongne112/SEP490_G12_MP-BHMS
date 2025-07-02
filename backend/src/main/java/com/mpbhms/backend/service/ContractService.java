@@ -60,5 +60,7 @@ public interface ContractService {
     void terminateContract(Long contractId);
 
     java.util.List<com.mpbhms.backend.dto.ContractDTO> getContractsByRoomId(Long roomId);
+
+    void requestTerminateContract(Long contractId, String reason);
 }
 

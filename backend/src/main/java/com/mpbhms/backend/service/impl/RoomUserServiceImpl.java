@@ -49,23 +49,23 @@ public class RoomUserServiceImpl implements RoomUserService {
         long monthsBetween = java.time.temporal.ChronoUnit.MONTHS.between(startDate, endDate);
         switch (request.getPaymentCycle()) {
             case "MONTHLY":
-                if (monthsBetween != 1) {
-                    throw new RuntimeException("Thời gian hợp đồng phải đúng 1 tháng cho chu kỳ thanh toán hàng tháng.");
+                if (monthsBetween <= 0 || monthsBetween % 1 != 0) {
+                    throw new RuntimeException("Thời gian hợp đồng phải là bội số của 1 tháng cho chu kỳ thanh toán hàng tháng.");
                 }
                 break;
             case "QUARTERLY":
-                if (monthsBetween != 3) {
-                    throw new RuntimeException("Thời gian hợp đồng phải đúng 3 tháng cho chu kỳ thanh toán theo quý.");
+                if (monthsBetween <= 0 || monthsBetween % 3 != 0) {
+                    throw new RuntimeException("Thời gian hợp đồng phải là bội số của 3 tháng cho chu kỳ thanh toán theo quý.");
                 }
                 break;
             case "SEMI_ANNUALLY":
-                if (monthsBetween != 6) {
-                    throw new RuntimeException("Thời gian hợp đồng phải đúng 6 tháng cho chu kỳ thanh toán nửa năm.");
+                if (monthsBetween <= 0 || monthsBetween % 6 != 0) {
+                    throw new RuntimeException("Thời gian hợp đồng phải là bội số của 6 tháng cho chu kỳ thanh toán nửa năm.");
                 }
                 break;
             case "ANNUALLY":
-                if (monthsBetween != 12) {
-                    throw new RuntimeException("Thời gian hợp đồng phải đúng 12 tháng cho chu kỳ thanh toán hàng năm.");
+                if (monthsBetween <= 0 || monthsBetween % 12 != 0) {
+                    throw new RuntimeException("Thời gian hợp đồng phải là bội số của 12 tháng cho chu kỳ thanh toán hàng năm.");
                 }
                 break;
         }
