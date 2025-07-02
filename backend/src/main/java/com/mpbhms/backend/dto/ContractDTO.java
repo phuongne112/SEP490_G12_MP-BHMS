@@ -23,4 +23,5 @@ public class ContractDTO {
     private Double rentAmount;
     private String contractImage;
     private Integer maxOccupants;
+    private java.util.List<String> terms;
 } 

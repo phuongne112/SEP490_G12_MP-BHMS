@@ -3,7 +3,7 @@ import { Card, Descriptions, Tag, Spin, Typography, Button, message, Row, Col, M
 import { FileTextOutlined } from "@ant-design/icons";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import dayjs from "dayjs";
-import { getRenterContracts } from "../../services/contractApi";
+import { getRenterContracts, exportContractPdf } from "../../services/contractApi";
 import { getPersonalInfo } from "../../services/userApi";
 import { getContractAmendments, approveAmendment, rejectAmendment } from "../../services/roomUserApi";
 
@@ -37,7 +37,14 @@ export default function RenterContractPage() {
       const contractRes = await getRenterContracts();
       const contracts = contractRes.data || contractRes; // tuỳ backend trả về
       if (contracts && contracts.length > 0) {
-        setContract(contracts[0]); // Hiện hợp đồng đầu tiên
+        // Ưu tiên hợp đồng ACTIVE, nếu không có thì lấy hợp đồng có ngày kết thúc mới nhất
+        const active = contracts.find(c => c.contractStatus === "ACTIVE");
+        if (active) {
+          setContract(active);
+        } else {
+          const sorted = [...contracts].sort((a, b) => new Date(b.contractEndDate) - new Date(a.contractEndDate));
+          setContract(sorted[0]);
+        }
       } else {
         setContract(null);
       }
@@ -115,6 +122,22 @@ export default function RenterContractPage() {
       handleViewAmendments();
     } catch {
       message.error("Từ chối thất bại!");
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (!contract?.id) return;
+    try {
+      const res = await exportContractPdf(contract.id);
+      const blob = res.data;
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `HopDong_${contract.contractNumber || contract.id}.pdf`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      message.error("Tải hợp đồng thất bại!");
     }
   };
 
@@ -250,7 +273,7 @@ export default function RenterContractPage() {
                       icon={<FileTextOutlined />}
                       block
                       size={isMobile ? "middle" : "large"}
-                      // TODO: Thêm chức năng tải hợp đồng nếu cần
+                      onClick={handleExportPdf}
                     >
                       Tải hợp đồng
                     </Button>

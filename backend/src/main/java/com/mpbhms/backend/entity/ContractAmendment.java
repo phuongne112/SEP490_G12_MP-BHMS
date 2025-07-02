@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import jakarta.persistence.Convert;
+import com.mpbhms.backend.util.JsonListStringConverter;
 
 @Entity
 @Table(name = "contract_amendments")
@@ -65,7 +66,8 @@ public class ContractAmendment extends BaseEntity {
     private Instant newEndDate;
 
     @Column(name = "new_terms", columnDefinition = "TEXT")
-    private String newTerms;
+    @Convert(converter = JsonListStringConverter.class)
+    private java.util.List<String> newTerms;
 
     @Column(name = "new_renter_ids", columnDefinition = "TEXT")
     @Convert(converter = com.mpbhms.backend.util.JsonListLongConverter.class)

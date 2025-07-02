@@ -25,4 +25,6 @@ public interface ContractRepository extends JpaRepository<Contract, Long>, JpaSp
         java.time.Instant startDate,
         java.time.Instant endDate,
         org.springframework.data.domain.Pageable pageable);
+
+    List<Contract> findByRoomIdAndContractStatus(Long roomId, com.mpbhms.backend.enums.ContractStatus contractStatus);
 }
