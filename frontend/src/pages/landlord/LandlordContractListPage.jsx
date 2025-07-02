@@ -72,7 +72,12 @@ export default function LandlordContractListPage() {
       const allContracts = contractRes.result || [];
       const data = roomsData.map(room => {
         const contractsOfRoom = allContracts.filter(c => (c.room?.id || c.roomId) === room.id);
-        const latestContract = contractsOfRoom.sort((a, b) => new Date(b.contractStartDate) - new Date(a.contractStartDate))[0] || {};
+        const latestContract = contractsOfRoom
+          .sort((a, b) => {
+            if (a.contractStatus === "ACTIVE" && b.contractStatus !== "ACTIVE") return -1;
+            if (b.contractStatus === "ACTIVE" && a.contractStatus !== "ACTIVE") return 1;
+            return new Date(b.contractEndDate) - new Date(a.contractEndDate);
+          })[0] || {};
         return {
           ...room,
           latestContract: latestContract ? { ...latestContract, roomId: room.id, roomNumber: room.roomNumber } : null
