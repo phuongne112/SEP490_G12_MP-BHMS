@@ -25,11 +25,14 @@ import {
 } from "@ant-design/icons";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
 import { Layout } from "antd";
 
 const { Sider, Content } = Layout;
 
 const { Title, Text } = Typography;
+
+dayjs.extend(customParseFormat);
 
 export default function RenterBillListPage() {
   const [bills, setBills] = useState([]);
@@ -94,6 +97,16 @@ export default function RenterBillListPage() {
     }
   };
 
+  const formatDate = (date) => {
+    if (date && dayjs(date, "YYYY-MM-DD HH:mm:ss A").isValid()) {
+      return dayjs(date, "YYYY-MM-DD HH:mm:ss A").format("DD/MM/YYYY");
+    }
+    if (date && dayjs(date).isValid()) {
+      return dayjs(date).format("DD/MM/YYYY");
+    }
+    return <span style={{ color: 'red', fontWeight: 500 }}>Không xác định</span>;
+  };
+
   const columns = [
     {
       title: "Bill ID",
@@ -136,14 +149,14 @@ export default function RenterBillListPage() {
       title: "From",
       dataIndex: "fromDate",
       align: "center",
-      render: (date) => <Text>{dayjs(date).format("DD/MM/YYYY")}</Text>,
+      render: (date) => <Text>{formatDate(date)}</Text>,
       width: 100,
     },
     {
       title: "To",
       dataIndex: "toDate",
       align: "center",
-      render: (date) => <Text>{dayjs(date).format("DD/MM/YYYY")}</Text>,
+      render: (date) => <Text>{formatDate(date)}</Text>,
       width: 100,
     },
     {
