@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { 
-  Form, 
-  Input, 
-  InputNumber, 
-  Button, 
-  message, 
-  Select, 
-  Card, 
-  Row, 
+import {
+  Form,
+  Input,
+  InputNumber,
+  Button,
+  message,
+  Select,
+  Card,
+  Row,
   Col,
   DatePicker,
   Space,
   Divider,
-  Radio
+  Radio,
 } from "antd";
-import { createBill, generateBill, generateFirstBill, createCustomBill } from "../../services/billApi";
+import {
+  createBill,
+  generateBill,
+  generateFirstBill,
+  createCustomBill,
+} from "../../services/billApi";
 import { getAllRooms } from "../../services/roomService";
 import { getAllContracts } from "../../services/contractApi";
 import { useNavigate } from "react-router-dom";
@@ -56,7 +61,9 @@ export default function LandlordBillCreatePage() {
   const fetchContracts = async () => {
     try {
       const res = await getAllContracts();
-      setContracts((res.result || []).filter(c => c.contractStatus === 'ACTIVE'));
+      setContracts(
+        (res.result || []).filter((c) => c.contractStatus === "ACTIVE")
+      );
     } catch (err) {
       message.error("Failed to load contracts");
     }
@@ -66,7 +73,7 @@ export default function LandlordBillCreatePage() {
     setLoading(true);
     try {
       let result;
-      
+
       if (billType === "CUSTOM") {
         // Gọi API tạo bill custom
         const [from, to] = values.customDateRange || [];
@@ -77,7 +84,7 @@ export default function LandlordBillCreatePage() {
           amount: values.customAmount,
           fromDate: from ? from.format("YYYY-MM-DD") : undefined,
           toDate: to ? to.format("YYYY-MM-DD") : undefined,
-          billType: "CUSTOM"
+          billType: "CUSTOM",
         };
         await createCustomBill(payload);
         message.success("Custom bill created successfully");
@@ -91,17 +98,29 @@ export default function LandlordBillCreatePage() {
         result = await createBill({
           roomId: values.roomId,
           month: month,
-          year: year
+          year: year,
         });
-      } else if (billType === "CONTRACT_TOTAL" || billType === "CONTRACT_ROOM_RENT") {
+      } else if (
+        billType === "CONTRACT_TOTAL" ||
+        billType === "CONTRACT_ROOM_RENT"
+      ) {
         let periods = [];
-        if (selectedContract && selectedContract.paymentCycle === 'MONTHLY' && billPeriods.length > 0 && selectedBillPeriod) {
-          const period = billPeriods.find(p => p.fromDate.format('YYYY-MM-DD') === selectedBillPeriod);
+        if (
+          selectedContract &&
+          selectedContract.paymentCycle === "MONTHLY" &&
+          billPeriods.length > 0 &&
+          selectedBillPeriod
+        ) {
+          const period = billPeriods.find(
+            (p) => p.fromDate.format("YYYY-MM-DD") === selectedBillPeriod
+          );
           if (period) {
-            periods = [{
-              fromDate: period.fromDate.format('YYYY-MM-DD'),
-              toDate: period.toDate.format('YYYY-MM-DD')
-            }];
+            periods = [
+              {
+                fromDate: period.fromDate.format("YYYY-MM-DD"),
+                toDate: period.toDate.format("YYYY-MM-DD"),
+              },
+            ];
           }
         } else if (selectedContract) {
           const contractStart = dayjs(selectedContract.contractStartDate);
@@ -112,20 +131,28 @@ export default function LandlordBillCreatePage() {
           if (periodType === "1m") monthsPerBill = 1;
           let current = contractStart;
           while (current.isBefore(contractEnd)) {
-            let next = current.add(monthsPerBill, 'month');
-            let to = next.isBefore(contractEnd) ? next.subtract(1, 'day') : contractEnd;
+            let next = current.add(monthsPerBill, "month");
+            let to = next.isBefore(contractEnd)
+              ? next.subtract(1, "day")
+              : contractEnd;
             periods.push({
               fromDate: current.format("YYYY-MM-DD"),
-              toDate: to.format("YYYY-MM-DD")
+              toDate: to.format("YYYY-MM-DD"),
             });
             current = next;
           }
         }
-        if (periodType === "custom" && values.dateRange && values.dateRange.length === 2) {
-          periods = [{
-            fromDate: values.dateRange[0].format("YYYY-MM-DD"),
-            toDate: values.dateRange[1].format("YYYY-MM-DD")
-          }];
+        if (
+          periodType === "custom" &&
+          values.dateRange &&
+          values.dateRange.length === 2
+        ) {
+          periods = [
+            {
+              fromDate: values.dateRange[0].format("YYYY-MM-DD"),
+              toDate: values.dateRange[1].format("YYYY-MM-DD"),
+            },
+          ];
         }
         for (const period of periods) {
           await generateBill(
@@ -140,7 +167,7 @@ export default function LandlordBillCreatePage() {
         setLoading(false);
         return;
       }
-      
+
       message.success("Bill created successfully");
       navigate("/landlord/bills");
     } catch (err) {
@@ -152,33 +179,39 @@ export default function LandlordBillCreatePage() {
   };
 
   const handleRoomChange = (roomId) => {
-    const room = rooms.find(r => r.id === roomId);
+    const room = rooms.find((r) => r.id === roomId);
     setSelectedRoom(room);
     setSelectedContract(null);
   };
 
   const handleContractChange = (contractId) => {
-    const contract = contracts.find(c => c.id === contractId);
+    const contract = contracts.find((c) => c.id === contractId);
     setSelectedContract(contract);
     // Sinh các kỳ bill hợp lệ nếu là MONTHLY
-    if (contract && contract.paymentCycle === 'MONTHLY') {
+    if (contract && contract.paymentCycle === "MONTHLY") {
       let periods = [];
       let current = dayjs(contract.contractStartDate);
       let idx = 1;
       const contractEnd = dayjs(contract.contractEndDate);
       while (current.isBefore(contractEnd)) {
-        let next = current.add(1, 'month');
-        let to = next.isBefore(contractEnd) ? next.subtract(1, 'day') : contractEnd;
+        let next = current.add(1, "month");
+        let to = next.isBefore(contractEnd)
+          ? next.subtract(1, "day")
+          : contractEnd;
         periods.push({
-          label: `Kỳ ${idx}: ${current.format('DD/MM/YYYY')} - ${to.format('DD/MM/YYYY')}`,
+          label: `Kỳ ${idx}: ${current.format("DD/MM/YYYY")} - ${to.format(
+            "DD/MM/YYYY"
+          )}`,
           fromDate: current,
-          toDate: to
+          toDate: to,
         });
         current = next;
         idx++;
       }
       setBillPeriods(periods);
-      setSelectedBillPeriod(periods[0]?.fromDate ? periods[0].fromDate.format('YYYY-MM-DD') : null);
+      setSelectedBillPeriod(
+        periods[0]?.fromDate ? periods[0].fromDate.format("YYYY-MM-DD") : null
+      );
     } else {
       setBillPeriods([]);
       setSelectedBillPeriod(null);
@@ -208,11 +241,15 @@ export default function LandlordBillCreatePage() {
     if (periodType === "1m") {
       months = [date];
     } else if (periodType === "3m") {
-      months = [date, date.clone().add(1, 'month'), date.clone().add(2, 'month')];
+      months = [
+        date,
+        date.clone().add(1, "month"),
+        date.clone().add(2, "month"),
+      ];
     } else if (periodType === "6m") {
       months = [date];
       for (let i = 1; i < 6; i++) {
-        months.push(date.clone().add(i, 'month'));
+        months.push(date.clone().add(i, "month"));
       }
     }
     setSelectedMonths(months);
@@ -220,125 +257,134 @@ export default function LandlordBillCreatePage() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', position: 'relative' }}>
+    <div style={{ display: "flex", minHeight: "100vh", position: "relative" }}>
       {/* Overlay blur background */}
       <div
         style={{
-          position: 'fixed',
+          position: "fixed",
           top: 0,
           left: 0,
-          width: '100vw',
-          height: '100vh',
+          width: "100vw",
+          height: "100vh",
           zIndex: 0,
-          background: 'rgba(255,255,255,0.4)',
-          backdropFilter: 'blur(8px)'
+          background: "rgba(255,255,255,0.4)",
+          backdropFilter: "blur(8px)",
         }}
       />
       <LandlordSidebar />
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        position: 'relative',
-        zIndex: 1
-      }}>
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "100vh",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
         <Card
           style={{
             width: 600,
-            boxShadow: '0 4px 24px 0 rgba(0,0,0,0.08)',
+            boxShadow: "0 4px 24px 0 rgba(0,0,0,0.08)",
             borderRadius: 16,
             padding: 32,
-            margin: '40px 0',
-            background: '#fff',
-            position: 'relative',
-            zIndex: 2
+            margin: "40px 0",
+            background: "#fff",
+            position: "relative",
+            zIndex: 2,
           }}
           bodyStyle={{ padding: 0 }}
         >
           <PageHeader title="Create Bill" />
           <Divider />
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={onFinish}
-          >
-            <Form.Item 
-              name="billType" 
-              label="Bill Type" 
-              rules={[{ required: true, message: 'Please select bill type' }]}
+          <Form form={form} layout="vertical" onFinish={onFinish}>
+            <Form.Item
+              name="billType"
+              label="Bill Type"
+              rules={[{ required: true, message: "Please select bill type" }]}
             >
-              <Select 
+              <Select
                 value={billType}
                 onChange={handleBillTypeChange}
                 placeholder="Select bill type"
               >
                 <Option value="SERVICE">Service Bill (Dịch vụ)</Option>
-                <Option value="CONTRACT_TOTAL">Contract Total Bill (Phòng + dịch vụ)</Option>
-                <Option value="CONTRACT_ROOM_RENT">Contract Room Rent Bill (Chỉ tiền phòng)</Option>
+                <Option value="CONTRACT_TOTAL">
+                  Contract Total Bill (Phòng + dịch vụ)
+                </Option>
+                <Option value="CONTRACT_ROOM_RENT">
+                  Contract Room Rent Bill (Chỉ tiền phòng)
+                </Option>
                 <Option value="CUSTOM">Custom Bill (Tuỳ chỉnh)</Option>
               </Select>
             </Form.Item>
 
             {billType === "SERVICE" && (
               <>
-                <Form.Item 
-                  name="roomId" 
-                  label="Room" 
-                  rules={[{ required: true, message: 'Please select room' }]}
+                <Form.Item
+                  name="roomId"
+                  label="Room"
+                  rules={[{ required: true, message: "Please select room" }]}
                 >
-                  <Select 
+                  <Select
                     placeholder="Select room"
                     onChange={handleRoomChange}
                     showSearch
                     filterOption={(input, option) =>
-                      option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                      option.children
+                        .toLowerCase()
+                        .indexOf(input.toLowerCase()) >= 0
                     }
                   >
-                    {rooms.map(room => (
+                    {rooms.map((room) => (
                       <Option
                         key={room.id}
                         value={room.id}
                         disabled={!room.hasActiveContract}
                       >
-                        {room.roomNumber} - {room.building || 'N/A'}
-                        {!room.hasActiveContract ? ' (No contract)' : ''}
+                        {room.roomNumber} - {room.building || "N/A"}
+                        {!room.hasActiveContract ? " (No contract)" : ""}
                       </Option>
                     ))}
                   </Select>
                 </Form.Item>
 
-                <Form.Item 
-                  name="month" 
-                  label="Month/Year" 
-                  rules={[{ required: true, message: 'Please select month' }]}
+                <Form.Item
+                  name="month"
+                  label="Month/Year"
+                  rules={[{ required: true, message: "Please select month" }]}
                 >
-                  <DatePicker 
-                    picker="month" 
+                  <DatePicker
+                    picker="month"
                     placeholder="Select month"
-                    style={{ width: '100%' }}
+                    style={{ width: "100%" }}
                   />
                 </Form.Item>
               </>
             )}
 
-            {(billType === "CONTRACT_TOTAL" || billType === "CONTRACT_ROOM_RENT") && (
+            {(billType === "CONTRACT_TOTAL" ||
+              billType === "CONTRACT_ROOM_RENT") && (
               <>
-                <Form.Item 
-                  name="contractId" 
-                  label="Contract" 
-                  rules={[{ required: true, message: 'Please select contract' }]}
+                <Form.Item
+                  name="contractId"
+                  label="Contract"
+                  rules={[
+                    { required: true, message: "Please select contract" },
+                  ]}
                 >
-                  <Select 
+                  <Select
                     placeholder="Select contract"
                     onChange={handleContractChange}
                     showSearch
                     filterOption={(input, option) =>
-                      option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                      option.children
+                        .toLowerCase()
+                        .indexOf(input.toLowerCase()) >= 0
                     }
                   >
-                    {contracts.map(contract => (
+                    {contracts.map((contract) => (
                       <Option key={contract.id} value={contract.id}>
                         Contract #{contract.id} - Room {contract.roomNumber}
                       </Option>
@@ -346,7 +392,10 @@ export default function LandlordBillCreatePage() {
                   </Select>
                 </Form.Item>
                 <Form.Item label="Bill Period">
-                  <Radio.Group onChange={handlePeriodTypeChange} value={periodType}>
+                  <Radio.Group
+                    onChange={handlePeriodTypeChange}
+                    value={periodType}
+                  >
                     <Radio value="1m">1 tháng</Radio>
                     <Radio value="3m">3 tháng</Radio>
                     <Radio value="6m">6 tháng</Radio>
@@ -354,40 +403,49 @@ export default function LandlordBillCreatePage() {
                   </Radio.Group>
                 </Form.Item>
                 {periodType !== "custom" ? (
-                  <Form.Item name="months" label="Chọn tháng bắt đầu" rules={[{ required: true, message: 'Chọn tháng bắt đầu' }]}> 
-                    <DatePicker 
-                      picker="month" 
+                  <Form.Item
+                    name="months"
+                    label="Chọn tháng bắt đầu"
+                    rules={[{ required: true, message: "Chọn tháng bắt đầu" }]}
+                  >
+                    <DatePicker
+                      picker="month"
                       placeholder="Chọn tháng bắt đầu"
-                      style={{ width: '100%' }}
+                      style={{ width: "100%" }}
                       onChange={handleMonthChange}
                     />
                   </Form.Item>
                 ) : (
-                  <Form.Item 
-                    name="dateRange" 
+                  <Form.Item
+                    name="dateRange"
                     label="Date Range (Optional)"
-                    rules={[{ required: true, message: 'Chọn khoảng ngày' }]}
+                    rules={[{ required: true, message: "Chọn khoảng ngày" }]}
                   >
-                    <RangePicker 
-                      style={{ width: '100%' }}
-                      placeholder={['Start Date', 'End Date']}
+                    <RangePicker
+                      style={{ width: "100%" }}
+                      placeholder={["Start Date", "End Date"]}
                     />
                   </Form.Item>
                 )}
-                {selectedContract && selectedContract.paymentCycle === 'MONTHLY' && billPeriods.length > 0 && (
-                  <Form.Item label="Chọn kỳ hóa đơn" required>
-                    <Radio.Group
-                      value={selectedBillPeriod}
-                      onChange={e => setSelectedBillPeriod(e.target.value)}
-                    >
-                      {billPeriods.map(period => (
-                        <Radio key={period.fromDate.format('YYYY-MM-DD')} value={period.fromDate.format('YYYY-MM-DD')}>
-                          {period.label}
-                        </Radio>
-                      ))}
-                    </Radio.Group>
-                  </Form.Item>
-                )}
+                {selectedContract &&
+                  selectedContract.paymentCycle === "MONTHLY" &&
+                  billPeriods.length > 0 && (
+                    <Form.Item label="Chọn kỳ hóa đơn" required>
+                      <Radio.Group
+                        value={selectedBillPeriod}
+                        onChange={(e) => setSelectedBillPeriod(e.target.value)}
+                      >
+                        {billPeriods.map((period) => (
+                          <Radio
+                            key={period.fromDate.format("YYYY-MM-DD")}
+                            value={period.fromDate.format("YYYY-MM-DD")}
+                          >
+                            {period.label}
+                          </Radio>
+                        ))}
+                      </Radio.Group>
+                    </Form.Item>
+                  )}
               </>
             )}
 
@@ -396,23 +454,25 @@ export default function LandlordBillCreatePage() {
                 <Form.Item
                   name="roomId"
                   label="Room"
-                  rules={[{ required: true, message: 'Please select room' }]}
+                  rules={[{ required: true, message: "Please select room" }]}
                 >
                   <Select
                     placeholder="Select room"
                     showSearch
                     filterOption={(input, option) =>
-                      option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                      option.children
+                        .toLowerCase()
+                        .indexOf(input.toLowerCase()) >= 0
                     }
                   >
-                    {rooms.map(room => (
+                    {rooms.map((room) => (
                       <Option
                         key={room.id}
                         value={room.id}
                         disabled={!room.hasActiveContract}
                       >
-                        {room.roomNumber} - {room.building || 'N/A'}
-                        {!room.hasActiveContract ? ' (No contract)' : ''}
+                        {room.roomNumber} - {room.building || "N/A"}
+                        {!room.hasActiveContract ? " (No contract)" : ""}
                       </Option>
                     ))}
                   </Select>
@@ -420,28 +480,28 @@ export default function LandlordBillCreatePage() {
                 <Form.Item
                   name="customName"
                   label="Bill Name"
-                  rules={[{ required: true, message: 'Please enter bill name' }]}
+                  rules={[
+                    { required: true, message: "Please enter bill name" },
+                  ]}
                 >
                   <Input placeholder="Enter bill name (e.g. Điện tháng 6, Phí vệ sinh...)" />
                 </Form.Item>
-                <Form.Item
-                  name="customDescription"
-                  label="Description"
-                >
+                <Form.Item name="customDescription" label="Description">
                   <Input.TextArea placeholder="Enter description (optional)" />
                 </Form.Item>
                 <Form.Item
                   name="customAmount"
                   label="Amount"
-                  rules={[{ required: true, message: 'Please enter amount' }]}
+                  rules={[{ required: true, message: "Please enter amount" }]}
                 >
-                  <InputNumber min={0} style={{ width: "100%" }} placeholder="Enter amount (VND)" />
+                  <InputNumber
+                    min={0}
+                    style={{ width: "100%" }}
+                    placeholder="Enter amount (VND)"
+                  />
                 </Form.Item>
-                <Form.Item
-                  name="customDateRange"
-                  label="Date Range (Optional)"
-                >
-                  <RangePicker style={{ width: '100%' }} />
+                <Form.Item name="customDateRange" label="Date Range (Optional)">
+                  <RangePicker style={{ width: "100%" }} />
                 </Form.Item>
               </>
             )}
@@ -451,7 +511,9 @@ export default function LandlordBillCreatePage() {
                 <Button type="primary" htmlType="submit" loading={loading}>
                   Create Bill
                 </Button>
-                <Button onClick={() => navigate("/landlord/bills")}>Cancel</Button>
+                <Button onClick={() => navigate("/landlord/bills")}>
+                  Cancel
+                </Button>
               </Space>
             </Form.Item>
           </Form>
@@ -459,4 +521,4 @@ export default function LandlordBillCreatePage() {
       </div>
     </div>
   );
-} 
+}

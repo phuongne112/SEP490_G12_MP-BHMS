@@ -9,6 +9,7 @@ import {
   Spin,
   message,
   Divider,
+  Modal,
 } from "antd";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { getAllRooms } from "../services/roomService";
@@ -22,10 +23,12 @@ export default function RoomDetailPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const reduxUser = useSelector((state) => state.account.user);
+  const user = reduxUser || JSON.parse(localStorage.getItem("account"));
 
   const [room, setRoom] = useState(location.state?.room || null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [loading, setLoading] = useState(!room);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
 
   useEffect(() => {
     const hasLandlordInfo = room?.landlordName && room?.landlordPhone;
@@ -151,29 +154,67 @@ export default function RoomDetailPage() {
                   <Title level={3} style={{ margin: 0 }}>
                     Room {room.roomNumber}
                   </Title>
-                  <button
-                    style={{
-                      background: "#1890ff",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: 6,
-                      padding: "8px 20px",
-                      fontWeight: 500,
-                      fontSize: 16,
-                      cursor: "pointer",
-                      marginLeft: 16,
-                    }}
-                    onClick={() => {
-                      navigate(`/landlord/rooms/${room.id}/book`, {
-                        state: {
-                          room,
-                          user: reduxUser,
-                        },
-                      });
-                    }}
-                  >
-                    Book Appointment
-                  </button>
+                  {(() => {
+                    if (!user) return true;
+                    const roleName = user?.role?.roleName || user?.role || "";
+                    const normalizedRole = (roleName || "").toUpperCase().trim();
+                    if (["ADMIN", "SUBADMIN", "LANDLORD"].includes(normalizedRole)) return false;
+                    return true;
+                  })() && (
+                    <>
+                      <button
+                        style={{
+                          background: "#1890ff",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 6,
+                          padding: "8px 20px",
+                          fontWeight: 500,
+                          fontSize: 16,
+                          cursor: "pointer",
+                          marginLeft: 16,
+                        }}
+                        onClick={() => {
+                          if (!user) {
+                            setLoginModalOpen(true);
+                          } else {
+                            navigate(`/landlord/rooms/${room.id}/book`, {
+                              state: {
+                                room,
+                                user,
+                              },
+                            });
+                          }
+                        }}
+                      >
+                        Book Appointment
+                      </button>
+                      <Modal
+                        open={loginModalOpen}
+                        onCancel={() => setLoginModalOpen(false)}
+                        onOk={() => {
+                          setLoginModalOpen(false);
+                          navigate("/login");
+                        }}
+                        okText="Login"
+                        cancelText="Cancel"
+                        closable={false}
+                        maskClosable={false}
+                        centered
+                        bodyStyle={{ padding: 32, textAlign: "center" }}
+                      >
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                          <span style={{ fontSize: 40, color: "#1890ff", marginBottom: 12 }}>🔒</span>
+                          <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>
+                            You need to login to book an appointment.
+                          </div>
+                          <div style={{ fontSize: 15, color: "#555" }}>
+                            Please login to continue.
+                          </div>
+                        </div>
+                      </Modal>
+                    </>
+                  )}
                 </div>
                 <Text>
                   <strong>Area:</strong> {room.area} m²

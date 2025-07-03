@@ -1,7 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Descriptions, Table, Button, Spin, message, Tag, Layout } from "antd";
-import { getBillDetail, exportBillPdf, createVnPayUrl } from "../../services/billApi";
+import {
+  Card,
+  Descriptions,
+  Table,
+  Button,
+  Spin,
+  message,
+  Tag,
+  Layout,
+} from "antd";
+import {
+  getBillDetail,
+  exportBillPdf,
+  createVnPayUrl,
+} from "../../services/billApi";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import dayjs from "dayjs";
@@ -89,8 +102,12 @@ export default function LandlordBillDetailPage() {
           ) : bill ? (
             <>
               <Descriptions bordered column={2}>
-                <Descriptions.Item label="Bill ID">#{bill.id}</Descriptions.Item>
-                <Descriptions.Item label="Room">{bill.roomNumber}</Descriptions.Item>
+                <Descriptions.Item label="Bill ID">
+                  #{bill.id}
+                </Descriptions.Item>
+                <Descriptions.Item label="Room">
+                  {bill.roomNumber}
+                </Descriptions.Item>
                 <Descriptions.Item label="Contract ID">
                   {bill.contractId ? `#${bill.contractId}` : "N/A"}
                 </Descriptions.Item>
@@ -111,7 +128,9 @@ export default function LandlordBillDetailPage() {
                   {dayjs(bill.fromDate).format("DD/MM/YYYY")}
                 </Descriptions.Item>
                 <Descriptions.Item label="To">
-                  {bill.toDate && dayjs(bill.toDate).isValid() ? dayjs(bill.toDate).format("DD/MM/YYYY") : "—"}
+                  {bill.toDate && dayjs(bill.toDate).isValid()
+                    ? dayjs(bill.toDate).format("DD/MM/YYYY")
+                    : "—"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Total">
                   {bill.totalAmount?.toLocaleString()} VND

@@ -122,11 +122,11 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Get Service by ID", "/mpbhms/services/{id}", "GET", "Service"));
             permissions.add(new Permission("Get reading service", "/mpbhms/services/readings", "GET", "Service"));
             //Schedule
-            permissions.add(new Permission("Create Schedule", "/api/schedules", "POST", "Schedule"));
-            permissions.add(new Permission("Get All Schedules", "/api/schedules", "GET", "Schedule"));
-            permissions.add(new Permission("Get Schedule", "/api/schedules/{id}", "GET", "Schedule"));
-            permissions.add(new Permission("Update Schedule Status", "/api/schedules/{id}/status", "PATCH", "Schedule"));
-            permissions.add(new Permission("Delete Schedule", "/api/schedules/{id}", "DELETE", "Schedule"));
+            permissions.add(new Permission("Create Schedule", "/mpbhms/schedules", "POST", "Schedule"));
+            permissions.add(new Permission("Get All Schedules", "/mpbhms/schedules", "GET", "Schedule"));
+            permissions.add(new Permission("Get Schedule", "/mpbhms/schedules/{id}", "GET", "Schedule"));
+            permissions.add(new Permission("Update Schedule Status", "/mpbhms/schedules/{id}/status", "PATCH", "Schedule"));
+            permissions.add(new Permission("Delete Schedule", "/mpbhms/schedules/{id}", "DELETE", "Schedule"));
             //Asset
             permissions.add(new Permission("Create Asset", "/mpbhms/assets", "POST", "Asset"));
             permissions.add(new Permission("Update Asset", "/mpbhms/assets/{id}", "PUT", "Asset"));
@@ -199,11 +199,11 @@ public class DatabaseInitializer implements CommandLineRunner {
             Permission viewRoom = permissionRepository.findByModuleAndApiPathAndMethod("Room", "/mpbhms/rooms", "GET");
             if (viewRoom != null) renterPermission.add(viewRoom);
             // Schedule/Booking
-            Permission getAllSchedules = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/api/schedules", "GET");
+            Permission getAllSchedules = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/mpbhms/schedules", "GET");
             if (getAllSchedules != null) renterPermission.add(getAllSchedules);
-            Permission getScheduleById = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/api/schedules/{id}", "GET");
+            Permission getScheduleById = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/mpbhms/schedules/{id}", "GET");
             if (getScheduleById != null) renterPermission.add(getScheduleById);
-            Permission createSchedule = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/api/schedules", "POST");
+            Permission createSchedule = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/mpbhms/schedules", "POST");
             if (createSchedule != null) renterPermission.add(createSchedule);
             // Notification
             if (viewMyNotification != null && !renterPermission.contains(viewMyNotification)) {

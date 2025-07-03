@@ -36,6 +36,18 @@ public class PermissionInterceptor implements HandlerInterceptor {
             if(user != null){
                 Role role = user.getRole();
                 if(role != null){
+                    String roleName = role.getRoleName();
+                    String pathToCheck = path;
+                    String methodToCheck = httpMethod;
+                    // Nếu là API book lịch thì chỉ chặn ADMIN, SUBADMIN, LANDLORD
+                    if ("/mpbhms/schedules".equals(pathToCheck) && "POST".equals(methodToCheck)) {
+                        if ("ADMIN".equals(roleName) || "SUBADMIN".equals(roleName) || "LANDLORD".equals(roleName)) {
+                            throw new IdInvalidException("You do not have permission to access this endpoint!!!");
+                        }
+                        // Các role khác đều được phép book lịch
+                        return true;
+                    }
+                    // Các API khác kiểm tra permission như cũ
                     List<Permission> permissions = role.getPermissionEntities();
                     boolean isAllow = permissions.stream().anyMatch(
                             permission -> permission.getApiPath().equals(path)
@@ -46,6 +58,15 @@ public class PermissionInterceptor implements HandlerInterceptor {
                         throw new IdInvalidException("You do not have permission to access this endpoint!!!");
                     }
                 }else{
+                    // Người dùng không có role (role == null)
+                    // Kiểm tra xem có phải là ADMIN, SUBADMIN, LANDLORD không (dựa vào email hoặc thông tin khác)
+                    // Nếu là API đặt lịch, chỉ cho phép người dùng thường (không phải ADMIN/SUBADMIN/LANDLORD)
+                    if ("/mpbhms/schedules".equals(path) && "POST".equals(httpMethod)) {
+                        // Có thể thêm logic kiểm tra email domain hoặc thông tin khác để xác định role
+                        // Tạm thời cho phép tất cả người dùng không có role đặt lịch
+                        return true;
+                    }
+                    // Với các API khác, từ chối truy cập
                     throw new IdInvalidException("You do not have permission to access this endpoint!!!");
                 }
             }

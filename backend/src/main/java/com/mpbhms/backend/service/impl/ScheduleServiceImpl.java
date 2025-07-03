@@ -15,6 +15,12 @@ import com.mpbhms.backend.dto.NotificationDTO;
 import com.mpbhms.backend.enums.NotificationType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.mpbhms.backend.dto.ResultPaginationDTO;
+import com.mpbhms.backend.dto.Meta;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import java.time.Instant;
 
 import java.util.List;
 import java.util.Optional;
@@ -87,6 +93,28 @@ public class ScheduleServiceImpl implements ScheduleService {
     public List<ScheduleDTO> getSchedulesByLandlord(Long landlordId) {
         List<Schedule> schedules = scheduleRepository.findByRoom_Landlord_Id(landlordId);
         return schedules.stream().map(this::toDTO).collect(Collectors.toList());
+    }
+
+    @Override
+    public ResultPaginationDTO searchAndFilter(Long landlordId, String search, ScheduleStatus status, Instant from, Instant to, int page, int pageSize) {
+        Pageable pageable = PageRequest.of(page, pageSize);
+        Page<Schedule> resultPage = scheduleRepository.searchAndFilter(
+            landlordId,
+            (search == null || search.isBlank()) ? null : search,
+            status,
+            from,
+            to,
+            pageable
+        );
+        ResultPaginationDTO dto = new ResultPaginationDTO();
+        Meta meta = new Meta();
+        meta.setPage(page + 1);
+        meta.setPageSize(pageSize);
+        meta.setPages(resultPage.getTotalPages());
+        meta.setTotal(resultPage.getTotalElements());
+        dto.setMeta(meta);
+        dto.setResult(resultPage.getContent().stream().map(this::toDTO).collect(java.util.stream.Collectors.toList()));
+        return dto;
     }
 
     private ScheduleDTO toDTO(Schedule schedule) {

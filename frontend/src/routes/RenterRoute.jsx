@@ -8,4 +8,4 @@ export default function RenterRoute({ children }) {
   if (!account) return <Navigate to="/login" />;
   if (roleName !== "RENTER") return <Navigate to="/403" />;
   return children;
-} 
+}
