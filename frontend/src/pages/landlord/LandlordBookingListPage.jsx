@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table, Card, Tag, Input, Select, DatePicker, Button, Popover, Form } from "antd";
+import { Table, Card, Tag, Input, Select, DatePicker, Button, Popover, Form, Popconfirm, message } from "antd";
 import axiosClient from "../../services/axiosClient";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
@@ -7,6 +7,7 @@ import { useSelector } from "react-redux";
 import { Layout } from "antd";
 import { FilterOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
+import { sendNotification } from "../../services/notificationApi";
 
 const { Sider, Content } = Layout;
 
@@ -34,7 +35,7 @@ export default function LandlordBookingListPage() {
   const [pendingFilterStatus, setPendingFilterStatus] = useState("");
   const [pendingFilterDate, setPendingFilterDate] = useState([]);
 
-  useEffect(() => {
+  const fetchData = () => {
     if (user?.id) {
       setLoading(true);
       const params = {
@@ -54,7 +55,41 @@ export default function LandlordBookingListPage() {
         })
         .finally(() => setLoading(false));
     }
+  };
+
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line
   }, [user, search, filterStatus, filterDate, currentPage, pageSize]);
+
+  const handleConfirm = async (record) => {
+    try {
+      await axiosClient.patch(`/schedules/${record.id}/status?status=CONFIRMED`);
+      // Send notification to guest
+      if (record.email) {
+        await sendNotification({
+          recipientEmail: record.email,
+          title: "Booking Confirmed",
+          message: `Your booking for room ${record.roomId} has been confirmed by the landlord!`,
+          type: "SCHEDULE"
+        });
+      }
+      message.success("Booking accepted!");
+      fetchData();
+    } catch (e) {
+      message.error("Failed to accept booking!");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await axiosClient.delete(`/schedules/${id}`);
+      message.success("Booking deleted!");
+      fetchData();
+    } catch (e) {
+      message.error("Failed to delete booking!");
+    }
+  };
 
   const columns = [
     { title: "Guest Name", dataIndex: "fullName" },
@@ -74,6 +109,38 @@ export default function LandlordBookingListPage() {
         >
           {s}
         </Tag>
+      ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <>
+          {record.status === "PENDING" && (
+            <Popconfirm
+              title="Are you sure you want to accept this booking?"
+              onConfirm={() => handleConfirm(record)}
+              okText="Accept"
+              cancelText="Cancel"
+            >
+              <Button
+                type="primary"
+                size="small"
+                style={{ marginRight: 8 }}
+              >
+                Accept
+              </Button>
+            </Popconfirm>
+          )}
+          <Popconfirm
+            title="Are you sure you want to delete this booking?"
+            onConfirm={() => handleDelete(record.id)}
+            okText="Delete"
+            cancelText="Cancel"
+          >
+            <Button danger size="small">Delete</Button>
+          </Popconfirm>
+        </>
       ),
     },
   ];

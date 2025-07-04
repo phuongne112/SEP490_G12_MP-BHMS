@@ -1,10 +1,12 @@
 import React from "react";
 import { Button, Modal } from "antd";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 export default function Error403() {
   const navigate = useNavigate();
   const [loginModalOpen, setLoginModalOpen] = React.useState(false);
+  const user = useSelector((state) => state.account.user);
 
   return (
     <div style={{ padding: 80, textAlign: "center" }}>

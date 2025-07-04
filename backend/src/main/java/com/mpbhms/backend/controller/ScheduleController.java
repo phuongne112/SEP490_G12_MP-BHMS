@@ -56,4 +56,15 @@ public class ScheduleController {
         scheduleService.deleteSchedule(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/my")
+    public ResponseEntity<List<ScheduleDTO>> getMySchedules(@RequestParam(required = false) Long renterId, @RequestParam(required = false) String email) {
+        if (renterId != null) {
+            return ResponseEntity.ok(scheduleService.getSchedulesByRenter(renterId));
+        } else if (email != null) {
+            return ResponseEntity.ok(scheduleService.getSchedulesByEmail(email));
+        } else {
+            return ResponseEntity.badRequest().build();
+        }
+    }
 } 

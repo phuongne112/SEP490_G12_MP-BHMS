@@ -26,6 +26,7 @@ import {
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { getCurrentUser } from "../../services/authService";
+import BookingListModal from "../account/BookingListModal";
 dayjs.extend(relativeTime);
 
 const { Title } = Typography;
@@ -49,6 +50,7 @@ export default function Header() {
   const [tab, setTab] = useState("all"); // "all" | "unread"
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedNoti, setSelectedNoti] = useState(null);
+  const [showBookingModal, setShowBookingModal] = useState(false);
 
   let dateStr = "N/A";
   if (selectedNoti?.createdDate && dayjs(selectedNoti.createdDate).isValid()) {
@@ -327,6 +329,11 @@ export default function Header() {
                   <Menu.Item onClick={() => setIsInfoModalOpen(true)}>
                     Personal Info
                   </Menu.Item>
+                  {(!user?.role || user?.role?.roleName === "RENTER") && (
+                    <Menu.Item onClick={() => setShowBookingModal(true)}>
+                      My Bookings
+                    </Menu.Item>
+                  )}
                   {dashboardPath && (
                     <Menu.Item onClick={() => navigate(dashboardPath)}>
                       {getDashboardLabel()}
@@ -480,6 +487,7 @@ export default function Header() {
           Created Date: <span style={{ fontWeight: 400 }}>{dateStr}</span>
         </div>
       </Modal>
+      <BookingListModal open={showBookingModal} onClose={() => setShowBookingModal(false)} currentUser={user} />
     </header>
   );
 }
