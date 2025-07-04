@@ -11,4 +11,6 @@ import java.util.List;
 public interface AssetRepository extends JpaRepository<Asset, Long> {
     List<Asset> findByAssetNameContainingIgnoreCase(String assetName);
     Page<Asset> findByAssetNameContainingIgnoreCase(String assetName, Pageable pageable);
+    Page<Asset> findByAssetNameContainingIgnoreCaseAndAssetStatus(String assetName, com.mpbhms.backend.enums.AssetStatus assetStatus, Pageable pageable);
+    Page<Asset> findByAssetStatus(com.mpbhms.backend.enums.AssetStatus assetStatus, Pageable pageable);
 } 

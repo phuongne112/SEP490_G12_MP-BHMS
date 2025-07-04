@@ -81,6 +81,25 @@ export default function LandlordBookingListPage() {
     }
   };
 
+  const handleReject = async (record) => {
+    try {
+      await axiosClient.patch(`/schedules/${record.id}/status?status=CANCELLED`);
+      // Send notification to guest
+      if (record.email) {
+        await sendNotification({
+          recipientEmail: record.email,
+          title: "Booking Rejected",
+          message: `Your booking for room ${record.roomId} has been rejected by the landlord.`,
+          type: "SCHEDULE"
+        });
+      }
+      message.success("Booking rejected!");
+      fetchData();
+    } catch (e) {
+      message.error("Failed to reject booking!");
+    }
+  };
+
   const handleDelete = async (id) => {
     try {
       await axiosClient.delete(`/schedules/${id}`);
@@ -117,20 +136,30 @@ export default function LandlordBookingListPage() {
       render: (_, record) => (
         <>
           {record.status === "PENDING" && (
-            <Popconfirm
-              title="Are you sure you want to accept this booking?"
-              onConfirm={() => handleConfirm(record)}
-              okText="Accept"
-              cancelText="Cancel"
-            >
-              <Button
-                type="primary"
-                size="small"
-                style={{ marginRight: 8 }}
+            <>
+              <Popconfirm
+                title="Are you sure you want to accept this booking?"
+                onConfirm={() => handleConfirm(record)}
+                okText="Accept"
+                cancelText="Cancel"
               >
-                Accept
-              </Button>
-            </Popconfirm>
+                <Button
+                  type="primary"
+                  size="small"
+                  style={{ marginRight: 8 }}
+                >
+                  Accept
+                </Button>
+              </Popconfirm>
+              <Popconfirm
+                title="Are you sure you want to reject this booking?"
+                onConfirm={() => handleReject(record)}
+                okText="Reject"
+                cancelText="Cancel"
+              >
+                <Button danger size="small" style={{ marginRight: 8 }}>Reject</Button>
+              </Popconfirm>
+            </>
           )}
           <Popconfirm
             title="Are you sure you want to delete this booking?"

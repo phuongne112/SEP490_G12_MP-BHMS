@@ -21,12 +21,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.mpbhms.backend.dto.RenterRoomInfoDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 public class RenterServiceImpl implements RenterService {
+
+    private static final Logger logger = LoggerFactory.getLogger(RenterServiceImpl.class);
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -119,8 +123,10 @@ public class RenterServiceImpl implements RenterService {
             throw new BusinessException("User is not a renter");
         }
 
+        logger.info("[updateRenterStatus] userId={}, currentIsActive={}, newIsActive={}", userId, user.getIsActive(), isActive);
         user.setIsActive(isActive);
         userRepository.save(user);
+        logger.info("[updateRenterStatus] userId={} saved, afterSaveIsActive={}", userId, user.getIsActive());
     }
 
     public CreateUserResponse convertToCreateUserDTO(User entity) {

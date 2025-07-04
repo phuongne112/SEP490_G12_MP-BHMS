@@ -63,7 +63,8 @@ export default function AddRenterForm() {
             <Form.Item label="Username" name="username" rules={[
               { required: true, message: "Please enter username" },
               { min: 3, max: 50, message: "Username must be 3-50 characters" },
-              { pattern: /^[A-Za-z0-9_]+$/, message: "Only letters, numbers, and underscores allowed. No spaces." }
+              { pattern: /^[A-Za-z0-9_]+$/, message: "Only letters, numbers, and underscores allowed. No spaces." },
+              { pattern: /^[^@\s]+$/, message: "Username cannot be an email address." }
             ]}>
               <Input />
             </Form.Item>

@@ -421,9 +421,10 @@ const user = useSelector((state) => state.account.user);
                                         </div>
                                     }
                                 />
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 18, alignItems: 'center' }}>
                                     <Button
                                         type="primary"
+                                        style={{ borderRadius: 6, minWidth: 80, height: 38 }}
                                         onClick={() => {
                                             if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
                                                 navigate(`/admin/rooms/${room.id}/edit`);
@@ -436,6 +437,7 @@ const user = useSelector((state) => state.account.user);
                                     </Button>
                                     <Button
                                         type="default"
+                                        style={{ borderRadius: 6, minWidth: 120, height: 38 }}
                                         onClick={() => {
                                             if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
                                                 navigate(`/admin/rooms/${room.id}/assign`);
@@ -449,6 +451,7 @@ const user = useSelector((state) => state.account.user);
                                     <Button
                                         type="primary"
                                         danger
+                                        style={{ borderRadius: 6, minWidth: 90, height: 38 }}
                                         onClick={async () => {
                                             if (window.confirm('Are you sure you want to delete this room?')) {
                                                 try {
@@ -468,19 +471,21 @@ const user = useSelector((state) => state.account.user);
                                         <a onClick={e => e.preventDefault()} style={{
                                             opacity: updatingId === room.id ? 0.5 : 1,
                                             cursor: updatingId === room.id ? 'wait' : 'pointer',
-                                            display: 'inline-block'
+                                            display: 'inline-block',
+                                            marginLeft: 2
                                         }}>
                                             <Badge
                                                 status={currentStatusProps.status}
-                                                text={currentStatusProps.text}
+                                                text={<span style={{ fontWeight: 500, fontSize: 15 }}>{currentStatusProps.text}</span>}
                                             />
                                         </a>
                                     </Dropdown>
                                     <Button
-                                        type="dashed" 
+                                        type="dashed"
+                                        style={{ borderRadius: 6, minWidth: 120, height: 38, fontWeight: 500, borderColor: '#52c41a', color: '#52c41a' }}
                                         onClick={() => openServiceModal(room)}
                                     >
-                                        Thêm dịch vụ
+                                        Add Service
                                     </Button>
                                 </div>
                             </Card>
@@ -500,14 +505,14 @@ const user = useSelector((state) => state.account.user);
             >
                 {services.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                        <p>Phòng này đã có tất cả các dịch vụ!</p>
-                        <p>Không còn dịch vụ nào để thêm.</p>
+                        <p>This room already has all services!</p>
+                        <p>No more services to add.</p>
                     </div>
                 ) : (
                     <>
                         <div style={{ marginBottom: 16 }}>
                             <p style={{ color: '#666', fontSize: 14 }}>
-                                Chọn dịch vụ để thêm vào phòng {selectedRoom?.roomNumber}:
+                                Select services to add to room {selectedRoom?.roomNumber}:
                             </p>
                         </div>
                         <Select

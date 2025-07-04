@@ -73,13 +73,13 @@ export default function LandlordAddRenterPage() {
         >
           <PageHeader title="Add New Renter" />
           <Button type="primary" onClick={handleOpenModal} style={{ marginBottom: 16 }}>
-            Cấp quyền Renter cho user chưa có role
+            Grant Renter role to users without a role
           </Button>
           <Modal
             open={modalOpen}
             onCancel={() => setModalOpen(false)}
             footer={null}
-            title="Danh sách user chưa có role"
+            title="Users without a role"
           >
             <Table
               dataSource={userList}
@@ -90,10 +90,10 @@ export default function LandlordAddRenterPage() {
                 { title: "Email", dataIndex: "email" },
                 { title: "Username", dataIndex: "username" },
                 {
-                  title: "Thao tác",
+                  title: "Action",
                   render: (_, record) => (
                     <Button type="primary" onClick={() => handleGrantRenter(record)}>
-                      Cấp quyền Renter
+                      Grant Renter Role
                     </Button>
                   ),
                 },

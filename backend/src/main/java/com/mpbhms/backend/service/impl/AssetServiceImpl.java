@@ -15,6 +15,9 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.mpbhms.backend.dto.AssetResponseDTO;
+import com.mpbhms.backend.dto.ResultPaginationDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 @RequiredArgsConstructor
@@ -77,6 +80,35 @@ public class AssetServiceImpl implements AssetService {
         List<Asset> assets = assetRepository.findByAssetNameContainingIgnoreCase(assetName);
         logger.info("[AssetServiceImpl] findByAssetName - Số lượng asset: {}", assets.size());
         return assets.stream().map(this::toDTO).collect(Collectors.toList());
+    }
+
+    @Override
+    public ResultPaginationDTO searchAssets(String assetName, String assetStatus, Integer minQuantity, Integer maxQuantity, Pageable pageable) {
+        String normalizedStatus = normalizeAssetStatus(assetStatus);
+        List<Asset> all = assetRepository.findAll();
+        List<Asset> filtered = all.stream()
+            .filter(a -> (assetName == null || assetName.isEmpty() || a.getAssetName().toLowerCase().contains(assetName.toLowerCase())))
+            .filter(a -> (normalizedStatus == null || normalizedStatus.isEmpty() || (a.getAssetStatus() != null && a.getAssetStatus().name().equalsIgnoreCase(normalizedStatus))))
+            .filter(a -> (minQuantity == null || (a.getQuantity() != null && a.getQuantity().intValue() >= minQuantity)))
+            .filter(a -> (maxQuantity == null || (a.getQuantity() != null && a.getQuantity().intValue() <= maxQuantity)))
+            .toList();
+        int start = pageable.getPageNumber() * pageable.getPageSize();
+        int end = Math.min(start + pageable.getPageSize(), filtered.size());
+        List<Asset> pageContent = (start < end) ? filtered.subList(start, end) : List.of();
+        ResultPaginationDTO result = new ResultPaginationDTO();
+        result.setResult(pageContent.stream().map(this::toDTO).collect(java.util.stream.Collectors.toList()));
+        com.mpbhms.backend.dto.Meta meta = new com.mpbhms.backend.dto.Meta();
+        meta.setPage(pageable.getPageNumber() + 1);
+        meta.setPageSize(pageable.getPageSize());
+        meta.setTotal(filtered.size());
+        meta.setPages((int) Math.ceil((double) filtered.size() / pageable.getPageSize()));
+        result.setMeta(meta);
+        return result;
+    }
+
+    private String normalizeAssetStatus(String status) {
+        if (status == null || status.isEmpty()) return status;
+        return status.substring(0, 1).toUpperCase() + status.substring(1).toLowerCase();
     }
 
     private AssetDTO toDTO(Asset asset) {

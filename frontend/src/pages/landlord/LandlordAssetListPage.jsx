@@ -23,6 +23,7 @@ import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import LandlordAddAssetModal from "../../components/landlord/LandlordAddAssetModal";
 import { getAllAssets, deleteAsset } from "../../services/assetApi";
+import AssetFilterPopover from '../../components/landlord/AssetFilterPopover';
 
 const { Sider, Content } = Layout;
 
@@ -37,6 +38,14 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
 
 const pageSizeOptions = [5, 10, 20, 50];
 
+const assetStatusOptions = [
+  { value: '', label: 'All Statuses' },
+  { value: 'Good', label: 'Good' },
+  { value: 'Damaged', label: 'Damaged' },
+  { value: 'Lost', label: 'Lost' },
+  { value: 'Maintenance', label: 'Maintenance' },
+];
+
 export default function LandlordAssetListPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState({});
@@ -49,6 +58,7 @@ export default function LandlordAssetListPage() {
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [filterPopoverOpen, setFilterPopoverOpen] = useState(false);
 
   const fetchAssets = async (
     page = currentPage,
@@ -58,12 +68,10 @@ export default function LandlordAssetListPage() {
     setLoading(true);
     try {
       const res = await getAllAssets(page - 1, size, filters);
-      setAssets(res.data || []);
-      setTotal(res.meta?.total || res.data?.length || 0);
-      console.log("assets state after set:", res.data || []);
+      setAssets(res.data?.result || res.result || []);
+      setTotal(res.meta?.total || res.data?.meta?.total || 0);
     } catch (err) {
       message.error("Failed to load assets");
-      console.error("getAllAssets error:", err);
     }
     setLoading(false);
   };
@@ -116,6 +124,21 @@ export default function LandlordAssetListPage() {
     } catch (err) {
       message.error(err.response?.data?.message || "Failed to delete asset");
     }
+  };
+
+  const handleStatusFilter = (value) => {
+    setFilter((prev) => ({ ...prev, assetStatus: value }));
+    setCurrentPage(1);
+  };
+
+  const handleFilterApply = (filterValues) => {
+    // Convert min/max quantity về undefined nếu là chuỗi rỗng
+    const cleaned = { ...filterValues };
+    if (cleaned.minQuantity === '' || cleaned.minQuantity == null) delete cleaned.minQuantity;
+    if (cleaned.maxQuantity === '' || cleaned.maxQuantity == null) delete cleaned.maxQuantity;
+    setFilter(cleaned);
+    setCurrentPage(1);
+    setFilterPopoverOpen(false);
   };
 
   const columns = [
@@ -214,11 +237,20 @@ export default function LandlordAssetListPage() {
             <Space>
               <Input
                 placeholder="Search asset name"
-                style={{ width: 250 }}
+                style={{ width: 220 }}
                 prefix={<SearchOutlined />}
                 value={search}
                 onChange={handleSearch}
               />
+              <Popover
+                content={<AssetFilterPopover onFilter={handleFilterApply} onClose={() => setFilterPopoverOpen(false)} />}
+                trigger="click"
+                open={filterPopoverOpen}
+                onOpenChange={setFilterPopoverOpen}
+                placement="bottomLeft"
+              >
+                <Button icon={<FilterOutlined />}>Filter</Button>
+              </Popover>
               <Button
                 type="primary"
                 icon={<PlusOutlined />}

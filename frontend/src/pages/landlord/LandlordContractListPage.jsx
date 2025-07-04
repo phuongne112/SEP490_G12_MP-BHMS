@@ -473,24 +473,24 @@ export default function LandlordContractListPage() {
               fetchRoomsAndLatestContracts(page, pageSize);
             }}
           />
-          <Modal open={renewModalOpen} onCancel={() => setRenewModalOpen(false)} onOk={doRenewContract} okText="Gia hạn" confirmLoading={updating} title="Gia hạn hợp đồng">
-            <div>Chọn ngày kết thúc mới:</div>
+          <Modal open={renewModalOpen} onCancel={() => setRenewModalOpen(false)} onOk={doRenewContract} okText="Renew" confirmLoading={updating} title="Renew Contract">
+            <div>Select new end date:</div>
             <DatePicker value={renewDate} onChange={setRenewDate} style={{ width: '100%', marginTop: 8 }} format="DD/MM/YYYY" />
           </Modal>
-          <Modal open={updateModalOpen} onCancel={() => setUpdateModalOpen(false)} onOk={doUpdateContract} okText="Gửi yêu cầu" confirmLoading={updating} title="Cập nhật hợp đồng">
-            <div style={{ marginBottom: 8 }}>Lý do cập nhật:</div>
+          <Modal open={updateModalOpen} onCancel={() => setUpdateModalOpen(false)} onOk={doUpdateContract} okText="Submit Request" confirmLoading={updating} title="Update Contract">
+            <div style={{ marginBottom: 8 }}>Reason for update:</div>
             <Input.TextArea value={updateReason} onChange={e => setUpdateReason(e.target.value)} rows={2} style={{ marginBottom: 12 }} />
-            <div style={{ marginBottom: 8 }}>Ngày kết thúc mới:</div>
+            <div style={{ marginBottom: 8 }}>New end date:</div>
             <DatePicker value={updateEndDate} onChange={setUpdateEndDate} style={{ width: '100%', marginBottom: 12 }} format="DD/MM/YYYY" />
-            <div style={{ marginBottom: 8 }}>Giá thuê mới:</div>
+            <div style={{ marginBottom: 8 }}>New rent amount:</div>
             <Input type="number" value={updateRentAmount} onChange={e => setUpdateRentAmount(e.target.value)} style={{ marginBottom: 12 }} />
-            <div style={{ marginBottom: 8 }}>Tiền đặt cọc mới:</div>
+            <div style={{ marginBottom: 8 }}>New deposit amount:</div>
             <Input type="number" value={updateDeposit} onChange={e => setUpdateDeposit(e.target.value)} style={{ marginBottom: 12 }} />
-            <div style={{ marginBottom: 8 }}>Chu kỳ thanh toán:</div>
-            <Select value={updatePaymentCycle} onChange={setUpdatePaymentCycle} style={{ width: '100%', marginBottom: 12 }} options={paymentCycleOptions} />
-            <div style={{ marginBottom: 8, fontWeight: 500 }}>Danh sách điều khoản hợp đồng:</div>
+            <div style={{ marginBottom: 8 }}>Payment cycle:</div>
+            <Select value={updatePaymentCycle} onChange={setUpdatePaymentCycle} style={{ width: '100%', marginBottom: 12 }} options={paymentCycleOptions.map(opt => ({...opt, label: opt.value === 'MONTHLY' ? 'Monthly' : opt.value === 'QUARTERLY' ? 'Quarterly' : 'Yearly'}))} />
+            <div style={{ marginBottom: 8, fontWeight: 500 }}>Contract terms:</div>
             <ul style={{ margin: '8px 0 8px 16px', padding: 0 }}>
-              {updateTerms.length === 0 && <li>Chưa có điều khoản nào</li>}
+              {updateTerms.length === 0 && <li>No terms yet</li>}
               {updateTerms.map((term, idx) => (
                 <li key={idx} style={{ marginBottom: 4, display: 'flex', alignItems: 'center' }}>
                   <Input.TextArea
@@ -509,7 +509,7 @@ export default function LandlordContractListPage() {
                     size="small"
                     onClick={() => setUpdateTerms(prev => prev.filter((_, i) => i !== idx))}
                   >
-                    Xóa
+                    Delete
                   </Button>
                 </li>
               ))}
@@ -519,21 +519,21 @@ export default function LandlordContractListPage() {
               style={{ width: '100%', marginBottom: 12 }}
               onClick={() => setUpdateTerms(prev => [...prev, ""])}
             >
-              + Thêm điều khoản
+              + Add term
             </Button>
             <div style={{ marginBottom: 8 }}>
-              Người thuê trong hợp đồng mới ({updateRenters.length}/{maxCount}):
+              Tenants in new contract ({updateRenters.length}/{maxCount}):
             </div>
             <ul style={{ margin: '8px 0 8px 16px', padding: 0 }}>
-              {updateRenters.length === 0 && <li>Chưa có người thuê nào</li>}
+              {updateRenters.length === 0 && <li>No tenants yet</li>}
               {updateRenters.map(id => {
                 const user = allRenters.find(r => r.id === id);
                 return (
                   <li key={id} style={{ marginBottom: 4, display: 'flex', alignItems: 'center' }}>
                     <span>
-                      {user?.fullName || 'Không rõ tên'}
+                      {user?.fullName || 'Unknown name'}
                       {user?.phoneNumber ? ` (${user.phoneNumber})` : ''}
-                      {updateContract?.roomUsers?.some(u => (u.userId || u.id) === id && u.isActive !== false) ? ' (Đang ở)' : ' (Mới)'}
+                      {updateContract?.roomUsers?.some(u => (u.userId || u.id) === id && u.isActive !== false) ? ' (Current)' : ' (New)'}
                     </span>
                     <Button
                       type="link"
@@ -552,7 +552,7 @@ export default function LandlordContractListPage() {
               <Select
                 style={{ width: '100%', marginBottom: 8 }}
                 showSearch
-                placeholder="Thêm người thuê vào hợp đồng"
+                placeholder="Add tenant to contract"
                 optionFilterProp="children"
                 value={null}
                 onChange={id => {
@@ -565,14 +565,14 @@ export default function LandlordContractListPage() {
                   .filter(r => !updateRenters.includes(r.id))
                   .map(r => ({
                     value: r.id,
-                    label: `${r.fullName || 'Không rõ tên'}${r.phoneNumber ? ` (${r.phoneNumber})` : ''}`
+                    label: `${r.fullName || 'Unknown name'}${r.phoneNumber ? ` (${r.phoneNumber})` : ''}`
                   }))}
               />
             )}
             <div style={{ color: '#888', fontSize: 12, marginTop: 8 }}>
-              * Nếu bạn bỏ chọn người thuê đang ở, họ sẽ bị xóa khỏi hợp đồng mới.<br/>
-              * Nếu bạn thêm người mới, họ sẽ được thêm vào hợp đồng mới.<br/>
-              * Số người thuê tối đa: {maxCount}
+              * If you remove a current tenant, they will be removed from the new contract.<br/>
+              * If you add a new tenant, they will be added to the new contract.<br/>
+              * Maximum number of tenants: {maxCount}
             </div>
           </Modal>
           <Modal open={amendmentsModalOpen} onCancel={() => setAmendmentsModalOpen(false)} footer={null} title="Contract Change Requests">

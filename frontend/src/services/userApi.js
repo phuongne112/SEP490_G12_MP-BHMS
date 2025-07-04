@@ -18,8 +18,8 @@ export const updateUser = (data) => {
   return axiosClient.put("/users", data);
 };
 
-export const updateUserStatus = (id, body) => {
-  return axiosClient.put(`/users/${id}/status`, body);
+export const updateUserStatus = (id, isActive) => {
+  return axiosClient.put(`/users/${id}/active`, { isActive });
 };
 
 export const deleteNotification = async (id) => {

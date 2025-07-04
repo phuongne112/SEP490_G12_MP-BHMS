@@ -28,6 +28,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.mpbhms.backend.service.NotificationService;
+import com.mpbhms.backend.dto.NotificationDTO;
+import com.mpbhms.backend.enums.NotificationType;
+import com.mpbhms.backend.enums.NotificationStatus;
+
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -37,6 +42,7 @@ public class UserServiceImpl implements UserService {
     private final SecurityUtil securityUtil;
     private final EmailService emailService;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final NotificationService notificationService;
     @Override
     public User getUserWithEmail(String email) {
     return this.userRepository.findByEmail(email);
@@ -218,16 +224,30 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException("Update failed", errors);
         }
 
+        Role oldRole = existingUser.getRole();
+        Role newRole = null;
+        if (dto.getRole() != null && dto.getRole().getRoleId() != null) {
+            newRole = roleService.fetchRoleById(dto.getRole().getRoleId())
+                    .orElseThrow(() -> new BusinessException("Role not found"));
+            existingUser.setRole(newRole);
+        }
+
         existingUser.setUsername(dto.getUsername());
         existingUser.setEmail(dto.getEmail());
 
-        if (dto.getRole() != null && dto.getRole().getRoleId() != null) {
-            Role role = roleService.fetchRoleById(dto.getRole().getRoleId())
-                    .orElseThrow(() -> new BusinessException("Role not found"));
-            existingUser.setRole(role);
+        User savedUser = userRepository.save(existingUser);
+        // Gửi thông báo nếu role bị thay đổi
+        if (oldRole == null || newRole == null || !oldRole.getId().equals(newRole.getId())) {
+            NotificationDTO noti = new NotificationDTO();
+            noti.setTitle("Your role has been updated");
+            noti.setMessage("Your account role has been changed to: " + (newRole != null ? newRole.getRoleName() : "None"));
+            noti.setType(NotificationType.ANNOUNCEMENT);
+            noti.setRecipientId(savedUser.getId());
+            noti.setRecipientEmail(savedUser.getEmail());
+            noti.setStatus(NotificationStatus.SENT);
+            notificationService.createAndSend(noti);
         }
-
-        return userRepository.save(existingUser);
+        return savedUser;
     }
 
     @Override
