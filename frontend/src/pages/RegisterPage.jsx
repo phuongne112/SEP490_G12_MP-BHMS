@@ -30,6 +30,11 @@ export default function Register() {
     e.preventDefault();
     setErrors({});
 
+    // Validate username is not an email
+    if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.username)) {
+      return setErrors({ username: "Username cannot be an email address." });
+    }
+
     if (form.password !== form.confirmPassword) {
       return setErrors({ confirmPassword: "Confirm password not match." });
     }

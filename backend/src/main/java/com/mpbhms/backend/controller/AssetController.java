@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.RequestPart;
+import com.mpbhms.backend.dto.ResultPaginationDTO;
+import org.springframework.data.domain.PageRequest;
 
 @RestController
 @RequestMapping("/mpbhms/assets")
@@ -20,16 +22,15 @@ public class AssetController {
     private final AssetService assetService;
 
     @GetMapping
-    public ResponseEntity<List<AssetDTO>> getAllAssets(@RequestParam(required = false) String assetName) {
-        logger.info("[AssetController] GET /assets - assetName param: {}", assetName);
-        if (assetName != null && !assetName.isEmpty()) {
-            List<AssetDTO> result = assetService.findByAssetName(assetName);
-            logger.info("[AssetController] Search result count: {}", result.size());
-            return ResponseEntity.ok(result);
-        }
-        List<AssetDTO> all = assetService.getAllAssets();
-        logger.info("[AssetController] All assets count: {}", all.size());
-        return ResponseEntity.ok(all);
+    public ResponseEntity<ResultPaginationDTO> getAllAssets(
+            @RequestParam(required = false) String assetName,
+            @RequestParam(required = false) String assetStatus,
+            @RequestParam(required = false) Integer minQuantity,
+            @RequestParam(required = false) Integer maxQuantity,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(assetService.searchAssets(assetName, assetStatus, minQuantity, maxQuantity, PageRequest.of(page, size)));
     }
 
     @GetMapping("/{id}")

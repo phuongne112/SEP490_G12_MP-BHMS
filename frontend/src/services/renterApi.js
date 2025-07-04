@@ -19,7 +19,7 @@ export const createRenter = async (data) => {
 };
 
 export const getAllRentersForAssignFull = () => {
-  return axiosClient.get('/renters/for-assign-full');
+  return axiosClient.get("/renters/for-assign-full");
 };
 
 /**
@@ -30,4 +30,8 @@ export const getAllRentersForAssignFull = () => {
 export const addRenter = async (data) => {
   const response = await axiosClient.post("/renters", data);
   return response.data;
+};
+
+export const updateRenterStatus = async (id, active) => {
+  return axiosClient.put(`/users/${id}/active`, { active });
 };

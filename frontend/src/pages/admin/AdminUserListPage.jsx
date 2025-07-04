@@ -164,7 +164,7 @@ export default function AdminUserListPage() {
                   <Form.Item
                     name="username"
                     label="Username"
-                    rules={[{ required: true }]}
+                    rules={[{ required: true }, { pattern: /^[^@\s]+$/, message: "Username cannot be an email address." }]}
                   >
                     <Input maxLength={20} />
                   </Form.Item>
