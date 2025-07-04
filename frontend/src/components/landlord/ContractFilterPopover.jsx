@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, Select, DatePicker } from "antd";
+import { Button, Select, DatePicker, Input, InputNumber, Row, Col } from "antd";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -11,44 +11,81 @@ const CONTRACT_STATUS = [
   { value: "TERMINATED", label: "Terminated" },
   { value: "EXPIRED", label: "Expired" },
 ];
+const PAYMENT_CYCLES = [
+  { value: "ALL", label: "All" },
+  { value: "MONTHLY", label: "Monthly" },
+  { value: "QUARTERLY", label: "Quarterly" },
+  { value: "YEARLY", label: "Yearly" },
+];
 
-export default function ContractFilterPopover({ onApply }) {
+export default function ContractFilterPopover({ onApply, rooms = [], tenants = [] }) {
   const [status, setStatus] = useState("ALL");
   const [dateRange, setDateRange] = useState(null);
+  const [room, setRoom] = useState("ALL");
+  const [tenant, setTenant] = useState("ALL");
+  const [paymentCycle, setPaymentCycle] = useState("ALL");
+  const [contractNumber, setContractNumber] = useState("");
+  const [depositMin, setDepositMin] = useState();
+  const [depositMax, setDepositMax] = useState();
+  const [rentMin, setRentMin] = useState();
+  const [rentMax, setRentMax] = useState();
 
   const handleApply = () => {
-    onApply({ status, dateRange });
+    onApply({
+      status,
+      dateRange,
+      room,
+      tenant,
+      paymentCycle,
+      contractNumber,
+      depositMin,
+      depositMax,
+      rentMin,
+      rentMax
+    });
   };
 
   return (
-    <div>
-      <div style={{ marginBottom: 8, fontWeight: "bold" }}>Filter Contracts</div>
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 13, marginBottom: 4 }}>Status</div>
-        <Select
-          value={status}
-          onChange={setStatus}
-          style={{ width: "100%" }}
-        >
-          {CONTRACT_STATUS.map((s) => (
-            <Option key={s.value} value={s.value}>
-              {s.label}
-            </Option>
+    <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 4px 24px 0 rgba(0,0,0,0.10)', padding: 24, minWidth: 350 }}>
+      <div style={{ marginBottom: 20, fontWeight: 700, fontSize: 18 }}>Advanced Filter</div>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 14, marginBottom: 6 }}>Payment Cycle</div>
+        <Select value={paymentCycle} onChange={setPaymentCycle} style={{ width: "100%" }}>
+          {PAYMENT_CYCLES.map((s) => (
+            <Option key={s.value} value={s.value}>{s.label}</Option>
           ))}
         </Select>
       </div>
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 13, marginBottom: 4 }}>Start Date Range</div>
-        <RangePicker
-          style={{ width: "100%" }}
-          onChange={(dates) => setDateRange(dates)}
-        />
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 14, marginBottom: 6 }}>Room</div>
+        <Select value={room} onChange={setRoom} style={{ width: "100%" }} showSearch allowClear>
+          <Option value="ALL">All</Option>
+          {rooms.map((r) => (
+            <Option key={r.id} value={r.id}>{r.roomNumber || r.name || r.id}</Option>
+          ))}
+        </Select>
       </div>
-      <div style={{ textAlign: "right" }}>
-        <Button type="primary" onClick={handleApply}>
-          Apply
-        </Button>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 14, marginBottom: 6 }}>Start Date Range</div>
+        <RangePicker style={{ width: "100%" }} onChange={setDateRange} />
       </div>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 14, marginBottom: 6 }}>Deposit (VND)</div>
+        <Row gutter={8}>
+          <Col span={12}><InputNumber value={depositMin} onChange={setDepositMin} min={0} style={{ width: "100%" }} placeholder="Min" /></Col>
+          <Col span={12}><InputNumber value={depositMax} onChange={setDepositMax} min={0} style={{ width: "100%" }} placeholder="Max" /></Col>
+        </Row>
+      </div>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 14, marginBottom: 6 }}>Rent (VND)</div>
+        <Row gutter={8}>
+          <Col span={12}><InputNumber value={rentMin} onChange={setRentMin} min={0} style={{ width: "100%" }} placeholder="Min" /></Col>
+          <Col span={12}><InputNumber value={rentMax} onChange={setRentMax} min={0} style={{ width: "100%" }} placeholder="Max" /></Col>
+        </Row>
+      </div>
+      <Button type="primary" onClick={handleApply} style={{ width: "100%", borderRadius: 8, height: 40, fontWeight: 600, fontSize: 16 }}>
+        Apply
+      </Button>
     </div>
   );
 } 

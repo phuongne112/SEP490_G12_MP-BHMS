@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Layout, message, Button, Popover, Select, Modal, Input, DatePicker, List } from "antd";
 import PageHeader from "../../components/common/PageHeader";
-import { getAllContracts, deleteContract, exportContractPdf } from "../../services/contractApi";
+import { getAllContracts, deleteContract, exportContractPdf, buildContractFilterString } from "../../services/contractApi";
 import { useSelector } from "react-redux";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
@@ -29,14 +29,15 @@ const paymentCycleOptions = [
 ];
 
 // Thêm hàm tự động lấy hết hợp đồng qua nhiều trang
-async function fetchAllContractsAuto() {
+async function fetchAllContractsAuto(filter = {}) {
   let page = 0;
   const size = 200;
   let allContracts = [];
   let hasMore = true;
-
+  const filterString = buildContractFilterString(filter);
+  
   while (hasMore) {
-    const res = await getAllContracts({ page, size });
+    const res = await getAllContracts({ page, size, filter: filterString });
     const contracts = res.result || [];
     allContracts = allContracts.concat(contracts);
     hasMore = contracts.length === size;
@@ -89,15 +90,22 @@ export default function LandlordContractListPage() {
     try {
       const roomRes = await getAllRooms(page - 1, size);
       const roomsData = roomRes.result || [];
-      // Lấy toàn bộ hợp đồng qua nhiều trang
-      const allContracts = await fetchAllContractsAuto();
+      
+      // Lấy toàn bộ hợp đồng qua nhiều trang, truyền filter
+      let allContracts = [];
+      try {
+        allContracts = await fetchAllContractsAuto(filter);
+      } catch (contractError) {
+        console.error("Error fetching contracts:", contractError);
+        message.error("Failed to load contracts, but rooms loaded successfully");
+        allContracts = [];
+      }
+      
       const data = roomsData.map(room => {
         const contractsOfRoom = allContracts.filter(c => {
           const contractRoomId = c.roomId || (c.room && c.room.id);
           return String(contractRoomId) === String(room.id);
         });
-        // Debug log
-        console.log('Room:', room.roomNumber, 'room.id:', room.id, 'contractsOfRoom:', contractsOfRoom);
         const latestContract = contractsOfRoom
           .sort((a, b) => {
             const dateA = new Date(a.updatedDate || a.createdDate || 0);
@@ -108,10 +116,12 @@ export default function LandlordContractListPage() {
           ...room,
           latestContract: latestContract ? { ...latestContract, roomId: room.id, roomNumber: room.roomNumber } : null
         };
-      });
+      })
+      .filter(room => room.latestContract);
       setRoomContracts(data);
       setTotal(roomRes.meta?.total || data.length);
     } catch (err) {
+      console.error("Error in fetchRoomsAndLatestContracts:", err);
       message.error("Failed to load rooms/contracts");
     }
     setLoading(false);
@@ -144,11 +154,41 @@ export default function LandlordContractListPage() {
 
   const handleFilterApply = (values) => {
     const params = {};
-    if (values.status && values.status !== "ALL") params.contractStatus = values.status;
+    
+    // Validate and add filters
+    if (values.status && values.status !== "ALL") {
+      params.contractStatus = values.status;
+    }
+    if (values.paymentCycle && values.paymentCycle !== "ALL") {
+      params.paymentCycle = values.paymentCycle;
+    }
+    if (values.room && values.room !== "ALL") {
+      params.roomId = values.room;
+    }
+    if (values.tenant && values.tenant !== "ALL") {
+      params.tenantId = values.tenant;
+    }
+    if (values.contractNumber && values.contractNumber.trim()) {
+      params.contractNumber = values.contractNumber;
+    }
     if (values.dateRange && values.dateRange.length === 2) {
       params.contractStartDateFrom = values.dateRange[0]?.startOf("day").toISOString();
       params.contractStartDateTo = values.dateRange[1]?.endOf("day").toISOString();
     }
+    if (values.depositMin !== undefined && values.depositMin !== null) {
+      params.depositAmountFrom = values.depositMin;
+    }
+    if (values.depositMax !== undefined && values.depositMax !== null) {
+      params.depositAmountTo = values.depositMax;
+    }
+    if (values.rentMin !== undefined && values.rentMin !== null) {
+      params.rentAmountFrom = values.rentMin;
+    }
+    if (values.rentMax !== undefined && values.rentMax !== null) {
+      params.rentAmountTo = values.rentMax;
+    }
+    
+    console.log("Setting filter params:", params);
     setFilter(params);
     setFilterVisible(false);
   };
@@ -333,6 +373,31 @@ export default function LandlordContractListPage() {
     setCurrentPage(1);
   };
 
+  // Test function để debug filter
+  const testFilter = () => {
+    const testParams = {
+      paymentCycle: "MONTHLY"
+    };
+    const filterString = buildContractFilterString(testParams);
+    console.log("Test filter params:", testParams);
+    console.log("Test filter string:", filterString);
+    
+    // Test API call
+    getAllContracts({ page: 0, size: 10, filter: filterString })
+      .then(response => {
+        console.log("Test API response:", response);
+      })
+      .catch(error => {
+        console.error("Test API error:", error);
+      });
+  };
+
+  // Thêm button test vào UI (tạm thời)
+  useEffect(() => {
+    // Uncomment để test
+    // testFilter();
+  }, []);
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Sider width={220}>
@@ -343,38 +408,22 @@ export default function LandlordContractListPage() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <PageHeader title="Contract List" />
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <Select
-                style={{ width: 150 }}
-                placeholder="Payment Cycle"
-                value={filterPaymentCycle}
-                onChange={setFilterPaymentCycle}
-                allowClear
-                options={[
-                  { label: "Tất cả", value: "" },
-                  { label: "Hàng tháng", value: "MONTHLY" },
-                  { label: "Hàng quý", value: "QUARTERLY" },
-                  { label: "Hàng năm", value: "YEARLY" }
-                ]}
-              />
-              <DatePicker.RangePicker
-                style={{ width: 240 }}
-                value={filterDateRange}
-                onChange={setFilterDateRange}
-                placeholder={["Start date", "End date"]}
-                format="DD/MM/YYYY"
-              />
-              <Select
-                showSearch
-                style={{ width: 150 }}
-                placeholder="Room Number"
-                value={filterRoomId}
-                onChange={setFilterRoomId}
-                allowClear
-                optionFilterProp="children"
-                options={rooms.map(room => ({ value: room.id, label: room.roomNumber }))}
-              />
-              <Button type="primary" onClick={handleAdvancedFilter}>Lọc</Button>
-              <Button onClick={() => { setFilterPaymentCycle(); setFilterDateRange(); setFilterRoomId(); setFilter({}); setCurrentPage(1); }}>Xóa lọc</Button>
+              <Popover
+                content={
+                  <ContractFilterPopover
+                    rooms={roomContracts}
+                    tenants={allRenters}
+                    onApply={handleFilterApply}
+                  />
+                }
+                trigger="click"
+                open={filterVisible}
+                onOpenChange={setFilterVisible}
+                placement="bottomRight"
+              >
+                <Button type="primary">Filter</Button>
+              </Popover>
+              <Button onClick={() => { setFilter({}); setFilterVisible(false); setCurrentPage(1); }}>Clear</Button>
             </div>
           </div>
           <div

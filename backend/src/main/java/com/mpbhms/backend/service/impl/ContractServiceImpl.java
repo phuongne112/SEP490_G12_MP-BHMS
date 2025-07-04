@@ -278,16 +278,31 @@ This contract is made in 02 copies, each party keeps 01 copy with the same legal
 
     @Override
     public ResultPaginationDTO getAllContracts(Specification spec, Pageable pageable) {
-        Page<Contract> page = contractRepository.findAll(spec, pageable);
-        ResultPaginationDTO result = new ResultPaginationDTO();
-        result.setMeta(new com.mpbhms.backend.dto.Meta() {{
-            setPage(pageable.getPageNumber());
-            setPageSize(pageable.getPageSize());
-            setPages(page.getTotalPages());
-            setTotal(page.getTotalElements());
-        }});
-        result.setResult(page.getContent().stream().map(this::toDTO).toList());
-        return result;
+        try {
+            // Debug logging
+            logger.info("ContractServiceImpl.getAllContracts - spec: {}", spec);
+            logger.info("ContractServiceImpl.getAllContracts - pageable: {}", pageable);
+            
+            // Xử lý trường hợp spec null
+            if (spec == null) {
+                logger.info("ContractServiceImpl.getAllContracts - spec is null, using conjunction");
+                spec = (root, query, cb) -> cb.conjunction();
+            }
+            
+            Page<Contract> page = contractRepository.findAll(spec, pageable);
+            ResultPaginationDTO result = new ResultPaginationDTO();
+            result.setMeta(new com.mpbhms.backend.dto.Meta() {{
+                setPage(pageable.getPageNumber());
+                setPageSize(pageable.getPageSize());
+                setPages(page.getTotalPages());
+                setTotal(page.getTotalElements());
+            }});
+            result.setResult(page.getContent().stream().map(this::toDTO).toList());
+            return result;
+        } catch (Exception e) {
+            logger.error("Error in getAllContracts: ", e);
+            throw e;
+        }
     }
 
     @Override
