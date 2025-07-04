@@ -1,11 +1,12 @@
 package com.mpbhms.backend.dto;
 
 
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Meta {
     private int page;
     private int pageSize;

@@ -154,8 +154,7 @@ export default function LandlordContractListPage() {
 
   const handleFilterApply = (values) => {
     const params = {};
-    
-    // Validate and add filters
+
     if (values.status && values.status !== "ALL") {
       params.contractStatus = values.status;
     }
@@ -187,8 +186,7 @@ export default function LandlordContractListPage() {
     if (values.rentMax !== undefined && values.rentMax !== null) {
       params.rentAmountTo = values.rentMax;
     }
-    
-    console.log("Setting filter params:", params);
+
     setFilter(params);
     setFilterVisible(false);
   };

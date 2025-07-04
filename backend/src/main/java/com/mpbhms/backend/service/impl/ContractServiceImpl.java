@@ -36,6 +36,7 @@ import com.mpbhms.backend.enums.ContractStatus;
 import com.mpbhms.backend.entity.ContractTerm;
 import com.mpbhms.backend.repository.ContractTermRepository;
 import com.mpbhms.backend.repository.ContractLandlordInfoRepository;
+import com.mpbhms.backend.dto.Meta;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -277,33 +278,30 @@ This contract is made in 02 copies, each party keeps 01 copy with the same legal
     }
 
     @Override
-    public ResultPaginationDTO getAllContracts(Specification spec, Pageable pageable) {
-        try {
-            // Debug logging
-            logger.info("ContractServiceImpl.getAllContracts - spec: {}", spec);
-            logger.info("ContractServiceImpl.getAllContracts - pageable: {}", pageable);
-            
-            // Xử lý trường hợp spec null
-            if (spec == null) {
-                logger.info("ContractServiceImpl.getAllContracts - spec is null, using conjunction");
-                spec = (root, query, cb) -> cb.conjunction();
-            }
-            
-            Page<Contract> page = contractRepository.findAll(spec, pageable);
-            ResultPaginationDTO result = new ResultPaginationDTO();
-            result.setMeta(new com.mpbhms.backend.dto.Meta() {{
-                setPage(pageable.getPageNumber());
-                setPageSize(pageable.getPageSize());
-                setPages(page.getTotalPages());
-                setTotal(page.getTotalElements());
-            }});
-            result.setResult(page.getContent().stream().map(this::toDTO).toList());
-            return result;
-        } catch (Exception e) {
-            logger.error("Error in getAllContracts: ", e);
-            throw e;
+    public ResultPaginationDTO getAllContracts(Specification<Contract> spec, Pageable pageable) {
+        // Nếu không có filter, thay bằng điều kiện true (conjunction)
+        if (spec == null) {
+            spec = (root, query, cb) -> cb.conjunction();
         }
+
+        Page<Contract> page = contractRepository.findAll(spec, pageable);
+
+        Meta meta = new Meta();
+        meta.setPage(page.getNumber() + 1); // frontend hiển thị bắt đầu từ 1
+        meta.setPageSize(page.getSize());
+        meta.setPages(page.getTotalPages());
+        meta.setTotal(page.getTotalElements());
+
+        ResultPaginationDTO result = new ResultPaginationDTO();
+        result.setMeta(meta);
+        result.setResult(
+                page.getContent().stream().map(this::toDTO).toList()
+        );
+
+        return result;
     }
+
+
 
     @Override
     public ContractDTO updateContract(ContractDTO dto) {
