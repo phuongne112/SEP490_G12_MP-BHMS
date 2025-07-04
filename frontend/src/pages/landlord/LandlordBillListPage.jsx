@@ -32,6 +32,8 @@ import {
 } from "../../services/billApi";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
+dayjs.extend(customParseFormat);
 
 const { Sider, Content } = Layout;
 
@@ -168,7 +170,13 @@ export default function LandlordBillListPage() {
   };
 
   const formatDate = (date) => {
-    return dayjs(date).format('DD/MM/YYYY');
+    if (date && dayjs(date, "YYYY-MM-DD HH:mm:ss A").isValid()) {
+      return dayjs(date, "YYYY-MM-DD HH:mm:ss A").format("DD/MM/YYYY");
+    }
+    if (date && dayjs(date).isValid()) {
+      return dayjs(date).format("DD/MM/YYYY");
+    }
+    return <span style={{ color: 'red', fontWeight: 500 }}>Không xác định</span>;
   };
 
   const handlePageSizeChange = (value) => {

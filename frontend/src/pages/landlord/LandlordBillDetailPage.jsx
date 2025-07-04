@@ -1,23 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  Card,
-  Descriptions,
-  Table,
-  Button,
-  Spin,
-  message,
-  Tag,
-  Layout,
-} from "antd";
-import {
-  getBillDetail,
-  exportBillPdf,
-  createVnPayUrl,
-} from "../../services/billApi";
+import { Card, Descriptions, Table, Button, Spin, message, Tag, Layout } from "antd";
+import { getBillDetail, exportBillPdf, createVnPayUrl } from "../../services/billApi";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
+dayjs.extend(customParseFormat);
 
 const { Sider } = Layout;
 
@@ -89,6 +78,32 @@ export default function LandlordBillDetailPage() {
     },
   ];
 
+  // Helper: Lấy ngày kết thúc từ bill.details nếu bill.toDate bị null hoặc không hợp lệ
+  function getFallbackToDate(bill) {
+    if (!bill || !bill.details || !Array.isArray(bill.details)) return null;
+    // Ưu tiên dòng tiền phòng, sau đó đến dịch vụ
+    const roomRent = bill.details.find(d => d.itemType === 'ROOM_RENT');
+    const anyDetail = bill.details[0];
+    const regex = /đến (\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4})/;
+    let match = null;
+    if (roomRent && roomRent.description) {
+      match = roomRent.description.match(regex);
+    }
+    if (!match && anyDetail && anyDetail.description) {
+      match = anyDetail.description.match(regex);
+    }
+    if (match && match[1]) {
+      // Chuẩn hóa về định dạng YYYY-MM-DD nếu là DD/MM/YYYY
+      let dateStr = match[1];
+      if (/\d{2}\/\d{2}\/\d{4}/.test(dateStr)) {
+        const [d, m, y] = dateStr.split('/');
+        dateStr = `${y}-${m}-${d}`;
+      }
+      return dateStr;
+    }
+    return null;
+  }
+
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
       <Sider width={220} style={{ background: "#001529" }}>
@@ -102,12 +117,8 @@ export default function LandlordBillDetailPage() {
           ) : bill ? (
             <>
               <Descriptions bordered column={2}>
-                <Descriptions.Item label="Bill ID">
-                  #{bill.id}
-                </Descriptions.Item>
-                <Descriptions.Item label="Room">
-                  {bill.roomNumber}
-                </Descriptions.Item>
+                <Descriptions.Item label="Bill ID">#{bill.id}</Descriptions.Item>
+                <Descriptions.Item label="Room">{bill.roomNumber}</Descriptions.Item>
                 <Descriptions.Item label="Contract ID">
                   {bill.contractId ? `#${bill.contractId}` : "N/A"}
                 </Descriptions.Item>
@@ -128,9 +139,20 @@ export default function LandlordBillDetailPage() {
                   {dayjs(bill.fromDate).format("DD/MM/YYYY")}
                 </Descriptions.Item>
                 <Descriptions.Item label="To">
-                  {bill.toDate && dayjs(bill.toDate).isValid()
-                    ? dayjs(bill.toDate).format("DD/MM/YYYY")
-                    : "—"}
+                  {bill.toDate && dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").isValid() ? (
+                    dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").format("DD/MM/YYYY")
+                  ) : getFallbackToDate(bill) ? (
+                    <span style={{ color: '#faad14', fontWeight: 500 }}>
+                      {dayjs(getFallbackToDate(bill)).isValid()
+                        ? dayjs(getFallbackToDate(bill)).format('DD/MM/YYYY')
+                        : getFallbackToDate(bill)}
+                      {" "}(Lấy từ chi tiết hóa đơn)
+                    </span>
+                  ) : (
+                    <span style={{ color: 'red', fontWeight: 500 }}>
+                      Không xác định (Dữ liệu hóa đơn thiếu ngày kết thúc)
+                    </span>
+                  )}
                 </Descriptions.Item>
                 <Descriptions.Item label="Total">
                   {bill.totalAmount?.toLocaleString()} VND
