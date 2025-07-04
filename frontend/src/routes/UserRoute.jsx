@@ -6,7 +6,7 @@ export default function UserRoute({ children }) {
   const roleName = account?.role?.roleName;
 
   if (!account) return <Navigate to="/login" />;
-  if (roleName !== "RENTER") return <Navigate to="/403" />;
+  if (roleName && roleName !== "RENTER") return <Navigate to="/403" />;
   return children;
 }
 

@@ -127,6 +127,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Get Schedule", "/mpbhms/schedules/{id}", "GET", "Schedule"));
             permissions.add(new Permission("Update Schedule Status", "/mpbhms/schedules/{id}/status", "PATCH", "Schedule"));
             permissions.add(new Permission("Delete Schedule", "/mpbhms/schedules/{id}", "DELETE", "Schedule"));
+            permissions.add(new Permission("Get My Schedules", "/mpbhms/schedules/my", "GET", "Schedule"));
             //Asset
             permissions.add(new Permission("Create Asset", "/mpbhms/assets", "POST", "Asset"));
             permissions.add(new Permission("Update Asset", "/mpbhms/assets/{id}", "PUT", "Asset"));
@@ -212,6 +213,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             if (markReadNotification != null && !renterPermission.contains(markReadNotification)) {
                 renterPermission.add(markReadNotification);
             }
+            Permission getMySchedules = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/mpbhms/schedules/my", "GET");
+            if (getMySchedules != null && !renterPermission.contains(getMySchedules)) {
+                renterPermission.add(getMySchedules);
+            }
             renterRole.setPermissionEntities(renterPermission);
             roleRepository.save(renterRole);
 
@@ -233,6 +238,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             }
             if (markReadNotification != null && !landlordPermission.contains(markReadNotification)) {
                 landlordPermission.add(markReadNotification);
+            }
+            Permission sendNotification = permissionRepository.findByModuleAndApiPathAndMethod("Notification", "/mpbhms/notifications/send", "POST");
+            if (sendNotification != null && !landlordPermission.contains(sendNotification)) {
+                landlordPermission.add(sendNotification);
             }
             landlordRole.setPermissionEntities(landlordPermission);
             roleRepository.save(landlordRole);

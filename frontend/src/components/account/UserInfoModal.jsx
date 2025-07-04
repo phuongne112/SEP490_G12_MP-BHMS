@@ -2,12 +2,14 @@ import React, { useEffect, useState } from "react";
 import { Modal, Descriptions, Spin, Alert, Button } from "antd";
 import { getPersonalInfo } from "../../services/userApi";
 import { getCurrentUser } from "../../services/authService";
+import BookingListModal from "./BookingListModal";
 
 export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
   const [loading, setLoading] = useState(true);
   const [info, setInfo] = useState(null);
   const [error, setError] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
+  const [showBookingModal, setShowBookingModal] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -92,7 +94,10 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
               {info?.permanentAddress || "-"}
             </Descriptions.Item>
           </Descriptions>
-          <div style={{ textAlign: "right", marginTop: 16 }}>
+          <div style={{ textAlign: "right", marginTop: 16, display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <Button onClick={() => setShowBookingModal(true)}>
+              Xem lịch hẹn của tôi
+            </Button>
             <Button
               type="primary"
               onClick={() => {
@@ -103,6 +108,7 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
               Update
             </Button>
           </div>
+          <BookingListModal open={showBookingModal} onClose={() => setShowBookingModal(false)} currentUser={currentUser} />
         </>
       )}
     </Modal>

@@ -16,4 +16,6 @@ public interface ScheduleService {
     void deleteSchedule(Long id);
     List<ScheduleDTO> getSchedulesByLandlord(Long landlordId);
     ResultPaginationDTO searchAndFilter(Long landlordId, String search, ScheduleStatus status, Instant from, Instant to, int page, int pageSize);
+    List<ScheduleDTO> getSchedulesByRenter(Long renterId);
+    List<ScheduleDTO> getSchedulesByEmail(String email);
 } 

@@ -15,4 +15,5 @@ public class NotificationDTO {
     private String metadata;
     private Instant createdDate;
     private NotificationStatus status;
+    private String recipientEmail;
 }

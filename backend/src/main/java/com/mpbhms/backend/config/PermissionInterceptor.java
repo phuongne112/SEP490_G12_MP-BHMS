@@ -59,11 +59,16 @@ public class PermissionInterceptor implements HandlerInterceptor {
                     }
                 }else{
                     // Người dùng không có role (role == null)
-                    // Kiểm tra xem có phải là ADMIN, SUBADMIN, LANDLORD không (dựa vào email hoặc thông tin khác)
                     // Nếu là API đặt lịch, chỉ cho phép người dùng thường (không phải ADMIN/SUBADMIN/LANDLORD)
                     if ("/mpbhms/schedules".equals(path) && "POST".equals(httpMethod)) {
-                        // Có thể thêm logic kiểm tra email domain hoặc thông tin khác để xác định role
-                        // Tạm thời cho phép tất cả người dùng không có role đặt lịch
+                        return true;
+                    }
+                    // Nếu là API xem lịch hẹn của mình, cũng cho phép
+                    if ("/mpbhms/schedules/my".equals(path) && "GET".equals(httpMethod)) {
+                        return true;
+                    }
+                    // Nếu là API xem notification, cũng cho phép
+                    if ("/mpbhms/notifications".equals(path) && "GET".equals(httpMethod)) {
                         return true;
                     }
                     // Với các API khác, từ chối truy cập

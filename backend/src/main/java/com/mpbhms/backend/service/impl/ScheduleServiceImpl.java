@@ -117,6 +117,18 @@ public class ScheduleServiceImpl implements ScheduleService {
         return dto;
     }
 
+    @Override
+    public List<ScheduleDTO> getSchedulesByRenter(Long renterId) {
+        List<Schedule> schedules = scheduleRepository.findByRenter_Id(renterId);
+        return schedules.stream().map(this::toDTO).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ScheduleDTO> getSchedulesByEmail(String email) {
+        List<Schedule> schedules = scheduleRepository.findByEmail(email);
+        return schedules.stream().map(this::toDTO).collect(Collectors.toList());
+    }
+
     private ScheduleDTO toDTO(Schedule schedule) {
         ScheduleDTO dto = new ScheduleDTO();
         dto.setId(schedule.getId());

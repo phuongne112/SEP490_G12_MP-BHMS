@@ -27,4 +27,7 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
                                    @Param("from") java.time.Instant from,
                                    @Param("to") java.time.Instant to,
                                    Pageable pageable);
+
+    List<Schedule> findByRenter_Id(Long renterId);
+    List<Schedule> findByEmail(String email);
 } 
