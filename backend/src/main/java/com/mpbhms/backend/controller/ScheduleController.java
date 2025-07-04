@@ -2,16 +2,18 @@ package com.mpbhms.backend.controller;
 
 import com.mpbhms.backend.dto.CreateScheduleRequest;
 import com.mpbhms.backend.dto.ScheduleDTO;
+import com.mpbhms.backend.dto.ResultPaginationDTO;
 import com.mpbhms.backend.enums.ScheduleStatus;
 import com.mpbhms.backend.service.ScheduleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/schedules")
+@RequestMapping("/mpbhms/schedules")
 public class ScheduleController {
     @Autowired
     private ScheduleService scheduleService;
@@ -22,8 +24,16 @@ public class ScheduleController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ScheduleDTO>> getAllSchedules() {
-        return ResponseEntity.ok(scheduleService.getAllSchedules());
+    public ResponseEntity<ResultPaginationDTO> getAllSchedules(
+            @RequestParam(required = false) Long landlordId,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) ScheduleStatus status,
+            @RequestParam(required = false) Instant from,
+            @RequestParam(required = false) Instant to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        return ResponseEntity.ok(scheduleService.searchAndFilter(landlordId, search, status, from, to, page, pageSize));
     }
 
     @GetMapping("/landlord")

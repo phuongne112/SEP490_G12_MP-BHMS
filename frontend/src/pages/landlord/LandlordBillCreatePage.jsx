@@ -254,8 +254,9 @@ export default function LandlordBillCreatePage() {
       let idx = 1;
       const contractEnd = dayjs(contract.contractEndDate);
       let monthsPerBill = periodOptions[0]?.months || 1;
-      while (current.isBefore(contractEnd) || current.isSame(contractEnd, 'day')) {
-        let to = calculateEndDate(current, contract.paymentCycle, contractEnd);
+      while (current.isBefore(contractEnd)) {
+        let to = current.clone().add(monthsPerBill, 'month').subtract(1, 'day');
+        if (to.isAfter(contractEnd)) to = contractEnd.clone();
         // Kiểm tra nếu đã có bill cho kỳ này thì disable
         const isDisabled = existingBills.some(bill => {
           const from = dayjs(bill.fromDate).format('YYYY-MM-DD');
@@ -268,6 +269,7 @@ export default function LandlordBillCreatePage() {
           toDate: to.clone(),
           disabled: isDisabled
         });
+        if (to.isSame(contractEnd, 'day')) break;
         current = to.add(1, 'day');
         idx++;
         if (current.isAfter(contractEnd)) break;
@@ -450,16 +452,7 @@ export default function LandlordBillCreatePage() {
                     <Radio value="custom">Tùy chọn</Radio>
                   </Radio.Group>
                 </Form.Item>
-                {periodType !== "custom" ? (
-                  <Form.Item>
-                    <DatePicker 
-                      picker="month" 
-                      placeholder="Chọn tháng bắt đầu"
-                      style={{ width: '100%' }}
-                      onChange={handleMonthChange}
-                    />
-                  </Form.Item>
-                ) : (
+                {periodType === "custom" && (
                   <Form.Item 
                     name="dateRange" 
                     label="Date Range (Optional)"
@@ -471,17 +464,7 @@ export default function LandlordBillCreatePage() {
                     />
                   </Form.Item>
                 )}
-                {(billType === "CONTRACT_TOTAL" || billType === "CONTRACT_ROOM_RENT") && selectedContract && selectedContract.paymentCycle !== 'MONTHLY' && periodType !== "custom" && (
-                  <Form.Item>
-                    <DatePicker 
-                      picker="month" 
-                      placeholder="Chọn tháng bắt đầu"
-                      style={{ width: '100%' }}
-                      onChange={handleMonthChange}
-                    />
-                  </Form.Item>
-                )}
-                {selectedContract && billPeriods.length > 0 && (
+                {(billType !== "CUSTOM" && periodType !== "custom" && selectedContract && billPeriods.length > 0) && (
                   <Form.Item label="Chọn kỳ hóa đơn" required>
                     <Radio.Group
                       value={selectedBillPeriod}
@@ -546,7 +529,8 @@ export default function LandlordBillCreatePage() {
                 </Form.Item>
                 <Form.Item
                   name="customDateRange"
-                  label="Date Range (Optional)"
+                  label="Date Range"
+                  rules={[{ required: true, message: 'Please select date range' }]}
                 >
                   <RangePicker style={{ width: '100%' }} />
                 </Form.Item>
