@@ -1,17 +1,21 @@
 package com.mpbhms.backend.controller;
 
+import com.mpbhms.backend.entity.Contract;
 import com.mpbhms.backend.service.ContractService;
+import com.mpbhms.backend.util.ApiMessage;
+import com.turkraft.springfilter.boot.Filter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.mpbhms.backend.dto.ContractDTO;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
-import com.turkraft.springfilter.boot.Filter;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import com.mpbhms.backend.util.SecurityUtil;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/mpbhms/contracts")
@@ -31,24 +35,15 @@ public class ContractController {
                 .body(pdfBytes);
     }
 
-    // Lấy danh sách hợp đồng (filter + page)
     @GetMapping
+    @ApiMessage("Get all contracts with filters and pagination")
     public ResponseEntity<ResultPaginationDTO> getAllContracts(
-            @Filter Specification spec,
+            @Filter Specification<Contract> spec,
             Pageable pageable
     ) {
-        try {
-            // Debug logging
-            System.out.println("ContractController.getAllContracts - spec: " + spec);
-            System.out.println("ContractController.getAllContracts - pageable: " + pageable);
-            
-            return ResponseEntity.ok(contractService.getAllContracts(spec, pageable));
-        } catch (Exception e) {
-            System.err.println("Error in ContractController.getAllContracts: " + e.getMessage());
-            e.printStackTrace();
-            throw e;
-        }
+        return ResponseEntity.ok(contractService.getAllContracts(spec, pageable));
     }
+
 
     // Tạo hợp đồng mới
     @PostMapping

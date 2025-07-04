@@ -1,6 +1,6 @@
 import axiosClient from "./axiosClient";
 
-export const getAllContracts = async ({ page = 0, size = 10, filter = "", sort = "" } = {}) => {
+export const getAllContracts = async ({ page = 0, size = 500, filter = "", sort = "" } = {}) => {
   let url = `/contracts?page=${page}&size=${size}`;
   if (filter && filter.trim()) {
     url += `&filter=${encodeURIComponent(filter)}`;
@@ -51,15 +51,15 @@ export const getContractHistoryByRoom = async (roomId) => {
 export const buildContractFilterString = (params = {}) => {
   const filters = [];
   
-  // Validate and add filters
-  if (params.contractStatus && params.contractStatus.trim()) {
-    filters.push(`contractStatus=="${params.contractStatus}"`);
+  // Validate and add filters, bỏ qua 'ALL', null, undefined
+  if (params.contractStatus && params.contractStatus !== "ALL" && params.contractStatus.trim()) {
+    filters.push(`contractStatus='${params.contractStatus}'`);
   }
-  if (params.paymentCycle && params.paymentCycle.trim()) {
-    filters.push(`paymentCycle=="${params.paymentCycle}"`);
+  if (params.paymentCycle && params.paymentCycle !== "ALL" && params.paymentCycle.trim()) {
+    filters.push(`paymentCycle='${params.paymentCycle}'`);
   }
-  if (params.roomId) {
-    filters.push(`room.id==${params.roomId}`);
+  if (params.roomId && params.roomId !== "ALL") {
+    filters.push(`room.id~${params.roomId}`);
   }
   if (params.contractStartDateFrom && params.contractStartDateFrom.trim()) {
     filters.push(`contractStartDate>='${params.contractStartDateFrom}'`);

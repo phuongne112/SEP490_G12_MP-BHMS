@@ -2,6 +2,7 @@ package com.mpbhms.backend.service;
 
 import com.mpbhms.backend.dto.ContractDTO;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
+import com.mpbhms.backend.entity.Contract;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -9,7 +10,7 @@ import org.springframework.data.jpa.domain.Specification;
 public interface ContractService {
     byte[] generateContractPdf(Long contractId);
 
-    ResultPaginationDTO getAllContracts(Specification spec, Pageable pageable);
+    ResultPaginationDTO getAllContracts(Specification<Contract> spec, Pageable pageable);
     ContractDTO updateContract(ContractDTO contractDTO);
     void deleteContract(Long id);
     ContractDTO createContract(ContractDTO contractDTO);

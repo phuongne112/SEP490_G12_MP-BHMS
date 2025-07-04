@@ -102,8 +102,8 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Generate first", "/mpbhms/bills/generate-first", "POST", "Bill"));
             permissions.add(new Permission("Generate", "/mpbhms/bills/generate", "POST", "Bill"));
             permissions.add(new Permission("Create Bill", "/mpbhms/bills/create", "POST", "Bill"));
-            permissions.add(new Permission("Get Bill", "/mpbhms/bills/{id}", "GET", "Bill"));
-            permissions.add(new Permission("Get Bills", "/mpbhms/bills", "GET", "Bill"));
+            permissions.add(new Permission("Get Bill by id", "/mpbhms/bills/{id}", "GET", "Bill"));
+            permissions.add(new Permission("Get All Bills", "/mpbhms/bills", "GET", "Bill"));
             permissions.add(new Permission("Delete Bill", "/mpbhms/bills/{id}", "DELETE", "Bill"));
             permissions.add(new Permission("Generate", "/mpbhms/bills/service-bill", "POST", "Bill"));
             permissions.add(new Permission("Export Bill", "/mpbhms/bills/{id}/export", "GET", "Bill"));
@@ -144,6 +144,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("View Electric Readings", "/mpbhms/electric-readings", "GET", "ElectricReading"));
             permissions.add(new Permission("Get Electric Reading by ID", "/mpbhms/electric-readings/{id}", "GET", "ElectricReading"));
 
+            //Payment
+            permissions.add(new Permission("Create VN pay Url", "/mpbhms/payment/create-vnpay-url", "POST", "Payment"));
+            permissions.add(new Permission("Payment return", "/mpbhms/payment/vnpay-return", "GET", "Payment"));
+            permissions.add(new Permission("Payment ipn", "/mpbhms/payment/vnpay-ipn", "GET", "Payment"));
             permissions = permissionRepository.saveAll(permissions);
         }
 
@@ -180,8 +184,17 @@ public class DatabaseInitializer implements CommandLineRunner {
             List<Permission> renterPermission = new ArrayList<>();
             // Quyền cho RENTER:
             // Contract
-            Permission viewContractList = permissionRepository.findByModuleAndApiPathAndMethod("Contract", "/mpbhms/contracts", "GET");
-            if (viewContractList != null) renterPermission.add(viewContractList);
+            Permission getMyContracts = permissionRepository.findByModuleAndApiPathAndMethod("Contract", "/mpbhms/contracts/my-contracts", "GET");
+            if (getMyContracts != null) renterPermission.add(getMyContracts);
+
+            Permission approveAmendment = permissionRepository.findByModuleAndApiPathAndMethod("RoomUser", "/mpbhms/room-users/approve-amendment/{amendmentId}", "POST");
+            if (approveAmendment != null) renterPermission.add(approveAmendment);
+
+            Permission rejectAmendment = permissionRepository.findByModuleAndApiPathAndMethod("RoomUser", "/mpbhms/room-users/reject-amendment/{amendmentId}", "POST");
+            if (rejectAmendment != null) renterPermission.add(rejectAmendment);
+
+            Permission getContractAmendments = permissionRepository.findByModuleAndApiPathAndMethod("RoomUser", "/mpbhms/room-users/contract-amendments/{contractId}", "GET");
+            if (getContractAmendments != null) renterPermission.add(getContractAmendments);
             // Asset
             Permission viewAssets = permissionRepository.findByModuleAndApiPathAndMethod("Asset", "/mpbhms/assets", "GET");
             if (viewAssets != null) renterPermission.add(viewAssets);

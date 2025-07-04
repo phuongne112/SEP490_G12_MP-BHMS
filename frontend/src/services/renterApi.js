@@ -14,10 +14,20 @@ export const getRentersForAssign = (keyword = "") => {
 };
 
 export const createRenter = async (data) => {
-  const res = await axiosClient.post("/renters", data);
-  return res.data;
+  // Đảm bảo gửi đúng object JSON, không ép header nếu axiosClient đã mặc định
+  return axiosClient.post("/renters", data);
 };
 
 export const getAllRentersForAssignFull = () => {
   return axiosClient.get('/renters/for-assign-full');
+};
+
+/**
+ * Tạo mới người thuê (renter)
+ * @param {object} data - Thông tin người thuê (username, fullName, email, password, phone, dateOfBirth, citizenId, address)
+ * @returns {Promise<object>} - Thông tin người thuê vừa tạo
+ */
+export const addRenter = async (data) => {
+  const response = await axiosClient.post("/renters", data);
+  return response.data;
 };
