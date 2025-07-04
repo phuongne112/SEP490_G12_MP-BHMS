@@ -66,22 +66,30 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
     {
       title: "Contract ID",
       dataIndex: "id",
+      align: "center",
+      width: 90
     },
     {
-      title: "Room Number",
+      title: "Room",
       render: (_, record) => record?.room?.roomNumber || record?.roomNumber || "Unknown",
+      align: "center",
+      width: 90
     },
     {
       title: "Start Date",
       dataIndex: "contractStartDate",
       render: (text) =>
         text ? new Date(text).toLocaleDateString("en-GB") : "—",
+      align: "center",
+      width: 110
     },
     {
       title: "End Date",
       dataIndex: "contractEndDate",
       render: (text) =>
         text ? new Date(text).toLocaleDateString("en-GB") : "—",
+      align: "center",
+      width: 110
     },
     {
       title: "Status",
@@ -91,20 +99,22 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
           color: status === "TERMINATED" ? "red" : status === "ACTIVE" ? "green" : "#888",
           fontWeight: 600
         }}>
-          {status}
+          {status === "TERMINATED" ? "Terminated" : status === "ACTIVE" ? "Active" : status}
         </span>
-      )
+      ),
+      align: "center",
+      width: 110
     },
     {
       title: "Time Left",
       align: "center",
+      width: 160,
       render: (_, record) => {
         if (record.contractStatus === "TERMINATED" || record.contractStatus === "EXPIRED") {
           return <span style={{ color: "#888", fontWeight: 600 }}>—</span>;
         }
         if (!record.contractStartDate || !record.contractEndDate) return "—";
         const start = new Date(record.contractStartDate).getTime();
-        // Xử lý endDate: nếu chỉ có ngày (giờ = 0), cộng thêm 1 ngày và trừ 1 giây để lấy 23:59:59
         let endDateObj = new Date(record.contractEndDate);
         if (
           endDateObj.getHours() === 0 &&
@@ -118,25 +128,20 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
         const now = Date.now();
 
         if (now < start) {
-          // Chưa hiệu lực
           return (
             <span style={{ color: "#1890ff", fontWeight: 600 }}>
-              <span style={{ marginRight: 6, fontSize: 18 }}>⏰</span>
-              Chưa hiệu lực
+              Not started
             </span>
           );
         }
         if (now >= end) {
-          // Đã hết hạn
           return (
             <span style={{ color: "#ff4d4f", fontWeight: 600 }}>
-              <span style={{ marginRight: 6, fontSize: 18 }}>⏰</span>
-              Đã hết hạn
+              Expired
             </span>
           );
         }
 
-        // Đang hiệu lực, đếm ngược đến end
         const msLeft = end - now;
         let color = "#52c41a";
         if (msLeft < 24 * 60 * 60 * 1000) color = "#ff4d4f";
@@ -145,70 +150,97 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
         return (
           <span style={{
             fontWeight: 600,
-            fontSize: 18,
+            fontSize: 15,
             color,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center"
+            minWidth: 60,
+            display: "inline-block",
+            textAlign: "center"
           }}>
-            <span style={{ marginRight: 6, fontSize: 18 }}>⏰</span>
-            <Countdown value={end} format="D [days] HH:mm:ss" style={{ color }} />
+            <Countdown value={end} format="D [days]" style={{ color, fontWeight: 600 }} />
           </span>
         );
       }
     },
     {
-      title: "Contract Number",
+      title: "Contract No.",
       dataIndex: "contractNumber",
       render: (num, record) => num || `#${record.id}`,
+      align: "center",
+      width: 110
     },
     {
       title: "Tenant(s)",
       dataIndex: "roomUsers",
       key: "tenants",
-      render: (users) => users?.map(u => u.fullName).join(", ") || "—"
+      render: (users) => users?.map(u => u.fullName).join(", ") || "—",
+      align: "center",
+      width: 140,
+      ellipsis: true
     },
     {
       title: "Phone(s)",
       dataIndex: "roomUsers",
       key: "phones",
-      render: (users) => users?.map(u => u.phoneNumber).join(", ") || "—"
+      render: (users) => users?.map(u => u.phoneNumber).join(", ") || "—",
+      align: "center",
+      width: 140,
+      ellipsis: true
     },
     {
       title: "Deposit",
       dataIndex: "depositAmount",
       key: "deposit",
-      render: (amount) => amount ? amount.toLocaleString() + " VND" : "—"
+      render: (amount) => amount ? amount.toLocaleString() + " VND" : "—",
+      align: "center",
+      width: 110
     },
     {
       title: "Rent",
       dataIndex: "rentAmount",
       key: "rent",
-      render: (amount) => amount ? amount.toLocaleString() + " VND" : "—"
+      render: (amount) => amount ? amount.toLocaleString() + " VND" : "—",
+      align: "center",
+      width: 110
     },
     {
       title: "Payment Cycle",
       dataIndex: "paymentCycle",
       key: "paymentCycle",
-      render: (cycle) => cycle || "—"
+      render: (cycle) => cycle || "—",
+      align: "center",
+      width: 120
     },
     {
       title: "Created At",
       dataIndex: "createdDate",
-      render: (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—"
+      render: (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—",
+      align: "center",
+      width: 110
     },
     {
       title: "Updated At",
       dataIndex: "updatedDate",
-      render: (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—"
+      render: (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—",
+      align: "center",
+      width: 110
     },
     {
       title: "Actions",
       align: "center",
+      width: 300,
       render: (_, record) => {
         const isTerminatedOrExpired = record.contractStatus === "TERMINATED" || record.contractStatus === "EXPIRED";
         return (
-          <Space size="middle">
+          <Space
+            size="small"
+            style={{
+              width: "100%",
+              display: "flex",
+              justifyContent: "center",
+              flexWrap: "nowrap",
+              gap: 8
+            }}
+          >
             <Button
               type="primary"
               icon={<FilePdfOutlined />}
@@ -225,7 +257,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
               style={{ color: "#faad14", borderColor: "#faad14" }}
               disabled={isTerminatedOrExpired}
             >
-              Cập nhật
+              Edit
             </Button>
             <Button
               type="default"
@@ -235,7 +267,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
               style={{ color: "#52c41a", borderColor: "#52c41a" }}
               disabled={isTerminatedOrExpired}
             >
-              Gia hạn
+              Renew
             </Button>
             <Button
               type="dashed"
@@ -244,9 +276,9 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
               size="small"
               disabled={isTerminatedOrExpired}
             >
-              Lịch sử
+              History
             </Button>
-            <Popconfirm title="Kết thúc hợp đồng này?" onConfirm={() => onTerminate(record.id)} okText="Kết thúc" cancelText="Hủy">
+            <Popconfirm title="Terminate this contract?" onConfirm={() => onTerminate(record.id)} okText="Terminate" cancelText="Cancel">
               <Button
                 type="primary"
                 danger
@@ -254,7 +286,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
                 size="small"
                 disabled={isTerminatedOrExpired}
               >
-                Kết thúc
+                Terminate
               </Button>
             </Popconfirm>
           </Space>
@@ -263,7 +295,6 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
     },
   ];
 
-  // Mỗi phòng 1 dòng, lấy hợp đồng mới nhất từ latestContract
   let dataSource = rooms.map(room => {
     const c = room.latestContract || {};
     return {
@@ -272,7 +303,6 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       roomNumber: room.roomNumber,
     };
   });
-  // Sắp xếp theo updatedDate mới nhất, nếu không có thì theo createdDate
   dataSource = dataSource.sort((a, b) => {
     const dateA = a.updatedDate || a.createdDate || 0;
     const dateB = b.updatedDate || b.createdDate || 0;
@@ -297,7 +327,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       }}
       style={{ background: "#fff", borderRadius: 8, padding: 16 }}
       loading={loading}
-      scroll={{ x: 1400 }}
+      scroll={{ x: 1800 }}
     />
   );
 }

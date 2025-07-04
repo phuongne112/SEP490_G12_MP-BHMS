@@ -37,7 +37,17 @@ public class ContractController {
             @Filter Specification spec,
             Pageable pageable
     ) {
-        return ResponseEntity.ok(contractService.getAllContracts(spec, pageable));
+        try {
+            // Debug logging
+            System.out.println("ContractController.getAllContracts - spec: " + spec);
+            System.out.println("ContractController.getAllContracts - pageable: " + pageable);
+            
+            return ResponseEntity.ok(contractService.getAllContracts(spec, pageable));
+        } catch (Exception e) {
+            System.err.println("Error in ContractController.getAllContracts: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     // Tạo hợp đồng mới

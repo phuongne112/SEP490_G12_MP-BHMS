@@ -1,7 +1,14 @@
 import axiosClient from "./axiosClient";
 
-export const getAllContracts = async (params = {}) => {
-  const response = await axiosClient.get("/contracts", { params });
+export const getAllContracts = async ({ page = 0, size = 10, filter = "", sort = "" } = {}) => {
+  let url = `/contracts?page=${page}&size=${size}`;
+  if (filter && filter.trim()) {
+    url += `&filter=${encodeURIComponent(filter)}`;
+  }
+  if (sort && sort.trim()) {
+    url += `&sort=${encodeURIComponent(sort)}`;
+  }
+  const response = await axiosClient.get(url);
   return response.data;
 };
 
@@ -39,4 +46,41 @@ export const getContractAmendments = async (contractId) => {
 export const getContractHistoryByRoom = async (roomId) => {
   const response = await axiosClient.get(`/contracts/room/${roomId}/history`);
   return response.data;
+};
+
+export const buildContractFilterString = (params = {}) => {
+  const filters = [];
+  
+  // Validate and add filters
+  if (params.contractStatus && params.contractStatus.trim()) {
+    filters.push(`contractStatus=="${params.contractStatus}"`);
+  }
+  if (params.paymentCycle && params.paymentCycle.trim()) {
+    filters.push(`paymentCycle=="${params.paymentCycle}"`);
+  }
+  if (params.roomId) {
+    filters.push(`room.id==${params.roomId}`);
+  }
+  if (params.contractStartDateFrom && params.contractStartDateFrom.trim()) {
+    filters.push(`contractStartDate>='${params.contractStartDateFrom}'`);
+  }
+  if (params.contractStartDateTo && params.contractStartDateTo.trim()) {
+    filters.push(`contractStartDate<='${params.contractStartDateTo}'`);
+  }
+  if (params.depositAmountFrom !== undefined && params.depositAmountFrom !== null) {
+    filters.push(`depositAmount>=${params.depositAmountFrom}`);
+  }
+  if (params.depositAmountTo !== undefined && params.depositAmountTo !== null) {
+    filters.push(`depositAmount<=${params.depositAmountTo}`);
+  }
+  if (params.rentAmountFrom !== undefined && params.rentAmountFrom !== null) {
+    filters.push(`rentAmount>=${params.rentAmountFrom}`);
+  }
+  if (params.rentAmountTo !== undefined && params.rentAmountTo !== null) {
+    filters.push(`rentAmount<=${params.rentAmountTo}`);
+  }
+  
+  const filterString = filters.join(" and ");
+  // Chỉ trả về filter string nếu có ít nhất 1 filter, nếu không trả về null
+  return filterString.trim() ? filterString : null;
 };
