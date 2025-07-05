@@ -27,6 +27,7 @@ import RenterSidebar from "../../components/layout/RenterSidebar";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { Layout } from "antd";
+import { useSelector } from "react-redux";
 
 const { Sider, Content } = Layout;
 
@@ -44,6 +45,7 @@ export default function RenterBillListPage() {
     totalAmount: 0,
   });
   const navigate = useNavigate();
+  const user = useSelector((state) => state.account.user);
 
   useEffect(() => {
     fetchBills();
@@ -53,10 +55,19 @@ export default function RenterBillListPage() {
     setLoading(true);
     try {
       const res = await getMyBills();
-      const billsData = res.content || [];
+      let billsData = res.content || [];
+      // Filter bills for current user if backend does not already do this
+      if (user && billsData.length > 0) {
+        billsData = billsData.filter(bill => {
+          // bill.renterId or bill.renterIds or bill.roomUsers
+          if (bill.renterId) return bill.renterId === user.id;
+          if (bill.renterIds) return bill.renterIds.includes(user.id);
+          if (bill.roomUsers) return bill.roomUsers.some(u => u.userId === user.id || u.id === user.id);
+          return true; // fallback: show all
+        });
+      }
       setBills(billsData);
-
-      // Tính toán thống kê
+      // Stats
       const total = billsData.length;
       const paid = billsData.filter((bill) => bill.status).length;
       const unpaid = total - paid;
@@ -64,7 +75,6 @@ export default function RenterBillListPage() {
         (sum, bill) => sum + (bill.totalAmount || 0),
         0
       );
-
       setStats({ total, paid, unpaid, totalAmount });
     } catch (err) {
       message.error("Không thể tải danh sách hóa đơn");
@@ -206,9 +216,7 @@ export default function RenterBillListPage() {
                 type="primary"
                 danger
                 icon={<DollarOutlined />}
-                onClick={() =>
-                  navigate(`/renter/bills/${record.id}?action=pay`)
-                }
+                onClick={() => navigate(`/renter/bills/${record.id}?action=pay`)}
                 size="small"
               >
                 Pay

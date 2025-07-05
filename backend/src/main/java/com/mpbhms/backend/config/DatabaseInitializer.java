@@ -94,6 +94,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Delete Contract", "/mpbhms/contracts/{id}", "DELETE", "Contract"));
             permissions.add(new Permission("Test Update User Info", "/mpbhms/contracts/test-update-user-info", "GET", "Contract"));
             permissions.add(new Permission("Get My Contracts", "/mpbhms/contracts/my-contracts", "GET", "Contract"));
+            permissions.add(new Permission("Get List Contracts History", "/mpbhms/contracts/room/{contractId}/history", "GET", "Contract"));
             permissions.add(new Permission("Get Contract Amendments History", "/mpbhms/contracts/amendments/{contractId}", "GET", "Contract"));
             //OCR
             permissions.add(new Permission("OCR", "/mpbhms/ocr/detect-ocr", "POST", "Ocr"));
@@ -104,6 +105,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Create Bill", "/mpbhms/bills/create", "POST", "Bill"));
             permissions.add(new Permission("Get Bill by id", "/mpbhms/bills/{id}", "GET", "Bill"));
             permissions.add(new Permission("Get All Bills", "/mpbhms/bills", "GET", "Bill"));
+            permissions.add(new Permission("Get My Bills", "/mpbhms/bills/my", "GET", "Bill"));
             permissions.add(new Permission("Delete Bill", "/mpbhms/bills/{id}", "DELETE", "Bill"));
             permissions.add(new Permission("Generate", "/mpbhms/bills/service-bill", "POST", "Bill"));
             permissions.add(new Permission("Export Bill", "/mpbhms/bills/{id}/export", "GET", "Bill"));
@@ -209,6 +211,11 @@ public class DatabaseInitializer implements CommandLineRunner {
             if (getBills != null) renterPermission.add(getBills);
             Permission getBillById = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/{id}", "GET");
             if (getBillById != null) renterPermission.add(getBillById);
+            Permission getMyBills = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/my", "GET");
+            if (getMyBills != null) renterPermission.add(getMyBills);
+            //Payment
+            Permission createVnpayUrl = permissionRepository.findByModuleAndApiPathAndMethod("Payment", "/mpbhms/payment/create-vnpay-url", "POST");
+            if (createVnpayUrl != null) renterPermission.add(createVnpayUrl);
             // Room
             Permission viewRoom = permissionRepository.findByModuleAndApiPathAndMethod("Room", "/mpbhms/rooms", "GET");
             if (viewRoom != null) renterPermission.add(viewRoom);
@@ -219,6 +226,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             if (getScheduleById != null) renterPermission.add(getScheduleById);
             Permission createSchedule = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/mpbhms/schedules", "POST");
             if (createSchedule != null) renterPermission.add(createSchedule);
+
+// Export contract permission
+            Permission exportContract = permissionRepository.findByModuleAndApiPathAndMethod("Contract", "/mpbhms/contracts/{id}/export", "GET");
+            if (exportContract != null) renterPermission.add(exportContract);
             // Notification
             if (viewMyNotification != null && !renterPermission.contains(viewMyNotification)) {
                 renterPermission.add(viewMyNotification);

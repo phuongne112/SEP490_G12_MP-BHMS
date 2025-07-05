@@ -73,11 +73,20 @@ public class BillServiceImpl implements BillService {
         PaymentCycle cycle = contract.getPaymentCycle();
 
         // Kiểm tra fromDate/toDate hợp lệ với paymentCycle
-        int expectedMonths = switch (cycle) {
-            case MONTHLY -> 1;
-            case QUARTERLY -> 3;
-            case YEARLY -> 12;
-        };
+        int expectedMonths;
+        switch (cycle) {
+            case MONTHLY:
+                expectedMonths = 1;
+                break;
+            case QUARTERLY:
+                expectedMonths = 3;
+                break;
+            case YEARLY:
+                expectedMonths = 12;
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown payment cycle: " + cycle);
+        }
         LocalDate expectedToDate = fromDate.plusMonths(expectedMonths).minusDays(1);
         if (!toDate.equals(expectedToDate)) {
             throw new BusinessException("fromDate/toDate không hợp lệ với chu kỳ thanh toán " + cycle + ". Kỳ đúng phải từ " + fromDate + " đến " + expectedToDate);
@@ -201,11 +210,20 @@ public class BillServiceImpl implements BillService {
         if (fromDate.isAfter(toDate)) {
             throw new BusinessException("Ngày bắt đầu phải trước hoặc bằng ngày kết thúc!");
         }
-        int expectedMonths = switch (cycle) {
-            case MONTHLY -> 1;
-            case QUARTERLY -> 3;
-            case YEARLY -> 12;
-        };
+        int expectedMonths;
+        switch (cycle) {
+            case MONTHLY:
+                expectedMonths = 1;
+                break;
+            case QUARTERLY:
+                expectedMonths = 3;
+                break;
+            case YEARLY:
+                expectedMonths = 12;
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown payment cycle: " + cycle);
+        }
         // Kiểm tra fromDate phải là ngày bắt đầu hợp đồng hoặc là ngày đầu kỳ tiếp theo
         if (!fromDate.equals(contractStart)) {
             // Tính số tháng giữa contractStart và fromDate
@@ -320,19 +338,31 @@ public class BillServiceImpl implements BillService {
     }
 
     private int countMonths(PaymentCycle cycle) {
-        return switch (cycle) {
-            case MONTHLY -> 1;
-            case QUARTERLY -> 3;
-            case YEARLY -> 12;
-        };
+        switch (cycle) {
+            case MONTHLY:
+                return 1;
+            case QUARTERLY:
+                return 3;
+            case YEARLY:
+                return 12;
+            default:
+                throw new IllegalArgumentException("Unknown payment cycle: " + cycle);
+        }
+
     }
 
     private LocalDate calculateEndDate(LocalDate startDate, PaymentCycle cycle) {
-        return switch (cycle) {
-            case MONTHLY -> startDate.plusMonths(1).minusDays(1);
-            case QUARTERLY -> startDate.plusMonths(3).minusDays(1);
-            case YEARLY -> startDate.plusYears(1).minusDays(1);
-        };
+        switch (cycle) {
+            case MONTHLY:
+                return startDate.plusMonths(1).minusDays(1);
+            case QUARTERLY:
+                return startDate.plusMonths(3).minusDays(1);
+            case YEARLY:
+                return startDate.plusYears(1).minusDays(1);
+            default:
+                throw new IllegalArgumentException("Unknown payment cycle: " + cycle);
+        }
+
     }
 
     @Override
