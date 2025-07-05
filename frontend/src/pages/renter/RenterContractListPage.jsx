@@ -45,7 +45,10 @@ export default function RenterContractListPage() {
     try {
       await approveAmendment(amendmentId, false); // false = renter duyệt
       message.success('Phê duyệt thành công!');
-      handleViewAmendments(selectedContract); // reload lại danh sách
+      // Optimistic update - immediately update local state
+      setAmendments(prev => prev.map(item =>
+        item.id === amendmentId ? { ...item, status: 'APPROVED' } : item
+      ));
     } catch (e) {
       message.error('Phê duyệt thất bại!');
     }
@@ -96,7 +99,7 @@ export default function RenterContractListPage() {
                 return (
                   <List.Item
                     actions={[
-                      isMyTurn && (
+                      item.status === 'PENDING' && isMyTurn && (
                         <Button
                           type="primary"
                           onClick={() => handleApproveAmendment(item.id)}
