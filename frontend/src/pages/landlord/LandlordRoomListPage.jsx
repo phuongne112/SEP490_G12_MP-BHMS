@@ -156,10 +156,10 @@ export default function LandlordRoomListPage() {
               alignItems: "center",
             }}
           >
-            <PageHeader title="Room List" /> {/* ✅ Dùng component chung */}
+            <PageHeader title="Danh sách phòng" /> {/* ✅ Dùng component chung */}
             <Space>
               <Input
-                placeholder="Search room..."
+                placeholder="Tìm phòng..."
                 allowClear
                 prefix={<SearchOutlined />}
                 value={search}
@@ -171,7 +171,7 @@ export default function LandlordRoomListPage() {
                 trigger="click"
                 placement="bottomRight"
               >
-                <Button icon={<FilterOutlined />}>Filter</Button>
+                <Button icon={<FilterOutlined />}>Bộ lọc</Button>
               </Popover>
               <Button type="primary" 
               icon={<PlusOutlined />}
@@ -183,7 +183,7 @@ export default function LandlordRoomListPage() {
                 }
               }}
               >
-                Add Room
+                Thêm phòng
               </Button>
             </Space>
           </div>

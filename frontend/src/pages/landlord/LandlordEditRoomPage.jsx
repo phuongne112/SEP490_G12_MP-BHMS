@@ -41,7 +41,7 @@ export default function LandlordEditRoomPage() {
       try {
         const res = await axiosClient.get(`/rooms/${id}`);
         const room = res.data;
-        if (!room) throw new Error("Room not found");
+        if (!room) throw new Error("Không tìm thấy phòng");
         // Parse building + suffix
         let building = room.building || "";
         let roomNumberSuffix = room.roomNumber?.replace(building, "") || "";
@@ -81,7 +81,7 @@ export default function LandlordEditRoomPage() {
         );
         setKeepImageIds((room.images || []).map((img) => img.id));
       } catch (e) {
-        message.error("Failed to load room data");
+        message.error("Tải dữ liệu phòng thất bại!");
         navigate("/landlord/rooms");
       }
     };
@@ -123,7 +123,7 @@ export default function LandlordEditRoomPage() {
         }
       });
       await axiosClient.post(`/rooms/${id}`, formData);
-      message.success("Room updated successfully!");
+      message.success("Cập nhật phòng thành công!");
       if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
         navigate("/admin/rooms");
       } else {
@@ -140,7 +140,7 @@ export default function LandlordEditRoomPage() {
         }));
         form.setFields(fieldErrors);
       } else {
-        setFormError(res?.message || "Failed to update room!");
+        setFormError(res?.message || "Cập nhật phòng thất bại!");
       }
     }
     setLoading(false);
@@ -160,7 +160,7 @@ export default function LandlordEditRoomPage() {
         )}
       </Sider>
       <Layout style={{ marginTop: 20, marginLeft: 15 }}>
-        <PageHeader title="Edit Room" />
+        <PageHeader title="Chỉnh sửa phòng" />
         <Button
           icon={<ArrowLeftOutlined />}
           style={{ marginBottom: 16 }}
@@ -172,7 +172,7 @@ export default function LandlordEditRoomPage() {
             }
           }}
         >
-          Back to Room
+          Quay lại danh sách phòng
         </Button>
         <Content style={{ padding: "24px" }}>
           {formError && (
@@ -188,106 +188,94 @@ export default function LandlordEditRoomPage() {
               <Col span={12}>
                 <Form.Item
                   name="building"
-                  label="Building"
-                  rules={[{ required: true, message: "Please enter building name" }]}
+                  label="Tòa"
+                  rules={[{ required: true, message: "Vui lòng nhập tên tòa" }]}
                 >
-                  <Input placeholder="e.g. A" />
+                  <Input placeholder="Ví dụ: A" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="roomNumberSuffix"
-                  label="Room Number (Suffix)"
-                  rules={[{ required: true, message: "Please enter room number (suffix)" }]}
+                  label="Số phòng"
+                  rules={[{ required: true, message: "Vui lòng nhập số phòng" }]}
                 >
-                  <Input placeholder="e.g. 101" />
+                  <Input placeholder="Ví dụ: 101" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="area"
-                  label="Area (m²)"
-                  rules={[{ required: true }]}
+                  label="Diện tích (m²)"
+                  rules={[{ required: true, message: "Vui lòng nhập diện tích" }]}
                 >
-                  <InputNumber min={1} max={1000} style={{ width: "100%" }} />
+                  <InputNumber min={1} max={1000} style={{ width: "100%" }} placeholder="Nhập diện tích" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="price"
-                  label="Cost (VND/Month)"
-                  rules={[{ required: true }]}
+                  label="Giá (VND/tháng)"
+                  rules={[{ required: true, message: "Vui lòng nhập giá" }]}
                 >
-                  <InputNumber
-                    min={0}
-                    style={{ width: "100%" }}
-                    formatter={(val) =>
-                      `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-                    }
-                    parser={(val) => val.replace(/\./g, "")}
-                  />
+                  <InputNumber min={0} style={{ width: "100%" }} placeholder="Nhập giá" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="roomStatus"
-                  label="Room Status"
-                  rules={[{ required: true }]}
+                  label="Trạng thái phòng"
+                  rules={[{ required: true, message: "Vui lòng chọn trạng thái phòng" }]}
                 >
                   <Select>
-                    <Option value="Available">Available</Option>
-                    <Option value="Occupied">Occupied</Option>
-                    <Option value="Maintenance">Maintenance</Option>
-                    <Option value="Inactive">Inactive</Option>
+                    <Option value="Available">Còn trống</Option>
+                    <Option value="Inactive">Ngừng hoạt động</Option>
                   </Select>
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="numberOfBedrooms"
-                  label="Number of Bedrooms"
-                  rules={[{ required: true }]}
+                  label="Số phòng ngủ"
+                  rules={[{ required: true, message: "Vui lòng nhập số phòng ngủ" }]}
                 >
-                  <InputNumber min={1} max={10} style={{ width: "100%" }} />
+                  <InputNumber min={1} max={10} style={{ width: "100%" }} placeholder="Nhập số phòng ngủ" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="numberOfBathrooms"
-                  label="Number of Bathrooms"
-                  rules={[{ required: true }]}
+                  label="Số phòng tắm"
+                  rules={[{ required: true, message: "Vui lòng nhập số phòng tắm" }]}
                 >
-                  <InputNumber min={1} max={10} style={{ width: "100%" }} />
+                  <InputNumber min={1} max={10} style={{ width: "100%" }} placeholder="Nhập số phòng tắm" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="maxOccupants"
-                  label="Maximum Occupants"
-                  rules={[{ required: true, message: "Please enter max occupants" }]}
+                  label="Số người tối đa"
+                  rules={[{ required: true, message: "Vui lòng nhập số người tối đa" }]}
                 >
-                  <InputNumber min={1} max={20} style={{ width: "100%" }} />
+                  <InputNumber min={1} max={20} style={{ width: "100%" }} placeholder="Nhập số người tối đa" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="isActive"
-                  label="Active Status"
+                  label="Trạng thái hoạt động"
                   valuePropName="checked"
                 >
-                  <Switch 
-                    checkedChildren="Active" 
-                    unCheckedChildren="Inactive"
-                  />
+                  <Switch checkedChildren="Đang hoạt động" unCheckedChildren="Ngừng hoạt động" />
                 </Form.Item>
               </Col>
               <Col span={24}>
-                <Form.Item name="description" label="Description">
-                  <TextArea rows={2} placeholder="Description..." />
+                <Form.Item name="description" label="Mô tả">
+                  <TextArea rows={2} placeholder="Nhập mô tả..." />
                 </Form.Item>
               </Col>
               <Col span={24}>
-                <Form.Item label="Images">
+                <Form.Item label="Hình ảnh">
                   <Upload
                     listType="picture-card"
                     fileList={fileList}
@@ -303,7 +291,7 @@ export default function LandlordEditRoomPage() {
                     {fileList.length < 8 && (
                       <div>
                         <PlusOutlined />
-                        <div style={{ marginTop: 8 }}>Upload</div>
+                        <div style={{ marginTop: 8 }}>Tải lên</div>
                       </div>
                     )}
                   </Upload>
@@ -312,7 +300,7 @@ export default function LandlordEditRoomPage() {
             </Row>
             <Form.Item>
               <Button type="primary" htmlType="submit" loading={loading}>
-                Update Room
+                Cập nhật phòng
               </Button>
             </Form.Item>
           </Form>

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Table, Button, Space, Tooltip, message, Alert } from "antd";
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { getAllRoles } from "../../services/roleApi";
-import { useSelector } from "react-redux"; // ✅ lấy user từ Redux
+import { useSelector } from "react-redux";
 
 const buildFilterDSL = (searchTerm, filters) => {
   const dsl = [];
@@ -33,10 +33,10 @@ export default function RoleTable({
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
-  const currentUser = useSelector((state) => state.account.user); // ✅
+  const currentUser = useSelector((state) => state.account.user);
   const currentRole = currentUser?.role;
-  const currentUserId = currentUser?.id;
   const permissions = currentUser?.permissions || [];
+
   const canEdit = permissions.includes("Update Role");
   const canDelete = permissions.includes("Delete Role");
 
@@ -57,8 +57,8 @@ export default function RoleTable({
       );
       setPagination({ current: page, total });
     } catch (err) {
-      message.error("Failed to load role data");
-      console.error("Role fetch error:", err);
+      message.error("Không thể tải danh sách vai trò.");
+      console.error("Lỗi khi lấy vai trò:", err);
     } finally {
       setLoading(false);
     }
@@ -77,33 +77,32 @@ export default function RoleTable({
 
   const columns = [
     {
-      title: "No.",
+      title: "STT",
       dataIndex: "key",
       align: "center",
       width: 80,
       render: (_, __, index) => (pagination.current - 1) * pageSize + index + 1,
     },
     {
-      title: "Role Name",
+      title: "Tên vai trò",
       dataIndex: "roleName",
       width: "60%",
       render: (text) => <span style={{ fontWeight: 500 }}>{text}</span>,
     },
     {
-      title: "Created At",
+      title: "Ngày tạo",
       dataIndex: "createdAt",
     },
     ...(canEdit || canDelete
       ? [
           {
-            title: "Actions",
+            title: "Thao tác",
             key: "actions",
             align: "center",
             width: 120,
             render: (_, record) => {
               const targetRole = record.roleName;
 
-              // SUBADMIN không được sửa ADMIN/SUBADMIN
               if (
                 currentRole?.roleName === "SUBADMIN" &&
                 (targetRole === "ADMIN" || targetRole === "SUBADMIN")
@@ -111,15 +110,10 @@ export default function RoleTable({
                 return null;
               }
 
-              // ADMIN không được sửa chính mình
-              // if (currentRole?.roleName === "ADMIN" && targetRole === "ADMIN") {
-              //   return null;
-              // }
-
               return (
                 <Space>
                   {canEdit && (
-                    <Tooltip title="Edit">
+                    <Tooltip title="Chỉnh sửa">
                       <Button
                         icon={<EditOutlined />}
                         onClick={() => onEditRole(record)}
@@ -131,7 +125,7 @@ export default function RoleTable({
                       currentRole?.roleName === "ADMIN" &&
                       record.roleName === "ADMIN"
                     ) && (
-                      <Tooltip title="Delete">
+                      <Tooltip title="Xóa">
                         <Button
                           danger
                           icon={<DeleteOutlined />}

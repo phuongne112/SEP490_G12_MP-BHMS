@@ -1,5 +1,5 @@
 import React from "react";
-import { Form, Select, DatePicker, Button, Space } from "antd";
+import { Form, Select, DatePicker, Button } from "antd";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -15,35 +15,35 @@ export default function NotificationFilterPopover({ onApply }) {
 
   return (
     <Form form={form} layout="vertical">
-      <Form.Item label="Status" name="status" initialValue="All">
+      <Form.Item label="Trạng thái" name="status" initialValue="All">
         <Select>
-          <Option value="All">All</Option>
-          <Option value="SENT">Sent</Option>
-          <Option value="DELIVERED">Delivered</Option>
-          <Option value="READ">Read</Option>
+          <Option value="All">Tất cả</Option>
+          <Option value="SENT">Chưa đọc</Option>
+          <Option value="DELIVERED">Đã gửi</Option>
+          <Option value="READ">Đã đọc</Option>
         </Select>
       </Form.Item>
 
-      <Form.Item label="Type" name="type" initialValue="All">
+      <Form.Item label="Loại thông báo" name="type" initialValue="All">
         <Select>
-          <Option value="All">All</Option>
-          <Option value="RENT_REMINDER">Rent Reminder</Option>
-          <Option value="MAINTENANCE">Maintenance</Option>
-          <Option value="BOOKING_STATUS">Booking Status</Option>
-          <Option value="ANNOUNCEMENT">Announcement</Option>
-          <Option value="PAYMENT_SUCCESS">Payment Success</Option>
-          <Option value="PAYMENT_FAILED">Payment Failed</Option>
-          <Option value="CUSTOM">Custom</Option>
+          <Option value="All">Tất cả</Option>
+          <Option value="RENT_REMINDER">Nhắc thanh toán</Option>
+          <Option value="MAINTENANCE">Bảo trì</Option>
+          <Option value="BOOKING_STATUS">Trạng thái đặt chỗ</Option>
+          <Option value="ANNOUNCEMENT">Thông báo chung</Option>
+          <Option value="PAYMENT_SUCCESS">Thanh toán thành công</Option>
+          <Option value="PAYMENT_FAILED">Thanh toán thất bại</Option>
+          <Option value="CUSTOM">Tùy chỉnh</Option>
         </Select>
       </Form.Item>
 
-      <Form.Item label="Date Range" name="dateRange">
+      <Form.Item label="Khoảng ngày" name="dateRange">
         <RangePicker />
       </Form.Item>
 
       <Form.Item>
         <Button type="primary" block onClick={handleApply}>
-          Apply Filter
+          Áp dụng bộ lọc
         </Button>
       </Form.Item>
     </Form>

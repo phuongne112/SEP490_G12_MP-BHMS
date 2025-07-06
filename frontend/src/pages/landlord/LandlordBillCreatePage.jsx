@@ -162,7 +162,7 @@ export default function LandlordBillCreatePage() {
           billType: "CUSTOM"
         };
         await createCustomBill(payload);
-        message.success("Custom bill created successfully");
+        message.success("Tạo hóa đơn tùy chỉnh thành công");
         navigate("/landlord/bills");
         setLoading(false);
         return;
@@ -225,11 +225,11 @@ export default function LandlordBillCreatePage() {
         return;
       }
       
-      message.success("Bill created successfully");
+      message.success("Tạo hóa đơn thành công");
       navigate("/landlord/bills");
     } catch (err) {
       const errorMsg = err?.response?.data?.message || "Create bill failed";
-      message.error(errorMsg);
+      message.error("Tạo hóa đơn thất bại");
     } finally {
       setLoading(false);
     }
@@ -356,7 +356,7 @@ export default function LandlordBillCreatePage() {
           }}
           bodyStyle={{ padding: 0 }}
         >
-          <PageHeader title="Create Bill" />
+          <PageHeader title="Tạo hóa đơn" />
           <Divider />
           <Form
             form={form}
@@ -365,18 +365,18 @@ export default function LandlordBillCreatePage() {
           >
             <Form.Item 
               name="billType" 
-              label="Bill Type" 
-              rules={[{ required: true, message: 'Please select bill type' }]}
+              label="Loại hóa đơn" 
+              rules={[{ required: true, message: 'Vui lòng chọn loại hóa đơn' }]}
             >
               <Select 
                 value={billType}
                 onChange={handleBillTypeChange}
-                placeholder="Select bill type"
+                placeholder="Chọn loại hóa đơn"
               >
-                <Option value="SERVICE">Service Bill (Dịch vụ)</Option>
-                <Option value="CONTRACT_TOTAL">Contract Total Bill (Phòng + dịch vụ)</Option>
-                <Option value="CONTRACT_ROOM_RENT">Contract Room Rent Bill (Chỉ tiền phòng)</Option>
-                <Option value="CUSTOM">Custom Bill (Tuỳ chỉnh)</Option>
+                <Option value="SERVICE">Hóa đơn dịch vụ</Option>
+                <Option value="CONTRACT_TOTAL">Hóa đơn tổng hợp (Phòng + dịch vụ)</Option>
+                <Option value="CONTRACT_ROOM_RENT">Hóa đơn tiền phòng</Option>
+                <Option value="CUSTOM">Hóa đơn tùy chỉnh</Option>
               </Select>
             </Form.Item>
 
@@ -384,11 +384,11 @@ export default function LandlordBillCreatePage() {
               <>
                 <Form.Item 
                   name="roomId" 
-                  label="Room" 
-                  rules={[{ required: true, message: 'Please select room' }]}
+                  label="Phòng" 
+                  rules={[{ required: true, message: 'Vui lòng chọn phòng' }]}
                 >
                   <Select 
-                    placeholder="Select room"
+                    placeholder="Chọn phòng"
                     onChange={handleRoomChange}
                     showSearch
                     filterOption={(input, option) =>
@@ -401,8 +401,8 @@ export default function LandlordBillCreatePage() {
                         value={room.id}
                         disabled={!room.hasActiveContract}
                       >
-                        {room.roomNumber} - {room.building || 'N/A'}
-                        {!room.hasActiveContract ? ' (No contract)' : ''}
+                        {room.roomNumber} - {room.building || 'Không xác định'}
+                        {!room.hasActiveContract ? ' (Không có hợp đồng)' : ''}
                       </Option>
                     ))}
                   </Select>
@@ -410,12 +410,12 @@ export default function LandlordBillCreatePage() {
 
                 <Form.Item 
                   name="month" 
-                  label="Month/Year" 
-                  rules={[{ required: true, message: 'Please select month' }]}
+                  label="Tháng/Năm" 
+                  rules={[{ required: true, message: 'Vui lòng chọn tháng' }]}
                 >
                   <DatePicker 
                     picker="month" 
-                    placeholder="Select month"
+                    placeholder="Chọn tháng"
                     style={{ width: '100%' }}
                   />
                 </Form.Item>
@@ -426,11 +426,11 @@ export default function LandlordBillCreatePage() {
               <>
                 <Form.Item 
                   name="contractId" 
-                  label="Contract" 
-                  rules={[{ required: true, message: 'Please select contract' }]}
+                  label="Hợp đồng" 
+                  rules={[{ required: true, message: 'Vui lòng chọn hợp đồng' }]}
                 >
                   <Select 
-                    placeholder="Select contract"
+                    placeholder="Chọn hợp đồng"
                     onChange={handleContractChange}
                     showSearch
                     filterOption={(input, option) =>
@@ -439,12 +439,12 @@ export default function LandlordBillCreatePage() {
                   >
                     {contracts.map(contract => (
                       <Option key={contract.id} value={contract.id}>
-                        Contract #{contract.id} - Room {contract.roomNumber}
+                        Hợp đồng #{contract.id} - Phòng {contract.roomNumber}
                       </Option>
                     ))}
                   </Select>
                 </Form.Item>
-                <Form.Item label="Bill Period">
+                <Form.Item label="Kỳ hóa đơn">
                   <Radio.Group onChange={handlePeriodTypeChange} value={periodType}>
                     {availablePeriodOptions.map(opt => (
                       <Radio key={opt.value} value={opt.value}>{opt.label}</Radio>
@@ -455,12 +455,12 @@ export default function LandlordBillCreatePage() {
                 {periodType === "custom" && (
                   <Form.Item 
                     name="dateRange" 
-                    label="Date Range (Optional)"
+                    label="Khoảng ngày (Tùy chọn)"
                     rules={[{ required: true, message: 'Chọn khoảng ngày' }]}
                   >
                     <RangePicker 
                       style={{ width: '100%' }}
-                      placeholder={['Start Date', 'End Date']}
+                      placeholder={['Ngày bắt đầu', 'Ngày kết thúc']}
                     />
                   </Form.Item>
                 )}
@@ -472,7 +472,7 @@ export default function LandlordBillCreatePage() {
                     >
                       {billPeriods.map(period => (
                         <Radio key={period.fromDate.format('YYYY-MM-DD')} value={period.fromDate.format('YYYY-MM-DD')} disabled={period.disabled}>
-                          {period.label} {period.disabled ? '(Đã có bill)' : ''}
+                          {period.label} {period.disabled ? '(Đã có hóa đơn)' : ''}
                         </Radio>
                       ))}
                     </Radio.Group>
@@ -485,11 +485,11 @@ export default function LandlordBillCreatePage() {
               <>
                 <Form.Item
                   name="roomId"
-                  label="Room"
-                  rules={[{ required: true, message: 'Please select room' }]}
+                  label="Phòng"
+                  rules={[{ required: true, message: 'Vui lòng chọn phòng' }]}
                 >
                   <Select
-                    placeholder="Select room"
+                    placeholder="Chọn phòng"
                     showSearch
                     filterOption={(input, option) =>
                       option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
@@ -501,38 +501,38 @@ export default function LandlordBillCreatePage() {
                         value={room.id}
                         disabled={!room.hasActiveContract}
                       >
-                        {room.roomNumber} - {room.building || 'N/A'}
-                        {!room.hasActiveContract ? ' (No contract)' : ''}
+                        {room.roomNumber} - {room.building || 'Không xác định'}
+                        {!room.hasActiveContract ? ' (Không có hợp đồng)' : ''}
                       </Option>
                     ))}
                   </Select>
                 </Form.Item>
                 <Form.Item
                   name="customName"
-                  label="Bill Name"
-                  rules={[{ required: true, message: 'Please enter bill name' }]}
+                  label="Tên hóa đơn"
+                  rules={[{ required: true, message: 'Vui lòng nhập tên hóa đơn' }]}
                 >
-                  <Input placeholder="Enter bill name (e.g. Điện tháng 6, Phí vệ sinh...)" />
+                  <Input placeholder="Nhập tên hóa đơn (VD: Điện tháng 6, Phí vệ sinh...)" />
                 </Form.Item>
                 <Form.Item
                   name="customDescription"
-                  label="Description"
+                  label="Mô tả"
                 >
-                  <Input.TextArea placeholder="Enter description (optional)" />
+                  <Input.TextArea placeholder="Nhập mô tả (không bắt buộc)" />
                 </Form.Item>
                 <Form.Item
                   name="customAmount"
-                  label="Amount"
-                  rules={[{ required: true, message: 'Please enter amount' }]}
+                  label="Số tiền"
+                  rules={[{ required: true, message: 'Vui lòng nhập số tiền' }]}
                 >
-                  <InputNumber min={0} style={{ width: "100%" }} placeholder="Enter amount (VND)" />
+                  <InputNumber min={0} style={{ width: "100%" }} placeholder="Nhập số tiền (VND)" />
                 </Form.Item>
                 <Form.Item
                   name="customDateRange"
-                  label="Date Range"
-                  rules={[{ required: true, message: 'Please select date range' }]}
+                  label="Khoảng ngày"
+                  rules={[{ required: true, message: 'Vui lòng chọn khoảng ngày' }]}
                 >
-                  <RangePicker style={{ width: '100%' }} />
+                  <RangePicker style={{ width: '100%' }} placeholder={["Ngày bắt đầu", "Ngày kết thúc"]} />
                 </Form.Item>
               </>
             )}
@@ -540,9 +540,9 @@ export default function LandlordBillCreatePage() {
             <Form.Item>
               <Space>
                 <Button type="primary" htmlType="submit" loading={loading}>
-                  Create Bill
+                  Tạo hóa đơn
                 </Button>
-                <Button onClick={() => navigate("/landlord/bills")}>Cancel</Button>
+                <Button onClick={() => navigate("/landlord/bills")}>Hủy</Button>
               </Space>
             </Form.Item>
           </Form>

@@ -10,8 +10,8 @@ export default function Error403() {
 
   return (
     <div style={{ padding: 80, textAlign: "center" }}>
-      <h1>🚫 403 - Forbidden</h1>
-      <p>You do not have permission to access this page.</p>
+      <h1>🚫 403 - Không có quyền truy cập</h1>
+      <p>Bạn không có quyền truy cập vào trang này.</p>
       <Button
         type="primary"
         style={{ marginTop: 24 }}
@@ -23,7 +23,7 @@ export default function Error403() {
           }
         }}
       >
-        Go to Home
+        Về trang chủ
       </Button>
       <Modal
         open={loginModalOpen}
@@ -32,20 +32,28 @@ export default function Error403() {
           setLoginModalOpen(false);
           navigate("/login");
         }}
-        okText="Login"
-        cancelText="Cancel"
+        okText="Đăng nhập"
+        cancelText="Hủy"
         closable={false}
         maskClosable={false}
         centered
         bodyStyle={{ padding: 32, textAlign: "center" }}
       >
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <span style={{ fontSize: 40, color: "#1890ff", marginBottom: 12 }}>🔒</span>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ fontSize: 40, color: "#1890ff", marginBottom: 12 }}>
+            🔒
+          </span>
           <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>
-            You need to login to continue.
+            Bạn cần đăng nhập để tiếp tục
           </div>
           <div style={{ fontSize: 15, color: "#555" }}>
-            Please login to access this feature.
+            Vui lòng đăng nhập để sử dụng tính năng này.
           </div>
         </div>
       </Modal>

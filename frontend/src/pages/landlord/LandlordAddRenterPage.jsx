@@ -71,9 +71,9 @@ export default function LandlordAddRenterPage() {
             minHeight: "100%",
           }}
         >
-          <PageHeader title="Add New Renter" />
+          <PageHeader title="Thêm người thuê" />
           <Button type="primary" onClick={handleOpenModal} style={{ marginBottom: 16 }}>
-            Grant Renter role to users without a role
+            Cấp quyền người thuê cho tài khoản chưa có vai trò
           </Button>
           <Modal
             open={modalOpen}

@@ -110,7 +110,7 @@ export default function LandlordUserListPage() {
         email: user.email,
         role: { roleId: 2 },
       });
-      message.success("Changed to Renter!");
+      message.success("Chuyển thành người thuê thành công!");
       fetchUsers();
     } catch (err) {
       message.error(err?.response?.data?.message || "Failed to change role");
@@ -146,10 +146,10 @@ export default function LandlordUserListPage() {
               paddingTop: 4,
             }}
           >
-            <PageHeader title="List User" />
+            <PageHeader title="Danh sách người dùng" />
             <Space>
               <Input
-                placeholder="Search username or email"
+                placeholder="Tìm theo tên đăng nhập hoặc email"
                 style={{ width: 250 }}
                 prefix={<SearchOutlined />}
                 value={searchText}
@@ -168,17 +168,17 @@ export default function LandlordUserListPage() {
             }}
           >
             <div>
-              Show
+              Hiển thị
               <Select
                 style={{ width: 80, margin: "0 8px" }}
                 value={pageSize}
                 onChange={handlePageSizeChange}
                 options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
               />
-              entries
+              mục
             </div>
             <div style={{ fontWeight: 400, color: "#888" }}>
-              Total: {total} users
+              Tổng: {total} người dùng
             </div>
           </div>
 
@@ -212,7 +212,7 @@ export default function LandlordUserListPage() {
             <Form form={addForm} layout="vertical">
               <Form.Item
                 name="username"
-                label="Username"
+                label="Tên đăng nhập"
                 rules={[{ required: true }]}
               >
                 <Input />
@@ -224,10 +224,10 @@ export default function LandlordUserListPage() {
               >
                 <Input />
               </Form.Item>
-              <Form.Item name="phoneNumber" label="Phone Number">
+              <Form.Item name="phoneNumber" label="Số điện thoại">
                 <Input />
               </Form.Item>
-              <Form.Item name="fullName" label="Full Name">
+              <Form.Item name="fullName" label="Họ và tên">
                 <Input />
               </Form.Item>
             </Form>

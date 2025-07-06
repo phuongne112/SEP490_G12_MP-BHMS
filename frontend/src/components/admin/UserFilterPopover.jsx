@@ -6,7 +6,7 @@ const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 export default function UserFilterPopover({ onApply }) {
-  const [role, setRole] = useState("none"); // ✅ mặc định là "All"
+  const [role, setRole] = useState("none");
   const [dateRange, setDateRange] = useState(null);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -22,7 +22,7 @@ export default function UserFilterPopover({ onApply }) {
         const res = await getAllRoles();
         setRoles(res.result || []);
       } catch (err) {
-        console.error("Failed to load roles", err);
+        console.error("Không thể tải danh sách vai trò", err);
       } finally {
         setLoading(false);
       }
@@ -32,10 +32,10 @@ export default function UserFilterPopover({ onApply }) {
 
   return (
     <div>
-      <div style={{ marginBottom: 8, fontWeight: "bold" }}>Advanced Filter</div>
+      <div style={{ marginBottom: 8, fontWeight: "bold" }}>Bộ lọc nâng cao</div>
 
       <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 13, marginBottom: 4 }}>Create Date</div>
+        <div style={{ fontSize: 13, marginBottom: 4 }}>Ngày tạo</div>
         <RangePicker
           style={{ width: "100%" }}
           onChange={(dates) => setDateRange(dates)}
@@ -43,7 +43,7 @@ export default function UserFilterPopover({ onApply }) {
       </div>
 
       <div>
-        <div style={{ fontSize: 13, marginBottom: 4 }}>Role</div>
+        <div style={{ fontSize: 13, marginBottom: 4 }}>Vai trò</div>
         {loading ? (
           <Spin />
         ) : (
@@ -51,10 +51,10 @@ export default function UserFilterPopover({ onApply }) {
             style={{ width: "100%" }}
             value={role}
             onChange={(val) => setRole(val)}
-            placeholder="Select role"
+            placeholder="Chọn vai trò"
           >
-            <Option value="none">-- All --</Option> {/* Không filter theo role */}
-            <Option value="null">User (No Role)</Option> {/* role IS NULL */}
+            <Option value="none">-- Tất cả --</Option>
+            <Option value="null">Người dùng chưa có vai trò</Option>
             {roles.map((r) => (
               <Option key={r.id} value={r.id}>
                 {r.roleName}
@@ -66,7 +66,7 @@ export default function UserFilterPopover({ onApply }) {
 
       <div style={{ marginTop: 16, textAlign: "right" }}>
         <Button type="primary" onClick={handleApply}>
-          Apply
+          Áp dụng
         </Button>
       </div>
     </div>

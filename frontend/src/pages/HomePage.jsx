@@ -171,27 +171,27 @@ export default function HomePage() {
           }}
         >
           <Title level={4} style={{ marginBottom: 24, fontWeight: 600 }}>
-            Filters
+            Bộ lọc
           </Title>
-          <FilterBox title="Area (m²)">
+          <FilterBox title="Diện tích (m²)">
             <Slider range min={15} max={40} value={area} onChange={setArea} />
           </FilterBox>
 
-          <FilterBox title="Room Status">
+          <FilterBox title="Trạng thái phòng">
             <Select
               value={status}
               onChange={setStatus}
               style={{ width: "100%" }}
             >
-              <Option value="All">All</Option>
-              <Option value="Available">Available</Option>
-              <Option value="Occupied">Occupied</Option>
-              <Option value="Maintenance">Maintenance</Option>
-              <Option value="Inactive">Inactive</Option>
+              <Option value="All">Tất cả</Option>
+              <Option value="Available">Có sẵn</Option>
+              <Option value="Occupied">Đã thuê</Option>
+              <Option value="Maintenance">Bảo trì</Option>
+              <Option value="Inactive">Không hoạt động</Option>
             </Select>
           </FilterBox>
 
-          <FilterBox title="Bedrooms">
+          <FilterBox title="Số phòng ngủ">
             <Slider
               range
               min={0}
@@ -201,7 +201,7 @@ export default function HomePage() {
             />
           </FilterBox>
 
-          <FilterBox title="Bathrooms">
+          <FilterBox title="Số phòng tắm">
             <Slider
               range
               min={0}
@@ -211,7 +211,7 @@ export default function HomePage() {
             />
           </FilterBox>
 
-          <FilterBox title="Price (VND)">
+          <FilterBox title="Giá (VND)">
             <Slider
               range
               min={0}
@@ -222,28 +222,28 @@ export default function HomePage() {
             />
           </FilterBox>
 
-          <FilterBox title="Has Asset">
+          <FilterBox title="Có nội thất">
             <Select
               value={hasAsset}
               onChange={setHasAsset}
               style={{ width: "100%" }}
             >
-              <Option value="All">All</Option>
-              <Option value="true">Yes</Option>
-              <Option value="false">No</Option>
+              <Option value="All">Tất cả</Option>
+              <Option value="true">Có</Option>
+              <Option value="false">Không</Option>
             </Select>
           </FilterBox>
 
-          <FilterBox title="Building">
+          <FilterBox title="Tòa nhà">
             <Select
               value={building}
               onChange={val => setBuilding(val)}
               style={{ width: "100%" }}
               loading={buildingLoading}
               allowClear
-              placeholder="Select building"
+              placeholder="Chọn tòa nhà"
             >
-              <Option value="">All</Option>
+              <Option value="">Tất cả</Option>
               {buildingOptions.map(b => (
                 <Option key={b} value={b}>{b}</Option>
               ))}
@@ -251,7 +251,7 @@ export default function HomePage() {
           </FilterBox>
 
           <Button type="primary" block onClick={handleApplyFilter}>
-            Apply Filter
+            Áp dụng bộ lọc
           </Button>
         </div>
 

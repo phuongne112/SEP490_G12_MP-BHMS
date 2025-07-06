@@ -143,18 +143,18 @@ export default function LandlordAssetListPage() {
 
   const columns = [
     {
-      title: "Asset Name",
+      title: "Tên tài sản",
       dataIndex: "assetName",
       key: "assetName",
     },
     {
-      title: "Quantity",
+      title: "Số lượng",
       dataIndex: "quantity",
       key: "quantity",
       render: (val) => val ?? "-",
     },
     {
-      title: "Status",
+      title: "Trạng thái",
       dataIndex: "assetStatus",
       key: "assetStatus",
       render: (status) => (
@@ -162,13 +162,13 @@ export default function LandlordAssetListPage() {
       ),
     },
     {
-      title: "Condition Note",
+      title: "Ghi chú tình trạng",
       dataIndex: "conditionNote",
       key: "conditionNote",
       render: (val) => val || "-",
     },
     {
-      title: "Image",
+      title: "Hình ảnh",
       dataIndex: "assetImage",
       key: "assetImage",
       render: (url) =>
@@ -184,11 +184,11 @@ export default function LandlordAssetListPage() {
             style={{ objectFit: "cover" }}
           />
         ) : (
-          <span style={{ color: "#aaa" }}>No image</span>
+          <span style={{ color: "#aaa" }}>Không có ảnh</span>
         ),
     },
     {
-      title: "Actions",
+      title: "Thao tác",
       key: "actions",
       render: (_, record) => (
         <Space>
@@ -198,9 +198,9 @@ export default function LandlordAssetListPage() {
             onClick={() => handleEditAsset(record)}
           />
           <Popconfirm
-            title="Delete this asset?"
-            okText="Yes"
-            cancelText="No"
+            title="Bạn có chắc chắn muốn xóa tài sản này?"
+            okText="Có"
+            cancelText="Không"
             onConfirm={() => handleDeleteAsset(record.id)}
           >
             <Button icon={<DeleteOutlined />} size="small" danger />
@@ -233,10 +233,10 @@ export default function LandlordAssetListPage() {
               paddingTop: 4,
             }}
           >
-            <PageHeader title="List Asset" />
+            <PageHeader title="Danh sách tài sản" />
             <Space>
               <Input
-                placeholder="Search asset name"
+                placeholder="Tìm tài sản..."
                 style={{ width: 220 }}
                 prefix={<SearchOutlined />}
                 value={search}
@@ -249,14 +249,14 @@ export default function LandlordAssetListPage() {
                 onOpenChange={setFilterPopoverOpen}
                 placement="bottomLeft"
               >
-                <Button icon={<FilterOutlined />}>Filter</Button>
+                <Button icon={<FilterOutlined />}>Bộ lọc</Button>
               </Popover>
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
                 onClick={handleAddAsset}
               >
-                Add Asset
+                Thêm tài sản
               </Button>
             </Space>
           </div>
@@ -269,17 +269,17 @@ export default function LandlordAssetListPage() {
             }}
           >
             <div>
-              Show
+              Hiển thị
               <Select
                 style={{ width: 80, margin: "0 8px" }}
                 value={pageSize}
                 onChange={handlePageSizeChange}
                 options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
               />
-              entries
+              mục
             </div>
             <div style={{ fontWeight: 400, color: "#888" }}>
-              Total: {total} assets
+              Tổng: {total} tài sản
             </div>
           </div>
 

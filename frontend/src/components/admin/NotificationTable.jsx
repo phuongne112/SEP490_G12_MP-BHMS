@@ -3,7 +3,8 @@ import { Table, Button, Space, Tag, Alert } from "antd";
 import { getAllNotifications } from "../../services/notificationApi";
 import Access from "../common/Access";
 import { useSelector } from "react-redux";
-// Hàm tạo filter DSL cho notification
+
+// Hàm tạo DSL filter
 const buildFilterDSL = (searchTerm, filters) => {
   const dsl = [];
 
@@ -42,7 +43,8 @@ export default function NotificationTable({
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ current: 1, total: 0 });
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState(null); // ✅ Lỗi bảng
+  const [errorMsg, setErrorMsg] = useState(null);
+
   const user = useSelector((state) => state.account.user);
   const hasDeletePermission = user?.permissions?.includes(
     "Delete Notification"
@@ -61,19 +63,12 @@ export default function NotificationTable({
 
       setData(
         result.map((item, index) => {
-          console.log(
-            "🔍 recipientId:",
-            item.recipientId,
-            "userList:",
-            userList
-          );
-          console.log("recipientId:", item.recipientId, "userList:", userList);
           const user = userList.find((u) => u.id === item.recipientId);
           return {
             key: item.id || index + 1 + (page - 1) * pageSize,
             ...item,
             createdAt: item.createdDate?.slice(0, 10),
-            recipient: user?.fullName || user?.email || "Unknown",
+            recipient: user?.fullName || user?.email || "Không xác định",
           };
         })
       );
@@ -81,7 +76,7 @@ export default function NotificationTable({
       setPagination({ current: page, total });
     } catch (err) {
       console.error("Notification fetch error:", err);
-      setErrorMsg("❌ Failed to load notification data. Please try again.");
+      setErrorMsg("❌ Không thể tải dữ liệu thông báo. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -93,57 +88,62 @@ export default function NotificationTable({
 
   const columns = [
     {
-      title: "No.",
+      title: "STT",
       render: (_, __, index) => (pagination.current - 1) * pageSize + index + 1,
       width: 60,
     },
-    { title: "Title", dataIndex: "title" },
-    // { title: "Message", dataIndex: "message" },
+    { title: "Tiêu đề", dataIndex: "title" },
     {
-      title: "Type",
+      title: "Loại",
       dataIndex: "type",
       render: (type) => {
-        return type
+        const label = type
           .toLowerCase()
           .split("_")
           .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
           .join(" ");
+        // Có thể dịch thêm nếu muốn
+        return label;
       },
     },
     {
-      title: "Status",
+      title: "Trạng thái",
       dataIndex: "status",
-      render: (status) => (
-        <Tag
-          color={
-            status === "READ"
-              ? "green"
-              : status === "DELIVERED"
-              ? "orange"
-              : "blue"
-          }
-        >
-          {status}
-        </Tag>
-      ),
+      render: (status) => {
+        const color =
+          status === "READ"
+            ? "green"
+            : status === "DELIVERED"
+            ? "orange"
+            : "blue";
+
+        const viStatus =
+          status === "READ"
+            ? "Đã đọc"
+            : status === "DELIVERED"
+            ? "Đã gửi"
+            : "Chưa đọc";
+
+        return <Tag color={color}>{viStatus}</Tag>;
+      },
     },
     {
-      title: "Recipient",
+      title: "Người nhận",
       dataIndex: "recipient",
     },
     {
-      title: "Created At",
+      title: "Ngày tạo",
       dataIndex: "createdAt",
     },
     ...(hasDeletePermission || hasViewPermission
       ? [
           {
-            title: "Actions",
+            title: "Thao tác",
             key: "actions",
             render: (_, record) => (
               <Space>
                 <Button size="small" onClick={() => onView(record)}>
-                  View
+                  Xem
                 </Button>
                 {hasDeletePermission && (
                   <Access requiredPermissions={["Delete Notification"]}>
@@ -152,7 +152,7 @@ export default function NotificationTable({
                       danger
                       onClick={() => onDelete(record)}
                     >
-                      Delete
+                      Xóa
                     </Button>
                   </Access>
                 )}
@@ -165,7 +165,6 @@ export default function NotificationTable({
 
   return (
     <>
-      {/* ✅ Hiển thị lỗi nếu có */}
       {errorMsg && (
         <Alert
           message={errorMsg}

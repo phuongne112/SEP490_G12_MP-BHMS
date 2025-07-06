@@ -12,6 +12,7 @@ import {
   Typography,
   Space,
   Tooltip,
+  Empty,
 } from "antd";
 import { useNavigate } from "react-router-dom";
 import { getMyBills } from "../../services/billApi";
@@ -22,6 +23,7 @@ import {
   ClockCircleOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  FileDoneOutlined,
 } from "@ant-design/icons";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import dayjs from "dayjs";
@@ -34,6 +36,18 @@ const { Title, Text } = Typography;
 
 dayjs.extend(customParseFormat);
 
+// Responsive: Ẩn sidebar trên mobile
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  return isMobile;
+};
+
 export default function RenterBillListPage() {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -44,6 +58,7 @@ export default function RenterBillListPage() {
     totalAmount: 0,
   });
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchBills();
@@ -109,8 +124,9 @@ export default function RenterBillListPage() {
 
   const columns = [
     {
-      title: "Bill ID",
+      title: "Mã hóa đơn",
       dataIndex: "id",
+      key: "id",
       align: "center",
       render: (id) => (
         <Text strong style={{ color: "#1890ff" }}>
@@ -120,8 +136,9 @@ export default function RenterBillListPage() {
       width: 120,
     },
     {
-      title: "Room",
-      dataIndex: "roomNumber",
+      title: "Phòng",
+      dataIndex: "roomId",
+      key: "roomId",
       align: "center",
       render: (roomNumber) => (
         <Tag color="blue" style={{ fontWeight: "bold" }}>
@@ -131,8 +148,9 @@ export default function RenterBillListPage() {
       width: 100,
     },
     {
-      title: "Bill Type",
-      dataIndex: "billType",
+      title: "Loại hóa đơn",
+      dataIndex: "type",
+      key: "type",
       align: "center",
       render: (type) => (
         <Tag color={getBillTypeColor(type)}>
@@ -146,22 +164,25 @@ export default function RenterBillListPage() {
       width: 120,
     },
     {
-      title: "From",
-      dataIndex: "fromDate",
+      title: "Từ ngày",
+      dataIndex: "from",
+      key: "from",
       align: "center",
       render: (date) => <Text>{formatDate(date)}</Text>,
       width: 100,
     },
     {
-      title: "To",
-      dataIndex: "toDate",
+      title: "Đến ngày",
+      dataIndex: "to",
+      key: "to",
       align: "center",
       render: (date) => <Text>{formatDate(date)}</Text>,
       width: 100,
     },
     {
-      title: "Total",
-      dataIndex: "totalAmount",
+      title: "Tổng tiền",
+      dataIndex: "total",
+      key: "total",
       align: "center",
       render: (amount) => (
         <Text strong style={{ color: "#52c41a", fontSize: "16px" }}>
@@ -171,8 +192,9 @@ export default function RenterBillListPage() {
       width: 120,
     },
     {
-      title: "Status",
+      title: "Trạng thái",
       dataIndex: "status",
+      key: "status",
       align: "center",
       render: (status) => (
         <Tag
@@ -186,7 +208,8 @@ export default function RenterBillListPage() {
       width: 120,
     },
     {
-      title: "Actions",
+      title: "Thao tác",
+      key: "actions",
       align: "center",
       render: (_, record) => (
         <Space>
@@ -233,11 +256,13 @@ export default function RenterBillListPage() {
             style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
           >
             <div style={{ marginBottom: 24 }}>
-              <Title level={2} style={{ margin: 0, color: "#1890ff" }}>
-                <FileTextOutlined style={{ marginRight: 8 }} />
-                My Bills
+              <Title level={2} style={{ color: "#1890ff", fontSize: isMobile ? 22 : 28 }}>
+                <FileDoneOutlined style={{ marginRight: 8 }} />
+                Hóa đơn của tôi
               </Title>
-              <Text type="secondary">Manage and track your bills</Text>
+              <Text type="secondary" style={{ fontSize: isMobile ? 13 : 16 }}>
+                Quản lý và theo dõi các hóa đơn của bạn
+              </Text>
             </div>
 
             {/* Thống kê */}
@@ -245,7 +270,7 @@ export default function RenterBillListPage() {
               <Col span={6}>
                 <Card>
                   <Statistic
-                    title="Total Bills"
+                    title="Tổng số hóa đơn"
                     value={stats.total}
                     prefix={<FileTextOutlined />}
                     valueStyle={{ color: "#1890ff" }}
@@ -255,7 +280,7 @@ export default function RenterBillListPage() {
               <Col span={6}>
                 <Card>
                   <Statistic
-                    title="Paid"
+                    title="Đã thanh toán"
                     value={stats.paid}
                     prefix={<CheckCircleOutlined />}
                     valueStyle={{ color: "#52c41a" }}
@@ -265,7 +290,7 @@ export default function RenterBillListPage() {
               <Col span={6}>
                 <Card>
                   <Statistic
-                    title="Unpaid"
+                    title="Chưa thanh toán"
                     value={stats.unpaid}
                     prefix={<ClockCircleOutlined />}
                     valueStyle={{ color: "#faad14" }}
@@ -275,7 +300,7 @@ export default function RenterBillListPage() {
               <Col span={6}>
                 <Card>
                   <Statistic
-                    title="Total Amount"
+                    title="Tổng tiền"
                     value={stats.totalAmount}
                     prefix={<DollarOutlined />}
                     suffix="₫"
@@ -287,7 +312,7 @@ export default function RenterBillListPage() {
             </Row>
 
             {/* Bảng hóa đơn */}
-            <Card title="Bill List" style={{ marginTop: 16 }}>
+            <Card title="Danh sách hóa đơn" style={{ marginTop: 16 }}>
               {loading ? (
                 <div style={{ textAlign: "center", padding: "40px" }}>
                   <Spin size="large" />

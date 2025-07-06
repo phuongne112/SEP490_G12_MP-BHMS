@@ -71,7 +71,7 @@ export default function LandlordAddRoomPage() {
       await axiosClient.post("/rooms", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      message.success("Room added successfully!");
+      message.success("Thêm phòng thành công!");
       // Navigate back to room list page
       if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
         navigate("/admin/rooms");
@@ -90,7 +90,7 @@ export default function LandlordAddRoomPage() {
         }));
         form.setFields(fieldErrors);
       } else {
-        setFormError(res?.message || "Failed to add room!");
+        setFormError(res?.message || "Thêm phòng thất bại!");
       }
     }
     setLoading(false);
@@ -106,7 +106,7 @@ export default function LandlordAddRoomPage() {
         )}
       </Sider>
       <Layout style={{ marginTop: 20, marginLeft: 15 }}>
-        <PageHeader title="Add Room" />
+        <PageHeader title="Thêm phòng" />
         <Content style={{ padding: "24px" }}>
           {formError && (
             <div style={{ color: "red", marginBottom: 16 }}>{formError}</div>
@@ -128,7 +128,7 @@ export default function LandlordAddRoomPage() {
               <Col span={12}>
                 <Form.Item
                   name="building"
-                  label="Building"
+                  label="Tòa nhà"
                   rules={[{ required: true, message: "Please enter building name" }]}
                 >
                   <Input placeholder="e.g. A" />
@@ -137,7 +137,7 @@ export default function LandlordAddRoomPage() {
               <Col span={12}>
                 <Form.Item
                   name="roomNumberSuffix"
-                  label="Room Number (Suffix)"
+                  label="Số phòng (Suffix)"
                   rules={[{ required: true, message: "Please enter room number (suffix)" }]}
                 >
                   <Input placeholder="e.g. 101" />
@@ -146,7 +146,7 @@ export default function LandlordAddRoomPage() {
               <Col span={12}>
                 <Form.Item
                   name="area"
-                  label="Area (m²)"
+                  label="Diện tích (m²)"
                   rules={[{ required: true }]}
                 >
                   <InputNumber min={1} max={1000} style={{ width: "100%" }} />
@@ -155,7 +155,7 @@ export default function LandlordAddRoomPage() {
               <Col span={12}>
                 <Form.Item
                   name="price"
-                  label="Cost (VND/Month)"
+                  label="Giá (VND/Month)"
                   rules={[{ required: true }]}
                 >
                   <InputNumber
@@ -171,85 +171,78 @@ export default function LandlordAddRoomPage() {
               <Col span={12}>
                 <Form.Item
                   name="roomStatus"
-                  label="Room Status"
-                  rules={[{ required: true }]}
+                  label="Trạng thái phòng"
+                  rules={[{ required: true, message: "Vui lòng chọn trạng thái phòng" }]}
                 >
                   <Select>
-                    <Option value="Available">Available</Option>
-                    <Option value="Occupied">Occupied</Option>
-                    <Option value="Maintenance">Maintenance</Option>
-                    <Option value="Inactive">Inactive</Option>
+                    <Option value="Available">Còn trống</Option>
+                    <Option value="Occupied">Đã thuê</Option>
+                    <Option value="Maintenance">Bảo trì</Option>
+                    <Option value="Inactive">Ngừng hoạt động</Option>
                   </Select>
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="numberOfBedrooms"
-                  label="Number of Bedrooms"
-                  rules={[{ required: true }]}
+                  label="Số phòng ngủ"
+                  rules={[{ required: true, message: "Vui lòng nhập số phòng ngủ" }]}
                 >
-                  <InputNumber min={1} max={10} style={{ width: "100%" }} />
+                  <InputNumber min={1} max={10} style={{ width: "100%" }} placeholder="Nhập số phòng ngủ" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="numberOfBathrooms"
-                  label="Number of Bathrooms"
-                  rules={[{ required: true }]}
+                  label="Số phòng tắm"
+                  rules={[{ required: true, message: "Vui lòng nhập số phòng tắm" }]}
                 >
-                  <InputNumber min={1} max={10} style={{ width: "100%" }} />
+                  <InputNumber min={1} max={10} style={{ width: "100%" }} placeholder="Nhập số phòng tắm" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="maxOccupants"
-                  label="Maximum Occupants"
-                  rules={[{ required: true, message: "Please enter max occupants" }]}
+                  label="Số người tối đa"
+                  rules={[{ required: true, message: "Vui lòng nhập số người tối đa" }]}
                 >
-                  <InputNumber min={1} max={20} style={{ width: "100%" }} />
+                  <InputNumber min={1} max={20} style={{ width: "100%" }} placeholder="Nhập số người tối đa" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="isActive"
-                  label="Active Status"
+                  label="Trạng thái hoạt động"
                   valuePropName="checked"
                 >
-                  <Switch 
-                    checkedChildren="Active" 
-                    unCheckedChildren="Inactive"
-                  />
+                  <Switch checkedChildren="Đang hoạt động" unCheckedChildren="Ngừng hoạt động" />
                 </Form.Item>
               </Col>
               <Col span={24}>
-                <Form.Item name="description" label="Description">
-                  <TextArea rows={2} placeholder="Description..." />
+                <Form.Item name="description" label="Mô tả">
+                  <TextArea rows={2} placeholder="Nhập mô tả..." />
                 </Form.Item>
               </Col>
               <Col span={24}>
-                <Form.Item label="Images">
-                  <Upload
-                    listType="picture-card"
-                    fileList={fileList}
+                <Form.Item label="Hình ảnh">
+                  <Upload.Dragger
                     onChange={handleUploadChange}
                     beforeUpload={() => false}
                     multiple
                     maxCount={8}
                     accept="image/*"
                   >
-                    {fileList.length < 8 && (
-                      <div>
-                        <PlusOutlined />
-                        <div style={{ marginTop: 8 }}>Upload</div>
-                      </div>
-                    )}
-                  </Upload>
+                    <p className="ant-upload-drag-icon">
+                      <PlusOutlined />
+                    </p>
+                    <p className="ant-upload-text">Tải lên</p>
+                  </Upload.Dragger>
                 </Form.Item>
               </Col>
             </Row>
             <Form.Item>
               <Button type="primary" htmlType="submit" loading={loading}>
-                Add Room
+                Thêm
               </Button>
             </Form.Item>
           </Form>

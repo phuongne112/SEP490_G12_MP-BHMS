@@ -52,7 +52,7 @@ export default function Sidebar({
         >
           <div>
             <div style={{ fontWeight: 500, fontSize: 12, color: "white" }}>
-              Hello
+              Xin chào
             </div>
             <div
               style={{

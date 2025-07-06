@@ -55,7 +55,7 @@ export default function LandlordAddAssetModal({ open, onClose, onSuccess, asset,
         message.success("Asset updated successfully!");
       } else {
         response = await addAsset(formData);
-        message.success("Asset added successfully!");
+        message.success("Thêm tài sản thành công!");
       }
       form.resetFields();
       setFileList([]);
@@ -91,43 +91,43 @@ export default function LandlordAddAssetModal({ open, onClose, onSuccess, asset,
   return (
     <Modal
       open={open}
-      title={mode === "edit" ? "Edit Asset" : "Add Asset"}
+      title={mode === "edit" ? "Chỉnh sửa tài sản" : "Thêm tài sản"}
       onCancel={onClose}
       onOk={handleOk}
       confirmLoading={loading}
-      okText={mode === "edit" ? "Update" : "Add"}
+      okText={mode === "edit" ? "Cập nhật" : "Thêm"}
     >
       <Form form={form} layout="vertical">
         <Form.Item
           name="assetName"
-          label="Asset Name"
-          rules={[{ required: true, message: "Please enter asset name" }]}
+          label="Tên tài sản"
+          rules={[{ required: true, message: "Vui lòng nhập tên tài sản" }]}
         >
           <Input />
         </Form.Item>
         <Form.Item
           name="quantity"
-          label="Quantity"
-          rules={[{ required: true, message: "Please enter quantity" }]}
+          label="Số lượng"
+          rules={[{ required: true, message: "Vui lòng nhập số lượng" }]}
         >
           <InputNumber min={1} style={{ width: "100%" }} />
         </Form.Item>
         <Form.Item
           name="assetStatus"
-          label="Status"
-          rules={[{ required: true, message: "Please select status" }]}
+          label="Trạng thái"
+          rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
         >
           <Select>
-            <Option value="Good">Good</Option>
-            <Option value="Damaged">Damaged</Option>
-            <Option value="Lost">Lost</Option>
-            <Option value="Maintenance">Maintenance</Option>
+            <Option value="Good">Tốt</Option>
+            <Option value="Damaged">Hư hỏng</Option>
+            <Option value="Lost">Mất</Option>
+            <Option value="Maintenance">Bảo trì</Option>
           </Select>
         </Form.Item>
-        <Form.Item name="conditionNote" label="Condition Note">
+        <Form.Item name="conditionNote" label="Ghi chú tình trạng">
           <Input.TextArea />
         </Form.Item>
-        <Form.Item name="assetImage" label="Image">
+        <Form.Item name="assetImage" label="Hình ảnh">
           <Upload
             beforeUpload={() => false}
             fileList={fileList}
@@ -135,7 +135,7 @@ export default function LandlordAddAssetModal({ open, onClose, onSuccess, asset,
             listType="picture"
             maxCount={1}
           >
-            <Button icon={<UploadOutlined />}>Select Image</Button>
+            <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
           </Upload>
         </Form.Item>
       </Form>

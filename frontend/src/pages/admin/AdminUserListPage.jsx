@@ -65,10 +65,10 @@ export default function AdminUserListPage() {
               marginBottom: 24,
             }}
           >
-            <PageHeader title="List User Account" />
+            <PageHeader title="Danh sách người dùng" />
             <Access requiredPermissions={["Create User"]}>
               <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
-                Add User
+                Thêm người dùng
               </Button>
             </Access>
           </div>
@@ -86,7 +86,7 @@ export default function AdminUserListPage() {
             <Space style={{ gap: 100 }}>
               <SearchBox
                 onSearch={setSearchTerm}
-                placeholder="Search by email, username or role"
+                placeholder="Tìm người dùng..."
               />
               <Popover
                 open={isFilterOpen}
@@ -106,7 +106,7 @@ export default function AdminUserListPage() {
                   icon={<FilterOutlined />}
                   style={{ backgroundColor: "#40a9ff", color: "white" }}
                 >
-                  Filter
+                  Bộ lọc
                 </Button>
               </Popover>
             </Space>
@@ -120,9 +120,9 @@ export default function AdminUserListPage() {
             refreshKey={refreshKey}
           />
 
-          {/* Modal Create */}
+          {/* Modal Tạo người dùng */}
           <Modal
-            title="Create User Account"
+            title="Tạo tài khoản người dùng"
             open={isCreateModalOpen}
             onCancel={() => setIsCreateModalOpen(false)}
             footer={null}
@@ -135,7 +135,7 @@ export default function AdminUserListPage() {
                 try {
                   const payload = { ...values, roleId: 4 };
                   await createUser(payload);
-                  message.success("User created successfully");
+                  message.success("Tạo người dùng thành công!");
                   setIsCreateModalOpen(false);
                   createForm.resetFields();
                   setRefreshKey((prev) => prev + 1);
@@ -154,7 +154,7 @@ export default function AdminUserListPage() {
                     );
                     createForm.setFields(fieldErrors);
                   } else {
-                    message.error(res?.message || "Failed to create user");
+                    message.error(res?.message || "Không thể tạo người dùng.");
                   }
                 }
               }}
@@ -163,8 +163,17 @@ export default function AdminUserListPage() {
                 <Col span={12}>
                   <Form.Item
                     name="username"
-                    label="Username"
-                    rules={[{ required: true }, { pattern: /^[^@\s]+$/, message: "Username cannot be an email address." }]}
+                    label="Tên đăng nhập"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập tên đăng nhập",
+                      },
+                      {
+                        pattern: /^[^@\s]+$/,
+                        message: "Tên đăng nhập không được là email.",
+                      },
+                    ]}
                   >
                     <Input maxLength={20} />
                   </Form.Item>
@@ -172,8 +181,10 @@ export default function AdminUserListPage() {
                 <Col span={12}>
                   <Form.Item
                     name="fullName"
-                    label="Full Name"
-                    rules={[{ required: true }]}
+                    label="Họ và tên"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập họ và tên" },
+                    ]}
                   >
                     <Input />
                   </Form.Item>
@@ -182,7 +193,13 @@ export default function AdminUserListPage() {
                   <Form.Item
                     name="email"
                     label="Email"
-                    rules={[{ required: true, type: "email" }]}
+                    rules={[
+                      {
+                        required: true,
+                        type: "email",
+                        message: "Email không hợp lệ",
+                      },
+                    ]}
                   >
                     <Input maxLength={50} />
                   </Form.Item>
@@ -190,8 +207,13 @@ export default function AdminUserListPage() {
                 <Col span={12}>
                   <Form.Item
                     name="phone"
-                    label="Phone"
-                    rules={[{ required: true }]}
+                    label="Số điện thoại"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập số điện thoại",
+                      },
+                    ]}
                   >
                     <Input />
                   </Form.Item>
@@ -199,8 +221,10 @@ export default function AdminUserListPage() {
                 <Col span={12}>
                   <Form.Item
                     name="password"
-                    label="Password"
-                    rules={[{ required: true }]}
+                    label="Mật khẩu"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập mật khẩu" },
+                    ]}
                   >
                     <Input.Password />
                   </Form.Item>
@@ -208,17 +232,15 @@ export default function AdminUserListPage() {
                 <Col span={12}>
                   <Form.Item
                     name="confirmPassword"
-                    label="Re-enter Password"
+                    label="Nhập lại mật khẩu"
                     dependencies={["password"]}
                     rules={[
-                      { required: true },
+                      { required: true, message: "Vui lòng nhập lại mật khẩu" },
                       ({ getFieldValue }) => ({
                         validator(_, value) {
                           return value === getFieldValue("password")
                             ? Promise.resolve()
-                            : Promise.reject(
-                                new Error("Passwords do not match")
-                              );
+                            : Promise.reject(new Error("Mật khẩu không khớp"));
                         },
                       }),
                     ]}
@@ -228,14 +250,14 @@ export default function AdminUserListPage() {
                 </Col>
               </Row>
               <Button type="primary" htmlType="submit" block>
-                Create User
+                Tạo người dùng
               </Button>
             </Form>
           </Modal>
 
-          {/* Modal Update */}
+          {/* Modal Cập nhật người dùng */}
           <Modal
-            title="Update User Account"
+            title="Cập nhật tài khoản người dùng"
             open={isUpdateModalOpen}
             onCancel={() => {
               setIsUpdateModalOpen(false);
@@ -256,7 +278,7 @@ export default function AdminUserListPage() {
                     role: { roleId: values.roleId },
                   };
                   await updateUser(payload);
-                  message.success("User updated successfully");
+                  message.success("Cập nhật người dùng thành công!");
                   setIsUpdateModalOpen(false);
                   updateForm.resetFields();
                   setRefreshKey((prev) => prev + 1);
@@ -276,22 +298,30 @@ export default function AdminUserListPage() {
                     );
                     updateForm.setFields(fieldErrors);
                   } else {
-                    message.error(res?.message || "Failed to update user");
+                    message.error(
+                      res?.message || "Không thể cập nhật người dùng."
+                    );
                   }
                 }
               }}
             >
               <Row gutter={16}>
                 <Col span={12}>
-                  <Form.Item label="Old Email">
+                  <Form.Item label="Email hiện tại">
                     <Input value={updateEmail} disabled />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
                   <Form.Item
                     name="newEmail"
-                    label="New Email"
-                    rules={[{ required: true, type: "email" }]}
+                    label="Email mới"
+                    rules={[
+                      {
+                        required: true,
+                        type: "email",
+                        message: "Email không hợp lệ",
+                      },
+                    ]}
                   >
                     <Input maxLength={50} />
                   </Form.Item>
@@ -299,8 +329,13 @@ export default function AdminUserListPage() {
                 <Col span={12}>
                   <Form.Item
                     name="username"
-                    label="Username"
-                    rules={[{ required: true }]}
+                    label="Tên đăng nhập"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập tên đăng nhập",
+                      },
+                    ]}
                   >
                     <Input maxLength={20} />
                   </Form.Item>
@@ -308,25 +343,33 @@ export default function AdminUserListPage() {
                 <Col span={12}>
                   <Form.Item
                     name="roleId"
-                    label="Role"
-                    rules={[{ required: true }]}
+                    label="Vai trò"
+                    rules={[
+                      { required: true, message: "Vui lòng chọn vai trò" },
+                    ]}
                   >
-                    <Select placeholder="Select Role">
-                      <Select.Option value={2}>RENTER</Select.Option>
-                      <Select.Option value={3}>LANDLORD</Select.Option>
-                      <Select.Option value={4}>SUBADMIN</Select.Option>
+                    <Select placeholder="Chọn vai trò">
+                      <Select.Option value={2}>
+                        Người thuê (RENTER)
+                      </Select.Option>
+                      <Select.Option value={3}>
+                        Chủ trọ (LANDLORD)
+                      </Select.Option>
+                      <Select.Option value={4}>
+                        Quản trị phụ (SUBADMIN)
+                      </Select.Option>
                     </Select>
                   </Form.Item>
                 </Col>
               </Row>
               <Popconfirm
-                title="Are you sure you want to update this user?"
+                title="Bạn có chắc chắn muốn cập nhật người dùng này?"
                 onConfirm={() => updateForm.submit()}
-                okText="Yes"
-                cancelText="No"
+                okText="Đồng ý"
+                cancelText="Huỷ"
               >
                 <Button type="primary" block>
-                  Update User
+                  Cập nhật người dùng
                 </Button>
               </Popconfirm>
             </Form>

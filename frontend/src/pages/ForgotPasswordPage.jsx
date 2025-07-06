@@ -18,7 +18,7 @@ export default function ForgotPasswordPage() {
 
     if (!email.includes("@")) {
       setLoading(false);
-      return setError("Please enter a valid email address.");
+      return setError("Hãy nhập địa chỉ email hợp lệ.");
     }
 
     try {
@@ -31,7 +31,7 @@ export default function ForgotPasswordPage() {
       const errorMsg =
         err.response?.data?.message ||
         err.message ||
-        "Failed to send reset link.";
+        "Không gửi được link reset";
       setError(errorMsg);
     } finally {
       setLoading(false);
@@ -100,7 +100,7 @@ export default function ForgotPasswordPage() {
                   textAlign: "center",
                 }}
               >
-                ✅ Reset link has been sent to your email.
+                ✅ Đã gửi liên kết tới email của bạn
               </div>
             )}
 
@@ -126,7 +126,7 @@ export default function ForgotPasswordPage() {
                   borderRadius: 6,
                 }}
               >
-                Cancel
+                Đăng nhập
               </button>
               <button
                 type="submit"
@@ -143,26 +143,26 @@ export default function ForgotPasswordPage() {
                   opacity: loading ? 0.7 : 1,
                 }}
               >
-                {loading ? "Sending..." : "Send"}
+                {loading ? "Đang gửi..." : "Gửi link"}
               </button>
             </div>
           </form>
 
-              <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: 16,
-            borderRadius: 12,
-            backgroundColor: "#fff",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-            marginTop: 32,
-            width: "100%",
-          }}
-        >
-          <SystemLogo />
-        </div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              padding: 16,
+              borderRadius: 12,
+              backgroundColor: "#fff",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+              marginTop: 32,
+              width: "100%",
+            }}
+          >
+            <SystemLogo />
+          </div>
         </div>
       </div>
     </div>

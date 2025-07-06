@@ -17,25 +17,25 @@ const getStatusTag = (status) => {
     case "Available":
       return (
         <Tag icon={<CheckCircleOutlined />} color="success">
-          Available
+          Có sẵn
         </Tag>
       );
     case "Occupied":
       return (
         <Tag icon={<RestOutlined />} color="error">
-          Occupied
+          Đã thuê
         </Tag>
       );
     case "Maintenance":
       return (
         <Tag icon={<ThunderboltOutlined />} color="warning">
-          Maintenance
+          Bảo trì
         </Tag>
       );
     default:
       return (
         <Tag icon={<ExclamationCircleOutlined />} color="default">
-          Unknown
+          Không xác định
         </Tag>
       );
   }
@@ -114,15 +114,15 @@ export default function RoomCard({ room, onClick }) {
 
           <Space direction="vertical" style={{ width: "100%", marginTop: 16 }}>
             <Space size="large">
-              <Text type="secondary">🛏️ {room.numberOfBedrooms} Bedrooms</Text>
+              <Text type="secondary">🛏️ {room.numberOfBedrooms} Phòng ngủ</Text>
               <Text type="secondary">
-                🛁 {room.numberOfBathrooms} Bathrooms
+                🛁 {room.numberOfBathrooms} Phòng tắm
               </Text>
             </Space>
             <Text type="secondary">
-              🛋️ Furnished:{" "}
+              🛋️ Nội thất:{" "}
               <Text strong style={{ color: hasAssets ? "#52c41a" : "#bfbfbf" }}>
-                {hasAssets ? "Yes" : "No"}
+                {hasAssets ? "Có" : "Không"}
               </Text>
             </Text>
           </Space>

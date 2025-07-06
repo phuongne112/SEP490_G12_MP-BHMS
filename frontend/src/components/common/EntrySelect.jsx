@@ -6,7 +6,7 @@ const { Option } = Select;
 export default function EntrySelect({ value, onChange }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <span style={{ fontSize: 14 }}>Show</span>
+      <span style={{ fontSize: 14 }}>Hiển thị</span>
       <Select value={value} onChange={onChange} style={{ width: 80 }}>
         {[5, 10, 15, 20].map((val) => (
           <Option key={val} value={val}>
@@ -14,7 +14,7 @@ export default function EntrySelect({ value, onChange }) {
           </Option>
         ))}
       </Select>
-      <span style={{ fontSize: 14 }}>entries</span>
+      <span style={{ fontSize: 14 }}>mục</span>
     </div>
   );
 }

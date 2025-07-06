@@ -64,7 +64,7 @@ export default function LandlordElectricListPage() {
       </Sider>
 
       <Layout style={{ marginTop: 20, marginLeft: 20 }}>
-        <PageHeader title="Total Electric Number" />
+        <PageHeader title="Chỉ số điện tổng" />
         <Content style={{ margin: "20px" }}>
           <Row gutter={16} style={{ marginBottom: 20 }}>
             <Col>
@@ -82,9 +82,9 @@ export default function LandlordElectricListPage() {
                 style={{ width: 140 }}
                 onChange={setSelectedBuilding}
               >
-                <Option value="All">All Buildings</Option>
-                <Option value="A">Building A</Option>
-                <Option value="B">Building B</Option>
+                <Option value="All">Tất cả tòa</Option>
+                <Option value="A">Tòa A</Option>
+                <Option value="B">Tòa B</Option>
               </Select>
             </Col>
 
@@ -94,15 +94,15 @@ export default function LandlordElectricListPage() {
                 style={{ width: 140 }}
                 onChange={setSelectedCycle}
               >
-                <Option value="All">All Cycles</Option>
-                <Option value="Monthly">Monthly</Option>
-                <Option value="Quarterly">Quarterly</Option>
+                <Option value="All">Tất cả chu kỳ</Option>
+                <Option value="Monthly">Hàng tháng</Option>
+                <Option value="Quarterly">Hàng quý</Option>
               </Select>
             </Col>
 
             <Col>
               <Button type="primary" onClick={handleSaveBill}>
-                Save Bill
+                Lưu hóa đơn
               </Button>
             </Col>
           </Row>

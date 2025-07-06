@@ -31,9 +31,9 @@ export default function LandlordAssignRenterPage() {
   const [customEndDate, setCustomEndDate] = useState(null);
 
   const paymentCycleOptions = [
-    { value: 'MONTHLY', label: 'Monthly' },
-    { value: 'QUARTERLY', label: 'Quarterly' },
-    { value: 'YEARLY', label: 'Annually' },
+    { value: 'MONTHLY', label: 'Hàng tháng' },
+    { value: 'QUARTERLY', label: 'Quý' },
+    { value: 'YEARLY', label: 'Năm' },
   ];
 
   const getValidEndDates = (start, cycle) => {
@@ -137,7 +137,7 @@ export default function LandlordAssignRenterPage() {
       message.success("Đã gán người thuê vào phòng thành công!");
       navigate("/landlord/rooms");
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.response?.data || "Failed to assign renters to room";
+      const errorMessage = err.response?.data?.message || err.response?.data || "Gán người thuê vào phòng thất bại";
       message.error(errorMessage);
     } finally {
       setLoading(false);
@@ -212,37 +212,37 @@ export default function LandlordAssignRenterPage() {
               }}
               style={{ marginBottom: 16 }}
             >
-              Back to Rooms
+              Quay lại danh sách phòng
             </Button>
-            <PageHeader title="Assign Renters to Room" />
+            <PageHeader title="Gán người thuê" />
           </div>
           <div style={{ display: "flex", gap: 24 }}>
-            <Card title="Room Information" style={{ flex: 1 }}>
+            <Card title="Thông tin phòng" style={{ flex: 1 }}>
               <Space direction="vertical" size="small" style={{ width: "100%" }}>
                 <div>
-                  <Text strong>Room Number:</Text> {room.roomNumber}
+                  <Text strong>Số phòng:</Text> {room.roomNumber}
                 </div>
                 <div>
-                  <Text strong>Area:</Text> {room.area} m²
+                  <Text strong>Diện tích:</Text> {room.area} m²
                 </div>
                 <div>
-                  <Text strong>Price:</Text> {room.pricePerMonth?.toLocaleString()} VND/month
+                  <Text strong>Giá:</Text> {room.pricePerMonth?.toLocaleString()} VND/tháng
                 </div>
                 <div>
-                  <Text strong>Status:</Text> {room.roomStatus}
+                  <Text strong>Trạng thái:</Text> {room.roomStatus}
                 </div>
                 <div>
-                  <Text strong>Max Occupants:</Text> {room.maxOccupants ?? "N/A"}
+                  <Text strong>Số người tối đa:</Text> {room.maxOccupants ?? "Không xác định"}
                 </div>
                 <div>
-                  <Text strong>Bedrooms:</Text> {room.numberOfBedrooms}
+                  <Text strong>Phòng ngủ:</Text> {room.numberOfBedrooms}
                 </div>
                 <div>
-                  <Text strong>Bathrooms:</Text> {room.numberOfBathrooms}
+                  <Text strong>Phòng tắm:</Text> {room.numberOfBathrooms}
                 </div>
               </Space>
             </Card>
-            <Card title="Assign Renters" style={{ flex: 2 }}>
+            <Card title="Gán người thuê" style={{ flex: 2 }}>
               <Form
                 form={form}
                 layout="vertical"
@@ -253,7 +253,7 @@ export default function LandlordAssignRenterPage() {
                 }}
               >
                 <Form.Item
-                  label="Select Renters"
+                  label="Chọn người thuê"
                   name="renterEmails"
                   rules={[
                     { required: true, message: "Please select at least one renter" }
@@ -261,7 +261,7 @@ export default function LandlordAssignRenterPage() {
                 >
                   <Select
                     mode="multiple"
-                    placeholder="Select renters by email"
+                    placeholder="Chọn người thuê theo email"
                     showSearch
                     onSearch={fetchRenters}
                     filterOption={false}
@@ -274,15 +274,15 @@ export default function LandlordAssignRenterPage() {
                   </Select>
                 </Form.Item>
                 <Form.Item
-                  label="Contract Start Date"
+                  label="Ngày bắt đầu hợp đồng"
                   name="contractStartDate"
                   rules={[
-                    { required: true, message: "Please select contract start date" }
+                    { required: true, message: "Vui lòng chọn ngày bắt đầu hợp đồng" }
                   ]}
                 >
                   <DatePicker 
                     style={{ width: "100%" }} 
-                    placeholder="Select start date"
+                    placeholder="Chọn ngày bắt đầu"
                     value={startDate}
                     onChange={d => {
                       setStartDate(d);
@@ -311,14 +311,14 @@ export default function LandlordAssignRenterPage() {
                   </div>
                 )}
                 <Form.Item
-                  label="Contract End Date"
+                  label="Ngày kết thúc hợp đồng"
                   name="contractEndDate"
                   rules={[
-                    { required: true, message: "Please select contract end date" }
+                    { required: true, message: "Vui lòng chọn ngày kết thúc hợp đồng" }
                   ]}
                 >
                   <Select
-                    placeholder="Select end date"
+                    placeholder="Chọn ngày kết thúc"
                     value={isCustomEndDate ? 'custom' : (endDate ? endDate.toISOString() : undefined)}
                     onChange={v => {
                       if (v === 'custom') {
@@ -357,14 +357,14 @@ export default function LandlordAssignRenterPage() {
                   </Form.Item>
                 )}
                 <Form.Item
-                  label="Payment Cycle"
+                  label="Chu kỳ thanh toán"
                   name="paymentCycle"
                   rules={[
-                    { required: true, message: "Please select payment cycle" }
+                    { required: true, message: "Vui lòng chọn chu kỳ thanh toán" }
                   ]}
                 >
                   <Select
-                    placeholder="Select payment cycle"
+                    placeholder="Chọn chu kỳ thanh toán"
                     value={cycle}
                     onChange={v => {
                       setCycle(v);
@@ -378,10 +378,10 @@ export default function LandlordAssignRenterPage() {
                   </Select>
                 </Form.Item>
                 <Form.Item
-                  label="Deposit Amount (VND)"
+                  label="Tiền đặt cọc (VND)"
                   name="depositAmount"
                   rules={[
-                    { required: true, message: "Please enter deposit amount" }
+                    { required: true, message: "Vui lòng nhập số tiền đặt cọc" }
                   ]}
                 >
                   <InputNumber
@@ -389,7 +389,7 @@ export default function LandlordAssignRenterPage() {
                     formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                     parser={value => value.replace(/\$\s?|(,*)/g, '')}
                     min={0}
-                    placeholder="Enter deposit amount"
+                    placeholder="Nhập số tiền đặt cọc"
                   />
                 </Form.Item>
                 <Form.Item>
@@ -400,7 +400,7 @@ export default function LandlordAssignRenterPage() {
                       loading={loading}
                       icon={<UserAddOutlined />}
                     >
-                      Assign Renters
+                      Gán
                     </Button>
                     <Button onClick={() => {
                       if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
@@ -409,7 +409,7 @@ export default function LandlordAssignRenterPage() {
                         navigate("/landlord/rooms");
                       }
                     }}>
-                      Cancel
+                      Hủy
                     </Button>
                   </Space>
                 </Form.Item>

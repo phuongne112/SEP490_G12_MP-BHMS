@@ -2,11 +2,11 @@ import React from "react";
 import { Form, InputNumber, Select, Button, Space } from "antd";
 
 const assetStatusOptions = [
-  { label: "All Statuses", value: "" },
-  { label: "Good", value: "Good" },
-  { label: "Damaged", value: "Damaged" },
-  { label: "Lost", value: "Lost" },
-  { label: "Maintenance", value: "Maintenance" },
+  { label: "Tất cả trạng thái", value: "" },
+  { label: "Tốt", value: "Good" },
+  { label: "Hư hỏng", value: "Damaged" },
+  { label: "Mất", value: "Lost" },
+  { label: "Bảo trì", value: "Maintenance" },
 ];
 
 export default function AssetFilterPopover({ onFilter, onClose }) {
@@ -32,9 +32,9 @@ export default function AssetFilterPopover({ onFilter, onClose }) {
 
   return (
     <div style={{ width: 280 }}>
-      <p style={{ marginBottom: 16, fontWeight: 500 }}>Advanced Filter</p>
+      <p style={{ marginBottom: 16, fontWeight: 500 }}>Bộ lọc nâng cao</p>
       <Form form={form} onFinish={handleFinish} layout="vertical">
-        <Form.Item name="status" label="Status">
+        <Form.Item name="status" label="Trạng thái">
           <Select
             placeholder="-- All --"
             options={assetStatusOptions}
@@ -42,21 +42,19 @@ export default function AssetFilterPopover({ onFilter, onClose }) {
           />
         </Form.Item>
 
-        <Form.Item label="Quantity">
+        <Form.Item label="Số lượng">
           <Space.Compact block>
             <Form.Item name="minQuantity" noStyle>
-              <InputNumber style={{ width: "50%" }} placeholder="Min" min={0} />
+              <InputNumber style={{ width: "50%" }} placeholder="Tối thiểu" min={0} />
             </Form.Item>
             <Form.Item name="maxQuantity" noStyle>
-              <InputNumber style={{ width: "50%" }} placeholder="Max" min={0} />
+              <InputNumber style={{ width: "50%" }} placeholder="Tối đa" min={0} />
             </Form.Item>
           </Space.Compact>
         </Form.Item>
 
         <Form.Item>
-          <Button type="primary" htmlType="submit" block>
-            Apply
-          </Button>
+          <Button type="primary" htmlType="submit" block>Áp dụng</Button>
         </Form.Item>
       </Form>
     </div>

@@ -46,7 +46,7 @@ export default function RenterTable({ search = "", filter = {} }) {
         checkInDate: item.renterRoomInfo?.checkInDate
           ? new Date(item.renterRoomInfo.checkInDate).toLocaleString()
           : "N/A",
-        status: item.isActive === false ? "Deactive" : "Active",
+        status: item.isActive === false ? "Ngừng thuê" : "Đang thuê",
         isActive: item.isActive,
       }));
 
@@ -109,7 +109,7 @@ export default function RenterTable({ search = "", filter = {} }) {
 
   const columns = [
     {
-      title: "No",
+      title: "STT",
       dataIndex: "no",
       align: "center",
       width: 60,
@@ -119,43 +119,43 @@ export default function RenterTable({ search = "", filter = {} }) {
           : index + 1,
     },
     {
-      title: "Name",
+      title: "Họ và tên",
       dataIndex: "name",
       align: "center",
       width: 180,
     },
     {
-      title: "Room",
+      title: "Phòng",
       dataIndex: "room",
       align: "center",
       width: 120,
     },
     {
-      title: "Check-in Date",
+      title: "Ngày nhận phòng",
       dataIndex: "checkInDate",
       align: "center",
       width: 200,
     },
     {
-      title: "Status",
+      title: "Trạng thái",
       dataIndex: "status",
       align: "center",
       width: 120,
       render: (_, record) => (
         <Popconfirm
-          title={`Do you want to ${
+          title={`Bạn có chắc muốn ${
             record.isActive ? "deactivate" : "activate"
           } this renter?`}
           onConfirm={() => handleChangeStatus(record)}
-          okText="Yes"
-          cancelText="No"
+          okText="Có"
+          cancelText="Không"
           placement="top"
         >
           <Tag
             color={record.isActive ? "green" : "red"}
             style={{ cursor: "pointer" }}
           >
-            {record.isActive ? "Active" : "Deactive"}
+            {record.isActive ? "Đang thuê" : "Ngừng thuê"}
           </Tag>
         </Popconfirm>
       ),
@@ -169,6 +169,7 @@ export default function RenterTable({ search = "", filter = {} }) {
         dataSource={data}
         pagination={pagination}
         onChange={handleTableChange}
+        locale={{ emptyText: "Không có dữ liệu" }}
       />
     </Spin>
   );

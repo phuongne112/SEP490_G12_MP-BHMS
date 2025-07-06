@@ -231,7 +231,7 @@ export default function LandlordBookAppointmentPage() {
           >
             <div style={{ width: "100%", maxWidth: 370 }}>
               <Title level={4} style={{ marginBottom: 18 }}>
-                Book Appointment
+                Đặt lịch hẹn
               </Title>
               <Form
                 form={form}
@@ -277,7 +277,7 @@ export default function LandlordBookAppointmentPage() {
                 </Form.Item>
 
                 <Form.Item
-                  label="Date"
+                  label="Ngày"
                   name="date"
                   rules={[{ required: true, message: "Please select a date" }]}
                 >
@@ -289,7 +289,7 @@ export default function LandlordBookAppointmentPage() {
                 </Form.Item>
 
                 <Form.Item
-                  label="Time"
+                  label="Giờ"
                   name="time"
                   rules={[{ required: true, message: "Please select a time" }]}
                 >
@@ -300,7 +300,7 @@ export default function LandlordBookAppointmentPage() {
                   />
                 </Form.Item>
 
-                <Form.Item label="Note" name="note">
+                <Form.Item label="Ghi chú" name="note">
                   <Input.TextArea
                     rows={3}
                     placeholder="Any note for landlord?"
@@ -316,7 +316,7 @@ export default function LandlordBookAppointmentPage() {
                   disabled={isUnavailable || !user}
                   style={{ marginTop: 8 }}
                 >
-                  Confirm Appointment
+                  Đặt lịch
                 </Button>
 
                 {isUnavailable && (

@@ -70,16 +70,16 @@ export default function ElectricTable({
   };
 
   const columns = [
-    { title: "Room", dataIndex: "roomNumber" },
-    { title: "Last Month", dataIndex: "oldReading" },
-    { title: "This Month", dataIndex: "newReading" },
+    { title: "Phòng", dataIndex: "roomNumber" },
+    { title: "Tháng trước", dataIndex: "oldReading" },
+    { title: "Tháng này", dataIndex: "newReading" },
     {
-      title: "Date",
+      title: "Ngày",
       dataIndex: "createdDate",
       render: (value) => value ? dayjs(value).format("DD/MM/YYYY HH:mm") : ""
     },
     {
-      title: "Action",
+      title: "Thao tác",
       render: (_, record) => (
         <Button onClick={() => handleOcrClick(record)}>Scan Reading</Button>
       ),
@@ -98,6 +98,7 @@ export default function ElectricTable({
           onChange: onPageChange,
         }}
         loading={loading}
+        locale={{ emptyText: 'Chưa có dữ liệu' }}
       />
       <Modal
         open={modalOpen}

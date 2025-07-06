@@ -3,7 +3,8 @@ import { Table, Tag, Button, Space, message, Popconfirm } from "antd";
 import { getAllUsers, updateUserStatus } from "../../services/userApi";
 import Access from "../../components/common/Access";
 import { useSelector } from "react-redux";
-// Hàm tạo filter DSL
+
+// Hàm tạo DSL lọc dữ liệu người dùng
 const buildFilterDSL = (searchTerm, filters) => {
   const dsl = [];
 
@@ -41,10 +42,7 @@ export default function UserTable({
   refreshKey,
 }) {
   const [data, setData] = useState([]);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    total: 0,
-  });
+  const [pagination, setPagination] = useState({ current: 1, total: 0 });
   const [loading, setLoading] = useState(false);
 
   const user = useSelector((state) => state.account.user);
@@ -59,7 +57,6 @@ export default function UserTable({
       const filterDSL = buildFilterDSL(searchTerm, filters);
       const res = await getAllUsers(page - 1, pageSize, filterDSL);
 
-      // ✅ Fix chỗ lấy dữ liệu
       const result = res.result || [];
       const total = res.meta?.total || 0;
 
@@ -71,7 +68,7 @@ export default function UserTable({
           username: item.username,
           isActive: item.isActive,
           createdAt: item.createdDate?.slice(0, 10),
-          status: item.isActive ? "Active" : "Deactivate",
+          status: item.isActive ? "Đang hoạt động" : "Ngừng hoạt động",
           role: {
             roleName: item.role?.roleName || "USER",
             roleId: item.role?.roleId || null,
@@ -79,12 +76,9 @@ export default function UserTable({
         }))
       );
 
-      setPagination({
-        current: page,
-        total: total,
-      });
+      setPagination({ current: page, total });
     } catch (err) {
-      message.error("Failed to load user data");
+      message.error("Không thể tải danh sách người dùng");
     } finally {
       setLoading(false);
     }
@@ -97,7 +91,7 @@ export default function UserTable({
   const handleToggleStatus = async (user) => {
     try {
       await updateUserStatus(user.id, { active: !user.isActive });
-      message.success("Status updated successfully");
+      message.success("Cập nhật trạng thái thành công");
 
       setData((prevData) =>
         prevData.map((item) =>
@@ -105,53 +99,52 @@ export default function UserTable({
             ? {
                 ...item,
                 isActive: !item.isActive,
-                status: !item.isActive ? "Active" : "Deactivate",
+                status: !item.isActive ? "Đang hoạt động" : "Ngừng hoạt động",
               }
             : item
         )
       );
     } catch (err) {
-      message.error("Failed to update status");
+      message.error("Không thể cập nhật trạng thái");
     }
   };
 
   const columns = [
     {
-      title: "No.",
+      title: "STT",
       dataIndex: "key",
       width: 60,
       render: (_, __, index) => (pagination.current - 1) * pageSize + index + 1,
     },
     {
-      title: "Account(Email)",
+      title: "Email",
       dataIndex: "email",
     },
     {
-      title: "Username",
+      title: "Tên đăng nhập",
       dataIndex: "username",
     },
     {
-      title: "Created Date",
+      title: "Ngày tạo",
       dataIndex: "createdAt",
     },
-    // ✅ Chỉ hiển thị cột "Status" nếu có quyền
     ...(hasStatusPermission
       ? [
           {
-            title: "Status",
+            title: "Trạng thái",
             dataIndex: "status",
             render: (_, record) => (
               <Popconfirm
-                title={`Do you want to ${
-                  record.isActive ? "deactivate" : "activate"
-                } this user?`}
+                title={`Bạn có chắc muốn ${
+                  record.isActive ? "ngừng hoạt động" : "kích hoạt"
+                } người dùng này không?`}
                 onConfirm={() => handleToggleStatus(record)}
-                okText="Yes"
-                cancelText="No"
+                okText="Đồng ý"
+                cancelText="Hủy"
                 placement="top"
               >
                 <Tag
-                  color={record.status === "Active" ? "green" : "red"}
+                  color={record.status === "Đang hoạt động" ? "green" : "red"}
                   style={{ cursor: "pointer" }}
                 >
                   {record.status}
@@ -162,15 +155,14 @@ export default function UserTable({
         ]
       : []),
     {
-      title: "Role",
+      title: "Vai trò",
       dataIndex: "role",
       render: (role) => role?.roleName || "USER",
     },
-    // ✅ Thêm cột Actions nếu có quyền
     ...(hasUpdatePermission
       ? [
           {
-            title: "Actions",
+            title: "Thao tác",
             key: "actions",
             render: (_, record) => {
               const currentUser = JSON.parse(localStorage.getItem("user"));
@@ -186,8 +178,8 @@ export default function UserTable({
 
               return (
                 <Space>
-                  <Button size="medium" onClick={() => onEdit(record)}>
-                    Edit
+                  <Button size="middle" onClick={() => onEdit(record)}>
+                    Sửa
                   </Button>
                 </Space>
               );

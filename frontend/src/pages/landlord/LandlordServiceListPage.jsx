@@ -41,9 +41,9 @@ export default function LandlordServiceListPage() {
   const [searchInput, setSearchInput] = useState('');
 
   const serviceTypeOptions = [
-    { label: "Electricity", value: "ELECTRICITY" },
-    { label: "Water", value: "WATER" },
-    { label: "Other", value: "OTHER" },
+    { label: "Điện", value: "ELECTRICITY" },
+    { label: "Nước", value: "WATER" },
+    { label: "Khác", value: "OTHER" },
   ];
 
   const pageSizeOptions = [5, 10, 20, 50];
@@ -137,18 +137,18 @@ export default function LandlordServiceListPage() {
         : await createService(serviceData);
 
       if (response && response.data) {
-        message.success(editingService ? "Service updated successfully" : "Service added successfully");
+        message.success(editingService ? "Cập nhật dịch vụ thành công" : "Thêm dịch vụ thành công");
         form.resetFields();
         setIsModalOpen(false);
         setEditingService(null);
         // STEP 2: Refresh with the correct active filters
         fetchServices(1, pagination.pageSize, activeFilters);
       } else {
-        throw new Error(response.error || "Failed to save service");
+        throw new Error(response.error || "Lưu dịch vụ thất bại");
       }
     } catch (error) {
       console.error("Error saving service:", error);
-      message.error(error.message || "Failed to save service");
+      message.error(error.message || "Lưu dịch vụ thất bại");
     } finally {
       setIsSubmitting(false);
     }
@@ -157,12 +157,12 @@ export default function LandlordServiceListPage() {
   const handleDeleteService = async (id) => {
     try {
         await deleteService(id);
-        message.success("Service deleted successfully");
+        message.success("Xóa dịch vụ thành công");
         // STEP 2: Refresh with the correct active filters
         fetchServices(pagination.current, pagination.pageSize, activeFilters);
     } catch (error) {
         console.error("Error deleting service:", error);
-        message.error("Failed to delete service");
+        message.error("Xóa dịch vụ thất bại");
     }
   };
 
@@ -186,10 +186,10 @@ export default function LandlordServiceListPage() {
       <Layout style={{ padding: 24 }}>
         <Content style={{ background: "#fff", padding: 24, borderRadius: 8, minHeight: "100%" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: 'center', marginBottom: 24 }}>
-            <PageHeader title="List Service" />
+            <PageHeader title="Danh sách dịch vụ" />
             <Space>
                 <Input
-                    placeholder="Search service name"
+                    placeholder="Tìm tên dịch vụ"
                     prefix={<SearchOutlined />}
                     value={searchInput}
                     onChange={handleSearchInputChange}
@@ -202,10 +202,10 @@ export default function LandlordServiceListPage() {
                   open={isFilterOpen}
                   onOpenChange={setIsFilterOpen}
                 >
-                  <Button icon={<FilterOutlined />}>Filter</Button>
+                  <Button icon={<FilterOutlined />}>Bộ lọc</Button>
                 </Popover>
                 <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)}>
-                  Add Service
+                  Thêm dịch vụ
                 </Button>
             </Space>
           </div>
@@ -218,17 +218,17 @@ export default function LandlordServiceListPage() {
             }}
           >
             <div>
-              Show
+              Hiển thị
               <Select
                 style={{ width: 80, margin: "0 8px" }}
                 value={pagination.pageSize}
                 onChange={handlePageSizeChange}
                 options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
               />
-              entries
+              mục
             </div>
             <div style={{ fontWeight: 400, color: "#888" }}>
-              Tổng số: {pagination.total} services
+              Tổng số: {pagination.total} dịch vụ
             </div>
           </div>
           <div style={{ marginTop: 24 }}>
@@ -243,13 +243,13 @@ export default function LandlordServiceListPage() {
           </div>
 
           <Modal
-            title={editingService ? "Edit Service" : "Add New Service"}
+            title={editingService ? "Chỉnh sửa dịch vụ" : "Thêm dịch vụ mới"}
             open={isModalOpen}
             onCancel={handleModalCancel}
             footer={
               editingService ? (
                 [
-                  <Button key="back" onClick={handleModalCancel}>Cancel</Button>,
+                  <Button key="back" onClick={handleModalCancel}>Hủy</Button>,
                   <Popconfirm
                     key="submit"
                     title="Update the service"
@@ -263,24 +263,24 @@ export default function LandlordServiceListPage() {
                 ]
               ) : (
                 [
-                  <Button key="back" onClick={handleModalCancel}>Cancel</Button>,
-                  <Button key="submit" type="primary" loading={isSubmitting} onClick={() => form.submit()}>Save</Button>
+                  <Button key="back" onClick={handleModalCancel}>Hủy</Button>,
+                  <Button key="submit" type="primary" loading={isSubmitting} onClick={() => form.submit()}>Lưu</Button>
                 ]
               )
             }
           >
             <Form layout="vertical" form={form} onFinish={handleAddService}>
-              <Form.Item label="Service Name" name="name" rules={[{ required: true, message: "Please enter service name" }]}>
-                <Input placeholder="Enter service name" />
+              <Form.Item label="Tên dịch vụ" name="name" rules={[{ required: true, message: "Vui lòng nhập tên dịch vụ" }]}>
+                <Input placeholder="Nhập tên dịch vụ" />
               </Form.Item>
-              <Form.Item label="Unit" name="unit" rules={[{ required: true, message: "Please enter unit" }]}>
-                <Input placeholder="e.g., kWh, m³, etc." />
+              <Form.Item label="Đơn vị" name="unit" rules={[{ required: true, message: "Vui lòng nhập đơn vị" }]}>
+                <Input placeholder="VD: kWh, m³, ..." />
               </Form.Item>
-              <Form.Item label="Price (VND/unit)" name="price" rules={[{ required: true, message: "Please enter price" }]}>
-                <InputNumber style={{ width: "100%" }} placeholder="Enter price" min={0} />
+              <Form.Item label="Giá (VND/đơn vị)" name="price" rules={[{ required: true, message: "Vui lòng nhập giá" }]}>
+                <InputNumber style={{ width: "100%" }} placeholder="Nhập giá" min={0} />
               </Form.Item>
-              <Form.Item label="Service Type" name="type" rules={[{ required: true, message: "Please select service type" }]}>
-                <Select options={serviceTypeOptions} placeholder="Select service type" />
+              <Form.Item label="Loại dịch vụ" name="type" rules={[{ required: true, message: "Vui lòng chọn loại dịch vụ" }]}>
+                <Select options={serviceTypeOptions} placeholder="Chọn loại dịch vụ" />
               </Form.Item>
             </Form>
           </Modal>

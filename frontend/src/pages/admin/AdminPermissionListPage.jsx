@@ -53,7 +53,7 @@ export default function AdminPermissionListPage() {
 
   const handleApplyFilter = (values) => {
     setFilters(values);
-    setCurrentPage(1); // Reset page khi filter
+    setCurrentPage(1);
   };
 
   const handleEditPermission = (permission) => {
@@ -81,10 +81,10 @@ export default function AdminPermissionListPage() {
           ...payload,
           id: editingPermission.id,
         });
-        message.success("Permission updated successfully!");
+        message.success("Cập nhật quyền thành công!");
       } else {
         await createPermission(payload);
-        message.success("Permission created successfully!");
+        message.success("Tạo quyền thành công!");
       }
 
       setIsModalOpen(false);
@@ -117,7 +117,7 @@ export default function AdminPermissionListPage() {
 
         form.setFields(fieldErrors);
       } else {
-        setFormError(res?.message || "Failed to process permission");
+        setFormError(res?.message || "Xử lý quyền thất bại");
       }
     }
   };
@@ -132,10 +132,10 @@ export default function AdminPermissionListPage() {
     if (!selectedPermission) return;
     try {
       await deletePermission(selectedPermission.id);
-      setDeleteMessage("✅ Permission deleted successfully");
+      setDeleteMessage("✅ Xóa quyền thành công");
       setRefreshKey((prev) => prev + 1);
     } catch (err) {
-      setDeleteMessage("❌ Failed to delete permission");
+      setDeleteMessage("❌ Xóa quyền thất bại");
     }
     setIsDeleteModalOpen(false);
     setSelectedPermission(null);
@@ -161,7 +161,7 @@ export default function AdminPermissionListPage() {
               marginBottom: 24,
             }}
           >
-            <PageHeader title="Permission Management" />
+            <PageHeader title="Danh sách quyền" />
             {hasCreatePermission && (
               <Button
                 type="primary"
@@ -173,7 +173,7 @@ export default function AdminPermissionListPage() {
                   setIsModalOpen(true);
                 }}
               >
-                Add Permission
+                Thêm quyền
               </Button>
             )}
           </div>
@@ -197,9 +197,9 @@ export default function AdminPermissionListPage() {
             />
             <Space align="start" size={30}>
               <div style={{ display: "flex", flexDirection: "column" }}>
-                <label style={{ fontSize: 13, marginBottom: 4 }}>Name</label>
+                <label style={{ fontSize: 13, marginBottom: 4 }}>Tên</label>
                 <SearchBox
-                  placeholder="Enter name..."
+                  placeholder="Tìm quyền..."
                   onSearch={(val) => {
                     setSearch((prev) => ({ ...prev, name: val }));
                     setCurrentPage(1);
@@ -209,7 +209,7 @@ export default function AdminPermissionListPage() {
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <label style={{ fontSize: 13, marginBottom: 4 }}>API</label>
                 <SearchBox
-                  placeholder="Enter API..."
+                  placeholder="Nhập API..."
                   onSearch={(val) => {
                     setSearch((prev) => ({ ...prev, api: val }));
                     setCurrentPage(1);
@@ -235,7 +235,7 @@ export default function AdminPermissionListPage() {
                     icon={<FilterOutlined />}
                     style={{ backgroundColor: "#40a9ff", color: "white" }}
                   >
-                    Filter
+                    Bộ lọc
                   </Button>
                 </Popover>
               </div>
@@ -265,9 +265,7 @@ export default function AdminPermissionListPage() {
           />
 
           <Modal
-            title={
-              editingPermission ? "Update Permission" : "Create Permission"
-            }
+            title={editingPermission ? "Cập nhật quyền" : "Tạo quyền mới"}
             open={isModalOpen}
             onCancel={() => {
               setIsModalOpen(false);
@@ -287,22 +285,20 @@ export default function AdminPermissionListPage() {
                 <Col span={12}>
                   <Form.Item
                     name="name"
-                    label="Permission Name"
-                    rules={[
-                      { required: true, message: "Enter permission name" },
-                    ]}
+                    label="Tên quyền"
+                    rules={[{ required: true, message: "Nhập tên quyền" }]}
                   >
-                    <Input placeholder="Enter here..." />
+                    <Input placeholder="Nhập tại đây..." />
                   </Form.Item>
                 </Col>
 
                 <Col span={12}>
                   <Form.Item
                     name="api"
-                    label="API Path"
-                    rules={[{ required: true, message: "Enter API path" }]}
+                    label="Đường dẫn API"
+                    rules={[{ required: true, message: "Nhập API path" }]}
                   >
-                    <Input placeholder="Enter here..." />
+                    <Input placeholder="Nhập tại đây..." />
                   </Form.Item>
                 </Col>
               </Row>
@@ -311,10 +307,10 @@ export default function AdminPermissionListPage() {
                 <Col span={12}>
                   <Form.Item
                     name="method"
-                    label="Method"
-                    rules={[{ required: true, message: "Select method" }]}
+                    label="Phương thức"
+                    rules={[{ required: true, message: "Chọn phương thức" }]}
                   >
-                    <Select placeholder="Select a method">
+                    <Select placeholder="Chọn phương thức">
                       <Option value="GET">GET</Option>
                       <Option value="POST">POST</Option>
                       <Option value="PUT">PUT</Option>
@@ -328,28 +324,27 @@ export default function AdminPermissionListPage() {
                   <Form.Item
                     name="module"
                     label="Module"
-                    rules={[{ required: true, message: "Select module" }]}
+                    rules={[{ required: true, message: "Chọn module" }]}
                   >
-                    <Select placeholder="Select a module...">
-                      <Option value="User">User</Option>
-                      <Option value="Renter">Renter</Option>
-                      <Option value="Room">Room</Option>
-                      <Option value="Notification">Notification</Option>
-                      <Option value="Role">Role</Option>
-                      <Option value="Permission">Permission</Option>
-                      <Option value="Bill">Bill</Option>
-                      <Option value="Service">Service</Option>
-                      <Option value="Contract">Contract</Option>
-                      <Option value="Ocr">Ocr</Option>
-                      <Option value="Payment">Payment</Option>
-                      <Option value="Schedule">Schedule</Option>
-                      <Option value="RoomUser">Room User</Option>
+                    <Select placeholder="Chọn module">
+                      <Option value="User">Người dùng</Option>
+                      <Option value="Renter">Người thuê</Option>
+                      <Option value="Room">Phòng</Option>
+                      <Option value="Notification">Thông báo</Option>
+                      <Option value="Role">Vai trò</Option>
+                      <Option value="Permission">Quyền</Option>
+                      <Option value="Bill">Hóa đơn</Option>
+                      <Option value="Service">Dịch vụ</Option>
+                      <Option value="Contract">Hợp đồng</Option>
+                      <Option value="Ocr">OCR</Option>
+                      <Option value="Payment">Thanh toán</Option>
+                      <Option value="Schedule">Lịch hẹn</Option>
+                      <Option value="RoomUser">Người dùng - Phòng</Option>
                     </Select>
                   </Form.Item>
                 </Col>
               </Row>
 
-              {/* Submit & error */}
               <div
                 style={{
                   display: "flex",
@@ -376,10 +371,10 @@ export default function AdminPermissionListPage() {
                     onClick={() => setIsModalOpen(false)}
                     style={{ marginRight: 8 }}
                   >
-                    Cancel
+                    Hủy
                   </Button>
                   <Button type="primary" htmlType="submit">
-                    {editingPermission ? "Update" : "Create"}
+                    {editingPermission ? "Cập nhật" : "Thêm"}
                   </Button>
                 </div>
               </div>
@@ -387,12 +382,12 @@ export default function AdminPermissionListPage() {
           </Modal>
 
           <Modal
-            title="Confirm delete this permission?"
+            title="Bạn có chắc chắn muốn xoá quyền này?"
             open={isDeleteModalOpen}
             onOk={handleConfirmDelete}
             onCancel={() => setIsDeleteModalOpen(false)}
-            okText="Yes"
-            cancelText="Cancel"
+            okText="Xoá"
+            cancelText="Hủy"
           />
         </Content>
       </Layout>

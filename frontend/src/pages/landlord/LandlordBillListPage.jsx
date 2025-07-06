@@ -50,36 +50,36 @@ function BillFilterPopover({ onFilter }) {
   
   return (
     <div style={{ minWidth: 220 }}>
-      <div style={{ marginBottom: 8 }}>Status</div>
+      <div style={{ marginBottom: 8 }}>Trạng thái</div>
       <Select
         allowClear
         style={{ width: "100%", marginBottom: 12 }}
-        placeholder="All"
+        placeholder="Tất cả"
         value={status}
         onChange={setStatus}
         options={[
-          { label: "Paid", value: true },
-          { label: "Unpaid", value: false },
+          { label: "Đã thanh toán", value: true },
+          { label: "Chưa thanh toán", value: false },
         ]}
       />
-      <div style={{ marginBottom: 8 }}>Min Price</div>
+      <div style={{ marginBottom: 8 }}>Giá tối thiểu</div>
       <Input
         type="number"
-        placeholder="Min price"
+        placeholder="Giá tối thiểu"
         value={minPrice}
         onChange={(e) => setMinPrice(e.target.value)}
         style={{ marginBottom: 12 }}
       />
-      <div style={{ marginBottom: 8 }}>Max Price</div>
+      <div style={{ marginBottom: 8 }}>Giá tối đa</div>
       <Input
         type="number"
-        placeholder="Max price"
+        placeholder="Giá tối đa"
         value={maxPrice}
         onChange={(e) => setMaxPrice(e.target.value)}
         style={{ marginBottom: 12 }}
       />
       <Button type="primary" block onClick={handleApply}>
-        Apply
+        Áp dụng
       </Button>
     </div>
   );
@@ -124,10 +124,10 @@ export default function LandlordBillListPage() {
   const handleDelete = async (id) => {
     try {
       await deleteBill(id);
-      message.success("Bill deleted successfully");
+      message.success("Xóa hóa đơn thành công");
       fetchBills();
     } catch (err) {
-      message.error("Delete failed");
+      message.error("Xóa thất bại");
     }
   };
 
@@ -152,7 +152,7 @@ export default function LandlordBillListPage() {
       await sendBillToRenter(id);
       message.success("Bill sent to renter successfully");
     } catch (err) {
-      message.error("Send failed");
+      message.error("Gửi thất bại");
     }
   };
 
@@ -187,33 +187,33 @@ export default function LandlordBillListPage() {
 
   const columns = [
     {
-      title: "No.",
+      title: "STT",
       align: "center",
       width: 70,
       render: (_, __, index) => (currentPage - 1) * pageSize + index + 1,
     },
     { 
-      title: "Bill ID", 
+      title: "Mã hóa đơn", 
       dataIndex: "id", 
       align: "center", 
       width: 100,
       render: (id) => `#${id}`
     },
     { 
-      title: "Room", 
+      title: "Phòng", 
       dataIndex: "roomNumber", 
       align: "center", 
       width: 120 
     },
     { 
-      title: "Contract ID", 
+      title: "Mã hợp đồng", 
       dataIndex: "contractId", 
       align: "center", 
       width: 120,
       render: (contractId) => contractId ? `#${contractId}` : 'N/A'
     },
     { 
-      title: "Bill Type", 
+      title: "Loại hóa đơn", 
       dataIndex: "billType", 
       align: "center", 
       width: 120,
@@ -224,38 +224,38 @@ export default function LandlordBillListPage() {
       )
     },
     { 
-      title: "From Date", 
+      title: "Từ ngày", 
       dataIndex: "fromDate", 
       align: "center", 
       width: 120,
       render: (date) => formatDate(date)
     },
     { 
-      title: "To Date", 
+      title: "Đến ngày", 
       dataIndex: "toDate", 
       align: "center", 
       width: 120,
       render: (date) => formatDate(date)
     },
     { 
-      title: "Total Amount", 
+      title: "Tổng tiền", 
       dataIndex: "totalAmount", 
       align: "center", 
       width: 140,
       render: (amount) => formatCurrency(amount)
     },
     {
-      title: "Status",
+      title: "Trạng thái",
       align: "center",
       width: 120,
       render: (_, record) => (
         <Tag color={record.status ? "green" : "red"}>
-          {record.status ? "Paid" : "Unpaid"}
+          {record.status ? "Đã thanh toán" : "Chưa thanh toán"}
         </Tag>
       ),
     },
     {
-      title: "Actions",
+      title: "Thao tác",
       align: "center",
       width: 280,
       render: (_, record) => (
@@ -266,12 +266,12 @@ export default function LandlordBillListPage() {
             onClick={() => navigate(`/landlord/bills/${record.id}`)}
             size="small"
           >
-            View
+            Xem
           </Button>
           <Popconfirm
-            title="Are you sure you want to delete this bill?"
-            okText="Yes"
-            cancelText="No"
+            title="Bạn có chắc chắn muốn xóa hóa đơn này?"
+            okText="Có"
+            cancelText="Không"
             onConfirm={() => handleDelete(record.id)}
           >
             <Button 
@@ -279,7 +279,7 @@ export default function LandlordBillListPage() {
               icon={<DeleteOutlined />}
               size="small"
             >
-              Delete
+              Xóa
             </Button>
           </Popconfirm>
           <Button 
@@ -288,14 +288,14 @@ export default function LandlordBillListPage() {
             onClick={() => handleExport(record.id)}
             size="small"
           >
-            Export PDF
+            Xuất PDF
           </Button>
           <Button 
             icon={<SendOutlined />}
             onClick={() => handleSend(record.id)}
             size="small"
           >
-            Send
+            Gửi
           </Button>
         </Space>
       ),
@@ -324,10 +324,10 @@ export default function LandlordBillListPage() {
               alignItems: "center",
             }}
           >
-            <PageHeader title="Bill List" />
+            <PageHeader title="Danh sách hóa đơn" />
             <Space>
               <Input
-                placeholder="Search by bill ID or room number"
+                placeholder="Tìm hóa đơn..."
                 allowClear
                 prefix={<SearchOutlined />}
                 value={search}
@@ -342,14 +342,14 @@ export default function LandlordBillListPage() {
                 trigger="click"
                 placement="bottomRight"
               >
-                <Button icon={<FilterOutlined />}>Filter</Button>
+                <Button icon={<FilterOutlined />}>Bộ lọc</Button>
               </Popover>
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
                 onClick={() => navigate("/landlord/bills/create")}
               >
-                Create Bill
+                Thêm hóa đơn
               </Button>
             </Space>
           </div>
@@ -363,17 +363,17 @@ export default function LandlordBillListPage() {
             }}
           >
             <div>
-              Show
+              Hiển thị
               <Select
                 style={{ width: 80, margin: "0 8px" }}
                 value={pageSize}
                 onChange={handlePageSizeChange}
                 options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
               />
-              entries
+              mục
             </div>
             <div style={{ fontWeight: 400, color: "#888" }}>
-              Total: {total} bills
+              Tổng: {total} hóa đơn
             </div>
           </div>
           
@@ -407,9 +407,7 @@ export default function LandlordBillListPage() {
               }}
               showSizeChanger={false}
               showQuickJumper
-              showTotal={(total, range) => 
-                `${range[0]}-${range[1]} of ${total} bills`
-              }
+              showTotal={(total, range) => `${range[0]}-${range[1]} trên tổng số ${total} hóa đơn`}
             />
           </div>
         </Content>

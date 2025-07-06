@@ -89,20 +89,20 @@ export default function Header() {
       roleId === 3 ||
       (typeof role === "string" && role.toUpperCase() === "LANDLORD")
     )
-      return "Landlord Dashboard";
+      return "Bảng điều khiển";
     if (
       roleId === 2 ||
       (typeof role === "string" && role.toUpperCase() === "RENTER")
     )
-      return "Renter Dashboard";
+      return "Bảng điều khiển";
     if (
       roleId === 1 ||
       (typeof role === "string" && role.toUpperCase() === "ADMIN")
     )
-      return "Admin Dashboard";
+      return "Bảng điều khiển";
     if (typeof role === "string" && role.toUpperCase() === "SUBADMIN")
-      return "Admin Dashboard";
-    return "Dashboard";
+      return "Bảng điều khiển";
+    return "Bảng điều khiển";
   };
 
   const handleLogout = () => {
@@ -200,7 +200,7 @@ export default function Header() {
         }}
       >
         <div style={{ fontWeight: 700, fontSize: 17, color: "#222" }}>
-          Notifications
+          Thông báo
         </div>
         <div style={{ marginTop: 8, display: "flex", gap: 16 }}>
           <span
@@ -213,7 +213,7 @@ export default function Header() {
             }}
             onClick={() => setTab("all")}
           >
-            All
+            Tất cả
           </span>
           <span
             style={{
@@ -225,7 +225,7 @@ export default function Header() {
             }}
             onClick={() => setTab("unread")}
           >
-            Unread
+            Chưa đọc
           </span>
         </div>
       </div>
@@ -259,13 +259,13 @@ export default function Header() {
               </div>
             </List.Item>
           )}
-          locale={{ emptyText: "No notifications" }}
+          locale={{ emptyText: "Không có thông báo" }}
         />
       </div>
     </div>
   );
 
-  const navItems = ["Rooms", "Services", "Renters", "Contact", "About"];
+  const navItems = ["Phòng", "Dịch vụ", "Người thuê", "Liên hệ", "Giới thiệu"];
 
   return (
     <header
@@ -324,14 +324,14 @@ export default function Header() {
               overlay={
                 <Menu>
                   <Menu.Item onClick={() => setIsAccountModalOpen(true)}>
-                    Account Info
+                    Thông tin tài khoản
                   </Menu.Item>
                   <Menu.Item onClick={() => setIsInfoModalOpen(true)}>
-                    Personal Info
+                    Thông tin cá nhân
                   </Menu.Item>
                   {(!user?.role || user?.role?.roleName === "RENTER") && (
                     <Menu.Item onClick={() => setShowBookingModal(true)}>
-                      My Bookings
+                      Lịch hẹn
                     </Menu.Item>
                   )}
                   {dashboardPath && (
@@ -341,7 +341,7 @@ export default function Header() {
                   )}
                   <Menu.Divider />
                   <Menu.Item onClick={handleLogout} danger>
-                    Logout
+                    Đăng xuất
                   </Menu.Item>
                 </Menu>
               }
@@ -367,7 +367,7 @@ export default function Header() {
                     user?.name ||
                     user?.fullName ||
                     user?.username ||
-                    "User"}
+                    "Người dùng"}
                 </span>
               </div>
             </Dropdown>
@@ -408,10 +408,10 @@ export default function Header() {
               onClick={() => navigate("/login")}
               style={{ background: "#e2e8f0" }}
             >
-              Sign in
+              Đăng nhập
             </Button>
             <Button type="primary" onClick={() => navigate("/signup")}>
-              Register
+              Đăng ký
             </Button>
           </>
         )}
@@ -439,10 +439,10 @@ export default function Header() {
           {!token && (
             <>
               <Button block onClick={() => navigate("/login")}>
-                Sign In
+                Đăng nhập
               </Button>
               <Button block type="primary" onClick={() => navigate("/signup")}>
-                Register
+                Đăng ký
               </Button>
             </>
           )}
@@ -477,17 +477,22 @@ export default function Header() {
         width={480}
       >
         <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
-          Title: <span style={{ fontWeight: 400 }}>{selectedNoti?.title}</span>
+          Tiêu đề:{" "}
+          <span style={{ fontWeight: 400 }}>{selectedNoti?.title}</span>
         </div>
         <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
-          Message:{" "}
+          Nội dung:{" "}
           <span style={{ fontWeight: 400 }}>{selectedNoti?.message}</span>
         </div>
         <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
-          Created Date: <span style={{ fontWeight: 400 }}>{dateStr}</span>
+          Ngày tạo: <span style={{ fontWeight: 400 }}>{dateStr}</span>
         </div>
       </Modal>
-      <BookingListModal open={showBookingModal} onClose={() => setShowBookingModal(false)} currentUser={user} />
+      <BookingListModal
+        open={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
+        currentUser={user}
+      />
     </header>
   );
 }
