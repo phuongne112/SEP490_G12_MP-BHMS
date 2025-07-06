@@ -62,17 +62,17 @@ export default function LandlordBillDetailPage() {
   };
 
   const columns = [
-    { title: "Description", dataIndex: "description" },
-    { title: "Type", dataIndex: "itemType" },
-    { title: "Service", dataIndex: "serviceName" },
+    { title: "Mô tả", dataIndex: "description" },
+    { title: "Loại", dataIndex: "itemType" },
+    { title: "Dịch vụ", dataIndex: "serviceName" },
     {
-      title: "Unit Price",
+      title: "Đơn giá",
       dataIndex: "unitPriceAtBill",
       render: (v) => (v ? v.toLocaleString() + " VND" : ""),
     },
-    { title: "Consumed", dataIndex: "consumedUnits" },
+    { title: "Số lượng", dataIndex: "consumedUnits" },
     {
-      title: "Amount",
+      title: "Thành tiền",
       dataIndex: "itemAmount",
       render: (v) => (v ? v.toLocaleString() + " VND" : ""),
     },
@@ -110,19 +110,17 @@ export default function LandlordBillDetailPage() {
         <LandlordSidebar />
       </Sider>
       <div style={{ flex: 1, padding: 24 }}>
-        <PageHeader title="Bill Detail" />
+        <PageHeader title="Chi tiết hóa đơn" />
         <Card style={{ marginTop: 20 }}>
           {loading ? (
             <Spin />
           ) : bill ? (
             <>
               <Descriptions bordered column={2}>
-                <Descriptions.Item label="Bill ID">#{bill.id}</Descriptions.Item>
-                <Descriptions.Item label="Room">{bill.roomNumber}</Descriptions.Item>
-                <Descriptions.Item label="Contract ID">
-                  {bill.contractId ? `#${bill.contractId}` : "N/A"}
-                </Descriptions.Item>
-                <Descriptions.Item label="Type">
+                <Descriptions.Item label="Mã hóa đơn">#{bill.id}</Descriptions.Item>
+                <Descriptions.Item label="Phòng">{bill.roomNumber}</Descriptions.Item>
+                <Descriptions.Item label="Mã hợp đồng">{bill.contractId ? `#${bill.contractId}` : "Không có"}</Descriptions.Item>
+                <Descriptions.Item label="Loại hóa đơn">
                   <Tag
                     color={
                       bill.billType === "REGULAR"
@@ -132,13 +130,11 @@ export default function LandlordBillDetailPage() {
                         : "green"
                     }
                   >
-                    {bill.billType}
+                    {bill.billType === "REGULAR" ? "Định kỳ" : bill.billType === "CUSTOM" ? "Tùy chỉnh" : bill.billType}
                   </Tag>
                 </Descriptions.Item>
-                <Descriptions.Item label="From">
-                  {dayjs(bill.fromDate).format("DD/MM/YYYY")}
-                </Descriptions.Item>
-                <Descriptions.Item label="To">
+                <Descriptions.Item label="Từ ngày">{dayjs(bill.fromDate).format("DD/MM/YYYY")}</Descriptions.Item>
+                <Descriptions.Item label="Đến ngày">
                   {bill.toDate && dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").isValid() ? (
                     dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").format("DD/MM/YYYY")
                   ) : getFallbackToDate(bill) ? (
@@ -154,17 +150,15 @@ export default function LandlordBillDetailPage() {
                     </span>
                   )}
                 </Descriptions.Item>
-                <Descriptions.Item label="Total">
-                  {bill.totalAmount?.toLocaleString()} VND
-                </Descriptions.Item>
-                <Descriptions.Item label="Status">
+                <Descriptions.Item label="Tổng tiền">{bill.totalAmount?.toLocaleString()} VND</Descriptions.Item>
+                <Descriptions.Item label="Trạng thái">
                   <Tag color={bill.status ? "green" : "red"}>
-                    {bill.status ? "Paid" : "Unpaid"}
+                    {bill.status ? "Đã thanh toán" : "Chưa thanh toán"}
                   </Tag>
                 </Descriptions.Item>
               </Descriptions>
 
-              <h3 style={{ marginTop: 24 }}>Bill Details</h3>
+              <h3 style={{ marginTop: 24 }}>Chi tiết các khoản</h3>
               <Table
                 columns={columns}
                 dataSource={bill.details}
@@ -174,9 +168,7 @@ export default function LandlordBillDetailPage() {
               />
 
               <div style={{ marginTop: 24 }}>
-                <Button onClick={handleExport} type="primary">
-                  Export PDF
-                </Button>
+                <Button onClick={handleExport} type="primary">Xuất PDF</Button>
 
                 {!bill.status && (
                   <Button
@@ -189,12 +181,12 @@ export default function LandlordBillDetailPage() {
                 )}
 
                 <Button style={{ marginLeft: 16 }} onClick={() => navigate(-1)}>
-                  Back
+                  Quay lại
                 </Button>
               </div>
             </>
           ) : (
-            <div>Bill not found</div>
+            <div>Không tìm thấy hóa đơn</div>
           )}
         </Card>
       </div>

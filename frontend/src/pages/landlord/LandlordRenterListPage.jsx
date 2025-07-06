@@ -112,10 +112,10 @@ export default function LandlordRenterListPage() {
               paddingTop: 4,
             }}
           >
-            <PageHeader title="List Renter" />
+            <PageHeader title="Danh sách người thuê" />
             <Space>
               <Input
-                placeholder="Search renter name or room"
+                placeholder="Tìm tên người thuê hoặc phòng"
                 style={{ width: 250 }}
                 prefix={<SearchOutlined />}
                 value={searchText}
@@ -132,14 +132,14 @@ export default function LandlordRenterListPage() {
                 trigger="click"
                 placement="bottomRight"
               >
-                <Button icon={<FilterOutlined />}>Filter</Button>
+                <Button icon={<FilterOutlined />}>Bộ lọc</Button>
               </Popover>
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
                 onClick={() => navigate("/landlord/renters/add")}
               >
-                Add Renter
+                Thêm người thuê
               </Button>
             </Space>
           </div>
@@ -153,36 +153,36 @@ export default function LandlordRenterListPage() {
             }}
           >
             <div>
-              Show
+              Hiển thị
               <Select
                 style={{ width: 80, margin: "0 8px" }}
                 value={pageSize}
                 onChange={handlePageSizeChange}
                 options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
               />
-              entries
+              mục
             </div>
             <div style={{ fontWeight: 400, color: "#888" }}>
-              Total: {total} renters
+              Tổng: {total} người thuê
             </div>
           </div>
 
           <RenterTable search={searchText} filter={filter} />
           <Modal
             open={addModalOpen}
-            title="Add New Renter"
+            title="Thêm người thuê mới"
             onCancel={() => {
               addForm.resetFields();
               setAddModalOpen(false);
             }}
             onOk={handleAddRenter}
             confirmLoading={addLoading}
-            okText="Add"
+            okText="Thêm"
           >
             <Form form={addForm} layout="vertical">
               <Form.Item
                 name="fullName"
-                label="Full Name"
+                label="Họ và tên"
                 rules={[{ required: true }]}
               >
                 {" "}
@@ -190,13 +190,13 @@ export default function LandlordRenterListPage() {
               </Form.Item>
               <Form.Item
                 name="phoneNumber"
-                label="Phone Number"
+                label="Số điện thoại"
                 rules={[{ required: true }]}
               >
                 {" "}
                 <Input />{" "}
               </Form.Item>
-              <Form.Item name="citizenId" label="Citizen ID Number">
+              <Form.Item name="citizenId" label="Số CCCD">
                 {" "}
                 <Input />{" "}
               </Form.Item>

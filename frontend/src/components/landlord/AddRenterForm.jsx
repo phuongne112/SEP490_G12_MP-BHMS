@@ -33,7 +33,7 @@ export default function AddRenterForm() {
     try {
       const result = await addRenter(data);
       console.log("[DEBUG] Kết quả trả về:", result);
-      message.success("Renter account created successfully!");
+      message.success("Tạo tài khoản người thuê thành công!");
       form.resetFields();
       // Không gọi lại onSubmit để tránh double submit
     } catch (error) {
@@ -45,9 +45,9 @@ export default function AddRenterForm() {
             { name: field === "phone" ? "phoneNumber" : field, errors: [msg] },
           ]);
         });
-        message.error("Please check your information!");
+        message.error("Vui lòng kiểm tra lại thông tin!");
       } else {
-        message.error(res?.message || "An error occurred, please try again!");
+        message.error(res?.message || "Có lỗi xảy ra, vui lòng thử lại!");
       }
     } finally {
       setLoading(false);
@@ -56,91 +56,82 @@ export default function AddRenterForm() {
 
   return (
     <div style={{ padding: 24 }}>
-      <h2>Add New Renter</h2>
+      <h2>Thêm người thuê mới</h2>
       <Form layout="vertical" form={form} onFinish={handleFinish} initialValues={{ isActive: true }}>
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item label="Username" name="username" rules={[
-              { required: true, message: "Please enter username" },
-              { min: 3, max: 50, message: "Username must be 3-50 characters" },
-              { pattern: /^[A-Za-z0-9_]+$/, message: "Only letters, numbers, and underscores allowed. No spaces." },
-              { pattern: /^[^@\s]+$/, message: "Username cannot be an email address." }
+            <Form.Item label="Tên đăng nhập" name="username" rules={[
+              { required: true, message: "Vui lòng nhập tên đăng nhập" },
+              { min: 3, max: 50, message: "Tên đăng nhập phải từ 3-50 ký tự" },
+              { pattern: /^[^@\s]+$/, message: "Tên đăng nhập không được là email." }
             ]}>
-              <Input />
+              <Input placeholder="Nhập tên đăng nhập" />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="Full Name" name="fullName" rules={[
-              { required: true, message: "Please enter full name" },
-              { min: 2, max: 100, message: "Full name must be 2-100 characters" }
+            <Form.Item label="Họ và tên" name="fullName" rules={[
+              { required: true, message: "Vui lòng nhập họ và tên" },
+              { min: 2, max: 100, message: "Họ và tên phải từ 2-100 ký tự" }
             ]}>
-              <Input />
+              <Input placeholder="Nhập họ và tên" />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item label="Email" name="email" rules={[
-              { required: true, message: "Please enter email" },
-              { type: "email", message: "Invalid email format" },
-              { max: 100, message: "Email must be at most 100 characters" }
+              { required: true, message: "Vui lòng nhập email" },
+              { type: "email", message: "Email không hợp lệ" },
+              { max: 100, message: "Email tối đa 100 ký tự" }
             ]}>
-              <Input type="email" />
+              <Input type="email" placeholder="Nhập email" />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="Password" name="password" rules={[
-              { required: true, message: "Please enter password" },
-              { min: 6, max: 32, message: "Password must be 6-32 characters" }
+            <Form.Item label="Mật khẩu" name="password" rules={[
+              { required: true, message: "Vui lòng nhập mật khẩu" },
+              { min: 6, max: 32, message: "Mật khẩu phải từ 6-32 ký tự" }
             ]}>
-              <Input.Password />
+              <Input.Password placeholder="Nhập mật khẩu" />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item 
-              label="Phone Number" 
-              name="phoneNumber" 
-              rules={[
-                { required: true, message: "Please enter phone number" },
-                {
-                  pattern: /^(03[2-9]|05[689]|07[06-9]|08[1-6|8|9]|09\d)\d{7}$/,
-                  message: "Invalid phone number. Must start with 0 and have exactly 10 digits with a valid Vietnamese prefix."
-                }
-              ]}
-            >
-              <Input />
+            <Form.Item label="Số điện thoại" name="phoneNumber" rules={[
+              { required: true, message: "Vui lòng nhập số điện thoại" },
+              { message: "Số điện thoại không hợp lệ. Bắt đầu bằng 0, 10 số, đúng đầu số Việt Nam." }
+            ]}>
+              <Input placeholder="Nhập số điện thoại" />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="Date of Birth" name="dateOfBirth" rules={[
-              { required: true, message: "Please select date of birth" }
+            <Form.Item label="Ngày sinh" name="dateOfBirth" rules={[
+              { required: true, message: "Vui lòng chọn ngày sinh" }
             ]}>
-              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+              <DatePicker style={{ width: '100%' }} placeholder="Chọn ngày sinh" />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="Citizen ID" name="citizenId" rules={[
-              { required: true, message: "Please enter citizen ID" },
-              { pattern: /^\d{9,12}$/, message: "Citizen ID must be 9-12 digits" }
+            <Form.Item label="CCCD/CMND" name="citizenId" rules={[
+              { required: true, message: "Vui lòng nhập CCCD/CMND" },
+              { pattern: /^\d{9,12}$/, message: "CCCD/CMND phải từ 9-12 số" }
             ]}>
-              <Input />
+              <Input placeholder="Nhập số CCCD/CMND" />
             </Form.Item>
           </Col>
           <Col span={24}>
-            <Form.Item label="Permanent Address" name="address" rules={[
-              { required: true, message: "Please enter permanent address" },
-              { min: 5, max: 255, message: "Address must be 5-255 characters" }
+            <Form.Item label="Địa chỉ thường trú" name="address" rules={[
+              { required: true, message: "Vui lòng nhập địa chỉ thường trú" }
             ]}>
-              <Input />
+              <Input placeholder="Nhập địa chỉ thường trú" />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="Active Status" name="isActive" valuePropName="checked">
-              <Switch checkedChildren="Active" unCheckedChildren="Deactive" />
+            <Form.Item label="Trạng thái hoạt động" name="isActive" valuePropName="checked">
+              <Switch checkedChildren="Đang hoạt động" unCheckedChildren="Ngừng hoạt động" />
             </Form.Item>
           </Col>
         </Row>
         <Form.Item style={{ textAlign: "right" }}>
           <Button type="primary" htmlType="submit" loading={loading}>
-            Create Account
+            Tạo tài khoản
           </Button>
         </Form.Item>
       </Form>

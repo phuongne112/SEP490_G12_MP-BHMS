@@ -107,7 +107,7 @@ export default function Register() {
           }}
         >
           <TextInput
-            label="User Name"
+            label="Tên đăng nhập"
             name="username"
             value={form.username}
             onChange={handleChange}
@@ -129,14 +129,14 @@ export default function Register() {
             error={errors.email}
           />
           <TextInput
-            label="Phone"
+            label="Số điện thoại"
             name="phone"
             value={form.phone}
             onChange={handleChange}
             error={errors.phone}
           />
           <TextInput
-            label="Password"
+            label="Mật khẩu"
             name="password"
             value={form.password}
             onChange={handleChange}
@@ -152,7 +152,7 @@ export default function Register() {
           />
 
           <TextInput
-            label="Re-enter Password"
+            label="Xác nhận mật khẩu"
             name="confirmPassword"
             value={form.confirmPassword}
             onChange={handleChange}
@@ -195,16 +195,16 @@ export default function Register() {
                 cursor: "pointer",
               }}
             >
-              Sign Up
+              Đăng ký
             </button>
 
             <div style={{ marginTop: 12, fontSize: 14 }}>
-              Already have an account?{" "}
+              Đã có tài khoản?{" "}
               <a
                 href="/login"
                 style={{ color: "#0A2342", textDecoration: "underline" }}
               >
-                Sign In
+                Đăng nhập
               </a>
             </div>
           </div>

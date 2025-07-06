@@ -133,7 +133,7 @@ export default function AdminNotificationPage() {
               marginBottom: 24,
             }}
           >
-            <PageHeader title="List Notification" />
+            <PageHeader title="Danh sách thông báo" />
             <Space style={{ gap: 20 }}>
               <Badge count={3} offset={[-2, 2]} size="small">
                 <FaBell
@@ -148,7 +148,7 @@ export default function AdminNotificationPage() {
                   icon={<PlusOutlined />}
                   onClick={() => setIsCreateModalOpen(true)}
                 >
-                  Add New
+                  Thêm thông báo
                 </Button>
               </Access>
             </Space>
@@ -165,7 +165,7 @@ export default function AdminNotificationPage() {
           >
             <EntrySelect value={pageSize} onChange={setPageSize} />
             <Space style={{ gap: 100 }}>
-              <SearchBox onSearch={setSearchTerm} />
+              <SearchBox onSearch={setSearchTerm} placeholder="Tìm thông báo..." />
               <Popover
                 open={isFilterOpen}
                 onOpenChange={setIsFilterOpen}
@@ -184,7 +184,7 @@ export default function AdminNotificationPage() {
                   icon={<FilterOutlined />}
                   style={{ backgroundColor: "#40a9ff", color: "white" }}
                 >
-                  Filter
+                  Bộ lọc
                 </Button>
               </Popover>
             </Space>
@@ -204,7 +204,7 @@ export default function AdminNotificationPage() {
 
           {/* Create Notification Modal */}
           <Modal
-            title="Create Notification"
+            title="Tạo thông báo"
             open={isCreateModalOpen}
             onCancel={() => {
               setIsCreateModalOpen(false);
@@ -265,7 +265,7 @@ export default function AdminNotificationPage() {
                 <Col span={24}>
                   <Form.Item
                     name="mode"
-                    label="Send Mode"
+                    label="Chế độ gửi"
                     rules={[{ required: true }]}
                   >
                     <Select
@@ -274,7 +274,7 @@ export default function AdminNotificationPage() {
                         createForm.setFieldsValue({ recipientId: undefined });
                       }}
                     >
-                      <Option value="role">To Role (All Users)</Option>
+                      <Option value="role">Theo vai trò (Tất cả người dùng)</Option>
                       <Option value="individual">To Individual</Option>
                     </Select>
                   </Form.Item>
@@ -284,7 +284,7 @@ export default function AdminNotificationPage() {
                   <Col span={24}>
                     <Form.Item
                       name="recipientId"
-                      label="Send to User"
+                      label="Gửi đến người dùng"
                       rules={[{ required: true }]}
                     >
                       <Select placeholder="Select a user">
@@ -301,17 +301,17 @@ export default function AdminNotificationPage() {
                 <Col span={24}>
                   <Form.Item
                     name="type"
-                    label="Type notification"
+                    label="Loại thông báo"
                     rules={[{ required: true }]}
                   >
-                    <Select placeholder="Select a type">
+                    <Select placeholder="Chọn loại">
                       <Option value="RENT_REMINDER">Rent Reminder</Option>
                       <Option value="MAINTENANCE">Maintenance</Option>
-                      <Option value="BOOKING_STATUS">Booking Status</Option>
-                      <Option value="ANNOUNCEMENT">Announcement</Option>
+                      <Option value="BOOKING_STATUS">Trạng thái đặt phòng</Option>
+                      <Option value="ANNOUNCEMENT">Thông báo chung</Option>
                       <Option value="PAYMENT_SUCCESS">Payment Success</Option>
                       <Option value="PAYMENT_FAILED">Payment Failed</Option>
-                      <Option value="CUSTOM">Custom</Option>
+                      <Option value="CUSTOM">Tùy chỉnh</Option>
                     </Select>
                   </Form.Item>
                 </Col>
@@ -319,34 +319,31 @@ export default function AdminNotificationPage() {
                 <Col span={24}>
                   <Form.Item
                     name="label"
-                    label="Label"
+                    label="Tiêu đề"
                     rules={[{ required: true }]}
                   >
-                    <Input.TextArea
-                      rows={3}
-                      placeholder="Enter notification content"
-                    />
+                    <Input placeholder="Nhập tiêu đề thông báo" />
                   </Form.Item>
                 </Col>
 
                 <Col span={24}>
                   <Form.Item
                     name="content"
-                    label="Content"
+                    label="Nội dung"
                     rules={[
                       { required: true, message: "Please enter content!" },
                     ]}
                   >
                     <Input.TextArea
                       rows={4}
-                      placeholder="Enter the notification message/content"
+                      placeholder="Nhập nội dung thông báo"
                     />
                   </Form.Item>
                 </Col>
               </Row>
 
               <Button type="primary" htmlType="submit" block>
-                Create and send
+                Tạo và gửi
               </Button>
             </Form>
           </Modal>

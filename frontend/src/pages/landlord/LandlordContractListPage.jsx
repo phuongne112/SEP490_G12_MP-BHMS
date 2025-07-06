@@ -19,6 +19,7 @@ import {
   requestTerminateContract
 } from "../../services/roomUserApi";
 import { getAllRooms } from "../../services/roomService";
+import { FilterOutlined } from "@ant-design/icons";
 
 const { Sider, Content } = Layout;
 
@@ -142,17 +143,17 @@ export default function LandlordContractListPage() {
       const url = window.URL.createObjectURL(blob);
       window.open(url, "_blank");
     } catch (err) {
-      message.error("Export PDF failed");
+      message.error("Xuất PDF thất bại");
     }
   };
 
   const handleDelete = async (id) => {
     try {
       await deleteContract(id);
-      message.success("Contract deleted");
+      message.success("Đã xóa hợp đồng");
       fetchRoomsAndLatestContracts();
     } catch {
-      message.error("Delete failed");
+      message.error("Xóa thất bại");
     }
   };
 
@@ -408,7 +409,7 @@ export default function LandlordContractListPage() {
       <Layout>
         <Content style={{ padding: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <PageHeader title="Contract List" />
+            <PageHeader title="Danh sách hợp đồng" />
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <Popover
                 content={
@@ -423,9 +424,9 @@ export default function LandlordContractListPage() {
                 onOpenChange={setFilterVisible}
                 placement="bottomRight"
               >
-                <Button type="primary">Filter</Button>
+                <Button icon={<FilterOutlined />}>Bộ lọc</Button>
               </Popover>
-              <Button onClick={() => { setFilter({}); setFilterVisible(false); setCurrentPage(1); }}>Clear</Button>
+              <Button onClick={() => { setFilter({}); setFilterVisible(false); setCurrentPage(1); }}>Xóa lọc</Button>
             </div>
           </div>
           <div
@@ -442,7 +443,7 @@ export default function LandlordContractListPage() {
             }}
           >
             <div>
-              Show
+              Hiển thị
               <Select
                 style={{ width: 120, margin: "0 8px" }}
                 value={pageSize}
@@ -451,12 +452,12 @@ export default function LandlordContractListPage() {
                   setCurrentPage(1);
                   fetchRoomsAndLatestContracts(1, value);
                 }}
-                options={pageSizeOptions.map((v) => ({ value: v, label: `${v} / page` }))}
+                options={pageSizeOptions.map((v) => ({ value: v, label: `${v} / trang` }))}
               />
-              entries
+              mục
             </div>
             <div style={{ fontWeight: 400, color: "#888" }}>
-              Total: {total} contracts
+              Tổng: {total} hợp đồng
             </div>
           </div>
           <ContractTable
@@ -477,24 +478,24 @@ export default function LandlordContractListPage() {
               fetchRoomsAndLatestContracts(page, pageSize);
             }}
           />
-          <Modal open={renewModalOpen} onCancel={() => setRenewModalOpen(false)} onOk={doRenewContract} okText="Renew" confirmLoading={updating} title="Renew Contract">
-            <div>Select new end date:</div>
-            <DatePicker value={renewDate} onChange={setRenewDate} style={{ width: '100%', marginTop: 8 }} format="DD/MM/YYYY" />
+          <Modal open={renewModalOpen} onCancel={() => setRenewModalOpen(false)} onOk={doRenewContract} okText="Gia hạn hợp đồng" confirmLoading={updating} title="Gia hạn hợp đồng">
+            <div>Chọn ngày kết thúc mới:</div>
+            <DatePicker value={renewDate} onChange={setRenewDate} style={{ width: '100%', marginTop: 8 }} format="DD/MM/YYYY" placeholder="Chọn ngày" />
           </Modal>
-          <Modal open={updateModalOpen} onCancel={() => setUpdateModalOpen(false)} onOk={doUpdateContract} okText="Submit Request" confirmLoading={updating} title="Update Contract">
-            <div style={{ marginBottom: 8 }}>Reason for update:</div>
+          <Modal open={updateModalOpen} onCancel={() => setUpdateModalOpen(false)} onOk={doUpdateContract} okText="Cập nhật hợp đồng" confirmLoading={updating} title="Cập nhật hợp đồng">
+            <div style={{ marginBottom: 8 }}>Lý do cập nhật:</div>
             <Input.TextArea value={updateReason} onChange={e => setUpdateReason(e.target.value)} rows={2} style={{ marginBottom: 12 }} />
-            <div style={{ marginBottom: 8 }}>New end date:</div>
+            <div style={{ marginBottom: 8 }}>Ngày kết thúc mới:</div>
             <DatePicker value={updateEndDate} onChange={setUpdateEndDate} style={{ width: '100%', marginBottom: 12 }} format="DD/MM/YYYY" />
-            <div style={{ marginBottom: 8 }}>New rent amount:</div>
+            <div style={{ marginBottom: 8 }}>Tiền thuê mới:</div>
             <Input type="number" value={updateRentAmount} onChange={e => setUpdateRentAmount(e.target.value)} style={{ marginBottom: 12 }} />
-            <div style={{ marginBottom: 8 }}>New deposit amount:</div>
+            <div style={{ marginBottom: 8 }}>Tiền đặt cọc mới:</div>
             <Input type="number" value={updateDeposit} onChange={e => setUpdateDeposit(e.target.value)} style={{ marginBottom: 12 }} />
-            <div style={{ marginBottom: 8 }}>Payment cycle:</div>
+            <div style={{ marginBottom: 8 }}>Chu kỳ thanh toán:</div>
             <Select value={updatePaymentCycle} onChange={setUpdatePaymentCycle} style={{ width: '100%', marginBottom: 12 }} options={paymentCycleOptions.map(opt => ({...opt, label: opt.value === 'MONTHLY' ? 'Monthly' : opt.value === 'QUARTERLY' ? 'Quarterly' : 'Yearly'}))} />
-            <div style={{ marginBottom: 8, fontWeight: 500 }}>Contract terms:</div>
+            <div style={{ marginBottom: 8, fontWeight: 500 }}>Điều khoản hợp đồng:</div>
             <ul style={{ margin: '8px 0 8px 16px', padding: 0 }}>
-              {updateTerms.length === 0 && <li>No terms yet</li>}
+              {updateTerms.length === 0 && <li>Chưa có điều khoản</li>}
               {updateTerms.map((term, idx) => (
                 <li key={idx} style={{ marginBottom: 4, display: 'flex', alignItems: 'center' }}>
                   <Input.TextArea
@@ -523,13 +524,13 @@ export default function LandlordContractListPage() {
               style={{ width: '100%', marginBottom: 12 }}
               onClick={() => setUpdateTerms(prev => [...prev, ""])}
             >
-              + Add term
+              + Thêm điều khoản
             </Button>
             <div style={{ marginBottom: 8 }}>
-              Tenants in new contract ({updateRenters.length}/{maxCount}):
+              Người thuê trong hợp đồng mới ({updateRenters.length}/{maxCount}):
             </div>
             <ul style={{ margin: '8px 0 8px 16px', padding: 0 }}>
-              {updateRenters.length === 0 && <li>No tenants yet</li>}
+              {updateRenters.length === 0 && <li>Chưa có người thuê</li>}
               {updateRenters.map(id => {
                 const user = allRenters.find(r => r.id === id);
                 return (
@@ -579,7 +580,10 @@ export default function LandlordContractListPage() {
               * Maximum number of tenants: {maxCount}
             </div>
           </Modal>
-          <Modal open={amendmentsModalOpen} onCancel={() => setAmendmentsModalOpen(false)} footer={null} title="Contract Change Requests">
+          <Modal open={amendmentsModalOpen} onCancel={() => setAmendmentsModalOpen(false)} footer={null} title="Yêu cầu thay đổi hợp đồng">
+            <div style={{ fontWeight: 600, color: '#d46b08', marginBottom: 4 }}>
+              Lý do thay đổi:
+            </div>
             <List
               dataSource={amendments}
               renderItem={item => (
@@ -588,16 +592,16 @@ export default function LandlordContractListPage() {
                   actions={[]}
                 >
                   <div style={{ width: '100%' }}>
-                    <div style={{ fontWeight: 600, color: '#d46b08', marginBottom: 4 }}>
+                    <div style={{ fontWeight: 600, color: '#222', marginBottom: 4 }}>
                       Reason for change:
                     </div>
                     <div style={{ marginBottom: 8, color: '#222' }}>{item.reason || <span style={{ color: '#888' }}>No reason provided</span>}</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 8 }}>
-                      <div><b>Type:</b> {item.amendmentType}</div>
-                      <div><b>Status:</b> {item.status}</div>
+                      <div><b>Loại:</b> {item.amendmentType}</div>
+                      <div><b>Trạng thái:</b> {item.status}</div>
                     </div>
                     <div style={{ marginBottom: 8 }}>
-                      <b>Change:</b> <span style={{ color: '#1677ff' }}>{item.oldValue}</span> &rarr; <span style={{ color: '#52c41a' }}>{item.newValue}</span>
+                      <b>Thay đổi:</b> <span style={{ color: '#1677ff' }}>{item.oldValue}</span> &rarr; <span style={{ color: '#52c41a' }}>{item.newValue}</span>
                     </div>
                     {item.status === 'PENDING' && !item.approvedByLandlord && (
                       <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
@@ -605,13 +609,13 @@ export default function LandlordContractListPage() {
                           type="primary"
                           onClick={() => handleApproveAmendment(item.id, true)}
                         >
-                          Approve
+                          Duyệt
                         </Button>
                         <Button
                           danger
                           onClick={() => message.info('Reject action not yet implemented')}
                         >
-                          Reject
+                          Từ chối
                         </Button>
                       </div>
                     )}
@@ -642,7 +646,8 @@ export default function LandlordContractListPage() {
             onCancel={() => setTerminateModalOpen(false)}
             onOk={doRequestTerminate}
             okText="Gửi yêu cầu"
-            title="Yêu cầu kết thúc hợp đồng"
+            cancelText="Hủy"
+            title="Bạn có chắc"
           >
             <div>Lý do kết thúc hợp đồng:</div>
             <Input.TextArea

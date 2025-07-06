@@ -22,6 +22,7 @@ import {
   ClockCircleOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  FileDoneOutlined,
 } from "@ant-design/icons";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import dayjs from "dayjs";
@@ -30,10 +31,20 @@ import { Layout } from "antd";
 import { useSelector } from "react-redux";
 
 const { Sider, Content } = Layout;
-
 const { Title, Text } = Typography;
 
 dayjs.extend(customParseFormat);
+
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  return isMobile;
+};
 
 export default function RenterBillListPage() {
   const [bills, setBills] = useState([]);
@@ -44,7 +55,9 @@ export default function RenterBillListPage() {
     unpaid: 0,
     totalAmount: 0,
   });
+
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const user = useSelector((state) => state.account.user);
 
   useEffect(() => {
@@ -56,18 +69,19 @@ export default function RenterBillListPage() {
     try {
       const res = await getMyBills();
       let billsData = res.content || [];
-      // Filter bills for current user if backend does not already do this
       if (user && billsData.length > 0) {
-        billsData = billsData.filter(bill => {
-          // bill.renterId or bill.renterIds or bill.roomUsers
+        billsData = billsData.filter((bill) => {
           if (bill.renterId) return bill.renterId === user.id;
           if (bill.renterIds) return bill.renterIds.includes(user.id);
-          if (bill.roomUsers) return bill.roomUsers.some(u => u.userId === user.id || u.id === user.id);
-          return true; // fallback: show all
+          if (bill.roomUsers)
+            return bill.roomUsers.some(
+              (u) => u.userId === user.id || u.id === user.id
+            );
+          return true;
         });
       }
       setBills(billsData);
-      // Stats
+
       const total = billsData.length;
       const paid = billsData.filter((bill) => bill.status).length;
       const unpaid = total - paid;
@@ -82,17 +96,13 @@ export default function RenterBillListPage() {
     setLoading(false);
   };
 
-  const getStatusColor = (status) => {
-    return status ? "success" : "error";
-  };
+  const getStatusColor = (status) => (status ? "success" : "error");
 
-  const getStatusIcon = (status) => {
-    return status ? <CheckCircleOutlined /> : <CloseCircleOutlined />;
-  };
+  const getStatusIcon = (status) =>
+    status ? <CheckCircleOutlined /> : <CloseCircleOutlined />;
 
-  const getStatusText = (status) => {
-    return status ? "Đã thanh toán" : "Chưa thanh toán";
-  };
+  const getStatusText = (status) =>
+    status ? "Đã thanh toán" : "Chưa thanh toán";
 
   const getBillTypeColor = (type) => {
     switch (type) {
@@ -114,13 +124,16 @@ export default function RenterBillListPage() {
     if (date && dayjs(date).isValid()) {
       return dayjs(date).format("DD/MM/YYYY");
     }
-    return <span style={{ color: 'red', fontWeight: 500 }}>Không xác định</span>;
+    return (
+      <span style={{ color: "red", fontWeight: 500 }}>Không xác định</span>
+    );
   };
 
   const columns = [
     {
-      title: "Bill ID",
+      title: "Mã hóa đơn",
       dataIndex: "id",
+      key: "id",
       align: "center",
       render: (id) => (
         <Text strong style={{ color: "#1890ff" }}>
@@ -130,8 +143,9 @@ export default function RenterBillListPage() {
       width: 120,
     },
     {
-      title: "Room",
-      dataIndex: "roomNumber",
+      title: "Phòng",
+      dataIndex: "roomId",
+      key: "roomId",
       align: "center",
       render: (roomNumber) => (
         <Tag color="blue" style={{ fontWeight: "bold" }}>
@@ -141,8 +155,9 @@ export default function RenterBillListPage() {
       width: 100,
     },
     {
-      title: "Bill Type",
-      dataIndex: "billType",
+      title: "Loại hóa đơn",
+      dataIndex: "type",
+      key: "type",
       align: "center",
       render: (type) => (
         <Tag color={getBillTypeColor(type)}>
@@ -156,22 +171,25 @@ export default function RenterBillListPage() {
       width: 120,
     },
     {
-      title: "From",
-      dataIndex: "fromDate",
+      title: "Từ ngày",
+      dataIndex: "from",
+      key: "from",
       align: "center",
       render: (date) => <Text>{formatDate(date)}</Text>,
       width: 100,
     },
     {
-      title: "To",
-      dataIndex: "toDate",
+      title: "Đến ngày",
+      dataIndex: "to",
+      key: "to",
       align: "center",
       render: (date) => <Text>{formatDate(date)}</Text>,
       width: 100,
     },
     {
-      title: "Total",
-      dataIndex: "totalAmount",
+      title: "Tổng tiền",
+      dataIndex: "total",
+      key: "total",
       align: "center",
       render: (amount) => (
         <Text strong style={{ color: "#52c41a", fontSize: "16px" }}>
@@ -181,8 +199,9 @@ export default function RenterBillListPage() {
       width: 120,
     },
     {
-      title: "Status",
+      title: "Trạng thái",
       dataIndex: "status",
+      key: "status",
       align: "center",
       render: (status) => (
         <Tag
@@ -196,30 +215,33 @@ export default function RenterBillListPage() {
       width: 120,
     },
     {
-      title: "Actions",
+      title: "Thao tác",
+      key: "actions",
       align: "center",
       render: (_, record) => (
         <Space>
-          <Tooltip title="View details">
+          <Tooltip title="Xem chi tiết">
             <Button
               type="primary"
               icon={<EyeOutlined />}
               onClick={() => navigate(`/renter/bills/${record.id}`)}
               size="small"
             >
-              View
+              Xem
             </Button>
           </Tooltip>
           {!record.status && (
-            <Tooltip title="Pay now">
+            <Tooltip title="Thanh toán ngay">
               <Button
                 type="primary"
                 danger
                 icon={<DollarOutlined />}
-                onClick={() => navigate(`/renter/bills/${record.id}?action=pay`)}
+                onClick={() =>
+                  navigate(`/renter/bills/${record.id}?action=pay`)
+                }
                 size="small"
               >
-                Pay
+                Thanh toán
               </Button>
             </Tooltip>
           )}
@@ -241,19 +263,23 @@ export default function RenterBillListPage() {
             style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
           >
             <div style={{ marginBottom: 24 }}>
-              <Title level={2} style={{ margin: 0, color: "#1890ff" }}>
-                <FileTextOutlined style={{ marginRight: 8 }} />
-                My Bills
+              <Title
+                level={2}
+                style={{ color: "#1890ff", fontSize: isMobile ? 22 : 28 }}
+              >
+                <FileDoneOutlined style={{ marginRight: 8 }} />
+                Hóa đơn của tôi
               </Title>
-              <Text type="secondary">Manage and track your bills</Text>
+              <Text type="secondary" style={{ fontSize: isMobile ? 13 : 16 }}>
+                Quản lý và theo dõi các hóa đơn của bạn
+              </Text>
             </div>
 
-            {/* Thống kê */}
             <Row gutter={16} style={{ marginBottom: 24 }}>
               <Col span={6}>
                 <Card>
                   <Statistic
-                    title="Total Bills"
+                    title="Tổng số hóa đơn"
                     value={stats.total}
                     prefix={<FileTextOutlined />}
                     valueStyle={{ color: "#1890ff" }}
@@ -263,7 +289,7 @@ export default function RenterBillListPage() {
               <Col span={6}>
                 <Card>
                   <Statistic
-                    title="Paid"
+                    title="Đã thanh toán"
                     value={stats.paid}
                     prefix={<CheckCircleOutlined />}
                     valueStyle={{ color: "#52c41a" }}
@@ -273,7 +299,7 @@ export default function RenterBillListPage() {
               <Col span={6}>
                 <Card>
                   <Statistic
-                    title="Unpaid"
+                    title="Chưa thanh toán"
                     value={stats.unpaid}
                     prefix={<ClockCircleOutlined />}
                     valueStyle={{ color: "#faad14" }}
@@ -283,7 +309,7 @@ export default function RenterBillListPage() {
               <Col span={6}>
                 <Card>
                   <Statistic
-                    title="Total Amount"
+                    title="Tổng tiền"
                     value={stats.totalAmount}
                     prefix={<DollarOutlined />}
                     suffix="₫"
@@ -294,12 +320,11 @@ export default function RenterBillListPage() {
               </Col>
             </Row>
 
-            {/* Bảng hóa đơn */}
-            <Card title="Bill List" style={{ marginTop: 16 }}>
+            <Card title="Danh sách hóa đơn" style={{ marginTop: 16 }}>
               {loading ? (
                 <div style={{ textAlign: "center", padding: "40px" }}>
                   <Spin size="large" />
-                  <div style={{ marginTop: 16 }}>Loading...</div>
+                  <div style={{ marginTop: 16 }}>Đang tải...</div>
                 </div>
               ) : (
                 <Table

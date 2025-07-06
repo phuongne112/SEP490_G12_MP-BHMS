@@ -41,7 +41,7 @@ export default function RenterRoomDetailPage() {
       </Sider>
       <Layout style={{ padding: 24 }}>
         <Content style={{ background: "#fff", padding: 24, borderRadius: 8 }}>
-          <PageHeader title="Room Detail" />
+          <PageHeader title="Chi tiết phòng" />
 
           <Row gutter={24}>
             <Col span={10}>
@@ -88,11 +88,11 @@ export default function RenterRoomDetailPage() {
                 wrapperCol={{ span: 24 }}
                 style={{ maxWidth: 500 }}
               >
-                <Form.Item label="Room Number">
+                <Form.Item label="Số phòng">
                   <Input value={roomInfo.number} disabled />
                 </Form.Item>
 
-                <Form.Item label="Maximum number of people">
+                <Form.Item label="Số người tối đa">
                   <InputNumber
                     value={roomInfo.maxPeople}
                     disabled
@@ -100,11 +100,11 @@ export default function RenterRoomDetailPage() {
                   />
                 </Form.Item>
 
-                <Form.Item label="Building">
+                <Form.Item label="Tòa nhà">
                   <Input value={roomInfo.building} disabled />
                 </Form.Item>
 
-                <Form.Item label="Area (m²)">
+                <Form.Item label="Diện tích (m²)">
                   <InputNumber
                     value={roomInfo.area}
                     disabled
@@ -112,14 +112,14 @@ export default function RenterRoomDetailPage() {
                   />
                 </Form.Item>
 
-                <Form.Item label="Cost (VND/Month)">
+                <Form.Item label="Giá (VND/Tháng)">
                   <Input
                     value={roomInfo.price.toLocaleString("vi-VN")}
                     disabled
                   />
                 </Form.Item>
 
-                <Form.Item label="Status">
+                <Form.Item label="Trạng thái">
                   <Switch checked={roomInfo.status} disabled />
                 </Form.Item>
 
@@ -129,7 +129,7 @@ export default function RenterRoomDetailPage() {
                       type="primary"
                       onClick={() => navigate("/renter/rooms/checkin-assets")}
                     >
-                      Check-in Asset
+                      Kiểm kê tài sản nhận phòng
                     </Button>
                   </Col>
                   <Col>
@@ -137,7 +137,7 @@ export default function RenterRoomDetailPage() {
                       danger
                       onClick={() => navigate("/renter/rooms/checkout-assets")}
                     >
-                      Check-out Asset
+                      Kiểm kê tài sản trả phòng
                     </Button>
                   </Col>
                 </Row>

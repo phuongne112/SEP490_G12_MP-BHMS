@@ -95,7 +95,7 @@ export default function RoomList({ filter }) {
           style={{ width: 120, marginBottom: 24 }}
         />
         <h3 style={{ fontWeight: 600, marginBottom: 8 }}>
-          No matching rooms found
+          Không tìm thấy phòng phù hợp
         </h3>
         <p style={{ color: "#666", maxWidth: 400, margin: "0 auto 16px" }}>
           Please check your keyword or try different values.
@@ -111,7 +111,7 @@ export default function RoomList({ filter }) {
     <div style={{ padding: "40px 20px" }}>
       <div style={{ textAlign: "center", marginBottom: "30px" }}>
         <Input.Search
-          placeholder="Search room number, price, status or area..."
+          placeholder="Tìm số phòng, giá, trạng thái hoặc diện tích..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onSearch={handleSearch}
@@ -125,13 +125,13 @@ export default function RoomList({ filter }) {
             onClick={() => setSortOrder("asc")}
             style={{ marginRight: 8 }}
           >
-            Price ascending
+            Giá tăng dần
           </Button>
           <Button
             type={sortOrder === "desc" ? "primary" : "default"}
             onClick={() => setSortOrder("desc")}
           >
-            Price descending
+            Giá giảm dần
           </Button>
         </div>
       </div>
@@ -159,10 +159,10 @@ export default function RoomList({ filter }) {
           onClick={handlePrevPage}
           disabled={pagination.current === 1}
         >
-          Previous
+          Trước
         </Button>
         <span>
-          Page {pagination.current} / {Math.ceil(pagination.total / pagination.pageSize)} ({pagination.total} Rooms)
+          Trang {pagination.current} / {Math.ceil(pagination.total / pagination.pageSize)} ({pagination.total} phòng)
         </span>
         <Button
           icon={<RightOutlined />}
@@ -171,7 +171,7 @@ export default function RoomList({ filter }) {
             pagination.current >= Math.ceil(pagination.total / pagination.pageSize)
           }
         >
-          Next
+          Tiếp
         </Button>
       </div>
     </div>

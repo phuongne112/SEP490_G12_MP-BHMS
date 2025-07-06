@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Table, Button, Popconfirm, Statistic, Space, Spin } from "antd";
+import { Table, Button, Popconfirm, Statistic, Space, Spin, Tag } from "antd";
 import { FilePdfOutlined, EditOutlined, HistoryOutlined, ReloadOutlined, StopOutlined } from "@ant-design/icons";
 import { getContractHistoryByRoom } from "../../services/contractApi";
 
@@ -64,19 +64,19 @@ function ContractHistoryTable({ roomId, onExport }) {
 export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate, onRenew, onViewAmendments, onTerminate, loading, onFilter, pageSize = 5, currentPage = 1, total = 0, onPageChange }) {
   const columns = [
     {
-      title: "Contract ID",
+      title: "Mã hợp đồng",
       dataIndex: "id",
       align: "center",
       width: 90
     },
     {
-      title: "Room",
+      title: "Phòng",
       render: (_, record) => record?.room?.roomNumber || record?.roomNumber || "Unknown",
       align: "center",
       width: 90
     },
     {
-      title: "Start Date",
+      title: "Ngày bắt đầu",
       dataIndex: "contractStartDate",
       render: (text) =>
         text ? new Date(text).toLocaleDateString("en-GB") : "—",
@@ -84,7 +84,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       width: 110
     },
     {
-      title: "End Date",
+      title: "Ngày kết thúc",
       dataIndex: "contractEndDate",
       render: (text) =>
         text ? new Date(text).toLocaleDateString("en-GB") : "—",
@@ -92,21 +92,18 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       width: 110
     },
     {
-      title: "Status",
+      title: "Trạng thái",
       dataIndex: "contractStatus",
       render: status => (
-        <span style={{
-          color: status === "TERMINATED" ? "red" : status === "ACTIVE" ? "green" : "#888",
-          fontWeight: 600
-        }}>
-          {status === "TERMINATED" ? "Terminated" : status === "ACTIVE" ? "Active" : status}
-        </span>
+        <Tag color={status === "TERMINATED" ? "red" : status === "ACTIVE" ? "green" : "#888"}>
+          {status === "TERMINATED" ? "Đã chấm dứt" : status === "ACTIVE" ? "Đang hiệu lực" : status}
+        </Tag>
       ),
       align: "center",
       width: 110
     },
     {
-      title: "Time Left",
+      title: "Còn lại",
       align: "center",
       width: 160,
       render: (_, record) => {
@@ -156,20 +153,20 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
             display: "inline-block",
             textAlign: "center"
           }}>
-            <Countdown value={end} format="D [days]" style={{ color, fontWeight: 600 }} />
+            <Countdown value={end} format="D [ngày]" style={{ color, fontWeight: 600 }} />
           </span>
         );
       }
     },
     {
-      title: "Contract No.",
+      title: "Số hợp đồng",
       dataIndex: "contractNumber",
       render: (num, record) => num || `#${record.id}`,
       align: "center",
       width: 110
     },
     {
-      title: "Tenant(s)",
+      title: "Người thuê",
       dataIndex: "roomUsers",
       key: "tenants",
       render: (users) => users?.map(u => u.fullName).join(", ") || "—",
@@ -178,7 +175,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       ellipsis: true
     },
     {
-      title: "Phone(s)",
+      title: "Số điện thoại",
       dataIndex: "roomUsers",
       key: "phones",
       render: (users) => users?.map(u => u.phoneNumber).join(", ") || "—",
@@ -187,7 +184,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       ellipsis: true
     },
     {
-      title: "Deposit",
+      title: "Tiền cọc",
       dataIndex: "depositAmount",
       key: "deposit",
       render: (amount) => amount ? amount.toLocaleString() + " VND" : "—",
@@ -195,7 +192,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       width: 110
     },
     {
-      title: "Rent",
+      title: "Tiền thuê",
       dataIndex: "rentAmount",
       key: "rent",
       render: (amount) => amount ? amount.toLocaleString() + " VND" : "—",
@@ -203,7 +200,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       width: 110
     },
     {
-      title: "Payment Cycle",
+      title: "Chu kỳ thanh toán",
       dataIndex: "paymentCycle",
       key: "paymentCycle",
       render: (cycle) => cycle || "—",
@@ -211,43 +208,34 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       width: 120
     },
     {
-      title: "Created At",
+      title: "Ngày tạo",
       dataIndex: "createdDate",
       render: (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—",
       align: "center",
       width: 110
     },
     {
-      title: "Updated At",
+      title: "Ngày cập nhật",
       dataIndex: "updatedDate",
       render: (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—",
       align: "center",
       width: 110
     },
     {
-      title: "Actions",
+      title: "Thao tác",
       align: "center",
-      width: 300,
+      width: 350,
       render: (_, record) => {
         const isTerminatedOrExpired = record.contractStatus === "TERMINATED" || record.contractStatus === "EXPIRED";
         return (
-          <Space
-            size="small"
-            style={{
-              width: "100%",
-              display: "flex",
-              justifyContent: "center",
-              flexWrap: "nowrap",
-              gap: 8
-            }}
-          >
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
             <Button
               type="primary"
               icon={<FilePdfOutlined />}
               onClick={() => onExport(record.id)}
               size="small"
             >
-              PDF
+              Tệp PDF
             </Button>
             <Button
               type="default"
@@ -257,7 +245,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
               style={{ color: "#faad14", borderColor: "#faad14" }}
               disabled={isTerminatedOrExpired}
             >
-              Edit
+              Sửa
             </Button>
             <Button
               type="default"
@@ -267,7 +255,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
               style={{ color: "#52c41a", borderColor: "#52c41a" }}
               disabled={isTerminatedOrExpired}
             >
-              Renew
+              Gia hạn
             </Button>
             <Button
               type="dashed"
@@ -276,9 +264,9 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
               size="small"
               disabled={isTerminatedOrExpired}
             >
-              History
+              Lịch sử
             </Button>
-            <Popconfirm title="Terminate this contract?" onConfirm={() => onTerminate(record.id)} okText="Terminate" cancelText="Cancel">
+            <Popconfirm title="Chấm dứt this contract?" onConfirm={() => onTerminate(record.id)} okText="Chấm dứt" cancelText="Hủy">
               <Button
                 type="primary"
                 danger
@@ -286,10 +274,10 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
                 size="small"
                 disabled={isTerminatedOrExpired}
               >
-                Terminate
+                Chấm dứt
               </Button>
             </Popconfirm>
-          </Space>
+          </div>
         );
       },
     },

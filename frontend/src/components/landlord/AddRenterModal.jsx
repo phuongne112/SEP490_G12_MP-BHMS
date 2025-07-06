@@ -11,12 +11,12 @@ export default function AddRenterModal({ open, onCancel, onSuccess }) {
       const values = await form.validateFields();
       setLoading(true);
       await createRenter(values);
-      message.success('Add renter successfully!');
+      message.success('Thêm người thuê thành công!');
       form.resetFields();
       onSuccess();
     } catch (err) {
       if (err?.errorFields) return; // validation error
-      message.error('Failed to add renter!');
+      message.error('Thêm người thuê thất bại!');
     } finally {
       setLoading(false);
     }
@@ -25,17 +25,17 @@ export default function AddRenterModal({ open, onCancel, onSuccess }) {
   return (
     <Modal
       open={open}
-      title="Add New Renter"
+      title="Thêm người thuê mới"
       onCancel={() => { form.resetFields(); onCancel(); }}
       onOk={handleOk}
       confirmLoading={loading}
       okText="Add"
     >
       <Form form={form} layout="vertical">
-        <Form.Item name="fullName" label="Full Name" rules={[{ required: true }]}> <Input /> </Form.Item>
-        <Form.Item name="phoneNumber" label="Phone Number" rules={[{ required: true }]}> <Input /> </Form.Item>
-        <Form.Item name="citizenId" label="Citizen ID Number"> <Input /> </Form.Item>
-        <Form.Item name="dateOfBirth" label="Date of Birth"> <DatePicker style={{ width: '100%' }} /> </Form.Item>
+        <Form.Item name="fullName" label="Họ và tên" rules={[{ required: true }]}> <Input /> </Form.Item>
+        <Form.Item name="phoneNumber" label="Số điện thoại" rules={[{ required: true }]}> <Input /> </Form.Item>
+        <Form.Item name="citizenId" label="CCCD/CMND"> <Input /> </Form.Item>
+        <Form.Item name="dateOfBirth" label="Ngày sinh"> <DatePicker style={{ width: '100%' }} /> </Form.Item>
         <Form.Item name="address" label="Address"> <Input /> </Form.Item>
       </Form>
     </Modal>

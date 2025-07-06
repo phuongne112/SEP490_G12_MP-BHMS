@@ -70,35 +70,35 @@ export default function RenterCheckoutAssetPage() {
 
   const columns = [
     {
-      title: "Asset Name",
+      title: "Tên tài sản",
       dataIndex: "name",
       key: "name",
       render: (text) => <Text strong>{text}</Text>,
     },
     {
-      title: "Quantity",
+      title: "Số lượng",
       dataIndex: "quantity",
       key: "quantity",
       align: "center",
     },
     {
-      title: "Condition",
+      title: "Tình trạng",
       dataIndex: "condition",
       key: "condition",
       align: "center",
       render: (cond) => (
-        <Tag color={cond === "Good" ? "green" : "orange"}>{cond}</Tag>
+        <Tag color={cond === "Good" ? "green" : "orange"}>{cond === "Good" ? "Tốt" : "Khác"}</Tag>
       ),
     },
     {
-      title: "Note",
+      title: "Ghi chú",
       dataIndex: "note",
       key: "note",
       render: (_, record) => (
         <Input.TextArea
           value={notes[record.id] !== undefined ? notes[record.id] : record.note}
           onChange={(e) => handleNoteChange(record.id, e.target.value)}
-          placeholder="Enter note (if any)"
+          placeholder="Nhập ghi chú (nếu có)"
           autoSize
         />
       ),
@@ -117,10 +117,10 @@ export default function RenterCheckoutAssetPage() {
           <Card style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
             <Title level={2} style={{ color: "#1890ff", fontSize: isMobile ? 22 : 28 }}>
               <FileDoneOutlined style={{ marginRight: 8 }} />
-              Check-out Asset
+              Kiểm kê tài sản trả phòng
             </Title>
             <Text type="secondary" style={{ fontSize: isMobile ? 13 : 16 }}>
-              Please review and confirm the condition of each asset when you move out.
+              Vui lòng kiểm tra và xác nhận tình trạng từng tài sản khi bạn trả phòng.
             </Text>
             <div style={{ margin: isMobile ? "12px 0" : "24px 0", overflowX: isMobile ? "auto" : "unset" }}>
               {loading ? (
@@ -145,7 +145,7 @@ export default function RenterCheckoutAssetPage() {
                 onClick={handleConfirm}
                 size={isMobile ? "middle" : "large"}
               >
-                Confirm Check-out
+                Xác nhận kiểm kê
               </Button>
             </Space>
           </Card>

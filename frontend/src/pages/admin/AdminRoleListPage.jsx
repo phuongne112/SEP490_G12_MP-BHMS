@@ -13,7 +13,6 @@ import {
   Space,
   Popover,
   message,
-  Alert,
   Popconfirm,
 } from "antd";
 import AdminSidebar from "../../components/layout/AdminSidebar";
@@ -60,7 +59,7 @@ export default function AdminRoleListPage() {
         const data = res.data?.result || [];
         const grouped = {};
         data.forEach((perm) => {
-          const group = perm.module?.toUpperCase() || "OTHER";
+          const group = perm.module?.toUpperCase() || "KHÁC";
           if (!grouped[group]) grouped[group] = [];
           grouped[group].push({
             id: perm.id,
@@ -72,7 +71,7 @@ export default function AdminRoleListPage() {
         });
         setGroupedPermissions(grouped);
       } catch (err) {
-        message.error("Failed to load permissions");
+        message.error("Không thể tải danh sách quyền");
       }
     };
     fetchPermissions();
@@ -98,10 +97,10 @@ export default function AdminRoleListPage() {
     if (!selectedRole) return;
     try {
       await deleteRole(selectedRole.id);
-      message.success("Role deleted successfully!");
+      message.success("Xoá vai trò thành công!");
       setRefreshKey((prev) => prev + 1);
     } catch (err) {
-      message.error("Failed to delete role due to constraint violation");
+      message.error("Không thể xoá vai trò do ràng buộc dữ liệu");
     } finally {
       setIsDeleteModalOpen(false);
       setSelectedRole(null);
@@ -118,13 +117,8 @@ export default function AdminRoleListPage() {
           .map(([id]) => ({ id: parseInt(id) })),
       };
       if (editingRole) {
-        console.log("📤 Payload gửi backend:", {
-          id: editingRole?.id,
-          ...payload,
-        });
-
         await updateRole({ id: editingRole.id, ...payload });
-        message.success("Role updated successfully");
+        message.success("Cập nhật vai trò thành công");
 
         const updatedUser = await getCurrentUser();
         dispatch(
@@ -138,7 +132,7 @@ export default function AdminRoleListPage() {
         );
       } else {
         await createRole(payload);
-        message.success("Role created successfully");
+        message.success("Tạo vai trò mới thành công");
       }
       setIsModalOpen(false);
       form.resetFields();
@@ -155,12 +149,11 @@ export default function AdminRoleListPage() {
         }));
         form.setFields(fieldErrors);
       } else {
-        setFormError(res?.message || "Failed to save role");
+        setFormError(res?.message || "Không thể lưu vai trò");
       }
     }
   };
 
-  // Helper: toggle group (bật thì bật hết, tắt thì tắt hết, đồng bộ ngay)
   const handleToggleGroup = (module, perms, checked) => {
     const values = form.getFieldValue("permissions") || {};
     const newValues = { ...values };
@@ -168,10 +161,9 @@ export default function AdminRoleListPage() {
       newValues[perm.id] = checked;
     });
     form.setFieldsValue({ permissions: newValues });
-    forceUpdate({}); // Ép rerender ngay
+    forceUpdate({});
   };
 
-  // Helper: kiểm tra group có bật hết không (dùng trực tiếp values thay vì form.getFieldValue để đồng bộ UI)
   const isGroupChecked = useCallback(
     (module, perms) => {
       const values = form.getFieldValue("permissions") || {};
@@ -199,14 +191,14 @@ export default function AdminRoleListPage() {
               marginBottom: 24,
             }}
           >
-            <PageHeader title="List Role" />
+            <PageHeader title="Danh sách vai trò" />
             <Access requiredPermissions={["Create Role"]}>
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
                 onClick={openAddModal}
               >
-                Add new role
+                Thêm vai trò
               </Button>
             </Access>
           </div>
@@ -224,7 +216,7 @@ export default function AdminRoleListPage() {
             <Space style={{ gap: 100 }}>
               <SearchBox
                 onSearch={setSearchTerm}
-                placeholder="Enter role name..."
+                placeholder="Tìm vai trò..."
               />
               <Popover
                 open={isFilterOpen}
@@ -232,7 +224,7 @@ export default function AdminRoleListPage() {
                 content={
                   <RoleFilterPopover
                     onApply={(values) => {
-                      handleApplyFilter(values);
+                      setFilters(values);
                       setIsFilterOpen(false);
                     }}
                   />
@@ -244,7 +236,7 @@ export default function AdminRoleListPage() {
                   icon={<FilterOutlined />}
                   style={{ backgroundColor: "#40a9ff", color: "white" }}
                 >
-                  Filter
+                  Bộ lọc
                 </Button>
               </Popover>
             </Space>
@@ -263,7 +255,7 @@ export default function AdminRoleListPage() {
           />
 
           <Modal
-            title={editingRole ? "Update Role" : "Add New Role"}
+            title={editingRole ? "Chỉnh sửa vai trò" : "Thêm vai trò mới"}
             open={isModalOpen}
             onCancel={() => {
               setIsModalOpen(false);
@@ -286,9 +278,9 @@ export default function AdminRoleListPage() {
                 <Col span={12}>
                   <Form.Item
                     name="name"
-                    label="Role Name"
+                    label="Tên vai trò"
                     rules={[
-                      { required: true, message: "Please enter role name" },
+                      { required: true, message: "Vui lòng nhập tên vai trò" },
                     ]}
                   >
                     <Input allowClear />
@@ -296,17 +288,25 @@ export default function AdminRoleListPage() {
                 </Col>
               </Row>
 
-              <Form.Item label="Permissions">
+              <Form.Item label="Quyền hạn">
                 <Collapse defaultActiveKey={Object.keys(groupedPermissions)}>
                   {Object.entries(groupedPermissions).map(([module, perms]) => (
-                    <Panel 
+                    <Panel
                       header={
-                        <div style={{display:'flex',alignItems:'center',gap:12}}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12,
+                          }}
+                        >
                           <span>{module}</span>
                           <Switch
-                            style={{ transform: 'scale(1.15)', marginLeft: 16 }}
+                            style={{ transform: "scale(1.15)", marginLeft: 16 }}
                             checked={isGroupChecked(module, perms)}
-                            onChange={checked => handleToggleGroup(module, perms, checked)}
+                            onChange={(checked) =>
+                              handleToggleGroup(module, perms, checked)
+                            }
                           />
                         </div>
                       }
@@ -398,20 +398,20 @@ export default function AdminRoleListPage() {
                     }}
                     style={{ marginRight: 8 }}
                   >
-                    Cancel
+                    Hủy
                   </Button>
                   {editingRole ? (
                     <Popconfirm
-                      title="Are you sure you want to update this role?"
+                      title="Bạn có chắc chắn muốn cập nhật vai trò này không?"
                       onConfirm={() => form.submit()}
-                      okText="Yes"
-                      cancelText="No"
+                      okText="Có"
+                      cancelText="Không"
                     >
-                      <Button type="primary">Update</Button>
+                      <Button type="primary">Cập nhật</Button>
                     </Popconfirm>
                   ) : (
                     <Button type="primary" htmlType="submit">
-                      Save
+                      Lưu
                     </Button>
                   )}
                 </div>
@@ -420,12 +420,12 @@ export default function AdminRoleListPage() {
           </Modal>
 
           <Modal
-            title="Are you sure you want to delete this role?"
+            title="Bạn có chắc chắn muốn xoá vai trò này không?"
             open={isDeleteModalOpen}
             onOk={handleDeleteRole}
             onCancel={() => setIsDeleteModalOpen(false)}
-            okText="Yes"
-            cancelText="Cancel"
+            okText="Xoá"
+            cancelText="Hủy"
           />
         </Content>
       </Layout>

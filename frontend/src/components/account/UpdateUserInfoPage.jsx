@@ -31,11 +31,9 @@ export default function UpdateUserInfoModal({
     if (!open) return;
 
     if (isCreate) {
-      // Tạo mới => không gọi getPersonalInfo
       form.resetFields();
       setInitialLoading(false);
     } else {
-      // Cập nhật => gọi API để fill form
       setInitialLoading(true);
       getPersonalInfo()
         .then((res) => {
@@ -52,7 +50,7 @@ export default function UpdateUserInfoModal({
             permanentAddress: data.permanentAddress || "",
           });
         })
-        .catch(() => message.error("Failed to load personal info"))
+        .catch(() => message.error("Không thể tải thông tin cá nhân."))
         .finally(() => setInitialLoading(false));
     }
   }, [open, isCreate]);
@@ -67,15 +65,14 @@ export default function UpdateUserInfoModal({
       setLoading(true);
       if (isCreate) {
         await createPersonalInfo(payload);
-        message.success("Create successful");
+        message.success("Tạo thông tin cá nhân thành công!");
       } else {
         await updatePersonalInfo(payload);
-        message.success("Update successful");
+        message.success("Cập nhật thông tin cá nhân thành công!");
       }
       onClose();
       onBackToInfoModal?.();
     } catch (err) {
-      // 👇 Thêm xử lý này để hiển thị message từ backend
       if (err.response?.data?.error === "VALIDATION_ERROR") {
         const fieldErrors = err.response.data.data;
         form.setFields(
@@ -85,7 +82,11 @@ export default function UpdateUserInfoModal({
           }))
         );
       } else {
-        message.error(isCreate ? "Create failed" : "Update failed");
+        message.error(
+          isCreate
+            ? "Tạo thông tin cá nhân thất bại."
+            : "Cập nhật thông tin cá nhân thất bại."
+        );
       }
     } finally {
       setLoading(false);
@@ -94,7 +95,7 @@ export default function UpdateUserInfoModal({
 
   return (
     <Modal
-      title="Personal Information"
+      title="Cập nhật thông tin cá nhân"
       open={open}
       onCancel={onClose}
       footer={null}
@@ -106,56 +107,56 @@ export default function UpdateUserInfoModal({
         <Form layout="vertical" form={form} onFinish={onFinish}>
           <Form.Item
             name="fullName"
-            label="Full Name"
-            rules={[{ required: true }]}
+            label="Họ và tên"
+            rules={[{ required: true, message: "Vui lòng nhập họ và tên" }]}
           >
             <Input />
           </Form.Item>
-          <Form.Item name="phoneNumber" label="Phone Number">
+          <Form.Item name="phoneNumber" label="Số điện thoại">
             <Input />
           </Form.Item>
-          <Form.Item name="phoneNumber2" label="Secondary Phone">
+          <Form.Item name="phoneNumber2" label="Số điện thoại phụ">
             <Input />
           </Form.Item>
-          <Form.Item name="gender" label="Gender">
-            <Select placeholder="Select gender">
-              <Select.Option value="Male">Male</Select.Option>
-              <Select.Option value="Female">Female</Select.Option>
-              <Select.Option value="Other">Other</Select.Option>
+          <Form.Item name="gender" label="Giới tính">
+            <Select placeholder="Chọn giới tính">
+              <Select.Option value="Male">Nam</Select.Option>
+              <Select.Option value="Female">Nữ</Select.Option>
+              <Select.Option value="Other">Khác</Select.Option>
             </Select>
           </Form.Item>
-          <Form.Item name="birthDate" label="Birth Date">
-            <DatePicker style={{ width: "100%" }} />
+          <Form.Item name="birthDate" label="Ngày sinh">
+            <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
           </Form.Item>
-          <Form.Item name="birthPlace" label="Birth Place">
+          <Form.Item name="birthPlace" label="Nơi sinh">
             <Input />
           </Form.Item>
-          <Form.Item name="nationalID" label="National ID">
+          <Form.Item name="nationalID" label="CMND/CCCD">
             <Input />
           </Form.Item>
-          <Form.Item name="nationalIDIssuePlace" label="Issued Place">
+          <Form.Item name="nationalIDIssuePlace" label="Nơi cấp">
             <Input />
           </Form.Item>
-          <Form.Item name="permanentAddress" label="Permanent Address">
+          <Form.Item name="permanentAddress" label="Địa chỉ thường trú">
             <Input />
           </Form.Item>
           <Form.Item style={{ textAlign: "right" }}>
             <Button onClick={onClose} style={{ marginRight: 8 }}>
-              Cancel
+              Huỷ
             </Button>
             <Popconfirm
-              title={isCreate ? "Confirm creation" : "Confirm update"}
+              title={isCreate ? "Xác nhận tạo mới" : "Xác nhận cập nhật"}
               description={
                 isCreate
-                  ? "Are you sure you want to create this personal information?"
-                  : "Are you sure you want to update this personal information?"
+                  ? "Bạn có chắc chắn muốn tạo thông tin cá nhân này không?"
+                  : "Bạn có chắc chắn muốn cập nhật thông tin cá nhân này không?"
               }
               onConfirm={() => form.submit()}
-              okText="Yes"
-              cancelText="No"
+              okText="Đồng ý"
+              cancelText="Huỷ"
             >
               <Button type="primary" loading={loading}>
-                {isCreate ? "Create" : "Update"}
+                {isCreate ? "Tạo mới" : "Cập nhật"}
               </Button>
             </Popconfirm>
           </Form.Item>

@@ -11,20 +11,20 @@ export default function UserFilterPopover({ onFilter }) {
 
   return (
     <div style={{ minWidth: 200 }}>
-      <div style={{ marginBottom: 8 }}>Status</div>
+      <div style={{ marginBottom: 8 }}>Trạng thái</div>
       <Select
         allowClear
         style={{ width: "100%", marginBottom: 12 }}
-        placeholder="All"
+        placeholder="Tất cả"
         value={isActive}
         onChange={setIsActive}
         options={[
-          { label: "Active", value: true },
-          { label: "Inactive", value: false },
+          { label: "Đang hoạt động", value: true },
+          { label: "Ngừng hoạt động", value: false },
         ]}
       />
       <Button type="primary" block onClick={handleApply}>
-        Apply
+        Áp dụng
       </Button>
     </div>
   );

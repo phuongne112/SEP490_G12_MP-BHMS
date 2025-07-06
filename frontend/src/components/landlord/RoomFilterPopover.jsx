@@ -32,39 +32,39 @@ export default function RoomFilterPopover({ onFilter }) {
   return (
     <div style={{ padding: 16, minWidth: 250 }}>
       <Title level={5} style={{ marginBottom: 12 }}>
-        Advanced Filter
+        Bộ lọc nâng cao
       </Title>
       <Space direction="vertical" size="middle" style={{ width: "100%" }}>
         {/* Filter by status */}
         <div>
-          <div style={{ marginBottom: 4 }}>Room Status</div>
+          <div style={{ marginBottom: 4 }}>Trạng thái phòng</div>
           <Select
             style={{ width: "100%" }}
-            placeholder="-- All --"
+            placeholder="-- Tất cả --"
             value={status}
             onChange={(val) => setStatus(val)}
             allowClear
           >
-            <Option value="Available">Available</Option>
-            <Option value="Occupied">Occupied</Option>
-            <Option value="Maintenance">Maintenance</Option>
-            <Option value="Inactive">Inactive</Option>
+            <Option value="Available">Còn trống</Option>
+            <Option value="Occupied">Đã thuê</Option>
+            <Option value="Maintenance">Bảo trì</Option>
+            <Option value="Inactive">Ngừng hoạt động</Option>
           </Select>
         </div>
 
         {/* Filter by price */}
         <div>
-          <div style={{ marginBottom: 4 }}>Price Range (VND)</div>
+          <div style={{ marginBottom: 4 }}>Khoảng giá (VND)</div>
           <InputNumber
             style={{ width: "45%", marginRight: "10%" }}
-            placeholder="Min"
+            placeholder="Tối thiểu"
             value={minPrice}
             onChange={(val) => setMinPrice(val)}
             min={0}
           />
           <InputNumber
             style={{ width: "45%" }}
-            placeholder="Max"
+            placeholder="Tối đa"
             value={maxPrice}
             onChange={(val) => setMaxPrice(val)}
             min={0}
@@ -73,17 +73,17 @@ export default function RoomFilterPopover({ onFilter }) {
 
         {/* Filter by Area */}
         <div>
-          <div style={{ marginBottom: 4 }}>Area (m²)</div>
+          <div style={{ marginBottom: 4 }}>Diện tích (m²)</div>
           <InputNumber
             style={{ width: "45%", marginRight: "10%" }}
-            placeholder="Min"
+            placeholder="Tối thiểu"
             value={minArea}
             onChange={(val) => setMinArea(val)}
             min={0}
           />
           <InputNumber
             style={{ width: "45%" }}
-            placeholder="Max"
+            placeholder="Tối đa"
             value={maxArea}
             onChange={(val) => setMaxArea(val)}
             min={0}
@@ -92,17 +92,17 @@ export default function RoomFilterPopover({ onFilter }) {
 
         {/* Filter by Bedrooms */}
         <div>
-          <div style={{ marginBottom: 4 }}>Bedrooms</div>
+          <div style={{ marginBottom: 4 }}>Số phòng ngủ</div>
           <InputNumber
             style={{ width: "45%", marginRight: "10%" }}
-            placeholder="Min"
+            placeholder="Tối thiểu"
             value={minBedrooms}
             onChange={(val) => setMinBedrooms(val)}
             min={0}
           />
           <InputNumber
             style={{ width: "45%" }}
-            placeholder="Max"
+            placeholder="Tối đa"
             value={maxBedrooms}
             onChange={(val) => setMaxBedrooms(val)}
             min={0}
@@ -111,17 +111,17 @@ export default function RoomFilterPopover({ onFilter }) {
 
         {/* Filter by Bathrooms */}
         <div>
-          <div style={{ marginBottom: 4 }}>Bathrooms</div>
+          <div style={{ marginBottom: 4 }}>Số phòng tắm</div>
           <InputNumber
             style={{ width: "45%", marginRight: "10%" }}
-            placeholder="Min"
+            placeholder="Tối thiểu"
             value={minBathrooms}
             onChange={(val) => setMinBathrooms(val)}
             min={0}
           />
           <InputNumber
             style={{ width: "45%" }}
-            placeholder="Max"
+            placeholder="Tối đa"
             value={maxBathrooms}
             onChange={(val) => setMaxBathrooms(val)}
             min={0}
@@ -130,36 +130,36 @@ export default function RoomFilterPopover({ onFilter }) {
         
         {/* Filter by Has Asset */}
         <div>
-          <div style={{ marginBottom: 4 }}>Has Asset</div>
+          <div style={{ marginBottom: 4 }}>Có nội thất</div>
           <Select
             style={{ width: "100%" }}
-            placeholder="-- All --"
+            placeholder="-- Tất cả --"
             value={hasAsset}
             onChange={(val) => setHasAsset(val)}
             allowClear
           >
-            <Option value="true">Yes</Option>
-            <Option value="false">No</Option>
+            <Option value="true">Có</Option>
+            <Option value="false">Không</Option>
           </Select>
         </div>
 
         {/* Filter by Is Active */}
         <div>
-          <div style={{ marginBottom: 4 }}>Active Status</div>
+          <div style={{ marginBottom: 4 }}>Trạng thái hoạt động</div>
           <Select
             style={{ width: "100%" }}
-            placeholder="-- All --"
+            placeholder="-- Tất cả --"
             value={isActive}
             onChange={(val) => setIsActive(val)}
             allowClear
           >
-            <Option value="true">Active</Option>
-            <Option value="false">Inactive</Option>
+            <Option value="true">Đang hoạt động</Option>
+            <Option value="false">Ngừng hoạt động</Option>
           </Select>
         </div>
 
         <Button type="primary" onClick={handleApply} block>
-          Apply
+          Áp dụng
         </Button>
       </Space>
     </div>

@@ -16,19 +16,19 @@ export default function RenterSidebar() {
     {
       key: "/renter/room",
       icon: <HomeOutlined />,
-      label: "My Room",
+      label: "Phòng của tôi",
       path: "/renter/room",
     },
     {
       key: "/renter/contracts",
       icon: <FileTextOutlined />,
-      label: "Contract",
+      label: "Hợp đồng",
       path: "/renter/contracts",
     },
     {
       key: "/renter/bills",
       icon: <DollarOutlined />,
-      label: "Bills",
+      label: "Hóa đơn",
       path: "/renter/bills",
     },
   ];
@@ -39,7 +39,7 @@ export default function RenterSidebar() {
 
   return (
     <Sidebar
-      name={user?.fullName || "Renter"}
+      name={user?.fullName || "Người thuê"}
       avatar="https://i.pravatar.cc/40?img=4"
       menuItems={renterMenu}
       selectedKeys={[selectedKey]}

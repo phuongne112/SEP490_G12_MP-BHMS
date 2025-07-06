@@ -30,7 +30,7 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
         if (status === 404 || status === 500) {
           setInfo(null);
         } else {
-          setError("Failed to load personal information.");
+          setError("Không thể tải thông tin cá nhân.");
         }
       } finally {
         setLoading(false);
@@ -42,7 +42,7 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
 
   return (
     <Modal
-      title="Personal Information"
+      title="Thông tin cá nhân"
       open={open}
       onCancel={onClose}
       footer={null}
@@ -52,63 +52,75 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
         <Spin />
       ) : info === null ? (
         <div style={{ textAlign: "center", marginTop: 16 }}>
-          <p>{error || "No personal information found."}</p>
+          <p>{error || "Không có thông tin cá nhân."}</p>
           <Button
             type="primary"
             onClick={() => {
               onClose();
-              onShowUpdateModal?.(true); // create mode
+              onShowUpdateModal?.(true); // chế độ tạo mới
             }}
           >
-            Add Info
+            Thêm thông tin
           </Button>
         </div>
       ) : (
         <>
           <Descriptions column={1} bordered size="small">
-            <Descriptions.Item label="Full Name">
+            <Descriptions.Item label="Họ và tên">
               {info?.fullName || "-"}
             </Descriptions.Item>
-            <Descriptions.Item label="Phone Number">
+            <Descriptions.Item label="Số điện thoại">
               {info?.phoneNumber || "-"}
             </Descriptions.Item>
-            <Descriptions.Item label="Secondary Phone">
+            <Descriptions.Item label="Số điện thoại phụ">
               {info?.phoneNumber2 || "-"}
             </Descriptions.Item>
-            <Descriptions.Item label="Gender">
+            <Descriptions.Item label="Giới tính">
               {info?.gender || "-"}
             </Descriptions.Item>
-            <Descriptions.Item label="Birth Date">
+            <Descriptions.Item label="Ngày sinh">
               {info?.birthDate || "-"}
             </Descriptions.Item>
-            <Descriptions.Item label="Birth Place">
+            <Descriptions.Item label="Nơi sinh">
               {info?.birthPlace || "-"}
             </Descriptions.Item>
-            <Descriptions.Item label="National ID">
+            <Descriptions.Item label="CMND/CCCD">
               {info?.nationalID || "-"}
             </Descriptions.Item>
-            <Descriptions.Item label="Issued Place">
+            <Descriptions.Item label="Nơi cấp">
               {info?.nationalIDIssuePlace || "-"}
             </Descriptions.Item>
-            <Descriptions.Item label="Permanent Address">
+            <Descriptions.Item label="Địa chỉ thường trú">
               {info?.permanentAddress || "-"}
             </Descriptions.Item>
           </Descriptions>
-          <div style={{ textAlign: "right", marginTop: 16, display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <div
+            style={{
+              textAlign: "right",
+              marginTop: 16,
+              display: "flex",
+              gap: 8,
+              justifyContent: "flex-end",
+            }}
+          >
             <Button onClick={() => setShowBookingModal(true)}>
-              Xem lịch hẹn của tôi
+              Xem lịch hẹn
             </Button>
             <Button
               type="primary"
               onClick={() => {
                 onClose();
-                onShowUpdateModal?.(false); // update mode
+                onShowUpdateModal?.(false); // chế độ cập nhật
               }}
             >
-              Update
+              Cập nhật
             </Button>
           </div>
-          <BookingListModal open={showBookingModal} onClose={() => setShowBookingModal(false)} currentUser={currentUser} />
+          <BookingListModal
+            open={showBookingModal}
+            onClose={() => setShowBookingModal(false)}
+            currentUser={currentUser}
+          />
         </>
       )}
     </Modal>

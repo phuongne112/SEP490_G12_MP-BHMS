@@ -68,10 +68,10 @@ export default function RoomDetailPage() {
         setSelectedImage(matchedRoom.images?.[0]?.imageUrl);
         if (matchedRoom.images?.[0]) setSelectedImage(getImageUrl(matchedRoom.images[0]));
       } else {
-        message.error("Room not found.");
+        message.error("Không tìm thấy phòng.");
       }
     } catch (err) {
-      message.error("Failed to load room detail.");
+      message.error("Không thể tải chi tiết phòng.");
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ export default function RoomDetailPage() {
 
   if (!room) {
     return (
-      <div style={{ textAlign: "center", padding: 100 }}>Room not found.</div>
+      <div style={{ textAlign: "center", padding: 100 }}>Không tìm thấy phòng.</div>
     );
   }
 

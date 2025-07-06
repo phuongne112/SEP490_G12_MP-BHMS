@@ -28,7 +28,6 @@ export default function LandlordEditRoomPage() {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [formError, setFormError] = useState(null);
   const [initialValues, setInitialValues] = useState(null);
   const [keepImageIds, setKeepImageIds] = useState([]);
   const navigate = useNavigate();
@@ -36,16 +35,16 @@ export default function LandlordEditRoomPage() {
   const user = useSelector((state) => state.account.user);
 
   useEffect(() => {
-    // Fetch room data by id
     const fetchRoom = async () => {
       try {
         const res = await axiosClient.get(`/rooms/${id}`);
         const room = res.data;
-        if (!room) throw new Error("Room not found");
-        // Parse building + suffix
-        let building = room.building || "";
-        let roomNumberSuffix = room.roomNumber?.replace(building, "") || "";
-        setInitialValues({
+        if (!room) throw new Error("Không tìm thấy phòng");
+
+        const building = room.building || "";
+        const roomNumberSuffix = room.roomNumber?.replace(building, "") || "";
+
+        const initVals = {
           building,
           roomNumberSuffix,
           area: room.area,
@@ -56,20 +55,10 @@ export default function LandlordEditRoomPage() {
           description: room.description,
           maxOccupants: room.maxOccupants,
           isActive: room.isActive,
-        });
-        form.setFieldsValue({
-          building,
-          roomNumberSuffix,
-          area: room.area,
-          price: room.pricePerMonth,
-          roomStatus: room.roomStatus,
-          numberOfBedrooms: room.numberOfBedrooms,
-          numberOfBathrooms: room.numberOfBathrooms,
-          description: room.description,
-          maxOccupants: room.maxOccupants,
-          isActive: room.isActive,
-        });
-        // Prepare fileList for Upload
+        };
+        setInitialValues(initVals);
+        form.setFieldsValue(initVals);
+
         setFileList(
           (room.images || []).map((img) => ({
             uid: String(img.id),
@@ -81,18 +70,16 @@ export default function LandlordEditRoomPage() {
         );
         setKeepImageIds((room.images || []).map((img) => img.id));
       } catch (e) {
-        message.error("Failed to load room data");
+        message.error("Tải dữ liệu phòng thất bại!");
         navigate("/landlord/rooms");
       }
     };
     fetchRoom();
-    // eslint-disable-next-line
-  }, [id]);
+  }, [id, form, navigate]);
 
   const handleUploadChange = ({ fileList: newFileList }) => {
-    // Keep only new files and those with id (old images)
     setFileList(newFileList);
-    setKeepImageIds(newFileList.filter(f => f.id).map(f => f.id));
+    setKeepImageIds(newFileList.filter((f) => f.id).map((f) => f.id));
   };
 
   const handleFinish = async (values) => {
@@ -111,20 +98,24 @@ export default function LandlordEditRoomPage() {
         isActive: values.isActive,
         building: values.building,
       };
+
       const formData = new FormData();
       formData.append("room", JSON.stringify(roomDTO));
       formData.append("keepImageIds", JSON.stringify(keepImageIds));
-      let hasNewFile = false;
-      fileList.forEach(file => {
+
+      fileList.forEach((file) => {
         if (!file.id && file.originFileObj) {
           formData.append("images", file.originFileObj);
-          hasNewFile = true;
         }
       });
-      // KHÔNG append images rỗng nếu không có file mới
+
       await axiosClient.post(`/rooms/${id}`, formData);
+
       message.success("Cập nhật phòng thành công!");
-      if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
+      if (
+        user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
+        user?.role?.roleName?.toUpperCase?.() === "SUBADMIN"
+      ) {
         navigate("/admin/rooms");
       } else {
         navigate("/landlord/rooms");
@@ -138,10 +129,9 @@ export default function LandlordEditRoomPage() {
           const firstError = Object.values(res)[0];
           message.error(firstError || "Vui lòng kiểm tra lại các trường thông tin!");
         }
-        // Set lỗi cho từng trường nếu cần
-        const fieldMap = {};
+
         const fieldErrors = Object.entries(res).map(([field, msg]) => ({
-          name: fieldMap[field] || field,
+          name: field,
           errors: [msg],
         }));
         form.setFields(fieldErrors);
@@ -153,64 +143,63 @@ export default function LandlordEditRoomPage() {
   };
 
   if (!initialValues) {
-    return <div style={{ textAlign: "center", padding: 60 }}><span>Loading...</span></div>;
+    return <div style={{ textAlign: "center", padding: 60 }}>Loading...</div>;
   }
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Sider width={220}>
-        {user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
+        {user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
+        user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
           <AdminSidebar />
         ) : (
           <LandlordSidebar />
         )}
       </Sider>
       <Layout style={{ marginTop: 20, marginLeft: 15 }}>
-        <PageHeader title="Edit Room" />
+        <PageHeader title="Chỉnh sửa phòng" />
         <Button
           icon={<ArrowLeftOutlined />}
           style={{ marginBottom: 16 }}
           onClick={() => {
-            if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
+            if (
+              user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
+              user?.role?.roleName?.toUpperCase?.() === "SUBADMIN"
+            ) {
               navigate("/admin/rooms");
             } else {
               navigate("/landlord/rooms");
             }
           }}
         >
-          Back to Room
+          Quay lại danh sách phòng
         </Button>
         <Content style={{ padding: "24px" }}>
-          <Form
-            layout="vertical"
-            form={form}
-            onFinish={handleFinish}
-            initialValues={initialValues}
-          >
+          <Form layout="vertical" form={form} onFinish={handleFinish}>
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item
                   name="building"
-                  label="Building"
-                  rules={[{ required: true, message: "Please enter building name" }]}
+                  label="Tòa"
+                  rules={[{ required: true, message: "Vui lòng nhập tên tòa" }]}
                 >
-                  <Input placeholder="e.g. A" />
+                  <Input placeholder="Ví dụ: A" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="roomNumberSuffix"
-                  label="Room Number (Suffix)"
-                  rules={[{ required: true, message: "Please enter room number (suffix)" }]}
+                  label="Số phòng"
+                  rules={[{ required: true, message: "Vui lòng nhập số phòng" }]}
                 >
-                  <Input placeholder="e.g. 101" />
+                  <Input placeholder="Ví dụ: 101" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="area"
-                  label="Area (m²)"
-                  rules={[{ required: true }]}
+                  label="Diện tích (m²)"
+                  rules={[{ required: true, message: "Vui lòng nhập diện tích" }]}
                 >
                   <InputNumber min={1} max={1000} style={{ width: "100%" }} />
                 </Form.Item>
@@ -218,38 +207,31 @@ export default function LandlordEditRoomPage() {
               <Col span={12}>
                 <Form.Item
                   name="price"
-                  label="Cost (VND/Month)"
-                  rules={[{ required: true }]}
+                  label="Giá (VND/tháng)"
+                  rules={[{ required: true, message: "Vui lòng nhập giá" }]}
                 >
-                  <InputNumber
-                    min={0}
-                    style={{ width: "100%" }}
-                    formatter={(val) =>
-                      `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-                    }
-                    parser={(val) => val.replace(/\./g, "")}
-                  />
+                  <InputNumber min={0} style={{ width: "100%" }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="roomStatus"
-                  label="Room Status"
-                  rules={[{ required: true }]}
+                  label="Trạng thái phòng"
+                  rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
                 >
                   <Select>
-                    <Option value="Available">Available</Option>
-                    <Option value="Occupied">Occupied</Option>
-                    <Option value="Maintenance">Maintenance</Option>
-                    <Option value="Inactive">Inactive</Option>
+                    <Option value="Available">Còn trống</Option>
+                    <Option value="Inactive">Ngừng hoạt động</Option>
+                    <Option value="Occupied">Đã thuê</Option>
+                    <Option value="Maintenance">Bảo trì</Option>
                   </Select>
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="numberOfBedrooms"
-                  label="Number of Bedrooms"
-                  rules={[{ required: true }]}
+                  label="Số phòng ngủ"
+                  rules={[{ required: true, message: "Vui lòng nhập số phòng ngủ" }]}
                 >
                   <InputNumber min={1} max={10} style={{ width: "100%" }} />
                 </Form.Item>
@@ -257,8 +239,8 @@ export default function LandlordEditRoomPage() {
               <Col span={12}>
                 <Form.Item
                   name="numberOfBathrooms"
-                  label="Number of Bathrooms"
-                  rules={[{ required: true }]}
+                  label="Số phòng tắm"
+                  rules={[{ required: true, message: "Vui lòng nhập số phòng tắm" }]}
                 >
                   <InputNumber min={1} max={10} style={{ width: "100%" }} />
                 </Form.Item>
@@ -266,8 +248,8 @@ export default function LandlordEditRoomPage() {
               <Col span={12}>
                 <Form.Item
                   name="maxOccupants"
-                  label="Maximum Occupants"
-                  rules={[{ required: true, message: "Please enter max occupants" }]}
+                  label="Số người tối đa"
+                  rules={[{ required: true, message: "Vui lòng nhập số người tối đa" }]}
                 >
                   <InputNumber min={1} max={20} style={{ width: "100%" }} />
                 </Form.Item>
@@ -275,22 +257,19 @@ export default function LandlordEditRoomPage() {
               <Col span={12}>
                 <Form.Item
                   name="isActive"
-                  label="Active Status"
+                  label="Trạng thái hoạt động"
                   valuePropName="checked"
                 >
-                  <Switch 
-                    checkedChildren="Active" 
-                    unCheckedChildren="Inactive"
-                  />
+                  <Switch checkedChildren="Đang hoạt động" unCheckedChildren="Ngừng hoạt động" />
                 </Form.Item>
               </Col>
               <Col span={24}>
-                <Form.Item name="description" label="Description">
-                  <TextArea rows={2} placeholder="Description..." />
+                <Form.Item name="description" label="Mô tả">
+                  <TextArea rows={2} placeholder="Nhập mô tả..." />
                 </Form.Item>
               </Col>
               <Col span={24}>
-                <Form.Item label="Images">
+                <Form.Item label="Hình ảnh">
                   <Upload
                     listType="picture-card"
                     fileList={fileList}
@@ -299,16 +278,16 @@ export default function LandlordEditRoomPage() {
                     multiple
                     maxCount={8}
                     accept="image/*"
-                    onRemove={file => {
+                    onRemove={(file) => {
                       if (file.id) {
-                        setKeepImageIds(prev => prev.filter(id => id !== file.id));
+                        setKeepImageIds((prev) => prev.filter((id) => id !== file.id));
                       }
                     }}
                   >
                     {fileList.length < 8 && (
                       <div>
                         <PlusOutlined />
-                        <div style={{ marginTop: 8 }}>Upload</div>
+                        <div style={{ marginTop: 8 }}>Tải lên</div>
                       </div>
                     )}
                   </Upload>
@@ -317,7 +296,7 @@ export default function LandlordEditRoomPage() {
             </Row>
             <Form.Item>
               <Button type="primary" htmlType="submit" loading={loading}>
-                Update Room
+                Cập nhật phòng
               </Button>
             </Form.Item>
           </Form>
@@ -325,4 +304,4 @@ export default function LandlordEditRoomPage() {
       </Layout>
     </Layout>
   );
-} 
+}

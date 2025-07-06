@@ -115,12 +115,12 @@ export default function Login() {
           >
             <form onSubmit={handleLogin}>
               <div style={{ marginBottom: 16 }}>
-                <label>Email</label>
+                <label>Tên đăng nhập</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
+                  placeholder="Nhập email"
                   required
                   style={{
                     width: "100%",
@@ -138,13 +138,13 @@ export default function Login() {
               </div>
 
               <div style={{ marginBottom: 16 }}>
-                <label>Password</label>
+                <label>Mật khẩu</label>
                 <div style={{ position: "relative" }}>
                   <input
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
+                    placeholder="Nhập mật khẩu"
                     required
                     style={{
                       width: "100%",
@@ -192,7 +192,7 @@ export default function Login() {
                   marginTop: 8,
                 }}
               >
-                Sign In
+                Đăng nhập
               </button>
               {error.general && (
                 <p style={{ color: "red", marginTop: 12, fontSize: 14 }}>
@@ -213,13 +213,13 @@ export default function Login() {
                 to="/forgotPassword"
                 style={{ color: "#0A2342", fontSize: 16, marginTop: 4 }}
               >
-                Forgot password?
+                Quên mật khẩu?
               </Link>
               <Link
                 to="/signUp"
                 style={{ color: "#0A2342", fontSize: 16, marginTop: 4 }}
               >
-                Sign Up
+                Đăng ký
               </Link>
             </div>
           </div>

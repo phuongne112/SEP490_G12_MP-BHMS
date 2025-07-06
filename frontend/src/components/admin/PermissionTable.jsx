@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Table, Button, Space, Tooltip, message } from "antd";
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
-import dayjs from "dayjs";
 import { getAllPermissions } from "../../services/permissionApi";
 import { useSelector } from "react-redux";
 
-// ✅ Hàm tạo DSL cho filter và search
+// ✅ Hàm tạo DSL cho filter và tìm kiếm
 const buildFilterDSL = (search, filters) => {
   const dsl = [];
 
@@ -44,6 +43,7 @@ export default function PermissionTable({
     current: currentPage || 1,
     total: 0,
   });
+
   const user = useSelector((state) => state.account.user);
   const permissions = user?.permissions || [];
 
@@ -63,8 +63,8 @@ export default function PermissionTable({
       setPagination({ current: page, total, pageSize });
       if (onPageChange) onPageChange(page);
     } catch (err) {
-      console.error("Error fetching permissions:", err);
-      message.error("Failed to load permissions");
+      console.error("Lỗi khi tải danh sách quyền:", err);
+      message.error("Không thể tải danh sách quyền. Vui lòng thử lại.");
     }
     setLoading(false);
   };
@@ -76,12 +76,12 @@ export default function PermissionTable({
 
   const columns = [
     {
-      title: "No.",
+      title: "STT",
       dataIndex: "id",
       render: (_, __, index) => (pagination.current - 1) * pageSize + index + 1,
     },
     {
-      title: "Name",
+      title: "Tên quyền",
       dataIndex: "name",
     },
     {
@@ -89,22 +89,23 @@ export default function PermissionTable({
       dataIndex: "apiPath",
     },
     {
-      title: "Method",
+      title: "Phương thức",
       dataIndex: "method",
     },
     {
-      title: "Module",
+      title: "Chức năng",
       dataIndex: "module",
     },
   ];
-  // ✅ Thêm cột Actions nếu còn ít nhất 1 quyền
+
+  // ✅ Thêm cột Thao tác nếu có quyền
   if (hasEdit || hasDelete) {
     columns.push({
-      title: "Actions",
+      title: "Thao tác",
       render: (_, record) => (
         <Space>
           {hasEdit && (
-            <Tooltip title="Edit">
+            <Tooltip title="Chỉnh sửa">
               <Button
                 icon={<EditOutlined />}
                 onClick={() => onEditPermission(record)}
@@ -112,7 +113,7 @@ export default function PermissionTable({
             </Tooltip>
           )}
           {hasDelete && (
-            <Tooltip title="Delete">
+            <Tooltip title="Xóa">
               <Button
                 danger
                 icon={<DeleteOutlined />}

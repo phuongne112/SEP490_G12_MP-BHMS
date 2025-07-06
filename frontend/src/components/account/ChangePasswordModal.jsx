@@ -17,12 +17,9 @@ export default function ChangePasswordModal({ open, onClose }) {
     try {
       const res = await changePassword(values);
 
-      message.success(
-        res?.data?.data?.message || "Password updated successfully!"
-      );
+      message.success(res?.data?.data?.message || "Đổi mật khẩu thành công!");
 
-      // ✅ Gọi logout: xóa Redux + localStorage + điều hướng
-      logout(dispatch); // truyền dispatch nếu logout dùng Redux
+      logout(dispatch);
     } catch (err) {
       const res = err?.response?.data;
       if (res?.data && typeof res.data === "object") {
@@ -37,7 +34,7 @@ export default function ChangePasswordModal({ open, onClose }) {
         }));
         form.setFields(fieldErrors);
       } else {
-        message.error(res?.message || "Failed to change password");
+        message.error(res?.message || "Không thể đổi mật khẩu");
       }
     } finally {
       setLoading(false);
@@ -46,7 +43,7 @@ export default function ChangePasswordModal({ open, onClose }) {
 
   return (
     <Modal
-      title="Change Password"
+      title="Đổi mật khẩu"
       open={open}
       onCancel={onClose}
       footer={null}
@@ -59,58 +56,60 @@ export default function ChangePasswordModal({ open, onClose }) {
         requiredMark={false}
       >
         <Form.Item
-          label="Current Password"
+          label="Mật khẩu hiện tại"
           name="currentPassword"
           rules={[
-            { required: true, message: "Please enter your current password" },
+            { required: true, message: "Vui lòng nhập mật khẩu hiện tại" },
           ]}
         >
-          <Input.Password placeholder="Current password" />
+          <Input.Password placeholder="Nhập mật khẩu hiện tại" />
         </Form.Item>
 
         <Form.Item
-          label="New Password"
+          label="Mật khẩu mới"
           name="newPassword"
           rules={[
-            { required: true, message: "Please enter a new password" },
-            { min: 6, message: "Password must be at least 6 characters" },
+            { required: true, message: "Vui lòng nhập mật khẩu mới" },
+            { min: 6, message: "Mật khẩu phải có ít nhất 6 ký tự" },
           ]}
         >
-          <Input.Password placeholder="New password" />
+          <Input.Password placeholder="Nhập mật khẩu mới" />
         </Form.Item>
 
         <Form.Item
-          label="Confirm Password"
+          label="Xác nhận mật khẩu"
           name="confirmPassword"
           dependencies={["newPassword"]}
           rules={[
-            { required: true, message: "Please confirm your new password" },
+            { required: true, message: "Vui lòng xác nhận mật khẩu mới" },
             ({ getFieldValue }) => ({
               validator(_, value) {
                 if (!value || getFieldValue("newPassword") === value) {
                   return Promise.resolve();
                 }
-                return Promise.reject(new Error("Passwords do not match"));
+                return Promise.reject(
+                  new Error("Mật khẩu xác nhận không khớp")
+                );
               },
             }),
           ]}
         >
-          <Input.Password placeholder="Re-enter new password" />
+          <Input.Password placeholder="Nhập lại mật khẩu mới" />
         </Form.Item>
 
         <div style={{ textAlign: "right" }}>
           <Button onClick={onClose} style={{ marginRight: 8 }}>
-            Cancel
+            Hủy
           </Button>
           <Popconfirm
-            title="Confirm password change"
-            description="Are you sure you want to change your password?"
+            title="Xác nhận đổi mật khẩu"
+            description="Bạn có chắc chắn muốn đổi mật khẩu?"
             onConfirm={() => form.submit()}
-            okText="Yes"
-            cancelText="No"
+            okText="Có"
+            cancelText="Không"
           >
             <Button type="primary" loading={loading}>
-              Update
+              Cập nhật
             </Button>
           </Popconfirm>
         </div>

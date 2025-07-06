@@ -16,9 +16,9 @@ const pageSizeOptions = [5, 10, 20, 50];
 const statusOptions = [
   { value: "", label: "All" },
   { value: "PENDING", label: "Pending" },
-  { value: "CONFIRMED", label: "Confirmed" },
-  { value: "COMPLETED", label: "Completed" },
-  { value: "CANCELLED", label: "Cancelled" },
+  { value: "CONFIRMED", label: "Đã xác nhận" },
+  { value: "COMPLETED", label: "Hoàn thành" },
+  { value: "CANCELLED", label: "Đã hủy" },
 ];
 
 export default function LandlordBookingListPage() {
@@ -103,7 +103,7 @@ export default function LandlordBookingListPage() {
   const handleDelete = async (id) => {
     try {
       await axiosClient.delete(`/schedules/${id}`);
-      message.success("Booking deleted!");
+      message.success("Đã xóa đặt phòng!");
       fetchData();
     } catch (e) {
       message.error("Failed to delete booking!");
@@ -111,14 +111,14 @@ export default function LandlordBookingListPage() {
   };
 
   const columns = [
-    { title: "Guest Name", dataIndex: "fullName" },
-    { title: "Phone", dataIndex: "phone" },
+    { title: "Tên khách", dataIndex: "fullName" },
+    { title: "Số điện thoại", dataIndex: "phone" },
     { title: "Email", dataIndex: "email" },
-    { title: "Appointment Time", dataIndex: "appointmentTime" },
-    { title: "Room", dataIndex: "roomId" },
-    { title: "Note", dataIndex: "note" },
+    { title: "Thời gian hẹn", dataIndex: "appointmentTime" },
+    { title: "Phòng", dataIndex: "roomId" },
+    { title: "Ghi chú", dataIndex: "note" },
     {
-      title: "Status",
+      title: "Trạng thái",
       dataIndex: "status",
       render: (s) => (
         <Tag
@@ -126,22 +126,30 @@ export default function LandlordBookingListPage() {
             s === "PENDING" ? "orange" : s === "CONFIRMED" ? "green" : s === "COMPLETED" ? "red" : "red"
           }
         >
-          {s}
+          {s === "CONFIRMED"
+            ? "Đã xác nhận"
+            : s === "COMPLETED"
+            ? "Hoàn thành"
+            : s === "CANCELLED"
+            ? "Đã hủy"
+            : s === "PENDING"
+            ? "Chờ xử lý"
+            : s}
         </Tag>
       ),
     },
     {
-      title: "Actions",
+      title: "Thao tác",
       key: "actions",
       render: (_, record) => (
         <>
           {record.status === "PENDING" && (
             <>
               <Popconfirm
-                title="Are you sure you want to accept this booking?"
+                title="Bạn có chắc chắn muốn chấp nhận đặt phòng này?"
                 onConfirm={() => handleConfirm(record)}
-                okText="Accept"
-                cancelText="Cancel"
+                okText="Có"
+                cancelText="Không"
               >
                 <Button
                   type="primary"
@@ -152,22 +160,22 @@ export default function LandlordBookingListPage() {
                 </Button>
               </Popconfirm>
               <Popconfirm
-                title="Are you sure you want to reject this booking?"
+                title="Bạn có chắc chắn muốn từ chối đặt phòng này?"
                 onConfirm={() => handleReject(record)}
                 okText="Reject"
-                cancelText="Cancel"
+                cancelText="Không"
               >
                 <Button danger size="small" style={{ marginRight: 8 }}>Reject</Button>
               </Popconfirm>
             </>
           )}
           <Popconfirm
-            title="Are you sure you want to delete this booking?"
+            title="Bạn có chắc chắn muốn xóa đặt phòng này?"
             onConfirm={() => handleDelete(record.id)}
-            okText="Delete"
-            cancelText="Cancel"
+            okText="Xóa"
+            cancelText="Không"
           >
-            <Button danger size="small">Delete</Button>
+            <Button danger size="small">Xóa</Button>
           </Popconfirm>
         </>
       ),
@@ -181,10 +189,10 @@ export default function LandlordBookingListPage() {
       </Sider>
       <div style={{ flex: 1, padding: 32 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <PageHeader title="Booking List" style={{ margin: 0 }} />
+          <PageHeader title="Danh sách đặt phòng" style={{ margin: 0 }} />
           <div style={{ display: "flex", gap: 8 }}>
             <Input.Search
-              placeholder="Search guest name"
+              placeholder="Tìm đặt phòng..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -196,7 +204,7 @@ export default function LandlordBookingListPage() {
             <Popover
               content={
                 <Form layout="vertical">
-                  <Form.Item label="Status">
+                  <Form.Item label="Trạng thái">
                     <Select
                       value={pendingFilterStatus}
                       onChange={setPendingFilterStatus}
@@ -237,16 +245,14 @@ export default function LandlordBookingListPage() {
               }}
               placement="bottomRight"
             >
-              <Button icon={<FilterOutlined />}>
-                Filter
-              </Button>
+              <Button icon={<FilterOutlined />}>Bộ lọc</Button>
             </Popover>
           </div>
         </div>
         <Card>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div>
-              Show
+              Hiển thị
               <Select
                 value={pageSize}
                 onChange={(value) => {
@@ -256,10 +262,10 @@ export default function LandlordBookingListPage() {
                 style={{ width: 70, margin: "0 8px" }}
                 options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
               />
-              entries
+              / trang
             </div>
             <span style={{ marginRight: 0, fontWeight: 500 }}>
-              Total: {total} bookings
+              Tổng: {total} đặt phòng
             </span>
           </div>
           <Table

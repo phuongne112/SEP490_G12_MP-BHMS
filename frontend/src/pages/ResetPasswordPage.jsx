@@ -115,7 +115,7 @@ export default function ResetPasswordPage() {
             }}
           >
             <TextInput
-              label="New Password"
+              label="Mật khẩu mới"
               name="newPassword"
               value={form.newPassword}
               onChange={handleChange}
@@ -132,7 +132,7 @@ export default function ResetPasswordPage() {
               }
             />
             <TextInput
-              label="Confirm Password"
+              label="Xác nhận mật khẩu"
               name="confirmPassword"
               value={form.confirmPassword}
               onChange={handleChange}
@@ -167,7 +167,7 @@ export default function ResetPasswordPage() {
                   cursor: "pointer",
                 }}
               >
-                Change Password
+                Đặt lại
               </button>
             </div>
           </form>
@@ -204,7 +204,7 @@ export default function ResetPasswordPage() {
                 onClick={() => navigate("/login")}
                 style={{ textDecoration: "underline", cursor: "pointer" }}
               >
-                login again
+                Quay lại đăng nhập
               </span>
               .
             </div>

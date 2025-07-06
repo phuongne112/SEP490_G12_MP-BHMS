@@ -35,7 +35,7 @@ export default function Footer() {
             </a>
           </div>
           <div style={{ fontSize: 15, fontWeight: 500, marginTop: 16 }}>
-            Address:
+            Địa chỉ:
           </div>
           <div style={{ fontSize: 15, marginTop: 4 }}>
             Thôn 2 Thạch Hoà, Thạch Thất HN

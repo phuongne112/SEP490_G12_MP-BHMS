@@ -19,12 +19,12 @@ export default function RenterFilterPopover({ onFilter, roomOptions = [] }) {
   return (
     <div style={{ padding: 16, minWidth: 250 }}>
       <Title level={5} style={{ marginBottom: 12 }}>
-        Advanced Filter
+        Bộ lọc nâng cao
       </Title>
 
       <Space direction="vertical" size="middle" style={{ width: "100%" }}>
         <div>
-          <div style={{ marginBottom: 4 }}>Check-in Date</div>
+          <div style={{ marginBottom: 4 }}>Ngày nhận phòng</div>
           <RangePicker
             style={{ width: "100%" }}
             value={dateRange}
@@ -33,10 +33,10 @@ export default function RenterFilterPopover({ onFilter, roomOptions = [] }) {
         </div>
 
         <div>
-          <div style={{ marginBottom: 4 }}>Room</div>
+          <div style={{ marginBottom: 4 }}>Phòng</div>
           <Select
             style={{ width: "100%" }}
-            placeholder="-- All --"
+            placeholder="-- Tất cả --"
             value={selectedRoom}
             onChange={(val) => setSelectedRoom(val)}
             allowClear
@@ -50,7 +50,7 @@ export default function RenterFilterPopover({ onFilter, roomOptions = [] }) {
         </div>
 
         <Button type="primary" onClick={handleApply} block>
-          Apply
+          Áp dụng
         </Button>
       </Space>
     </div>

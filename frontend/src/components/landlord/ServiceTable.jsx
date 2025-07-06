@@ -5,36 +5,36 @@ import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
 export default function ServiceTable({ services, pagination, loading, onEdit, onDelete, onTableChange }) {
   const columns = [
     {
-      title: "Service Name",
+      title: "Tên dịch vụ",
       dataIndex: "name",
       key: "name",
     },
     {
-      title: "Unit",
+      title: "Đơn vị",
       dataIndex: "unit",
       key: "unit",
     },
     {
-      title: "Price (VND/unit)",
+      title: "Giá (VND/đơn vị)",
       dataIndex: "price",
       key: "price",
       render: (value) => value ? value.toLocaleString("vi-VN") : "0",
     },
     {
-      title: "Type",
+      title: "Loại",
       dataIndex: "type",
       key: "type",
       render: (type) => {
         const typeMap = {
-          ELECTRICITY: "Electricity",
-          WATER: "Water",
-          OTHER: "Other",
+          ELECTRICITY: "Điện",
+          WATER: "Nước",
+          OTHER: "Khác",
         };
         return typeMap[type] || type;
       },
     },
     {
-      title: "Actions",
+      title: "Thao tác",
       key: "actions",
       render: (_, record) => (
         <Space>
@@ -45,11 +45,11 @@ export default function ServiceTable({ services, pagination, loading, onEdit, on
             size="small"
           />
           <Popconfirm
-            title="Delete the service"
-            description="Are you sure you want to delete this service?"
+            title="Xóa dịch vụ"
+            description="Bạn có chắc muốn xóa dịch vụ này?"
             onConfirm={() => onDelete(record.id)}
-            okText="Yes"
-            cancelText="No"
+            okText="Xóa"
+            cancelText="Không"
           >
             <Button
               icon={<DeleteOutlined />}
@@ -70,7 +70,7 @@ export default function ServiceTable({ services, pagination, loading, onEdit, on
         ...pagination,
         showSizeChanger: false,
         showQuickJumper: false,
-        showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+        showTotal: (total, range) => `${range[0]}-${range[1]} trên tổng số ${total} mục`,
       }}
       bordered
       rowKey="id"

@@ -43,8 +43,9 @@ export default function AccountModal({ open, onClose }) {
             email: res.email,
           });
         })
-        .catch(() => setError("Failed to load account information."))
-        .finally(() => setLoading(false));
+        .catch(() => setError("Không thể tải thông tin tài khoản."));
+      // Nếu lỗi thì hiện thông báo tiếng Việt
+      setLoading(false);
     }
   }, [open]);
 
@@ -54,7 +55,7 @@ export default function AccountModal({ open, onClose }) {
       values.email === originalUser?.email;
 
     if (isUnchanged) {
-      message.info("No changes detected.");
+      message.info("Không có thay đổi nào được phát hiện.");
       setEditing(false);
       return;
     }
@@ -64,7 +65,7 @@ export default function AccountModal({ open, onClose }) {
         username: values.username,
         email: values.email,
       });
-      message.success("Account updated successfully!");
+      message.success("Cập nhật tài khoản thành công!");
 
       logout(dispatch); // Chỉ logout nếu có thay đổi thực sự
     } catch (err) {
@@ -80,7 +81,7 @@ export default function AccountModal({ open, onClose }) {
         }));
         form.setFields(fieldErrors);
       } else {
-        message.error(res?.message || "Failed to update account.");
+        message.error(res?.message || "Cập nhật tài khoản thất bại.");
       }
     }
   };
@@ -88,7 +89,7 @@ export default function AccountModal({ open, onClose }) {
   return (
     <>
       <Modal
-        title="Account Information"
+        title="Thông tin tài khoản"
         open={open}
         onCancel={onClose}
         footer={null}
@@ -106,11 +107,11 @@ export default function AccountModal({ open, onClose }) {
             autoComplete="off"
           >
             <Form.Item
-              label="Username"
+              label="Tên người dùng"
               name="username"
               rules={[
-                { required: true, message: "Username is required" },
-                { max: 20, message: "Username must be at most 20 characters" },
+                { required: true, message: "Vui lòng nhập tên người dùng" },
+                { max: 20, message: "Tối đa 20 ký tự" },
               ]}
             >
               <Input maxLength={20} />
@@ -120,35 +121,35 @@ export default function AccountModal({ open, onClose }) {
               label="Email"
               name="email"
               rules={[
-                { required: true, message: "Email is required" },
-                { type: "email", message: "Invalid email format" },
-                { max: 50, message: "Email must be at most 50 characters" },
+                { required: true, message: "Vui lòng nhập email" },
+                { type: "email", message: "Email không đúng định dạng" },
+                { max: 50, message: "Tối đa 50 ký tự" },
               ]}
             >
               <Input maxLength={50} />
             </Form.Item>
 
             <Space style={{ display: "flex", justifyContent: "end" }}>
-              <Button onClick={() => setEditing(false)}>Cancel</Button>
+              <Button onClick={() => setEditing(false)}>Huỷ</Button>
               <Popconfirm
-                title="Confirm update"
-                description="Are you sure you want to save changes?"
+                title="Xác nhận cập nhật"
+                description="Bạn có chắc chắn muốn lưu thay đổi không?"
                 onConfirm={() => form.submit()}
-                okText="Yes"
-                cancelText="No"
+                okText="Đồng ý"
+                cancelText="Huỷ"
               >
-                <Button type="primary">Save</Button>
+                <Button type="primary">Lưu</Button>
               </Popconfirm>
             </Space>
           </Form>
         ) : (
           <>
             <Descriptions column={1} bordered size="small">
-              <Descriptions.Item label="Username">
+              <Descriptions.Item label="Tên người dùng">
                 {user?.name}
               </Descriptions.Item>
               <Descriptions.Item label="Email">{user?.email}</Descriptions.Item>
-              <Descriptions.Item label="Role">
+              <Descriptions.Item label="Vai trò">
                 {user?.role?.roleName}
               </Descriptions.Item>
             </Descriptions>
@@ -157,10 +158,10 @@ export default function AccountModal({ open, onClose }) {
                 style={{ marginRight: 8 }}
                 onClick={() => setEditing(true)}
               >
-                Edit Info
+                Chỉnh sửa
               </Button>
               <Button type="primary" onClick={() => setShowPasswordModal(true)}>
-                Change Password
+                Đổi mật khẩu
               </Button>
             </div>
           </>

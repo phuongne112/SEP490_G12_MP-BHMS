@@ -13,15 +13,15 @@ const { Option } = Select;
 const getStatusProps = (status) => {
     switch (status) {
         case 'Available':
-            return { status: 'success', text: 'Available' };
+            return { status: 'success', text: 'Còn trống' };
         case 'Occupied':
-            return { status: 'error', text: 'Occupied' };
+            return { status: 'error', text: 'Đã thuê' };
         case 'Maintenance':
-            return { status: 'warning', text: 'Maintenance' };
+            return { status: 'warning', text: 'Bảo trì' };
         case 'Inactive':
-            return { status: 'default', text: 'Inactive' };
+            return { status: 'default', text: 'Ngừng hoạt động' };
         default:
-            return { status: 'default', text: 'Unknown' };
+            return { status: 'default', text: 'Không xác định' };
     }
 };
 
@@ -68,12 +68,12 @@ const user = useSelector((state) => state.account.user);
         setUpdatingId(roomId);
         try {
             await updateRoomStatus(roomId, newStatus);
-            message.success('Room status updated successfully');
+            message.success('Cập nhật trạng thái phòng thành công');
             if (onRoomsUpdate) {
                 onRoomsUpdate();
             }
         } catch (error) {
-            message.error('Failed to update room status');
+            message.error('Cập nhật trạng thái phòng thất bại');
         } finally {
             setUpdatingId(null);
         }
@@ -83,12 +83,12 @@ const user = useSelector((state) => state.account.user);
         setTogglingId(roomId);
         try {
             await toggleRoomActiveStatus(roomId);
-            message.success('Active status updated successfully');
+            message.success('Cập nhật trạng thái hoạt động thành công');
             if (onRoomsUpdate) {
                 onRoomsUpdate();
             }
         } catch (error) {
-            message.error('Failed to update active status');
+            message.error('Cập nhật trạng thái hoạt động thất bại');
         } finally {
             setTogglingId(null);
         }
@@ -157,7 +157,7 @@ const user = useSelector((state) => state.account.user);
                 }
             }
             
-            message.success("Added services to room!");
+            message.success("Thêm dịch vụ vào phòng thành công!");
             setServiceModalOpen(false);
             setSelectedServices([]);
             setPendingServices([]);
@@ -344,10 +344,10 @@ const user = useSelector((state) => state.account.user);
             }}
             selectedKeys={[room.roomStatus]}
         >
-            <Menu.Item key="Available">Available</Menu.Item>
-            <Menu.Item key="Occupied">Occupied</Menu.Item>
-            <Menu.Item key="Maintenance">Maintenance</Menu.Item>
-            <Menu.Item key="Inactive">Inactive</Menu.Item>
+            <Menu.Item key="Available">Còn trống</Menu.Item>
+            <Menu.Item key="Occupied">Đã thuê</Menu.Item>
+            <Menu.Item key="Maintenance">Bảo trì</Menu.Item>
+            <Menu.Item key="Inactive">Ngừng hoạt động</Menu.Item>
         </Menu>
     );
 
@@ -405,7 +405,7 @@ const user = useSelector((state) => state.account.user);
                                                     opacity: togglingId === room.id ? 0.5 : 1
                                                 }}
                                             >
-                                                {room.isActive ? "Active" : "Inactive"}
+                                                {room.isActive ? "Đang hoạt động" : "Ngừng hoạt động"}
                                             </Tag>
                                         </div>
                                     }
@@ -414,9 +414,9 @@ const user = useSelector((state) => state.account.user);
                                             {room.building && (
                                                 <div>Building: {room.building}</div>
                                             )}
-                                            <div>Price: {room.pricePerMonth?.toLocaleString("en-US")} VND/month</div>
+                                            <div>Giá: {room.pricePerMonth?.toLocaleString("vi-VN")} VND/tháng</div>
                                             {room.area && (
-                                                <div>Area: {room.area} m²</div>
+                                                <div>Diện tích: {room.area} m²</div>
                                             )}
                                         </div>
                                     }
@@ -433,7 +433,7 @@ const user = useSelector((state) => state.account.user);
                                             }
                                         }}
                                     >
-                                        Edit
+                                        Sửa
                                     </Button>
                                     <Button
                                         type="default"
@@ -446,17 +446,17 @@ const user = useSelector((state) => state.account.user);
                                             }
                                         }}
                                     >
-                                        Assign Renter
+                                        Gán người thuê
                                     </Button>
                                     <Button
                                         type="primary"
                                         danger
                                         style={{ borderRadius: 6, minWidth: 90, height: 38 }}
                                         onClick={async () => {
-                                            if (window.confirm('Are you sure you want to delete this room?')) {
+                                            if (window.confirm('Bạn có chắc muốn xóa phòng này không?')) {
                                                 try {
                                                     await deleteRoom(room.id);
-                                                    message.success('Room deleted successfully');
+                                                    message.success('Xóa phòng thành công');
                                                     if (onRoomsUpdate) onRoomsUpdate();
                                                 } catch (e) {
                                                     const backendMsg = e?.response?.data?.message || e?.response?.data?.error || 'Failed to delete room';
@@ -465,7 +465,7 @@ const user = useSelector((state) => state.account.user);
                                             }
                                         }}
                                     >
-                                        Delete
+                                        Xóa
                                     </Button>
                                     <Dropdown overlay={statusMenu(room)} trigger={['click']} disabled={updatingId === room.id}>
                                         <a onClick={e => e.preventDefault()} style={{
@@ -485,7 +485,7 @@ const user = useSelector((state) => state.account.user);
                                         style={{ borderRadius: 6, minWidth: 120, height: 38, fontWeight: 500, borderColor: '#52c41a', color: '#52c41a' }}
                                         onClick={() => openServiceModal(room)}
                                     >
-                                        Add Service
+                                        Thêm dịch vụ
                                     </Button>
                                 </div>
                             </Card>
@@ -498,10 +498,10 @@ const user = useSelector((state) => state.account.user);
                 open={serviceModalOpen}
                 onCancel={() => setServiceModalOpen(false)}
                 onOk={handleAddService}
-                okText="Add Service"
+                okText="Thêm dịch vụ"
                 confirmLoading={addingService}
                 okButtonProps={{ disabled: services.length === 0 }}
-                title={`Add service(s) to room ${selectedRoom?.roomNumber}`}
+                title={`Thêm dịch vụ vào phòng ${selectedRoom?.roomNumber}`}
             >
                 {services.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
@@ -512,13 +512,13 @@ const user = useSelector((state) => state.account.user);
                     <>
                         <div style={{ marginBottom: 16 }}>
                             <p style={{ color: '#666', fontSize: 14 }}>
-                                Select services to add to room {selectedRoom?.roomNumber}:
+                                Chọn dịch vụ để thêm vào phòng {selectedRoom?.roomNumber}:
                             </p>
                         </div>
                         <Select
                             mode="multiple"
                             style={{ width: "100%" }}
-                            placeholder="Select services"
+                            placeholder="Chọn dịch vụ"
                             value={selectedServices}
                             onChange={setSelectedServices}
                         >
@@ -539,7 +539,8 @@ const user = useSelector((state) => state.account.user);
                     setPendingServices([]);
                 }}
                 onOk={handleElectricOcr}
-                okText="Ghi nhận & Thêm dịch vụ"
+                okText="Có"
+                cancelText="Không"
                 confirmLoading={ocrLoading}
                 title={`Nhập chỉ số điện cho phòng ${selectedRoom?.roomNumber}`}
                 width={500}

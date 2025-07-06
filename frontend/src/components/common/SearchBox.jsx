@@ -12,7 +12,7 @@ import { Input, Tooltip } from "antd";
  */
 export default function SearchBox({
   onSearch,
-  placeholder = "Search...",
+  placeholder = "Tìm số phòng, giá, trạng thái ...",
   label,
   tooltip,
   style = {},
