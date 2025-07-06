@@ -73,7 +73,7 @@ public class ContractServiceImpl implements ContractService {
     @Transactional
     public byte[] generateContractPdf(Long contractId) {
         Contract contract = contractRepository.findById(contractId)
-                .orElseThrow(() -> new RuntimeException("Cannot found Contract with id: " + contractId));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hợp đồng với mã: " + contractId));
         Room room = contract.getRoom();
         // Lấy snapshot landlord từ ContractLandlordInfo
         java.util.List<com.mpbhms.backend.entity.ContractLandlordInfo> landlordInfos = contractLandlordInfoRepository.findByContractId(contractId);
@@ -96,11 +96,11 @@ public class ContractServiceImpl implements ContractService {
         // Lấy snapshot người thuê từ ContractRenterInfo
         java.util.List<ContractRenterInfo> renters = contractRenterInfoRepository.findByContractId(contractId);
         if (renters == null || renters.isEmpty()) {
-            throw new RuntimeException("Không tìm thấy thông tin người thuê snapshot cho hợp đồng này. Vui lòng kiểm tra lại dữ liệu!");
+            throw new RuntimeException("Không tìm thấy thông tin người thuê cho hợp đồng này. Vui lòng kiểm tra lại dữ liệu!");
         }
 
         if (room == null) {
-            throw new RuntimeException("Cannot found room in contract with id: " + contractId);
+            throw new RuntimeException("Không tìm thấy phòng trong hợp đồng với mã: " + contractId);
         }
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -157,75 +157,75 @@ public class ContractServiceImpl implements ContractService {
             Instant end = contract.getContractEndDate();
 
             // Quốc hiệu
-            Paragraph header = new Paragraph("SOCIALIST REPUBLIC OF VIETNAM", smallBold);
+            Paragraph header = new Paragraph("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM", smallBold);
             header.setAlignment(Element.ALIGN_CENTER);
             document.add(header);
 
-            Paragraph slogan = new Paragraph("Independence - Freedom - Happiness", smallBold);
+            Paragraph slogan = new Paragraph("Độc lập - Tự do - Hạnh phúc", smallBold);
             slogan.setAlignment(Element.ALIGN_CENTER);
             slogan.setSpacingAfter(10f);
             document.add(slogan);
 
-            Paragraph separator = new Paragraph("--- o0o ---", normalFont);
+            Paragraph separator = new Paragraph("-------------------------o0o-------------------------", normalFont);
             separator.setAlignment(Element.ALIGN_CENTER);
             separator.setSpacingAfter(10f);
             document.add(separator);
 
-            Paragraph contractTitle = new Paragraph("RENTAL CONTRACT", titleFont);
+            Paragraph contractTitle = new Paragraph("HỢP ĐỒNG THUÊ PHÒNG", titleFont);
             contractTitle.setAlignment(Element.ALIGN_CENTER);
             contractTitle.setSpacingAfter(20f);
             document.add(contractTitle);
 
             // Thêm số hợp đồng vào đầu file PDF
-            Paragraph contractNum = new Paragraph("Contract No.: " + (contract.getContractNumber() != null ? contract.getContractNumber() : contract.getId()), smallBold);
+            Paragraph contractNum = new Paragraph("Số hợp đồng: " + (contract.getContractNumber() != null ? contract.getContractNumber() : contract.getId()), smallBold);
             contractNum.setAlignment(Element.ALIGN_RIGHT);
             contractNum.setSpacingAfter(10f);
             document.add(contractNum);
 
             // Mở đầu
             Paragraph intro = new Paragraph(String.format(
-                    "Today, %s, at room number %s, we include:",
+                    "Hôm nay, %s, tại phòng số %s, chúng tôi gồm:",
                     dateTimeFormatter.format(LocalDateTime.now()), roomNumber), normalFont);
             intro.setSpacingAfter(10f);
             document.add(intro);
 
             // BÊN A
             Paragraph benA = new Paragraph(String.format(
-                    "LANDLORD (PARTY A):" +
-                    "\n- Landlord: %s" +
-                    "\n- Phone: %s" +
-                    "\n- National ID: %s" +
-                    "\n- Permanent address: %s",
+                    "BÊN CHO THUÊ (BÊN A):" +
+                    "\n- Họ tên: %s" +
+                    "\n- Số điện thoại: %s" +
+                    "\n- Số CCCD: %s" +
+                    "\n- Địa chỉ thường trú: %s",
                     landlordName, landlordPhone, landlordCCCD, landlordAddress), normalFont);
             benA.setSpacingAfter(10f);
             document.add(benA);
 
             // BÊN B
             Paragraph benB = new Paragraph(String.format(
-                "TENANT (PARTY B):\n%s", renterInfo.toString()
+                "BÊN THUÊ (BÊN B):\n%s", renterInfo.toString()
             ), normalFont);
             benB.setSpacingAfter(10f);
             document.add(benB);
 
             // Điều khoản (KHÔNG lặp lại renters)
             Paragraph content = new Paragraph(String.format("""
-The two parties agree to sign the rental contract with the following terms:
+Hai bên cùng nhau ký kết hợp đồng thuê phòng với các điều khoản sau:
 
-1. Room information:
-   - Room number: %s
-   - Rent: %s / month
-   - Deposit: %s
-   - Rental period: from %s to %s
-   - Payment cycle: %s
+1. Thông tin phòng:
+   - Số phòng: %s
+   - Giá thuê: %s / tháng
+   - Tiền đặt cọc: %s
+   - Thời hạn thuê: từ %s đến %s
+   - Chu kỳ thanh toán: %s
 
-2. Usage regulations:
-   - Party B commits to use the room for the right purpose, maintain hygiene and security.
-   - Any damage caused by Party B must be compensated as agreed.
+2. Quy định sử dụng:
+   - Bên B cam kết sử dụng phòng đúng mục đích, giữ gìn vệ sinh và an ninh trật tự.
+   - Mọi hư hỏng do Bên B gây ra phải bồi thường theo thỏa thuận.
 
-3. Termination of contract:
-   - Both parties must notify at least 15 days in advance if they wish to terminate the contract.
+3. Chấm dứt hợp đồng:
+   - Hai bên phải thông báo trước ít nhất 15 ngày nếu muốn chấm dứt hợp đồng.
 
-This contract is made in 02 copies, each party keeps 01 copy with the same legal value.
+Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá trị pháp lý như nhau.
 """,
     roomNumber,
     currencyFormat.format(rentAmount),
@@ -242,7 +242,7 @@ This contract is made in 02 copies, each party keeps 01 copy with the same legal
 
             // Nếu có điều khoản thì chèn vào đây
             if (contract.getTerms() != null && !contract.getTerms().isEmpty()) {
-                Paragraph termsTitle = new Paragraph("CONTRACT TERMS", smallBold);
+                Paragraph termsTitle = new Paragraph("ĐIỀU KHOẢN HỢP ĐỒNG", smallBold);
                 termsTitle.setSpacingBefore(10f);
                 termsTitle.setSpacingAfter(8f);
                 termsTitle.setAlignment(Element.ALIGN_LEFT);
@@ -261,8 +261,8 @@ This contract is made in 02 copies, each party keeps 01 copy with the same legal
 
             // Chữ ký
             Paragraph sign = new Paragraph("""
-            LANDLORD (PARTY A)                TENANT (PARTY B)
-            (Sign and write full name)        (Sign and write full name)
+            BÊN CHO THUÊ (BÊN A)                BÊN THUÊ (BÊN B)
+            (Ký và ghi rõ họ tên)               (Ký và ghi rõ họ tên)
             """, normalFont);
             sign.setSpacingBefore(20f);
             sign.setAlignment(Element.ALIGN_CENTER);
@@ -306,7 +306,7 @@ This contract is made in 02 copies, each party keeps 01 copy with the same legal
     @Override
     public ContractDTO updateContract(ContractDTO dto) {
         Contract contract = contractRepository.findById(dto.getId())
-                .orElseThrow(() -> new RuntimeException("Contract not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hợp đồng"));
         contract.setRoom(new com.mpbhms.backend.entity.Room() {{ setId(dto.getRoomId()); }});
         contract.setContractStartDate(dto.getContractStartDate());
         contract.setContractEndDate(dto.getContractEndDate());
@@ -346,7 +346,7 @@ This contract is made in 02 copies, each party keeps 01 copy with the same legal
     @Override
     public void deleteContract(Long id) {
         Contract contract = contractRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Contract not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hợp đồng"));
         // Xóa tất cả ContractRenterInfo liên quan
         java.util.List<ContractRenterInfo> renterInfos = contractRenterInfoRepository.findByContractId(id);
         for (ContractRenterInfo info : renterInfos) {
@@ -367,7 +367,7 @@ This contract is made in 02 copies, each party keeps 01 copy with the same legal
         if (dto.getRoomId() != null) {
             java.util.List<Contract> activeContracts = contractRepository.findByRoomIdAndContractStatus(dto.getRoomId(), com.mpbhms.backend.enums.ContractStatus.ACTIVE);
             if (!activeContracts.isEmpty()) {
-                throw new RuntimeException("This room already has an ACTIVE contract. Cannot create a new contract.");
+                throw new RuntimeException("Phòng này đã có hợp đồng đang hoạt động. Không thể tạo hợp đồng mới.");
             }
         }
         Contract contract = new Contract();
@@ -584,10 +584,10 @@ This contract is made in 02 copies, each party keeps 01 copy with the same legal
     @Transactional
     public void renewContract(Long contractId, java.time.Instant newEndDate) {
         Contract contract = contractRepository.findById(contractId)
-            .orElseThrow(() -> new RuntimeException("Contract not found"));
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy hợp đồng"));
         
         if (contract.getContractStatus() != com.mpbhms.backend.enums.ContractStatus.EXPIRED) {
-            throw new RuntimeException("Only expired contracts can be renewed");
+            throw new RuntimeException("Chỉ có thể gia hạn hợp đồng đã hết hạn");
         }
         
         // Gia hạn hợp đồng
@@ -703,10 +703,10 @@ This contract is made in 02 copies, each party keeps 01 copy with the same legal
     @Transactional
     public void updateContract(UpdateContractRequest request) {
         Contract contract = contractRepository.findById(request.getContractId())
-            .orElseThrow(() -> new RuntimeException("Contract not found"));
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy hợp đồng"));
         Long currentUserId = SecurityUtil.getCurrentUserId();
         if (!contract.getRoom().getLandlord().getId().equals(currentUserId)) {
-            throw new RuntimeException("Only landlord can update contract");
+            throw new RuntimeException("Chỉ chủ phòng mới được cập nhật hợp đồng");
         }
         java.util.List<Long> renterIds = contract.getRoomUsers().stream()
             .filter(RoomUser::getIsActive)
@@ -738,7 +738,7 @@ This contract is made in 02 copies, each party keeps 01 copy with the same legal
     @Transactional
     public void approveAmendment(Long amendmentId, Boolean isLandlordApproval) {
         ContractAmendment amendment = contractAmendmentRepository.findById(amendmentId)
-            .orElseThrow(() -> new RuntimeException("Amendment not found"));
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy yêu cầu sửa đổi hợp đồng"));
         Long currentUserId = SecurityUtil.getCurrentUserId();
         if (isLandlordApproval != null && isLandlordApproval) {
             amendment.setApprovedByLandlord(true);
@@ -769,7 +769,7 @@ This contract is made in 02 copies, each party keeps 01 copy with the same legal
     @Transactional
     public void rejectAmendment(Long amendmentId, String reason) {
         ContractAmendment amendment = contractAmendmentRepository.findById(amendmentId)
-            .orElseThrow(() -> new RuntimeException("Amendment not found"));
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy yêu cầu sửa đổi hợp đồng"));
         
         amendment.setStatus(ContractAmendment.AmendmentStatus.REJECTED);
         amendment.setReason(reason);
@@ -791,7 +791,7 @@ This contract is made in 02 copies, each party keeps 01 copy with the same legal
             java.util.List<Contract> activeContracts = contractRepository.findByRoomIdAndContractStatus(oldContract.getRoom().getId(), com.mpbhms.backend.enums.ContractStatus.ACTIVE);
             // If there is another ACTIVE contract (not the old one), do not allow creating a new one
             if (!activeContracts.isEmpty() && activeContracts.stream().anyMatch(c -> !c.getId().equals(oldContract.getId()))) {
-                throw new RuntimeException("This room already has an ACTIVE contract. Cannot create a new contract.");
+                throw new RuntimeException("Phòng này đã có hợp đồng đang hoạt động. Không thể tạo hợp đồng mới.");
             }
         }
         oldContract.setContractStatus(ContractStatus.EXPIRED);
@@ -924,7 +924,7 @@ This contract is made in 02 copies, each party keeps 01 copy with the same legal
     @Transactional
     public void terminateContract(Long contractId) {
         Contract contract = contractRepository.findById(contractId)
-            .orElseThrow(() -> new RuntimeException("Contract not found"));
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy hợp đồng"));
         contract.setContractStatus(ContractStatus.TERMINATED);
         contractRepository.save(contract);
         if (contract.getRoomUsers() != null) {
@@ -956,7 +956,7 @@ This contract is made in 02 copies, each party keeps 01 copy with the same legal
     @Transactional
     public void requestTerminateContract(Long contractId, String reason) {
         Contract contract = contractRepository.findById(contractId)
-            .orElseThrow(() -> new RuntimeException("Contract not found"));
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy hợp đồng"));
         java.util.List<Long> renterIds = contract.getRoomUsers().stream()
             .filter(RoomUser::getIsActive)
             .map(ru -> ru.getUser().getId())

@@ -38,7 +38,7 @@ public class RoomUserServiceImpl implements RoomUserService {
     @Override
     @Transactional
     public void addUsersToRoom(AddUsersToRoomRequest request) {
-        // Kiểm tra logic thời gian hợp đồng theo payment cycle
+        // Kiểm tra logic thời gian hợp đồng theo chu kỳ thanh toán
         Instant startInstant = request.getContractStartDate();
         Instant endInstant = request.getContractEndDate();
         if (startInstant == null || endInstant == null) {
@@ -70,9 +70,9 @@ public class RoomUserServiceImpl implements RoomUserService {
                 break;
         }
         Room roomWithServices = roomRepository.findById(request.getRoomId())
-                .orElseThrow(() -> new RuntimeException("Room not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng."));
 
-        // Kiểm tra xem phòng đã có hợp đồng ACTIVE chưa
+        // Kiểm tra xem phòng đã có hợp đồng ĐANG HOẠT ĐỘNG chưa
         java.util.List<Contract> existingContracts = contractRepository.findByRoomId(roomWithServices.getId());
         boolean hasActiveContract = existingContracts.stream()
             .anyMatch(contract -> {
@@ -85,7 +85,7 @@ public class RoomUserServiceImpl implements RoomUserService {
             });
         
         if (hasActiveContract) {
-            throw new RuntimeException("Phòng này đã có hợp đồng đang hoạt động trong thời gian hiệu lực. Không thể assign thêm người thuê mới.");
+            throw new RuntimeException("Phòng này đã có hợp đồng đang hoạt động trong thời gian hiệu lực. Không thể gán thêm người thuê mới.");
         }
 
         // Đếm số người hiện tại trong phòng
@@ -94,7 +94,7 @@ public class RoomUserServiceImpl implements RoomUserService {
             throw new IllegalArgumentException("Vượt quá số người tối đa của phòng.");
         }
 
-        // Tạo Contract trước
+        // Tạo hợp đồng trước
         Contract contract = new Contract();
         contract.setRoom(roomWithServices);
         contract.setContractStartDate(request.getContractStartDate());
@@ -105,10 +105,10 @@ public class RoomUserServiceImpl implements RoomUserService {
         contract.setContractStatus(ContractStatus.ACTIVE);
         contract = contractRepository.save(contract);
 
-        // Tạo RoomUser và gán contract cho từng user
+        // Tạo RoomUser và gán hợp đồng cho từng người dùng
         for (Long userId : request.getUserIds()) {
             User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng."));
 
             RoomUser roomUser = new RoomUser();
             roomUser.setRoom(roomWithServices);
@@ -117,7 +117,7 @@ public class RoomUserServiceImpl implements RoomUserService {
             roomUser.setContract(contract);
             roomUserRepository.save(roomUser);
 
-            // Lưu snapshot thông tin user vào ContractRenterInfo
+            // Lưu snapshot thông tin người thuê vào ContractRenterInfo
             if (user.getUserInfo() != null) {
                 ContractRenterInfo info = new ContractRenterInfo();
                 info.setContract(contract);
@@ -148,7 +148,7 @@ public class RoomUserServiceImpl implements RoomUserService {
     @Transactional
     public void leaveRoom(Long roomUserId) {
         RoomUser roomUser = roomUserRepository.findById(roomUserId)
-            .orElseThrow(() -> new RuntimeException("RoomUser not found"));
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin người dùng trong phòng."));
         
         Contract contract = roomUser.getContract();
         Room room = roomUser.getRoom();
@@ -168,7 +168,7 @@ public class RoomUserServiceImpl implements RoomUserService {
                 contract.setContractStatus(ContractStatus.TERMINATED);
                 contractRepository.save(contract);
                 
-                // Cập nhật trạng thái phòng thành Available
+                // Cập nhật trạng thái phòng thành "Còn trống"
                 room.setRoomStatus(com.mpbhms.backend.enums.RoomStatus.Available);
                 roomRepository.save(room);
             } else {
@@ -179,11 +179,11 @@ public class RoomUserServiceImpl implements RoomUserService {
     }
     
     /**
-     * Xử lý logic khi chỉ 1 số người rời phòng, những người khác vẫn ở lại
+     * Xử lý logic khi chỉ một số người rời phòng, những người khác vẫn ở lại
      */
     private void handlePartialContractTermination(Contract contract, RoomUser leavingUser, 
                                                  java.util.List<RoomUser> remainingUsers) {
-        // Logic 1: Tạo hợp đồng mới cho những người ở lại
+        // Logic: Tạo hợp đồng mới cho những người ở lại
         if (remainingUsers.size() > 0) {
             // Tạo hợp đồng mới với thời gian còn lại
             Contract newContract = new Contract();
@@ -213,7 +213,7 @@ public class RoomUserServiceImpl implements RoomUserService {
                 }
             }
             
-            // Đánh dấu hợp đồng cũ là TERMINATED
+            // Đánh dấu hợp đồng cũ là ĐÃ KẾT THÚC
             contract.setContractStatus(ContractStatus.TERMINATED);
             contractRepository.save(contract);
         }

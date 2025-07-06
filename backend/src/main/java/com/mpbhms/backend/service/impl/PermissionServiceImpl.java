@@ -44,11 +44,11 @@ public class PermissionServiceImpl implements PermissionService {
                 permission.getApiPath(),
                 permission.getMethod()
         )) {
-            errors.put("permission", "Permission already exists for this module + path + method combination");
+            errors.put("permission", "Quyền đã tồn tại cho module + đường dẫn + phương thức này");
         }
 
         if (!errors.isEmpty()) {
-            throw new BusinessException("Permission creation failed", errors);
+            throw new BusinessException("Tạo quyền thất bại", errors);
         }
 
         return permissionRepository.save(permission);
@@ -68,7 +68,7 @@ public class PermissionServiceImpl implements PermissionService {
         // Validate logic ở đầu hàm
         Permission existing = getById(permission.getId());
         if (existing == null) {
-            throw new IdInvalidException("Permission with id " + permission.getId() + " does not exist");
+            throw new IdInvalidException("Không tồn tại quyền với ID: " + permission.getId());
         }
 
         Permission duplicate = permissionRepository.findByModuleAndApiPathAndMethod(
@@ -76,7 +76,7 @@ public class PermissionServiceImpl implements PermissionService {
         );
 
         if (duplicate != null && !duplicate.getId().equals(permission.getId())) {
-            throw new BusinessException("Permission already exists with the same module + path + method");
+            throw new BusinessException("Đã tồn tại quyền với cùng module + đường dẫn + phương thức");
         }
 
         // Cập nhật

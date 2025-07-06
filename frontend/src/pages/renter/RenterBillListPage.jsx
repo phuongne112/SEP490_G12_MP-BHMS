@@ -12,7 +12,6 @@ import {
   Typography,
   Space,
   Tooltip,
-  Empty,
 } from "antd";
 import { useNavigate } from "react-router-dom";
 import { getMyBills } from "../../services/billApi";
@@ -29,17 +28,16 @@ import RenterSidebar from "../../components/layout/RenterSidebar";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { Layout } from "antd";
+import { useSelector } from "react-redux";
 
 const { Sider, Content } = Layout;
-
 const { Title, Text } = Typography;
 
 dayjs.extend(customParseFormat);
 
-// Responsive: Ẩn sidebar trên mobile
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(false);
-  React.useEffect(() => {
+  useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
     window.addEventListener("resize", handleResize);
@@ -57,8 +55,10 @@ export default function RenterBillListPage() {
     unpaid: 0,
     totalAmount: 0,
   });
+
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const user = useSelector((state) => state.account.user);
 
   useEffect(() => {
     fetchBills();
@@ -68,10 +68,20 @@ export default function RenterBillListPage() {
     setLoading(true);
     try {
       const res = await getMyBills();
-      const billsData = res.content || [];
+      let billsData = res.content || [];
+      if (user && billsData.length > 0) {
+        billsData = billsData.filter((bill) => {
+          if (bill.renterId) return bill.renterId === user.id;
+          if (bill.renterIds) return bill.renterIds.includes(user.id);
+          if (bill.roomUsers)
+            return bill.roomUsers.some(
+              (u) => u.userId === user.id || u.id === user.id
+            );
+          return true;
+        });
+      }
       setBills(billsData);
 
-      // Tính toán thống kê
       const total = billsData.length;
       const paid = billsData.filter((bill) => bill.status).length;
       const unpaid = total - paid;
@@ -79,7 +89,6 @@ export default function RenterBillListPage() {
         (sum, bill) => sum + (bill.totalAmount || 0),
         0
       );
-
       setStats({ total, paid, unpaid, totalAmount });
     } catch (err) {
       message.error("Không thể tải danh sách hóa đơn");
@@ -87,17 +96,13 @@ export default function RenterBillListPage() {
     setLoading(false);
   };
 
-  const getStatusColor = (status) => {
-    return status ? "success" : "error";
-  };
+  const getStatusColor = (status) => (status ? "success" : "error");
 
-  const getStatusIcon = (status) => {
-    return status ? <CheckCircleOutlined /> : <CloseCircleOutlined />;
-  };
+  const getStatusIcon = (status) =>
+    status ? <CheckCircleOutlined /> : <CloseCircleOutlined />;
 
-  const getStatusText = (status) => {
-    return status ? "Đã thanh toán" : "Chưa thanh toán";
-  };
+  const getStatusText = (status) =>
+    status ? "Đã thanh toán" : "Chưa thanh toán";
 
   const getBillTypeColor = (type) => {
     switch (type) {
@@ -119,7 +124,9 @@ export default function RenterBillListPage() {
     if (date && dayjs(date).isValid()) {
       return dayjs(date).format("DD/MM/YYYY");
     }
-    return <span style={{ color: 'red', fontWeight: 500 }}>Không xác định</span>;
+    return (
+      <span style={{ color: "red", fontWeight: 500 }}>Không xác định</span>
+    );
   };
 
   const columns = [
@@ -213,18 +220,18 @@ export default function RenterBillListPage() {
       align: "center",
       render: (_, record) => (
         <Space>
-          <Tooltip title="View details">
+          <Tooltip title="Xem chi tiết">
             <Button
               type="primary"
               icon={<EyeOutlined />}
               onClick={() => navigate(`/renter/bills/${record.id}`)}
               size="small"
             >
-              View
+              Xem
             </Button>
           </Tooltip>
           {!record.status && (
-            <Tooltip title="Pay now">
+            <Tooltip title="Thanh toán ngay">
               <Button
                 type="primary"
                 danger
@@ -234,7 +241,7 @@ export default function RenterBillListPage() {
                 }
                 size="small"
               >
-                Pay
+                Thanh toán
               </Button>
             </Tooltip>
           )}
@@ -256,7 +263,10 @@ export default function RenterBillListPage() {
             style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
           >
             <div style={{ marginBottom: 24 }}>
-              <Title level={2} style={{ color: "#1890ff", fontSize: isMobile ? 22 : 28 }}>
+              <Title
+                level={2}
+                style={{ color: "#1890ff", fontSize: isMobile ? 22 : 28 }}
+              >
                 <FileDoneOutlined style={{ marginRight: 8 }} />
                 Hóa đơn của tôi
               </Title>
@@ -265,7 +275,6 @@ export default function RenterBillListPage() {
               </Text>
             </div>
 
-            {/* Thống kê */}
             <Row gutter={16} style={{ marginBottom: 24 }}>
               <Col span={6}>
                 <Card>
@@ -311,12 +320,11 @@ export default function RenterBillListPage() {
               </Col>
             </Row>
 
-            {/* Bảng hóa đơn */}
             <Card title="Danh sách hóa đơn" style={{ marginTop: 16 }}>
               {loading ? (
                 <div style={{ textAlign: "center", padding: "40px" }}>
                   <Spin size="large" />
-                  <div style={{ marginTop: 16 }}>Loading...</div>
+                  <div style={{ marginTop: 16 }}>Đang tải...</div>
                 </div>
               ) : (
                 <Table

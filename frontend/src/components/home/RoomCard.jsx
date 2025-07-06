@@ -12,6 +12,8 @@ import { Link } from "react-router-dom";
 
 const { Text, Title } = Typography;
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+
 const getStatusTag = (status) => {
   switch (status) {
     case "Available":
@@ -44,12 +46,16 @@ const getStatusTag = (status) => {
 export default function RoomCard({ room, onClick }) {
   const getImageUrl = (img) => {
     if (!img) return null;
-    if (typeof img === "string")
-      return img.startsWith("http") || img.startsWith("/") ? img : `/${img}`;
-    if (typeof img === "object" && img.imageUrl)
-      return img.imageUrl.startsWith("http") || img.imageUrl.startsWith("/")
-        ? img.imageUrl
-        : `/${img.imageUrl}`;
+    if (typeof img === "string") {
+      if (img.startsWith("http")) return img;
+      if (img.startsWith("/uploads/")) return BACKEND_URL + img;
+      return BACKEND_URL + "/uploads/" + img;
+    }
+    if (typeof img === "object" && img.imageUrl) {
+      if (img.imageUrl.startsWith("http")) return img.imageUrl;
+      if (img.imageUrl.startsWith("/uploads/")) return BACKEND_URL + img.imageUrl;
+      return BACKEND_URL + "/uploads/" + img.imageUrl;
+    }
     return null;
   };
 

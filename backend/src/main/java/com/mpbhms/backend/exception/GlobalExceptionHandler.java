@@ -30,7 +30,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<?>> handleResourceNotFound(ResourceNotFoundException ex) {
-        return buildResponse(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", ex.getMessage(), null);
+        return buildResponse(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", ex.getMessage() != null ? ex.getMessage() : "Không tìm thấy tài nguyên.", null);
     }
 
     @ExceptionHandler({
@@ -38,27 +38,27 @@ public class GlobalExceptionHandler {
             BadCredentialsException.class
     })
     public ResponseEntity<ApiResponse<?>> handleAuthenticationException(Exception ex) {
-        return buildResponse(HttpStatus.UNAUTHORIZED, "AUTH_FAILED", "Invalid username or password", null);
+        return buildResponse(HttpStatus.UNAUTHORIZED, "AUTH_FAILED", "Tên đăng nhập hoặc mật khẩu không đúng.", null);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<?>> handleIllegalArgument(IllegalArgumentException ex) {
-        return buildResponse(HttpStatus.BAD_REQUEST, "ILLEGAL_ARGUMENT", ex.getMessage(), null);
+        return buildResponse(HttpStatus.BAD_REQUEST, "ILLEGAL_ARGUMENT", ex.getMessage() != null ? ex.getMessage() : "Tham số truyền vào không hợp lệ.", null);
     }
 
     @ExceptionHandler(NullPointerException.class)
     public ResponseEntity<ApiResponse<?>> handleNullPointer(NullPointerException ex) {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "NULL_POINTER", ex.getMessage(), null);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "NULL_POINTER", "Lỗi hệ thống: dữ liệu bị thiếu hoặc null.", null);
     }
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<?>> handleBusinessException(BusinessException ex) {
-        return buildResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), ex.getData());
+        return buildResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage() != null ? ex.getMessage() : "Có lỗi nghiệp vụ xảy ra.", ex.getData());
     }
 
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ApiResponse<?>> handleValidationException(ValidationException ex) {
-        return buildResponse(ex.getStatus(), "VALIDATION_ERROR", ex.getMessage(), ex.getErrors());
+        return buildResponse(ex.getStatus(), "VALIDATION_ERROR", ex.getMessage() != null ? ex.getMessage() : "Dữ liệu không hợp lệ. Vui lòng kiểm tra lại!", ex.getErrors());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -69,23 +69,22 @@ public class GlobalExceptionHandler {
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
-
-        return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Validation failed", errors);
+        return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại các trường thông tin!", errors);
     }
 
     @ExceptionHandler({ DataIntegrityViolationException.class, ConstraintViolationException.class })
     public ResponseEntity<ApiResponse<?>> handleDataIntegrityViolation(Exception ex) {
-        String message = "Duplicate entry or constraint violation";
+        String message = "Dữ liệu bị trùng lặp hoặc vi phạm ràng buộc.";
         Throwable cause = ex.getCause();
         if (cause != null && cause.getMessage() != null) {
             String causeMsg = cause.getMessage();
             if (causeMsg.contains("Duplicate entry")) {
                 if (causeMsg.contains("username")) {
-                    message = "Username already exists";
+                    message = "Tên đăng nhập đã tồn tại.";
                 } else if (causeMsg.contains("email")) {
-                    message = "Email already exists";
+                    message = "Email đã tồn tại.";
                 } else {
-                    message = "Duplicate entry";
+                    message = "Dữ liệu bị trùng lặp.";
                 }
             }
         }
@@ -94,12 +93,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiResponse<?>> handleRuntimeException(RuntimeException ex) {
-        return buildResponse(HttpStatus.BAD_REQUEST, "RUNTIME_ERROR", ex.getMessage(), null);
+        return buildResponse(HttpStatus.BAD_REQUEST, "RUNTIME_ERROR", ex.getMessage() != null ? ex.getMessage() : "Có lỗi xảy ra trong quá trình xử lý.", null);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleGlobalException(Exception ex) {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getClass().getSimpleName(), ex.getMessage(), null);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getClass().getSimpleName(), "Lỗi hệ thống. Vui lòng thử lại sau!", null);
     }
 
 }

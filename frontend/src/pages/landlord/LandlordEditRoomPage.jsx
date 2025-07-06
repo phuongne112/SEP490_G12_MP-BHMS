@@ -28,7 +28,6 @@ export default function LandlordEditRoomPage() {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [formError, setFormError] = useState(null);
   const [initialValues, setInitialValues] = useState(null);
   const [keepImageIds, setKeepImageIds] = useState([]);
   const navigate = useNavigate();
@@ -36,16 +35,16 @@ export default function LandlordEditRoomPage() {
   const user = useSelector((state) => state.account.user);
 
   useEffect(() => {
-    // Fetch room data by id
     const fetchRoom = async () => {
       try {
         const res = await axiosClient.get(`/rooms/${id}`);
         const room = res.data;
         if (!room) throw new Error("Không tìm thấy phòng");
-        // Parse building + suffix
-        let building = room.building || "";
-        let roomNumberSuffix = room.roomNumber?.replace(building, "") || "";
-        setInitialValues({
+
+        const building = room.building || "";
+        const roomNumberSuffix = room.roomNumber?.replace(building, "") || "";
+
+        const initVals = {
           building,
           roomNumberSuffix,
           area: room.area,
@@ -56,20 +55,10 @@ export default function LandlordEditRoomPage() {
           description: room.description,
           maxOccupants: room.maxOccupants,
           isActive: room.isActive,
-        });
-        form.setFieldsValue({
-          building,
-          roomNumberSuffix,
-          area: room.area,
-          price: room.pricePerMonth,
-          roomStatus: room.roomStatus,
-          numberOfBedrooms: room.numberOfBedrooms,
-          numberOfBathrooms: room.numberOfBathrooms,
-          description: room.description,
-          maxOccupants: room.maxOccupants,
-          isActive: room.isActive,
-        });
-        // Prepare fileList for Upload
+        };
+        setInitialValues(initVals);
+        form.setFieldsValue(initVals);
+
         setFileList(
           (room.images || []).map((img) => ({
             uid: String(img.id),
@@ -86,18 +75,15 @@ export default function LandlordEditRoomPage() {
       }
     };
     fetchRoom();
-    // eslint-disable-next-line
-  }, [id]);
+  }, [id, form, navigate]);
 
   const handleUploadChange = ({ fileList: newFileList }) => {
-    // Keep only new files and those with id (old images)
     setFileList(newFileList);
-    setKeepImageIds(newFileList.filter(f => f.id).map(f => f.id));
+    setKeepImageIds(newFileList.filter((f) => f.id).map((f) => f.id));
   };
 
   const handleFinish = async (values) => {
     setLoading(true);
-    setFormError(null);
     try {
       const roomNumber = values.building + values.roomNumberSuffix;
       const roomDTO = {
@@ -112,48 +98,59 @@ export default function LandlordEditRoomPage() {
         isActive: values.isActive,
         building: values.building,
       };
+
       const formData = new FormData();
       formData.append("room", JSON.stringify(roomDTO));
-      if (keepImageIds.length > 0) {
-        keepImageIds.forEach((id) => formData.append("keepImageIds", id));
-      }
+      formData.append("keepImageIds", JSON.stringify(keepImageIds));
+
       fileList.forEach((file) => {
         if (!file.id && file.originFileObj) {
           formData.append("images", file.originFileObj);
         }
       });
+
       await axiosClient.post(`/rooms/${id}`, formData);
+
       message.success("Cập nhật phòng thành công!");
-      if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
+      if (
+        user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
+        user?.role?.roleName?.toUpperCase?.() === "SUBADMIN"
+      ) {
         navigate("/admin/rooms");
       } else {
         navigate("/landlord/rooms");
       }
     } catch (err) {
       const res = err.response?.data;
-      setFormError(null);
       if (res && typeof res === "object") {
-        const fieldMap = {};
+        if (res.message) {
+          message.error(res.message);
+        } else {
+          const firstError = Object.values(res)[0];
+          message.error(firstError || "Vui lòng kiểm tra lại các trường thông tin!");
+        }
+
         const fieldErrors = Object.entries(res).map(([field, msg]) => ({
-          name: fieldMap[field] || field,
+          name: field,
           errors: [msg],
         }));
         form.setFields(fieldErrors);
       } else {
-        setFormError(res?.message || "Cập nhật phòng thất bại!");
+        message.error("Cập nhật phòng thất bại!");
       }
     }
     setLoading(false);
   };
 
   if (!initialValues) {
-    return <div style={{ textAlign: "center", padding: 60 }}><span>Loading...</span></div>;
+    return <div style={{ textAlign: "center", padding: 60 }}>Loading...</div>;
   }
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Sider width={220}>
-        {user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
+        {user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
+        user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
           <AdminSidebar />
         ) : (
           <LandlordSidebar />
@@ -165,7 +162,10 @@ export default function LandlordEditRoomPage() {
           icon={<ArrowLeftOutlined />}
           style={{ marginBottom: 16 }}
           onClick={() => {
-            if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
+            if (
+              user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
+              user?.role?.roleName?.toUpperCase?.() === "SUBADMIN"
+            ) {
               navigate("/admin/rooms");
             } else {
               navigate("/landlord/rooms");
@@ -175,15 +175,7 @@ export default function LandlordEditRoomPage() {
           Quay lại danh sách phòng
         </Button>
         <Content style={{ padding: "24px" }}>
-          {formError && (
-            <div style={{ color: "red", marginBottom: 16 }}>{formError}</div>
-          )}
-          <Form
-            layout="vertical"
-            form={form}
-            onFinish={handleFinish}
-            initialValues={initialValues}
-          >
+          <Form layout="vertical" form={form} onFinish={handleFinish}>
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item
@@ -209,7 +201,7 @@ export default function LandlordEditRoomPage() {
                   label="Diện tích (m²)"
                   rules={[{ required: true, message: "Vui lòng nhập diện tích" }]}
                 >
-                  <InputNumber min={1} max={1000} style={{ width: "100%" }} placeholder="Nhập diện tích" />
+                  <InputNumber min={1} max={1000} style={{ width: "100%" }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
@@ -218,18 +210,20 @@ export default function LandlordEditRoomPage() {
                   label="Giá (VND/tháng)"
                   rules={[{ required: true, message: "Vui lòng nhập giá" }]}
                 >
-                  <InputNumber min={0} style={{ width: "100%" }} placeholder="Nhập giá" />
+                  <InputNumber min={0} style={{ width: "100%" }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   name="roomStatus"
                   label="Trạng thái phòng"
-                  rules={[{ required: true, message: "Vui lòng chọn trạng thái phòng" }]}
+                  rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
                 >
                   <Select>
                     <Option value="Available">Còn trống</Option>
                     <Option value="Inactive">Ngừng hoạt động</Option>
+                    <Option value="Occupied">Đã thuê</Option>
+                    <Option value="Maintenance">Bảo trì</Option>
                   </Select>
                 </Form.Item>
               </Col>
@@ -239,7 +233,7 @@ export default function LandlordEditRoomPage() {
                   label="Số phòng ngủ"
                   rules={[{ required: true, message: "Vui lòng nhập số phòng ngủ" }]}
                 >
-                  <InputNumber min={1} max={10} style={{ width: "100%" }} placeholder="Nhập số phòng ngủ" />
+                  <InputNumber min={1} max={10} style={{ width: "100%" }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
@@ -248,7 +242,7 @@ export default function LandlordEditRoomPage() {
                   label="Số phòng tắm"
                   rules={[{ required: true, message: "Vui lòng nhập số phòng tắm" }]}
                 >
-                  <InputNumber min={1} max={10} style={{ width: "100%" }} placeholder="Nhập số phòng tắm" />
+                  <InputNumber min={1} max={10} style={{ width: "100%" }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
@@ -257,7 +251,7 @@ export default function LandlordEditRoomPage() {
                   label="Số người tối đa"
                   rules={[{ required: true, message: "Vui lòng nhập số người tối đa" }]}
                 >
-                  <InputNumber min={1} max={20} style={{ width: "100%" }} placeholder="Nhập số người tối đa" />
+                  <InputNumber min={1} max={20} style={{ width: "100%" }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
@@ -284,8 +278,10 @@ export default function LandlordEditRoomPage() {
                     multiple
                     maxCount={8}
                     accept="image/*"
-                    onRemove={file => {
-                      setKeepImageIds(prev => prev.filter(id => id !== file.id));
+                    onRemove={(file) => {
+                      if (file.id) {
+                        setKeepImageIds((prev) => prev.filter((id) => id !== file.id));
+                      }
                     }}
                   >
                     {fileList.length < 8 && (
@@ -308,4 +304,4 @@ export default function LandlordEditRoomPage() {
       </Layout>
     </Layout>
   );
-} 
+}

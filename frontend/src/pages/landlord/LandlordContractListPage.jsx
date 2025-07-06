@@ -107,12 +107,16 @@ export default function LandlordContractListPage() {
           const contractRoomId = c.roomId || (c.room && c.room.id);
           return String(contractRoomId) === String(room.id);
         });
-        const latestContract = contractsOfRoom
-          .sort((a, b) => {
-            const dateA = new Date(a.updatedDate || a.createdDate || 0);
-            const dateB = new Date(b.updatedDate || b.createdDate || 0);
-            return dateB - dateA;
-          })[0] || null;
+        // Ưu tiên hợp đồng ACTIVE, nếu không có thì lấy hợp đồng có ngày cập nhật mới nhất
+        let latestContract = contractsOfRoom.find(c => c.contractStatus === 'ACTIVE');
+        if (!latestContract) {
+          latestContract = contractsOfRoom
+            .sort((a, b) => {
+              const dateA = new Date(a.updatedDate || a.createdDate || 0);
+              const dateB = new Date(b.updatedDate || b.createdDate || 0);
+              return dateB - dateA;
+            })[0] || null;
+        }
         return {
           ...room,
           latestContract: latestContract ? { ...latestContract, roomId: room.id, roomNumber: room.roomNumber } : null

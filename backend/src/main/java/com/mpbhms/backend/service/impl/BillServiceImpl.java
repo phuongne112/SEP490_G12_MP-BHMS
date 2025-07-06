@@ -56,7 +56,7 @@ public class BillServiceImpl implements BillService {
     @Override
     public Bill generateFirstBill(Long contractId) {
         Contract contract = contractRepository.findById(contractId)
-                .orElseThrow(() -> new NotFoundException("Contract not found"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy hợp đồng"));
 
         Room room = contract.getRoom();
         PaymentCycle cycle = contract.getPaymentCycle();
@@ -73,14 +73,23 @@ public class BillServiceImpl implements BillService {
         PaymentCycle cycle = contract.getPaymentCycle();
 
         // Kiểm tra fromDate/toDate hợp lệ với paymentCycle
-        int expectedMonths = switch (cycle) {
-            case MONTHLY -> 1;
-            case QUARTERLY -> 3;
-            case YEARLY -> 12;
-        };
+        int expectedMonths;
+        switch (cycle) {
+            case MONTHLY:
+                expectedMonths = 1;
+                break;
+            case QUARTERLY:
+                expectedMonths = 3;
+                break;
+            case YEARLY:
+                expectedMonths = 12;
+                break;
+            default:
+                throw new IllegalArgumentException("Chu kỳ thanh toán không hợp lệ: " + cycle);
+        }
         LocalDate expectedToDate = fromDate.plusMonths(expectedMonths).minusDays(1);
         if (!toDate.equals(expectedToDate)) {
-            throw new BusinessException("fromDate/toDate không hợp lệ với chu kỳ thanh toán " + cycle + ". Kỳ đúng phải từ " + fromDate + " đến " + expectedToDate);
+            throw new BusinessException("Ngày bắt đầu/kết thúc hóa đơn không hợp lệ với chu kỳ thanh toán " + cycle + ". Kỳ đúng phải từ " + fromDate + " đến " + expectedToDate);
         }
 
         List<BillDetail> details = new ArrayList<>();
@@ -182,7 +191,7 @@ public class BillServiceImpl implements BillService {
     @Override
     public Bill generateBill(Long contractId, LocalDate fromDate, LocalDate toDate, BillType billType) {
         Contract contract = contractRepository.findById(contractId)
-                .orElseThrow(() -> new NotFoundException("Contract not found"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy hợp đồng"));
         Room room = contract.getRoom();
         PaymentCycle cycle = contract.getPaymentCycle();
 
@@ -191,28 +200,37 @@ public class BillServiceImpl implements BillService {
         LocalDate contractEnd = contract.getContractEndDate().atZone(ZoneId.systemDefault()).toLocalDate();
         // Kiểm tra fromDate/toDate phải nằm trong khoảng hợp đồng
         if (fromDate.isBefore(contractStart) || toDate.isAfter(contractEnd)) {
-            throw new BusinessException("Bill date must be within contract period: " + contractStart + " to " + contractEnd);
+            throw new BusinessException("Ngày hóa đơn phải nằm trong thời hạn hợp đồng: " + contractStart + " đến " + contractEnd);
         }
 
         // Kiểm tra null
         if (fromDate == null || toDate == null) {
-            throw new BusinessException("Ngày bắt đầu hoặc ngày kết thúc không được để trống!");
+            throw new BusinessException("Vui lòng nhập ngày bắt đầu và ngày kết thúc!");
         }
         if (fromDate.isAfter(toDate)) {
             throw new BusinessException("Ngày bắt đầu phải trước hoặc bằng ngày kết thúc!");
         }
-        int expectedMonths = switch (cycle) {
-            case MONTHLY -> 1;
-            case QUARTERLY -> 3;
-            case YEARLY -> 12;
-        };
+        int expectedMonths;
+        switch (cycle) {
+            case MONTHLY:
+                expectedMonths = 1;
+                break;
+            case QUARTERLY:
+                expectedMonths = 3;
+                break;
+            case YEARLY:
+                expectedMonths = 12;
+                break;
+            default:
+                throw new IllegalArgumentException("Chu kỳ thanh toán không hợp lệ: " + cycle);
+        }
         // Kiểm tra fromDate phải là ngày bắt đầu hợp đồng hoặc là ngày đầu kỳ tiếp theo
         if (!fromDate.equals(contractStart)) {
             // Tính số tháng giữa contractStart và fromDate
             int monthsBetween = (fromDate.getYear() - contractStart.getYear()) * 12 + (fromDate.getMonthValue() - contractStart.getMonthValue());
             int cycleMonths = expectedMonths;
             if (monthsBetween % cycleMonths != 0 || fromDate.isBefore(contractStart)) {
-                throw new BusinessException("Bill start date must be the contract start date or the first day of a valid billing cycle after contract start. Invalid fromDate: " + fromDate);
+                throw new BusinessException("Ngày bắt đầu hóa đơn phải là ngày bắt đầu hợp đồng hoặc ngày đầu tiên của một chu kỳ hợp lệ sau ngày bắt đầu hợp đồng. fromDate không hợp lệ: " + fromDate);
             }
         }
         // Kiểm tra fromDate/toDate hợp lệ với paymentCycle
@@ -320,19 +338,31 @@ public class BillServiceImpl implements BillService {
     }
 
     private int countMonths(PaymentCycle cycle) {
-        return switch (cycle) {
-            case MONTHLY -> 1;
-            case QUARTERLY -> 3;
-            case YEARLY -> 12;
-        };
+        switch (cycle) {
+            case MONTHLY:
+                return 1;
+            case QUARTERLY:
+                return 3;
+            case YEARLY:
+                return 12;
+            default:
+                throw new IllegalArgumentException("Chu kỳ thanh toán không hợp lệ: " + cycle);
+        }
+
     }
 
     private LocalDate calculateEndDate(LocalDate startDate, PaymentCycle cycle) {
-        return switch (cycle) {
-            case MONTHLY -> startDate.plusMonths(1).minusDays(1);
-            case QUARTERLY -> startDate.plusMonths(3).minusDays(1);
-            case YEARLY -> startDate.plusYears(1).minusDays(1);
-        };
+        switch (cycle) {
+            case MONTHLY:
+                return startDate.plusMonths(1).minusDays(1);
+            case QUARTERLY:
+                return startDate.plusMonths(3).minusDays(1);
+            case YEARLY:
+                return startDate.plusYears(1).minusDays(1);
+            default:
+                throw new IllegalArgumentException("Chu kỳ thanh toán không hợp lệ: " + cycle);
+        }
+
     }
 
     @Override
@@ -349,7 +379,7 @@ public class BillServiceImpl implements BillService {
     @Override
     public Bill getBillById(Long billId) {
         return billRepository.findById(billId)
-                .orElseThrow(() -> new NotFoundException("Bill not found"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy hóa đơn"));
     }
 
     @Override
@@ -369,7 +399,8 @@ public class BillServiceImpl implements BillService {
         response.setTotalAmount(bill.getTotalAmount());
         response.setStatus(bill.getStatus());
 
-        List<BillDetailResponse> detailResponses = bill.getBillDetails().stream().map(detail -> {
+        List<BillDetailResponse> detailResponses = new ArrayList<>();
+        for (BillDetail detail : bill.getBillDetails()) {
             BillDetailResponse d = new BillDetailResponse();
             d.setItemType(detail.getItemType());
             d.setDescription(detail.getDescription());
@@ -379,9 +410,8 @@ public class BillServiceImpl implements BillService {
             if (detail.getService() != null) {
                 d.setServiceName(detail.getService().getServiceName());
             }
-            return d;
-        }).toList();
-
+            detailResponses.add(d);
+        }
         response.setDetails(detailResponses);
         return response;
     }
@@ -389,7 +419,7 @@ public class BillServiceImpl implements BillService {
     @Override
     public List<BillDetailResponse> calculateServiceBill(Long roomId, int month, int year) {
         Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new NotFoundException("Room not found"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy phòng"));
         ZoneId vnZone = ZoneId.of("Asia/Ho_Chi_Minh");
         LocalDate monthStart = LocalDate.of(year, month, 1);
         LocalDate monthEnd = monthStart.withDayOfMonth(monthStart.lengthOfMonth());
@@ -437,10 +467,10 @@ public class BillServiceImpl implements BillService {
     @Override
     public BillResponse createAndSaveServiceBill(Long roomId, int month, int year) {
         Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new NotFoundException("Room not found"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy phòng"));
         // Lấy contract active của phòng
         Contract contract = contractRepository.findActiveByRoomId(roomId)
-                .orElseThrow(() -> new NotFoundException("No active contract for this room"));
+                .orElseThrow(() -> new NotFoundException("Không có hợp đồng đang hoạt động cho phòng này"));
         ZoneId vnZone = ZoneId.of("Asia/Ho_Chi_Minh");
         LocalDate monthStart = LocalDate.of(year, month, 1);
         LocalDate monthEnd = monthStart.withDayOfMonth(monthStart.lengthOfMonth());
@@ -509,9 +539,9 @@ public class BillServiceImpl implements BillService {
     @Override
     public void deleteBillById(Long id) {
         Bill bill = billRepository.findById(id)
-            .orElseThrow(() -> new NotFoundException("Bill not found"));
+            .orElseThrow(() -> new NotFoundException("Không tìm thấy hóa đơn"));
         if (Boolean.TRUE.equals(bill.getStatus())) {
-            throw new BusinessException("Cannot delete a paid bill.");
+            throw new BusinessException("Không thể xóa hóa đơn đã thanh toán.");
         }
         billRepository.deleteById(id);
     }
@@ -545,10 +575,10 @@ public class BillServiceImpl implements BillService {
     @Override
     public BillResponse createCustomBill(Long roomId, String name, String description, BigDecimal amount, Instant fromDate, Instant toDate) {
         Room room = roomRepository.findById(roomId)
-            .orElseThrow(() -> new NotFoundException("Room not found"));
+            .orElseThrow(() -> new NotFoundException("Không tìm thấy phòng"));
         // Kiểm tra hợp đồng active
         Contract contract = contractRepository.findActiveByRoomId(roomId)
-            .orElseThrow(() -> new BusinessException("Room does not have an active contract. Cannot create bill."));
+            .orElseThrow(() -> new BusinessException("Phòng không có hợp đồng đang hoạt động. Không thể tạo hóa đơn."));
 
         Bill bill = new Bill();
         bill.setRoom(room);
@@ -580,7 +610,7 @@ public class BillServiceImpl implements BillService {
     @Override
     public byte[] generateBillPdf(Long billId) {
         Bill bill = billRepository.findById(billId)
-            .orElseThrow(() -> new NotFoundException("Bill not found"));
+            .orElseThrow(() -> new NotFoundException("Không tìm thấy hóa đơn"));
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4, 50, 50, 50, 50);
         try {

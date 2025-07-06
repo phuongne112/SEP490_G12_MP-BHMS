@@ -10,7 +10,7 @@ import java.lang.annotation.*;
 @Target({ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Password {
-    String message() default "Invalid password";
+    String message() default "Mật khẩu không hợp lệ";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 }

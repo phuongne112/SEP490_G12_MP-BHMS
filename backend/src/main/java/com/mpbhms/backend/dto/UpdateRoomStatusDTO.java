@@ -5,6 +5,6 @@ import lombok.Data;
 
 @Data
 public class UpdateRoomStatusDTO {
-    @NotBlank(message = "Room status is required")
+    @NotBlank(message = "Vui lòng chọn trạng thái phòng")
     private String roomStatus;
 } 

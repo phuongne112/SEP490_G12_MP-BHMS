@@ -26,7 +26,6 @@ import {
 import { 
   ArrowLeftOutlined, 
   DollarOutlined, 
-  QrcodeOutlined, 
   DownloadOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -34,7 +33,6 @@ import {
   CreditCardOutlined,
   PrinterOutlined
 } from "@ant-design/icons";
-import QRCodePayment from "../../components/common/QRCodePayment";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import dayjs from "dayjs";
 
@@ -48,10 +46,8 @@ export default function RenterBillDetailPage() {
   const [bill, setBill] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const [qrModalVisible, setQrModalVisible] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [qrCodeData, setQrCodeData] = useState(null);
 
   const action = searchParams.get('action');
 
@@ -61,6 +57,12 @@ export default function RenterBillDetailPage() {
       setPaymentModalVisible(true);
     }
   }, [id, action]);
+
+  useEffect(() => {
+    if (action === 'pay' && bill && !bill.status) {
+      setPaymentModalVisible(true);
+    }
+  }, [action, bill]);
 
   const fetchBill = async () => {
     setLoading(true);
@@ -75,7 +77,6 @@ export default function RenterBillDetailPage() {
 
   const handlePayment = async () => {
     if (!bill) return;
-    
     setPaymentLoading(true);
     try {
       const paymentUrl = await createVnPayUrl({
@@ -83,32 +84,12 @@ export default function RenterBillDetailPage() {
         amount: bill.totalAmount,
         orderInfo: `Thanh toan hoa don #${bill.id}`
       });
-      
-      // Mở URL thanh toán trong tab mới
       window.open(paymentUrl, '_blank');
       setCurrentStep(1);
-      message.success("Đang chuyển đến trang thanh toán...");
     } catch (error) {
-      message.error("Không thể tạo liên kết thanh toán");
+      message.error("Cannot create payment link");
     }
     setPaymentLoading(false);
-  };
-
-  const handleGenerateQR = () => {
-    if (!bill) return;
-    
-    // Tạo dữ liệu QR code với thông tin thanh toán
-    const qrData = {
-      billId: bill.id,
-      amount: bill.totalAmount,
-      roomNumber: bill.roomNumber,
-      dueDate: bill.toDate,
-      type: "payment",
-      description: `Thanh toan hoa don #${bill.id} - Phong ${bill.roomNumber}`
-    };
-    
-    setQrCodeData(qrData);
-    setQrModalVisible(true);
   };
 
   const handleExportPDF = async () => {
@@ -123,6 +104,15 @@ export default function RenterBillDetailPage() {
       message.success("Đã tải xuống hóa đơn PDF");
     } catch (error) {
       message.error("Không thể tải xuống hóa đơn");
+    }
+  };
+
+  const handleCheckPayment = async () => {
+    await fetchBill();
+    if (bill && bill.status) {
+      setCurrentStep(2);
+    } else {
+      message.error("Payment not successful. Please try again or wait a moment.");
     }
   };
 
@@ -192,6 +182,14 @@ export default function RenterBillDetailPage() {
     },
   ];
 
+  const openPaymentModal = () => {
+    if (bill && !bill.status) {
+      setPaymentModalVisible(true);
+    } else {
+      message.info("This bill has already been paid.");
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ display: "flex", minHeight: "100vh" }}>
@@ -239,7 +237,7 @@ export default function RenterBillDetailPage() {
                 onClick={() => navigate('/renter/bills')} 
                 style={{ marginBottom: 16 }}
               >
-                Quay lại
+                Back to list
               </Button>
               
               <Title level={2} style={{ margin: 0, color: "#1890ff" }}>
@@ -261,27 +259,19 @@ export default function RenterBillDetailPage() {
             {!bill.status && (
               <Alert
                 message="Unpaid bill"
-                description="Please pay this bill before the due date to avoid late fees."
+                description="Please pay this bill before the due date to avoid late fees. Only VNPay payment is supported."
                 type="warning"
                 showIcon
                 style={{ marginBottom: 24 }}
                 action={
-                  <Space>
-                    <Button 
-                      type="primary" 
-                      danger 
-                      icon={<DollarOutlined />}
-                      onClick={() => setPaymentModalVisible(true)}
-                    >
-                      Pay now
-                    </Button>
-                    <Button 
-                      icon={<QrcodeOutlined />}
-                      onClick={handleGenerateQR}
-                    >
-                      Generate QR
-                    </Button>
-                  </Space>
+                  <Button 
+                    type="primary" 
+                    danger 
+                    icon={<DollarOutlined />}
+                    onClick={openPaymentModal}
+                  >
+                    Pay with VNPay
+                  </Button>
                 }
               />
             )}
@@ -367,27 +357,16 @@ export default function RenterBillDetailPage() {
                 <Card title="Actions" style={{ position: "sticky", top: 20 }}>
                   <Space direction="vertical" style={{ width: "100%" }}>
                     {!bill.status && (
-                      <>
-                        <Button 
-                          type="primary" 
-                          danger 
-                          size="large"
-                          icon={<DollarOutlined />}
-                          onClick={() => setPaymentModalVisible(true)}
-                          block
-                        >
-                          Pay now
-                        </Button>
-                        
-                        <Button 
-                          size="large"
-                          icon={<QrcodeOutlined />}
-                          onClick={handleGenerateQR}
-                          block
-                        >
-                          Generate QR
-                        </Button>
-                      </>
+                      <Button 
+                        type="primary" 
+                        danger 
+                        size="large"
+                        icon={<DollarOutlined />}
+                        onClick={openPaymentModal}
+                        block
+                      >
+                        Pay with VNPay
+                      </Button>
                     )}
                     
                     <Button 
@@ -415,9 +394,8 @@ export default function RenterBillDetailPage() {
                     <Text strong>Payment information:</Text>
                     <Paragraph style={{ marginTop: 8 }}>
                       <Text type="secondary">
-                        • Pay via VNPay<br/>
-                        • Pay via QR code<br/>
-                        • Pay directly at the office
+                        • Only VNPay payment is supported.<br/>
+                        • Pay directly at the office (if needed).
                       </Text>
                     </Paragraph>
                   </div>
@@ -432,7 +410,10 @@ export default function RenterBillDetailPage() {
       <Modal
         title="Pay Bill"
         open={paymentModalVisible}
-        onCancel={() => setPaymentModalVisible(false)}
+        onCancel={() => {
+          setPaymentModalVisible(false);
+          setCurrentStep(0);
+        }}
         footer={null}
         width={600}
       >
@@ -466,7 +447,10 @@ export default function RenterBillDetailPage() {
               >
                 Pay via VNPay
               </Button>
-              <Button onClick={() => setPaymentModalVisible(false)}>
+              <Button onClick={() => {
+                setPaymentModalVisible(false);
+                setCurrentStep(0);
+              }}>
                 Cancel
               </Button>
             </Space>
@@ -482,14 +466,14 @@ export default function RenterBillDetailPage() {
               <Button 
                 type="primary" 
                 key="refresh"
-                onClick={() => {
-                  fetchBill();
-                  setCurrentStep(2);
-                }}
+                onClick={handleCheckPayment}
               >
                 Payment completed
               </Button>,
-              <Button key="cancel" onClick={() => setPaymentModalVisible(false)}>
+              <Button key="cancel" onClick={() => {
+                setPaymentModalVisible(false);
+                setCurrentStep(0);
+              }}>
                 Cancel
               </Button>
             ]}
@@ -516,22 +500,6 @@ export default function RenterBillDetailPage() {
             ]}
           />
         )}
-      </Modal>
-
-      {/* Modal mã QR */}
-      <Modal
-        title="QR Payment Code"
-        open={qrModalVisible}
-        onCancel={() => setQrModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setQrModalVisible(false)}>
-            Đóng
-          </Button>
-        ]}
-        width={500}
-        centered
-      >
-        <QRCodePayment billData={qrCodeData} size={250} />
       </Modal>
     </div>
   );
