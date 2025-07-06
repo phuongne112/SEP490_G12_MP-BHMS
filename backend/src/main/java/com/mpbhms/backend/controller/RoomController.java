@@ -48,7 +48,7 @@ public class RoomController {
             for (FieldError fieldError : errors.getFieldErrors()) {
                 errorMap.put(fieldError.getField(), fieldError.getDefaultMessage());
             }
-            throw new com.mpbhms.backend.exception.ValidationException("Validation failed", errorMap);
+            throw new com.mpbhms.backend.exception.ValidationException("Dữ liệu không hợp lệ", errorMap);
         }
         Room savedRoom = roomService.addRoom(request, images);
         AddRoomDTOResponse response = new AddRoomDTOResponse();
@@ -164,6 +164,8 @@ public class RoomController {
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
+        // Việt hóa thông báo lỗi tổng quát
+        errors.put("_message", "Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại các trường thông tin!");
         return ResponseEntity.badRequest().body(errors);
     }
 }
