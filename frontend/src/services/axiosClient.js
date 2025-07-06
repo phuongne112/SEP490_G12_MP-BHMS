@@ -8,9 +8,6 @@ const REFRESH_URL = `${import.meta.env.VITE_BACKEND_URL}/mpbhms/auth/refresh`;
 
 const axiosClient = axios.create({
   baseURL: BASE_URL,
-  headers: {
-    "Content-Type": "application/json", // ✅ Phải có
-  },
   withCredentials: true, // ⬅️ gửi cookie (refreshToken)
 });
 

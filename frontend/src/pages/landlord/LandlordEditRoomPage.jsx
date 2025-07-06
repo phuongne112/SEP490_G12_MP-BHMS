@@ -97,7 +97,6 @@ export default function LandlordEditRoomPage() {
 
   const handleFinish = async (values) => {
     setLoading(true);
-    setFormError(null);
     try {
       const roomNumber = values.building + values.roomNumberSuffix;
       const roomDTO = {
@@ -123,7 +122,7 @@ export default function LandlordEditRoomPage() {
         }
       });
       await axiosClient.post(`/rooms/${id}`, formData);
-      message.success("Room updated successfully!");
+      message.success("Cập nhật phòng thành công!");
       if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
         navigate("/admin/rooms");
       } else {
@@ -131,8 +130,14 @@ export default function LandlordEditRoomPage() {
       }
     } catch (err) {
       const res = err.response?.data;
-      setFormError(null);
       if (res && typeof res === "object") {
+        if (res.message) {
+          message.error(res.message);
+        } else {
+          const firstError = Object.values(res)[0];
+          message.error(firstError || "Vui lòng kiểm tra lại các trường thông tin!");
+        }
+        // Set lỗi cho từng trường nếu cần
         const fieldMap = {};
         const fieldErrors = Object.entries(res).map(([field, msg]) => ({
           name: fieldMap[field] || field,
@@ -140,7 +145,7 @@ export default function LandlordEditRoomPage() {
         }));
         form.setFields(fieldErrors);
       } else {
-        setFormError(res?.message || "Failed to update room!");
+        message.error("Cập nhật phòng thất bại!");
       }
     }
     setLoading(false);
@@ -175,9 +180,6 @@ export default function LandlordEditRoomPage() {
           Back to Room
         </Button>
         <Content style={{ padding: "24px" }}>
-          {formError && (
-            <div style={{ color: "red", marginBottom: 16 }}>{formError}</div>
-          )}
           <Form
             layout="vertical"
             form={form}
@@ -297,7 +299,9 @@ export default function LandlordEditRoomPage() {
                     maxCount={8}
                     accept="image/*"
                     onRemove={file => {
-                      setKeepImageIds(prev => prev.filter(id => id !== file.id));
+                      if (file.id) {
+                        setKeepImageIds(prev => prev.filter(id => id !== file.id));
+                      }
                     }}
                   >
                     {fileList.length < 8 && (
