@@ -113,14 +113,15 @@ export default function LandlordEditRoomPage() {
       };
       const formData = new FormData();
       formData.append("room", JSON.stringify(roomDTO));
-      if (keepImageIds.length > 0) {
-        keepImageIds.forEach((id) => formData.append("keepImageIds", id));
-      }
-      fileList.forEach((file) => {
+      formData.append("keepImageIds", JSON.stringify(keepImageIds));
+      let hasNewFile = false;
+      fileList.forEach(file => {
         if (!file.id && file.originFileObj) {
           formData.append("images", file.originFileObj);
+          hasNewFile = true;
         }
       });
+      // KHÔNG append images rỗng nếu không có file mới
       await axiosClient.post(`/rooms/${id}`, formData);
       message.success("Cập nhật phòng thành công!");
       if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
