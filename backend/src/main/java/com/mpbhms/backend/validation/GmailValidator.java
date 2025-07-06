@@ -21,14 +21,14 @@ public class GmailValidator implements ConstraintValidator<Gmail, String> {
 
         if (email.length() >= 50) {
             context.disableDefaultConstraintViolation();
-            context.buildConstraintViolationWithTemplate("Email must not exceed 50 characters.")
+            context.buildConstraintViolationWithTemplate("Email không được vượt quá 50 ký tự.")
                     .addConstraintViolation();
             return false;
         }
 
         if (!email.matches(VIETNAM_EMAIL_REGEX)) {
             context.disableDefaultConstraintViolation();
-            context.buildConstraintViolationWithTemplate("Email must be a valid Gmail or accepted .edu.vn address.")
+            context.buildConstraintViolationWithTemplate("Email phải là Gmail hoặc email .edu.vn hợp lệ.")
                     .addConstraintViolation();
             return false;
         }

@@ -21,14 +21,15 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendPasswordResetLink(String toEmail, String token) {
-        String subject = "Password Reset Request";
+        String subject = "Yêu cầu đặt lại mật khẩu";
         String resetLink = resetUrl + "?token=" + token;
 
         String body = """
-            <p>Hello,</p>
-            <p>Click the link below to reset your password:</p>
-            <p><a href="%s">Reset Password</a></p>
-            <p>If you did not request this, please ignore this email.</p>
+            <p>Xin chào,</p>
+            <p>Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản của mình.</p>
+            <p>Nhấn vào liên kết bên dưới để đặt lại mật khẩu:</p>
+            <p><a href=\"%s\">Đặt lại mật khẩu</a></p>
+            <p>Nếu bạn không yêu cầu, vui lòng bỏ qua email này.</p>
         """.formatted(resetLink);
 
         sendHtmlEmail(toEmail, subject, body);
@@ -43,7 +44,7 @@ public class EmailServiceImpl implements EmailService {
             helper.setText(htmlContent, true);
             mailSender.send(message);
         } catch (MessagingException e) {
-            throw new RuntimeException("Failed to send email", e);
+            throw new RuntimeException("Gửi email thất bại", e);
         }
     }
 
@@ -57,7 +58,7 @@ public class EmailServiceImpl implements EmailService {
             helper.setText(content, true);
             mailSender.send(message);
         } catch (MessagingException e) {
-            throw new RuntimeException("Failed to send notification email", e);
+            throw new RuntimeException("Gửi email thông báo thất bại", e);
         }
     }
 }

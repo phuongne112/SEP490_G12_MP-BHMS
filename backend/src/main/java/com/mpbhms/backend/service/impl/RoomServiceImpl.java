@@ -65,7 +65,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public Room addRoom(AddRoomDTO request, MultipartFile[] images) {
         if (roomRepository.existsByRoomNumber(request.getRoomNumber())) {
-            throw new com.mpbhms.backend.exception.BusinessException("Room number duplicated");
+            throw new com.mpbhms.backend.exception.BusinessException("Số phòng đã tồn tại");
         }
         Room room = new Room();
         room.setRoomNumber(request.getRoomNumber());
@@ -80,7 +80,7 @@ public class RoomServiceImpl implements RoomService {
         room.setBuilding(request.getBuilding());
         Long landlordId = SecurityUtil.getCurrentUserId();
         room.setLandlord(userRepository.findById(landlordId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng (landlord)")));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chủ phòng (landlord)")));
         List<RoomImage> imageEntities = new ArrayList<>();
         if (images != null && images.length > 0) {
             File uploadDirectory = new File(uploadDir);
@@ -227,7 +227,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public Room updateRoom(Long id, AddRoomDTO request, List<Long> keepImageIds, MultipartFile[] images) {
         Room room = roomRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new IdInvalidException("Room với id  không tồn tại."));
+                .orElseThrow(() -> new IdInvalidException("Phòng với id này không tồn tại."));
 
         // Cập nhật thông tin phòng
         room.setRoomNumber(request.getRoomNumber());
@@ -305,17 +305,17 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public void deleteRoom(Long id) {
         Room room = roomRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng với id: " + id));
         
         // Kiểm tra người ở
         int userCount = roomUserRepository.countByRoomId(id);
         if (userCount > 0) {
-            throw new BusinessException("Cannot delete room: There are still renters in this room.");
+            throw new BusinessException("Không thể xóa phòng: Vẫn còn người thuê trong phòng này.");
         }
         // Kiểm tra hợp đồng active
         boolean hasActiveContract = contractRepository.findActiveByRoomId(id).isPresent();
         if (hasActiveContract) {
-            throw new BusinessException("Cannot delete room: There is an active contract for this room.");
+            throw new BusinessException("Không thể xóa phòng: Phòng này đang có hợp đồng hoạt động.");
         }
         
         // Soft delete - set deleted = true thay vì xóa cứng
@@ -326,7 +326,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public void restoreRoom(Long id) {
         Room room = roomRepository.findByIdAndDeletedTrue(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Room not found or not deleted with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng hoặc phòng chưa bị xóa với id: " + id));
         
         // Restore room - set deleted = false
         room.setDeleted(false);
@@ -336,20 +336,20 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public void updateRoomStatus(Long id, String status) {
         Room room = roomRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng với id: " + id));
         try {
             RoomStatus newStatus = RoomStatus.valueOf(status);
             room.setRoomStatus(newStatus);
             roomRepository.save(room);
         } catch (IllegalArgumentException e) {
-            throw new BusinessException("Invalid room status: " + status);
+            throw new BusinessException("Trạng thái phòng không hợp lệ: " + status);
         }
     }
 
     @Override
     public void toggleActiveStatus(Long id) {
         Room room = roomRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng với id: " + id));
         room.setIsActive(!room.getIsActive());
         roomRepository.save(room);
     }
@@ -403,21 +403,21 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public Room getRoomById(Long id) {
         return roomRepository.findByIdAndDeletedFalse(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng với id: " + id));
     }
 
     @Override
     public boolean addServiceToRoom(Long roomId, Long serviceId) {
         Room room = roomRepository.findByIdAndDeletedFalse(roomId)
-            .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng với id: " + roomId));
         com.mpbhms.backend.entity.CustomService service = serviceRepository.findById(serviceId)
-            .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + serviceId));
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy dịch vụ với id: " + serviceId));
         if (room.getServices() == null) room.setServices(new java.util.ArrayList<>());
         boolean exists = room.getServices().stream().anyMatch(s -> s.getId().equals(serviceId));
         
         // Nếu dịch vụ đã tồn tại, không cho phép thêm lại
         if (exists) {
-            throw new BusinessException("Service already exists in this room. Cannot add duplicate service.");
+            throw new BusinessException("Dịch vụ đã tồn tại trong phòng này. Không thể thêm trùng.");
         }
         
         // Thêm dịch vụ mới vào phòng
@@ -442,15 +442,15 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public boolean addServiceToRoom(Long roomId, Long serviceId, BigDecimal initialReading) {
         Room room = roomRepository.findByIdAndDeletedFalse(roomId)
-            .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng với id: " + roomId));
         com.mpbhms.backend.entity.CustomService service = serviceRepository.findById(serviceId)
-            .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + serviceId));
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy dịch vụ với id: " + serviceId));
         if (room.getServices() == null) room.setServices(new java.util.ArrayList<>());
         boolean exists = room.getServices().stream().anyMatch(s -> s.getId().equals(serviceId));
         
         // Nếu dịch vụ đã tồn tại, không cho phép thêm lại
         if (exists) {
-            throw new BusinessException("Service already exists in this room. Cannot add duplicate service.");
+            throw new BusinessException("Dịch vụ đã tồn tại trong phòng này. Không thể thêm trùng.");
         }
         
         // Thêm dịch vụ mới vào phòng

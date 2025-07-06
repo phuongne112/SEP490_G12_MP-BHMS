@@ -35,7 +35,7 @@ public class RoleServiceImpl implements RoleService {
     public Role createRole(Role role) {
         // Kiểm tra tên role đã tồn tại chưa
         if (existByName(role.getRoleName())) {
-            throw new BusinessException("Role with name " + role.getRoleName() + " already exists.");
+            throw new BusinessException("Tên vai trò '" + role.getRoleName() + "' đã tồn tại.");
         }
 
         // Gán lại danh sách permission nếu có
@@ -61,12 +61,12 @@ public class RoleServiceImpl implements RoleService {
     public Role updateRole(Role role) {
         // Kiểm tra id tồn tại
         Role roleDB = roleRepository.findById(role.getId())
-                .orElseThrow(() -> new IdInvalidException("Role with id = " + role.getId() + " not found."));
+                .orElseThrow(() -> new IdInvalidException("Không tìm thấy vai trò với ID = " + role.getId()));
 
         // Kiểm tra trùng tên role nếu tên bị đổi
         if (!roleDB.getRoleName().equals(role.getRoleName())
                 && roleRepository.existsByRoleName(role.getRoleName())) {
-            throw new BusinessException("Role with name '" + role.getRoleName() + "' already exists.");
+            throw new BusinessException("Tên vai trò '" + role.getRoleName() + "' đã tồn tại.");
         }
 
         // Gán lại permission nếu có
@@ -91,12 +91,12 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public void deleteRole(Long id) {
         Role role = roleRepository.findById(id)
-                .orElseThrow(() -> new IdInvalidException("Role with id " + id + " does not exist"));
+                .orElseThrow(() -> new IdInvalidException("Không tìm thấy vai trò với ID " + id));
 
         try {
             roleRepository.delete(role);
         } catch (DataIntegrityViolationException ex) {
-            throw new BusinessException("This role is still assigned to users and cannot be deleted.");
+            throw new BusinessException("Vai trò này vẫn đang được gán cho người dùng và không thể xóa.");
         }
     }
 

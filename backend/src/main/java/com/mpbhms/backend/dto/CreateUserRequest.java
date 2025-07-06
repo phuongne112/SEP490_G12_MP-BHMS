@@ -11,10 +11,10 @@ import lombok.Data;
 
 @Data
 public class CreateUserRequest {
-    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+    @Size(min = 3, max = 50, message = "Tên đăng nhập phải từ 3 đến 50 ký tự")
     private String username;
 
-    @Size(min = 2, max = 100, message = "Full name must be between 2 and 100 characters")
+    @Size(min = 2, max = 100, message = "Họ tên phải từ 2 đến 100 ký tự")
     private String fullName;
 
     @Gmail

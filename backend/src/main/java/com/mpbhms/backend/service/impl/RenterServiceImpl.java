@@ -83,13 +83,13 @@ public class RenterServiceImpl implements RenterService {
         Map<String, String> errors = new HashMap<>();
 
         if (userRepository.existsByEmail(dto.getEmail())) {
-            errors.put("email", "Email '" + dto.getEmail() + "' already exists");
+            errors.put("email", "Email '" + dto.getEmail() + "' đã tồn tại");
         }
         if (userRepository.existsByUsername(dto.getUsername())) {
-            errors.put("username", "Username '" + dto.getUsername() + "' already exists");
+            errors.put("username", "Tên đăng nhập '" + dto.getUsername() + "' đã tồn tại");
         }
         if (!errors.isEmpty()) {
-            throw new BusinessException("Create renter failed", errors);
+            throw new BusinessException("Tạo người thuê thất bại", errors);
         }
 
         User user = new User();
@@ -99,7 +99,7 @@ public class RenterServiceImpl implements RenterService {
         user.setIsActive(true);
 
         Role renterRole = roleRepository.findById(2L)
-                .orElseThrow(() -> new BusinessException("Renter role not found (ID = 2)"));
+                .orElseThrow(() -> new BusinessException("Không tìm thấy vai trò người thuê (ID = 2)"));
         user.setRole(renterRole);
 
         UserInfo info = new UserInfo();
@@ -117,10 +117,10 @@ public class RenterServiceImpl implements RenterService {
     @Override
     public void updateRenterStatus(Long userId, boolean isActive) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
 
         if (user.getRole() == null || user.getRole().getId() != 2) {
-            throw new BusinessException("User is not a renter");
+            throw new BusinessException("Người dùng không phải là người thuê");
         }
 
         logger.info("[updateRenterStatus] userId={}, currentIsActive={}, newIsActive={}", userId, user.getIsActive(), isActive);

@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.List;
 
 import com.mpbhms.backend.entity.ApiResponse;
+import com.mpbhms.backend.exception.BusinessException;
 
 @RestController
 @RequestMapping("/mpbhms/rooms")

@@ -118,16 +118,16 @@ public class UserServiceImpl implements UserService {
 
         // 1. Kiểm tra email đã tồn tại
         if (userRepository.existsByEmail(dto.getEmail())) {
-            errors.put("email", "Email '" + dto.getEmail() + "' already exists");
+            errors.put("email", "Email '" + dto.getEmail() + "' đã tồn tại");
         }
 
         // 2. Kiểm tra username đã tồn tại
         if (userRepository.existsByUsername(dto.getUsername())) {
-            errors.put("username", "Username '" + dto.getUsername() + "' already exists");
+            errors.put("username", "Tên đăng nhập '" + dto.getUsername() + "' đã tồn tại");
         }
 
         if (!errors.isEmpty()) {
-            throw new BusinessException("Create user failed", errors);
+            throw new BusinessException("Tạo người dùng thất bại", errors);
         }
 
         // 3. Tạo UserEntity
@@ -152,12 +152,12 @@ public class UserServiceImpl implements UserService {
         Map<String, String> errors = new HashMap<>();
         // 1. Kiểm tra email đã tồn tại
         if (isEmailExist(dto.getEmail())) {
-            throw new BusinessException("Email '" + dto.getEmail() + "' already exists, please use another email");
+            throw new BusinessException("Email '" + dto.getEmail() + "' đã tồn tại, vui lòng sử dụng email khác");
         }
 
         // 2. Kiểm tra username đã tồn tại
         if (isUsernameExist(dto.getUsername())) {
-            throw new BusinessException("Username '" + dto.getUsername() + "' already exists, please choose another username");
+            throw new BusinessException("Tên đăng nhập '" + dto.getUsername() + "' đã tồn tại, vui lòng chọn tên khác");
         }
 
         // 3. Tạo UserEntity
@@ -193,7 +193,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public User handleUpdateUser(UpdateUserDTO dto) {
         User existingUser = this.userRepository.findById(dto.getId())
-                .orElseThrow(() -> new BusinessException("User with ID '" + dto.getId() + "' not found"));
+                .orElseThrow(() -> new BusinessException("Không tìm thấy người dùng với ID '" + dto.getId() + "'"));
 
         Map<String, String> errors = new HashMap<>();
 
@@ -207,21 +207,21 @@ public class UserServiceImpl implements UserService {
                 + ")$";
 
         if (!dto.getEmail().matches(allowedEmailRegex)) {
-            errors.put("email", "Email must belong to an accepted domain");
+            errors.put("email", "Email phải thuộc các domain được chấp nhận");
         }
 
         if (!existingUser.getEmail().equals(dto.getEmail())
                 && userRepository.existsByEmail(dto.getEmail())) {
-            errors.put("email", "Email '" + dto.getEmail() + "' already exists");
+            errors.put("email", "Email '" + dto.getEmail() + "' đã tồn tại");
         }
 
         if (!existingUser.getUsername().equals(dto.getUsername())
                 && userRepository.existsByUsername(dto.getUsername())) {
-            errors.put("username", "Username '" + dto.getUsername() + "' already exists");
+            errors.put("username", "Tên đăng nhập '" + dto.getUsername() + "' đã tồn tại");
         }
 
         if (!errors.isEmpty()) {
-            throw new BusinessException("Update failed", errors);
+            throw new BusinessException("Cập nhật thất bại", errors);
         }
 
         Role oldRole = existingUser.getRole();
@@ -239,8 +239,8 @@ public class UserServiceImpl implements UserService {
         // Gửi thông báo nếu role bị thay đổi
         if (oldRole == null || newRole == null || !oldRole.getId().equals(newRole.getId())) {
             NotificationDTO noti = new NotificationDTO();
-            noti.setTitle("Your role has been updated");
-            noti.setMessage("Your account role has been changed to: " + (newRole != null ? newRole.getRoleName() : "None"));
+            noti.setTitle("Quyền của bạn đã được cập nhật");
+            noti.setMessage("Quyền tài khoản của bạn đã được thay đổi thành: " + (newRole != null ? newRole.getRoleName() : "Không có"));
             noti.setType(NotificationType.ANNOUNCEMENT);
             noti.setRecipientId(savedUser.getId());
             noti.setRecipientEmail(savedUser.getEmail());
@@ -268,7 +268,7 @@ public class UserServiceImpl implements UserService {
     @Override
             public void updateUserStatus (Long userId,boolean isActive){
                 User user = userRepository.findById(userId)
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
 
                 user.setIsActive(isActive);
                 userRepository.save(user);
@@ -287,26 +287,26 @@ public class UserServiceImpl implements UserService {
 
         // Kiểm tra mật khẩu hiện tại
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            errors.put("currentPassword", "Current password is incorrect");
+            errors.put("currentPassword", "Mật khẩu hiện tại không đúng");
         }
 
         // Kiểm tra newPassword bằng regex
         if (newPassword.length() >= 20) {
-            errors.put("newPassword", "Password must not exceed 20 characters.");
+            errors.put("newPassword", "Mật khẩu không được vượt quá 20 ký tự.");
         } else {
             String pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=!]).{8,}$";
             if (!newPassword.matches(pattern)) {
-                errors.put("newPassword", "Password must be at least 8 characters and include uppercase, lowercase, number and special character.");
+                errors.put("newPassword", "Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.");
             }
         }
 
         // Kiểm tra mật khẩu mới phải khác mật khẩu cũ
         if (passwordEncoder.matches(newPassword, user.getPassword())) {
-            errors.put("newPassword", "New password must be different from the current password.");
+            errors.put("newPassword", "Mật khẩu mới phải khác mật khẩu hiện tại.");
         }
 
         if (!errors.isEmpty()) {
-            throw new BusinessException("Change password failed", errors);
+            throw new BusinessException("Đổi mật khẩu thất bại", errors);
         }
 
         // Cập nhật mật khẩu mới
@@ -319,7 +319,7 @@ public class UserServiceImpl implements UserService {
         public void sendResetPasswordToken(String email) {
             User user = userRepository.findByEmail(email);
             if (user == null) {
-                throw new RuntimeException("User not found");
+                throw new RuntimeException("Không tìm thấy người dùng");
             }
 
             Instant expiry = Instant.now().plus(Duration.ofSeconds(120));
@@ -330,7 +330,7 @@ public class UserServiceImpl implements UserService {
             if (resetToken != null) {
                 if (today.equals(resetToken.getLastRequestDate())) {
                     if (resetToken.getRequestCount() >= 3) {
-                        throw new RuntimeException("You have requested more than 3 times in a day. Please try again tomorrow.");
+                        throw new RuntimeException("Bạn đã yêu cầu quá 3 lần trong ngày. Vui lòng thử lại vào ngày mai.");
                     }
                     resetToken.setRequestCount(resetToken.getRequestCount() + 1);
                 } else {
@@ -357,14 +357,14 @@ public class UserServiceImpl implements UserService {
         @Transactional
         public void resetPassword(String token, String newPassword) {
             PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
-                    .orElseThrow(() -> new RuntimeException("Invalid token"));
+                    .orElseThrow(() -> new RuntimeException("Token không hợp lệ"));
 
             if (resetToken.isUsed()) {
-                throw new RuntimeException("Token has already been used");
+                throw new RuntimeException("Token đã được sử dụng");
             }
 
             if (resetToken.getExpiryDate().isBefore(Instant.now())) {
-                throw new RuntimeException("Token has expired");
+                throw new RuntimeException("Token đã hết hạn");
             }
 
             User user = resetToken.getUser();
@@ -385,7 +385,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserAccountDtoResponse getUserAccountById(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
         UserAccountDtoResponse dto = new UserAccountDtoResponse();
         dto.setId(user.getId());
@@ -403,7 +403,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserInfoDtoResponse getUserInfoById(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
         UserInfo info = user.getUserInfo();
         if (info == null) {
@@ -425,7 +425,7 @@ public class UserServiceImpl implements UserService {
     }
     public void updateUserInfo(Long userId, UserInfoDtoRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
         UserInfo info = user.getUserInfo();
         if (info == null) {
@@ -448,7 +448,7 @@ public class UserServiceImpl implements UserService {
     }
     public void addUserInfo(Long userId, UserInfoDtoRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
         UserInfo info = user.getUserInfo();
         if (info == null) {
@@ -473,18 +473,18 @@ public class UserServiceImpl implements UserService {
 
     public void updateUserAccount(Long userId, UserAccountDtoRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
         Map<String, String> errors = new HashMap<>();
 
         if (!user.getEmail().equals(request.getEmail())
                 && userRepository.existsByEmail(request.getEmail())) {
-            errors.put("email", "Email already exists");
+            errors.put("email", "Email đã tồn tại");
         }
 
         if (!user.getUsername().equals(request.getUsername())
                 && userRepository.existsByUsername(request.getUsername())) {
-            errors.put("username", "Username already exists");
+            errors.put("username", "Tên đăng nhập đã tồn tại");
         }
 
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
@@ -492,15 +492,15 @@ public class UserServiceImpl implements UserService {
             if (!validator.isValid(request.getPassword(), null)) {
                 // Gọi riêng validator để lấy đúng message
                 if (request.getPassword().length() >= 20) {
-                    errors.put("password", "Password must not exceed 20 characters.");
+                    errors.put("password", "Mật khẩu không được vượt quá 20 ký tự.");
                 } else {
-                    errors.put("password", "Password must be at least 8 characters and include uppercase, lowercase, number and special character.");
+                    errors.put("password", "Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.");
                 }
             }
         }
 
         if (!errors.isEmpty()) {
-            throw new BusinessException("Update account failed", errors);
+            throw new BusinessException("Cập nhật tài khoản thất bại", errors);
         }
 
         user.setEmail(request.getEmail());

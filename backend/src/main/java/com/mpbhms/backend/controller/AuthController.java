@@ -55,7 +55,7 @@ public class AuthController {
             // Lấy thông tin người dùng
             User currentUserDB = this.userService.getUserWithEmail(login.getUsername());
             if (currentUserDB == null) {
-                throw new BusinessException("User Not Found");
+                throw new BusinessException("Không tìm thấy người dùng");
             }
 
             // Gán thông tin vào DTO response
@@ -124,7 +124,7 @@ public class AuthController {
                 @CookieValue(name = "refreshToken", required = false) String refreshToken) throws JwtException {
 
             if (refreshToken == null || refreshToken.isBlank()) {
-                throw new JwtException("Missing refresh token");
+                throw new JwtException("Thiếu refresh token");
             }
 
             // Kiểm tra token
@@ -134,7 +134,7 @@ public class AuthController {
             // Tìm user trong DB
             User currentUser = this.userService.getUserByRefreshTokenAndEmail(refreshToken, email);
             if (currentUser == null) {
-                throw new JwtException("Invalid refresh token");
+                throw new JwtException("Refresh token không hợp lệ");
             }
 
             // Tạo đối tượng phản hồi
@@ -176,7 +176,7 @@ public class AuthController {
         public ResponseEntity<Void> logout() {
             String email = securityUtil.getCurrentUserLogin().orElse("");
             if (email.isBlank()) {
-                throw new JwtException("Token is empty or invalid");
+                throw new JwtException("Token rỗng hoặc không hợp lệ");
             }
 
             // Xóa refresh token trong DB
@@ -210,7 +210,7 @@ public class AuthController {
                 @Valid @RequestBody ChangePasswordDTO request,
                 Principal principal) {
             userService.changePasswordUser(principal.getName(), request.getCurrentPassword(), request.getNewPassword());
-            return ResponseEntity.ok(new ChangePasswordDTOResponse("Password updated successfully!"));
+            return ResponseEntity.ok(new ChangePasswordDTOResponse("Mật khẩu đã được cập nhật thành công!"));
         }
 
     @PostMapping("/request-reset")
@@ -220,7 +220,7 @@ public class AuthController {
                 ApiResponse<Object> response = new ApiResponse<>(
                     400,
                     "EMAIL_NOT_FOUND",
-                    "Email not found in the system.",
+                    "Email không tồn tại trong hệ thống.",
                     null
                 );
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -229,7 +229,7 @@ public class AuthController {
             ApiResponse<Object> response = new ApiResponse<>(
                 200,
                 "",
-                "Reset link sent if email is registered.",
+                "Liên kết đặt lại đã được gửi nếu email đã đăng ký.",
                 null
             );
             return ResponseEntity.ok(response);
@@ -239,7 +239,7 @@ public class AuthController {
         @ApiMessage("Reset password using token")
         public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordDTO request) {
             userService.resetPassword(request.getToken(), request.getNewPassword());
-            return ResponseEntity.ok("Password reset successful.");
+            return ResponseEntity.ok("Mật khẩu đã được đặt lại thành công.");
         }
 
     }

@@ -29,8 +29,8 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public Notification createAndSend(NotificationDTO request) {
         Notification notification = new Notification();
-        notification.setTitle(request.getTitle());
-        notification.setMessage(request.getMessage());
+        notification.setTitle(request.getTitle() != null ? request.getTitle() : "Thông báo mới");
+        notification.setMessage(request.getMessage() != null ? request.getMessage() : "Bạn có một thông báo mới từ hệ thống.");
         notification.setType(request.getType());
         if (request.getRecipientId() != null) {
             notification.setRecipientId(request.getRecipientId());

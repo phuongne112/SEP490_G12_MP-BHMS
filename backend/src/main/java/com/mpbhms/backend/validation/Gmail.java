@@ -10,7 +10,7 @@ import java.lang.annotation.*;
 @Target({ ElementType.FIELD, ElementType.PARAMETER })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Gmail {
-    String message() default "Email must be a valid Gmail address (e.g. example@gmail.com)";
+    String message() default "Email phải là địa chỉ Gmail hợp lệ (ví dụ: example@gmail.com) hoặc email .edu.vn được chấp nhận";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 }

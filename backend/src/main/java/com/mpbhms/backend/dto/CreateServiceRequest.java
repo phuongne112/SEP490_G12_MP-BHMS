@@ -10,16 +10,16 @@ import java.math.BigDecimal;
 
 @Data
 public class CreateServiceRequest {
-    @NotBlank(message = "Service name is required")
+    @NotBlank(message = "Vui lòng nhập tên dịch vụ")
     private String serviceName;
     
-    @NotBlank(message = "Unit is required")
+    @NotBlank(message = "Vui lòng nhập đơn vị")
     private String unit;
     
-    @NotNull(message = "Unit price is required")
-    @Positive(message = "Unit price must be positive")
+    @NotNull(message = "Vui lòng nhập giá mỗi đơn vị")
+    @Positive(message = "Giá mỗi đơn vị phải là số dương")
     private BigDecimal unitPrice;
     
-    @NotNull(message = "Service type is required")
+    @NotNull(message = "Vui lòng chọn loại dịch vụ")
     private ServiceType serviceType;
 } 

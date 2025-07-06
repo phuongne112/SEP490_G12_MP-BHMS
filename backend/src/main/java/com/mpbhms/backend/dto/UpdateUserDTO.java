@@ -18,7 +18,7 @@ import java.time.Instant;
 public class UpdateUserDTO {
     private Long id;
 
-    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+    @Size(min = 3, max = 50, message = "Tên đăng nhập phải từ 3 đến 50 ký tự")
     private String username;
 
     @Gmail

@@ -14,7 +14,7 @@ public class PasswordValidator implements ConstraintValidator<Password, String> 
         // 👉 Kiểm tra riêng độ dài tối đa
         if (password.length() >= 20) {
             context.disableDefaultConstraintViolation();
-            context.buildConstraintViolationWithTemplate("Password must not exceed 20 characters.")
+            context.buildConstraintViolationWithTemplate("Mật khẩu không được vượt quá 20 ký tự.")
                     .addConstraintViolation();
             return false;
         }
@@ -23,7 +23,7 @@ public class PasswordValidator implements ConstraintValidator<Password, String> 
         String pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=!]).{8,}$";
         if (!password.matches(pattern)) {
             context.disableDefaultConstraintViolation();
-            context.buildConstraintViolationWithTemplate("Password must be at least 8 characters and include uppercase, lowercase, number and special character.")
+            context.buildConstraintViolationWithTemplate("Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.")
                     .addConstraintViolation();
             return false;
         }
