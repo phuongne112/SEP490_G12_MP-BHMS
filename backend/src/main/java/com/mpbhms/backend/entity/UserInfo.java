@@ -25,12 +25,12 @@ public class UserInfo {
     private User user;
 
     @NotBlank(message = "Full name must not be empty")
-    @Size(min = 2, max = 100, message = "Full name must be between 2 and 100 characters")
+    @Size(min = 2, max = 100, message = "Họ tên phải từ 2 đến 100 ký tự")
     private String fullName;
 
     private String phoneNumber;
 
-    @Pattern(regexp = "^\\d{10}$", message = "Phone number must be 10 digits")
+    @Pattern(regexp = "^\\d{10}$", message = "Số điện thoại phải có 10 chữ số")
     private String phoneNumber2;
 
     @Enumerated(EnumType.STRING)
@@ -39,17 +39,17 @@ public class UserInfo {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss a", timezone = "GMT+7")
     private Instant birthDate;
 
-    @Size(max = 200, message = "Birth place must not exceed 200 characters")
+    @Size(max = 200, message = "Nơi sinh phải không vượt quá 200 ký tự")
     private String birthPlace;
 
-    @Pattern(regexp = "^\\d{9}|\\d{12}$", message = "National ID must be 9 or 12 digits")
+    @Pattern(regexp = "^\\d{9}|\\d{12}$", message = "Số CMND phải có 9 hoặc 12 chữ số")
     private String nationalID;
 
-    @Size(max = 200, message = "National ID issue place must not exceed 200 characters")
+    @Size(max = 200, message = "Nơi cấp CMND phải không vượt quá 200 ký tự")
     private String nationalIDIssuePlace;
 
     @Lob
-    @Size(max = 500, message = "Permanent address must not exceed 500 characters")
+    @Size(max = 500, message = "Địa chỉ thường trú phải không vượt quá 500 ký tự")
     private String permanentAddress;
 
 }

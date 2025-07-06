@@ -38,7 +38,7 @@ public class GlobalExceptionHandler {
             BadCredentialsException.class
     })
     public ResponseEntity<ApiResponse<?>> handleAuthenticationException(Exception ex) {
-        return buildResponse(HttpStatus.UNAUTHORIZED, "AUTH_FAILED", "Invalid username or password", null);
+        return buildResponse(HttpStatus.UNAUTHORIZED, "AUTH_FAILED", "Tên đăng nhập hoặc mật khẩu không hợp lệ", null);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -70,7 +70,7 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
-        return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Validation failed", errors);
+        return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Xác thực thất bại", errors);
     }
 
     @ExceptionHandler({ DataIntegrityViolationException.class, ConstraintViolationException.class })

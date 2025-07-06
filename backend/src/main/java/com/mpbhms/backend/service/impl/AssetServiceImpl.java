@@ -38,7 +38,7 @@ public class AssetServiceImpl implements AssetService {
 
     @Override
     public AssetDTO getAssetById(Long id) {
-        Asset asset = assetRepository.findById(id).orElseThrow(() -> new RuntimeException("Asset not found"));
+        Asset asset = assetRepository.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy tài sản"));
         return toDTO(asset);
     }
 
@@ -48,7 +48,7 @@ public class AssetServiceImpl implements AssetService {
         asset.setId(null); // ensure new
         if (assetDTO.getRoomId() != null) {
             Room room = roomRepository.findById(assetDTO.getRoomId())
-                .orElseThrow(() -> new RuntimeException("Room not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng"));
             asset.setRoom(room);
         }
         return toDTO(assetRepository.save(asset));
@@ -56,7 +56,7 @@ public class AssetServiceImpl implements AssetService {
 
     @Override
     public AssetDTO updateAsset(Long id, AssetDTO assetDTO) {
-        Asset asset = assetRepository.findById(id).orElseThrow(() -> new RuntimeException("Asset not found"));
+        Asset asset = assetRepository.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy tài sản"));
         asset.setAssetName(assetDTO.getAssetName());
         asset.setQuantity(assetDTO.getQuantity());
         asset.setConditionNote(assetDTO.getConditionNote());
@@ -64,7 +64,7 @@ public class AssetServiceImpl implements AssetService {
         asset.setAssetImage(assetDTO.getAssetImage());
         if (assetDTO.getRoomId() != null) {
             Room room = roomRepository.findById(assetDTO.getRoomId())
-                .orElseThrow(() -> new RuntimeException("Room not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng"));
             asset.setRoom(room);
         }
         return toDTO(assetRepository.save(asset));

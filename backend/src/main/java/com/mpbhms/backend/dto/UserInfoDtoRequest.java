@@ -10,7 +10,7 @@ import java.time.Instant;
 
 @Data
 public class UserInfoDtoRequest {
-    @Size(min = 2, max = 100, message = "Full name must be between 2 and 100 characters")
+    @Size(min = 2, max = 100, message = "Họ tên phải từ 2 đến 100 ký tự")
     private String fullName;
 
     @Phone
@@ -20,11 +20,11 @@ public class UserInfoDtoRequest {
     private String phoneNumber2;
     private String gender;
 
-    @Past(message = "Birth date must be in the past")
+    @Past(message = "Ngày sinh phải trước ngày hiện tại")
     private Instant birthDate;
     private String birthPlace;
 
-    @Pattern(regexp = "^\\d{9}|\\d{12}$", message = "National ID must be 9 or 12 digits")
+    @Pattern(regexp = "^\\d{9}|\\d{12}$", message = "Số CMND phải có 9 hoặc 12 chữ số")
     private String nationalID;
 
     private String nationalIDIssuePlace;

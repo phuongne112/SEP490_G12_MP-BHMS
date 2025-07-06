@@ -66,11 +66,11 @@ public class ServiceServiceImpl implements ServiceService {
     @Override
     public CustomService updateService(CustomService service) {
         if (service.getId() == null) {
-            throw new IdInvalidException("Service ID cannot be null");
+            throw new IdInvalidException("ID dịch vụ không được để trống");
         }
         
         if (!serviceRepository.existsById(service.getId())) {
-            throw new NotFoundException("Service not found with id: " + service.getId());
+            throw new NotFoundException("Không tìm thấy dịch vụ với ID: " + service.getId());
         }
         
         return serviceRepository.save(service);
@@ -79,11 +79,11 @@ public class ServiceServiceImpl implements ServiceService {
     @Override
     public void deleteService(Long id) {
         if (id == null) {
-            throw new IdInvalidException("Service ID cannot be null");
+            throw new IdInvalidException("ID dịch vụ không được để trống");
         }
         
         if (!serviceRepository.existsById(id)) {
-            throw new NotFoundException("Service not found with id: " + id);
+            throw new NotFoundException("Không tìm thấy dịch vụ với ID: " + id);
         }
         
         serviceRepository.deleteById(id);
@@ -92,11 +92,11 @@ public class ServiceServiceImpl implements ServiceService {
     @Override
     public CustomService getServiceById(Long id) {
         if (id == null) {
-            throw new IdInvalidException("Service ID cannot be null");
+            throw new IdInvalidException("ID dịch vụ không được để trống");
         }
         
         return serviceRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Service not found with id: " + id));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy dịch vụ với ID: " + id));
     }
 
     @Override

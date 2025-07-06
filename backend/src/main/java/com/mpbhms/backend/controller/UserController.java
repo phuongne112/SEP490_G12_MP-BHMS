@@ -57,7 +57,7 @@ public class UserController {
             @Valid @RequestBody UpdateUserStatusRequest request) {
         User existingUser = userService.handleFetchUserById(id);
         if (existingUser == null) {
-            throw new BusinessException("User with ID '" + id + "' not found");
+            throw new BusinessException("Không tìm thấy người dùng");
         }
 
         userService.updateUserStatus(id, request.isActive());
