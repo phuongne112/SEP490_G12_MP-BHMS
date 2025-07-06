@@ -399,7 +399,8 @@ public class BillServiceImpl implements BillService {
         response.setTotalAmount(bill.getTotalAmount());
         response.setStatus(bill.getStatus());
 
-        List<BillDetailResponse> detailResponses = bill.getBillDetails().stream().map(detail -> {
+        List<BillDetailResponse> detailResponses = new ArrayList<>();
+        for (BillDetail detail : bill.getBillDetails()) {
             BillDetailResponse d = new BillDetailResponse();
             d.setItemType(detail.getItemType());
             d.setDescription(detail.getDescription());
@@ -409,9 +410,8 @@ public class BillServiceImpl implements BillService {
             if (detail.getService() != null) {
                 d.setServiceName(detail.getService().getServiceName());
             }
-            return d;
-        }).toList();
-
+            detailResponses.add(d);
+        }
         response.setDetails(detailResponses);
         return response;
     }

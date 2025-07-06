@@ -28,7 +28,6 @@ export default function LandlordAddRoomPage() {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [formError, setFormError] = useState(null);
   const [roomNumberSuffix, setRoomNumberSuffix] = useState("");
   const navigate = useNavigate();
   const user = useSelector((state) => state.account.user);
@@ -43,7 +42,6 @@ export default function LandlordAddRoomPage() {
 
   const handleFinish = async (values) => {
     setLoading(true);
-    setFormError(null);
     try {
       // Ghép roomNumber từ building + roomNumberSuffix
       const roomNumber = values.building + values.roomNumberSuffix;
@@ -71,7 +69,7 @@ export default function LandlordAddRoomPage() {
       await axiosClient.post("/rooms", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      message.success("Room added successfully!");
+      message.success("Thêm phòng thành công!");
       // Navigate back to room list page
       if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
         navigate("/admin/rooms");
@@ -80,9 +78,16 @@ export default function LandlordAddRoomPage() {
       }
     } catch (err) {
       const res = err.response?.data;
-      setFormError(null);
       if (res && typeof res === "object") {
-        // Nếu backend trả về lỗi từng trường
+        // Nếu có trường message thì chỉ lấy message
+        if (res.message) {
+          message.error(res.message);
+        } else {
+          // Nếu là lỗi từng trường, chỉ lấy message đầu tiên
+          const firstError = Object.values(res)[0];
+          message.error(firstError || "Vui lòng kiểm tra lại các trường thông tin!");
+        }
+        // Vẫn set lỗi cho từng trường nếu cần highlight field
         const fieldMap = {};
         const fieldErrors = Object.entries(res).map(([field, msg]) => ({
           name: fieldMap[field] || field,
@@ -90,7 +95,7 @@ export default function LandlordAddRoomPage() {
         }));
         form.setFields(fieldErrors);
       } else {
-        setFormError(res?.message || "Failed to add room!");
+        message.error("Thêm phòng thất bại!");
       }
     }
     setLoading(false);
@@ -108,9 +113,6 @@ export default function LandlordAddRoomPage() {
       <Layout style={{ marginTop: 20, marginLeft: 15 }}>
         <PageHeader title="Add Room" />
         <Content style={{ padding: "24px" }}>
-          {formError && (
-            <div style={{ color: "red", marginBottom: 16 }}>{formError}</div>
-          )}
           <Form
             layout="vertical"
             form={form}

@@ -19,4 +19,7 @@ public interface ContractAmendmentRepository extends JpaRepository<ContractAmend
     
     // Tìm amendment cần approval
     List<ContractAmendment> findByRequiresApprovalTrueAndStatus(ContractAmendment.AmendmentStatus status);
+    
+    // Tìm amendment theo status (cho scheduled job auto-approve)
+    List<ContractAmendment> findByStatus(ContractAmendment.AmendmentStatus status);
 } 

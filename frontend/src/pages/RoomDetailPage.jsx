@@ -18,6 +18,23 @@ import { useSelector } from "react-redux";
 const { Content } = Layout;
 const { Title, Text } = Typography;
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+
+const getImageUrl = (img) => {
+  if (!img) return null;
+  if (typeof img === "string") {
+    if (img.startsWith("http")) return img;
+    if (img.startsWith("/uploads/")) return BACKEND_URL + img;
+    return BACKEND_URL + "/uploads/" + img;
+  }
+  if (typeof img === "object" && img.imageUrl) {
+    if (img.imageUrl.startsWith("http")) return img.imageUrl;
+    if (img.imageUrl.startsWith("/uploads/")) return BACKEND_URL + img.imageUrl;
+    return BACKEND_URL + "/uploads/" + img.imageUrl;
+  }
+  return null;
+};
+
 export default function RoomDetailPage() {
   const { roomNumber } = useParams();
   const location = useLocation();
@@ -37,7 +54,7 @@ export default function RoomDetailPage() {
       fetchRoomFromAPI();
     } else {
       setSelectedImage(room.images?.[0]?.imageUrl);
-      setLoading(false); // Bổ sung chỗ này để tránh bị treo khi chỉ truyền location.state
+      if (room.images?.[0]) setSelectedImage(getImageUrl(room.images[0]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -49,6 +66,7 @@ export default function RoomDetailPage() {
         const matchedRoom = res.result[0];
         setRoom(matchedRoom);
         setSelectedImage(matchedRoom.images?.[0]?.imageUrl);
+        if (matchedRoom.images?.[0]) setSelectedImage(getImageUrl(matchedRoom.images[0]));
       } else {
         message.error("Room not found.");
       }
@@ -96,7 +114,7 @@ export default function RoomDetailPage() {
             {/* Image Section */}
             <Col xs={24} md={14}>
               <img
-                src={selectedImage}
+                src={getImageUrl(selectedImage)}
                 alt="Room Main"
                 style={{
                   width: "100%",
@@ -112,15 +130,15 @@ export default function RoomDetailPage() {
                   room.images.map((image, index) => (
                     <Col key={index} span={6}>
                       <img
-                        src={image.imageUrl}
+                        src={getImageUrl(image)}
                         alt={`Thumb ${index}`}
-                        onClick={() => setSelectedImage(image.imageUrl)}
+                        onClick={() => setSelectedImage(image)}
                         style={{
                           width: "100%",
                           height: 80,
                           objectFit: "cover",
                           border:
-                            selectedImage === image.imageUrl
+                            getImageUrl(selectedImage) === getImageUrl(image)
                               ? "2px solid #1890ff"
                               : "1px solid #ccc",
                           borderRadius: 8,
