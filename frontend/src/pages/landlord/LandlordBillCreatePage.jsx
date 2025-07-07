@@ -104,7 +104,7 @@ export default function LandlordBillCreatePage() {
       const res = await getAllRooms(0, 1000);
       setRooms(res.result || []);
     } catch (err) {
-      message.error("Failed to load rooms");
+      message.error("Không thể tải danh sách phòng");
     }
   };
 
@@ -113,13 +113,12 @@ export default function LandlordBillCreatePage() {
       const allContracts = await fetchAllContractsAuto();
       setContracts((allContracts || []).filter(c => c.contractStatus === 'ACTIVE'));
     } catch (err) {
-      message.error("Failed to load contracts");
+      message.error("Không thể tải danh sách hợp đồng");
     }
   };
 
   const fetchBillsForContract = async (contractId) => {
-    // Gọi API lấy danh sách bill của hợp đồng này (nếu có endpoint)
-    // Giả sử có getBillsByContractId(contractId)
+    // Gọi API lấy danh sách hóa đơn của hợp đồng này (nếu có endpoint)
     // const bills = await getBillsByContractId(contractId);
     // setExistingBills(bills);
     // Nếu chưa có API, tạm thời để rỗng
@@ -219,7 +218,7 @@ export default function LandlordBillCreatePage() {
             billType
           );
         }
-        message.success("Bill(s) created successfully");
+        message.success("Tạo hóa đơn thành công");
         navigate("/landlord/bills");
         setLoading(false);
         return;
@@ -228,8 +227,8 @@ export default function LandlordBillCreatePage() {
       message.success("Tạo hóa đơn thành công");
       navigate("/landlord/bills");
     } catch (err) {
-      const errorMsg = err?.response?.data?.message || "Create bill failed";
-      message.error("Tạo hóa đơn thất bại");
+      const errorMsg = err?.response?.data?.message || "Tạo hóa đơn thất bại";
+      message.error(errorMsg);
     } finally {
       setLoading(false);
     }
