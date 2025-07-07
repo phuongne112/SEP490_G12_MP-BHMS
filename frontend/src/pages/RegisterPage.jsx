@@ -32,11 +32,11 @@ export default function Register() {
 
     // Validate username is not an email
     if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.username)) {
-      return setErrors({ username: "Username cannot be an email address." });
+      return setErrors({ username: "Tên đăng nhập không được là địa chỉ email." });
     }
 
     if (form.password !== form.confirmPassword) {
-      return setErrors({ confirmPassword: "Confirm password not match." });
+      return setErrors({ confirmPassword: "Xác nhận mật khẩu không khớp." });
     }
 
     const registerData = {
@@ -57,7 +57,7 @@ export default function Register() {
       } else {
         setErrors({
           general:
-            res?.message || err.message || "Sign up failed. Please try again.",
+            res?.message || err.message || "Đăng ký thất bại. Vui lòng thử lại.",
         });
       }
     }
@@ -114,7 +114,7 @@ export default function Register() {
             error={errors.username}
           />
           <TextInput
-            label="Full Name"
+            label="Họ và tên"
             name="fullName"
             value={form.fullName}
             onChange={handleChange}

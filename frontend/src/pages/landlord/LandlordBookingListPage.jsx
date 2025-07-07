@@ -111,7 +111,7 @@ export default function LandlordBookingListPage() {
   };
 
   const columns = [
-    { title: "Tên khách", dataIndex: "fullName" },
+    { title: "Tên Người Dùng", dataIndex: "fullName" },
     { title: "Số điện thoại", dataIndex: "phone" },
     { title: "Email", dataIndex: "email" },
     { title: "Thời gian hẹn", dataIndex: "appointmentTime" },
@@ -189,7 +189,7 @@ export default function LandlordBookingListPage() {
       </Sider>
       <div style={{ flex: 1, padding: 32 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <PageHeader title="Danh sách đặt phòng" style={{ margin: 0 }} />
+          <PageHeader title="Danh sách đặt lịch xem phòng" style={{ margin: 0 }} />
           <div style={{ display: "flex", gap: 8 }}>
             <Input.Search
               placeholder="Tìm đặt phòng..."
