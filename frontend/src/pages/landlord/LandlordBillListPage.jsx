@@ -210,18 +210,38 @@ export default function LandlordBillListPage() {
       dataIndex: "contractId", 
       align: "center", 
       width: 120,
-      render: (contractId) => contractId ? `#${contractId}` : 'N/A'
+      render: (contractId) => contractId ? `#${contractId}` : 'Không có'
     },
     { 
       title: "Loại hóa đơn", 
       dataIndex: "billType", 
       align: "center", 
       width: 120,
-      render: (billType) => (
-        <Tag color={billType === 'REGULAR' ? 'blue' : 'green'}>
-          {billType === 'REGULAR' ? 'Regular' : 'Service'}
-        </Tag>
-      )
+      render: (billType) => {
+        if (!billType) return <span style={{ color: '#888' }}>Không xác định</span>;
+        if (
+          billType === 'REGULAR' ||
+          billType === 'ROOM_RENT' ||
+          billType === 'CONTRACT_ROOM_RENT' ||
+          billType.includes('ROOM_RENT')
+        ) {
+          return <Tag color="blue">Tiền phòng</Tag>;
+        }
+        if (
+          billType === 'SERVICE' ||
+          billType === 'CONTRACT_SERVICE' ||
+          billType.includes('SERVICE')
+        ) {
+          return <Tag color="green">Dịch vụ</Tag>;
+        }
+        if (billType === 'DEPOSIT' || billType.includes('DEPOSIT')) {
+          return <Tag color="purple">Đặt cọc</Tag>;
+        }
+        if (billType === 'CONTRACT_TOTAL') {
+          return <Tag color="geekblue">Tổng hợp đồng</Tag>;
+        }
+        return <Tag>{billType}</Tag>;
+      }
     },
     { 
       title: "Từ ngày", 

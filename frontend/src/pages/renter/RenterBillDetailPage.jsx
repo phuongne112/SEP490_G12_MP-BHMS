@@ -125,7 +125,7 @@ export default function RenterBillDetailPage() {
   };
 
   const getStatusText = (status) => {
-    return status ? "Paid" : "Unpaid";
+    return status ? "Đã thanh toán" : "Chưa thanh toán";
   };
 
   const getBillTypeColor = (type) => {
@@ -138,47 +138,73 @@ export default function RenterBillDetailPage() {
   };
 
   const getBillTypeText = (type) => {
-    switch (type) {
-      case "REGULAR": return "Regular";
-      case "CUSTOM": return "Custom";
-      case "DEPOSIT": return "Deposit";
-      default: return type;
+    if (!type) return "Không xác định";
+    if (
+      type === 'REGULAR' ||
+      type === 'ROOM_RENT' ||
+      type === 'CONTRACT_ROOM_RENT' ||
+      (typeof type === 'string' && type.includes('ROOM_RENT'))
+    ) {
+      return "Tiền phòng";
     }
+    if (
+      type === 'SERVICE' ||
+      type === 'CONTRACT_SERVICE' ||
+      (typeof type === 'string' && type.includes('SERVICE'))
+    ) {
+      return "Dịch vụ";
+    }
+    if (type === 'DEPOSIT' || (typeof type === 'string' && type.includes('DEPOSIT'))) {
+      return "Đặt cọc";
+    }
+    if (
+      type === 'CONTRACT_TOTAL' &&
+      bill &&
+      Array.isArray(bill.items) &&
+      bill.items.length > 0 &&
+      bill.items.every(item => item.itemType && item.itemType.includes('SERVICE'))
+    ) {
+      return "Dịch vụ";
+    }
+    if (type === 'CONTRACT_TOTAL') {
+      return "Tổng hợp đồng";
+    }
+    return type || "Không xác định";
   };
 
   const columns = [
     { 
-      title: "Description", 
+      title: "Mô tả", 
       dataIndex: "description",
       render: text => <Text strong>{text}</Text>
     },
     { 
-      title: "Type", 
+      title: "Loại mục", 
       dataIndex: "itemType",
-      render: type => <Tag color="blue">{type}</Tag>
+      render: type => <Tag color="blue">{getBillTypeText(type)}</Tag>
     },
     { 
-      title: "Service", 
+      title: "Dịch vụ", 
       dataIndex: "serviceName",
-      render: name => <Text>{name || "N/A"}</Text>
+      render: name => <Text>{name || "Không có"}</Text>
     },
     { 
-      title: "Unit Price", 
+      title: "Đơn giá", 
       dataIndex: "unitPriceAtBill", 
       align: "right",
-      render: price => price ? <Text>{price.toLocaleString()} ₫</Text> : "N/A"
+      render: price => price ? <Text>{price.toLocaleString()} ₫</Text> : "Không có"
     },
     { 
-      title: "Quantity", 
+      title: "Số lượng", 
       dataIndex: "consumedUnits",
       align: "center",
-      render: units => <Text>{units || "N/A"}</Text>
+      render: units => <Text>{units || "Không có"}</Text>
     },
     { 
-      title: "Total", 
+      title: "Thành tiền", 
       dataIndex: "itemAmount", 
       align: "right",
-      render: amount => amount ? <Text strong style={{ color: "#52c41a" }}>{amount.toLocaleString()} ₫</Text> : "N/A"
+      render: amount => amount ? <Text strong style={{ color: "#52c41a" }}>{amount.toLocaleString()} ₫</Text> : "Không có"
     },
   ];
 
@@ -237,12 +263,12 @@ export default function RenterBillDetailPage() {
                 onClick={() => navigate('/renter/bills')} 
                 style={{ marginBottom: 16 }}
               >
-                Back to list
+                Quay lại danh sách
               </Button>
               
               <Title level={2} style={{ margin: 0, color: "#1890ff" }}>
                 <FileTextOutlined style={{ marginRight: 8 }} />
-                Bill Details #{bill.id}
+                Chi tiết hóa đơn #{bill.id}
               </Title>
               
               <Space style={{ marginTop: 8 }}>
@@ -258,8 +284,8 @@ export default function RenterBillDetailPage() {
             {/* Thông báo thanh toán */}
             {!bill.status && (
               <Alert
-                message="Unpaid bill"
-                description="Please pay this bill before the due date to avoid late fees. Only VNPay payment is supported."
+                message="Hóa đơn chưa thanh toán"
+                description="Vui lòng thanh toán hóa đơn này trước hạn để tránh phí trễ. Hiện chỉ hỗ trợ thanh toán VNPay."
                 type="warning"
                 showIcon
                 style={{ marginBottom: 24 }}
@@ -270,7 +296,7 @@ export default function RenterBillDetailPage() {
                     icon={<DollarOutlined />}
                     onClick={openPaymentModal}
                   >
-                    Pay with VNPay
+                    Thanh toán VNPay
                   </Button>
                 }
               />
@@ -325,7 +351,7 @@ export default function RenterBillDetailPage() {
                 </Card>
 
                 {/* Chi tiết hóa đơn */}
-                <Card title="Bill Details">
+                <Card title="Chi tiết hóa đơn">
                   <Table
                     columns={columns}
                     dataSource={bill.details}
@@ -338,7 +364,7 @@ export default function RenterBillDetailPage() {
                       return (
                         <Table.Summary.Row>
                           <Table.Summary.Cell index={0} colSpan={5}>
-                            <Text strong>Total:</Text>
+                            <Text strong>Tổng cộng:</Text>
                           </Table.Summary.Cell>
                           <Table.Summary.Cell index={1} align="right">
                             <Text strong style={{ color: "#52c41a", fontSize: "16px" }}>
@@ -365,7 +391,7 @@ export default function RenterBillDetailPage() {
                         onClick={openPaymentModal}
                         block
                       >
-                        Pay with VNPay
+                        Thanh toán VNPay
                       </Button>
                     )}
                     
@@ -375,7 +401,7 @@ export default function RenterBillDetailPage() {
                       onClick={handleExportPDF}
                       block
                     >
-                      Download PDF
+                      Tải PDF
                     </Button>
                     
                     <Button 
@@ -384,18 +410,18 @@ export default function RenterBillDetailPage() {
                       onClick={() => window.print()}
                       block
                     >
-                      Print bill
+                      In hóa đơn
                     </Button>
                   </Space>
 
                   <Divider />
 
                   <div>
-                    <Text strong>Payment information:</Text>
+                    <Text strong>Thông tin thanh toán:</Text>
                     <Paragraph style={{ marginTop: 8 }}>
                       <Text type="secondary">
-                        • Only VNPay payment is supported.<br/>
-                        • Pay directly at the office (if needed).
+                        • Chỉ hỗ trợ thanh toán VNPay.<br/>
+                        • Có thể thanh toán trực tiếp tại văn phòng (nếu cần).
                       </Text>
                     </Paragraph>
                   </div>
@@ -408,7 +434,7 @@ export default function RenterBillDetailPage() {
 
       {/* Modal thanh toán */}
       <Modal
-        title="Pay Bill"
+        title="Thanh toán hóa đơn"
         open={paymentModalVisible}
         onCancel={() => {
           setPaymentModalVisible(false);
@@ -418,20 +444,20 @@ export default function RenterBillDetailPage() {
         width={600}
       >
         <Steps current={currentStep} style={{ marginBottom: 24 }}>
-          <Step title="Confirm" description="Confirm information" />
-          <Step title="Payment" description="Go to VNPay" />
-          <Step title="Done" description="Confirm payment" />
+          <Step title="Xác nhận" description="Xác nhận thông tin" />
+          <Step title="Thanh toán" description="Chuyển đến VNPay" />
+          <Step title="Hoàn tất" description="Xác nhận thanh toán" />
         </Steps>
 
         {currentStep === 0 && (
           <div>
             <Alert
-              message="Payment information"
+              message="Thông tin thanh toán"
               description={
                 <div>
-                  <p><strong>Bill ID:</strong> #{bill.id}</p>
-                  <p><strong>Amount:</strong> {bill.totalAmount?.toLocaleString()} ₫</p>
-                  <p><strong>Room:</strong> {bill.roomNumber}</p>
+                  <p><strong>Mã hóa đơn:</strong> #{bill.id}</p>
+                  <p><strong>Số tiền:</strong> {bill.totalAmount?.toLocaleString()} ₫</p>
+                  <p><strong>Phòng:</strong> {bill.roomNumber}</p>
                 </div>
               }
               type="info"
@@ -445,13 +471,13 @@ export default function RenterBillDetailPage() {
                 onClick={handlePayment}
                 icon={<CreditCardOutlined />}
               >
-                Pay via VNPay
+                Thanh toán qua VNPay
               </Button>
               <Button onClick={() => {
                 setPaymentModalVisible(false);
                 setCurrentStep(0);
               }}>
-                Cancel
+                Hủy
               </Button>
             </Space>
           </div>
@@ -460,21 +486,21 @@ export default function RenterBillDetailPage() {
         {currentStep === 1 && (
           <Result
             status="info"
-            title="Redirecting to payment page"
-            subTitle="Please complete the payment in the new tab and return to this page to confirm."
+            title="Đang chuyển đến trang thanh toán"
+            subTitle="Vui lòng hoàn tất thanh toán ở tab mới và quay lại trang này để xác nhận."
             extra={[
               <Button 
                 type="primary" 
                 key="refresh"
                 onClick={handleCheckPayment}
               >
-                Payment completed
+                Đã thanh toán xong
               </Button>,
               <Button key="cancel" onClick={() => {
                 setPaymentModalVisible(false);
                 setCurrentStep(0);
               }}>
-                Cancel
+                Hủy
               </Button>
             ]}
           />
@@ -483,8 +509,8 @@ export default function RenterBillDetailPage() {
         {currentStep === 2 && (
           <Result
             status="success"
-            title="Payment successful!"
-            subTitle="Your bill has been paid successfully."
+            title="Thanh toán thành công!"
+            subTitle="Hóa đơn của bạn đã được thanh toán thành công."
             extra={[
               <Button 
                 type="primary" 
@@ -495,7 +521,7 @@ export default function RenterBillDetailPage() {
                   fetchBill();
                 }}
               >
-                Close
+                Đóng
               </Button>
             ]}
           />

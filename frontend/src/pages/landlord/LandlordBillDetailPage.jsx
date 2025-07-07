@@ -63,18 +63,46 @@ export default function LandlordBillDetailPage() {
 
   const columns = [
     { title: "Mô tả", dataIndex: "description" },
-    { title: "Loại", dataIndex: "itemType" },
-    { title: "Dịch vụ", dataIndex: "serviceName" },
+    { 
+      title: "Loại", 
+      dataIndex: "itemType",
+      render: (type) => {
+        if (!type) return <Tag>Không xác định</Tag>;
+        if (
+          type === 'REGULAR' ||
+          type === 'ROOM_RENT' ||
+          type === 'CONTRACT_ROOM_RENT' ||
+          type.includes('ROOM_RENT')
+        ) {
+          return <Tag color="blue">Tiền phòng</Tag>;
+        }
+        if (
+          type === 'SERVICE' ||
+          type === 'CONTRACT_SERVICE' ||
+          type.includes('SERVICE')
+        ) {
+          return <Tag color="green">Dịch vụ</Tag>;
+        }
+        if (type === 'DEPOSIT' || type.includes('DEPOSIT')) {
+          return <Tag color="purple">Đặt cọc</Tag>;
+        }
+        if (type === 'CONTRACT_TOTAL') {
+          return <Tag color="geekblue">Tổng hợp đồng</Tag>;
+        }
+        return <Tag>{type}</Tag>;
+      }
+    },
+    { title: "Dịch vụ", dataIndex: "serviceName", render: v => v || 'Không có' },
     {
       title: "Đơn giá",
       dataIndex: "unitPriceAtBill",
-      render: (v) => (v ? v.toLocaleString() + " VND" : ""),
+      render: (v) => (v ? v.toLocaleString() + " ₫" : "Không có"),
     },
-    { title: "Số lượng", dataIndex: "consumedUnits" },
+    { title: "Số lượng", dataIndex: "consumedUnits", render: v => v || 'Không có' },
     {
       title: "Thành tiền",
       dataIndex: "itemAmount",
-      render: (v) => (v ? v.toLocaleString() + " VND" : ""),
+      render: (v) => (v ? v.toLocaleString() + " ₫" : "Không có"),
     },
   ];
 
@@ -123,14 +151,26 @@ export default function LandlordBillDetailPage() {
                 <Descriptions.Item label="Loại hóa đơn">
                   <Tag
                     color={
-                      bill.billType === "REGULAR"
+                      bill.billType === "REGULAR" || bill.billType === "ROOM_RENT" || bill.billType === "CONTRACT_ROOM_RENT" || (bill.billType && bill.billType.includes('ROOM_RENT'))
                         ? "blue"
-                        : bill.billType === "CUSTOM"
-                        ? "orange"
-                        : "green"
+                        : bill.billType === "SERVICE" || bill.billType === "CONTRACT_SERVICE" || (bill.billType && bill.billType.includes('SERVICE'))
+                        ? "green"
+                        : bill.billType === "DEPOSIT" || (bill.billType && bill.billType.includes('DEPOSIT'))
+                        ? "purple"
+                        : bill.billType === "CONTRACT_TOTAL"
+                        ? "geekblue"
+                        : "default"
                     }
                   >
-                    {bill.billType === "REGULAR" ? "Định kỳ" : bill.billType === "CUSTOM" ? "Tùy chỉnh" : bill.billType}
+                    {bill.billType === "REGULAR" || bill.billType === "ROOM_RENT" || bill.billType === "CONTRACT_ROOM_RENT" || (bill.billType && bill.billType.includes('ROOM_RENT'))
+                      ? "Tiền phòng"
+                      : bill.billType === "SERVICE" || bill.billType === "CONTRACT_SERVICE" || (bill.billType && bill.billType.includes('SERVICE'))
+                      ? "Dịch vụ"
+                      : bill.billType === "DEPOSIT" || (bill.billType && bill.billType.includes('DEPOSIT'))
+                      ? "Đặt cọc"
+                      : bill.billType === "CONTRACT_TOTAL"
+                      ? "Tổng hợp đồng"
+                      : bill.billType || 'Không xác định'}
                   </Tag>
                 </Descriptions.Item>
                 <Descriptions.Item label="Từ ngày">{dayjs(bill.fromDate).format("DD/MM/YYYY")}</Descriptions.Item>
@@ -150,7 +190,7 @@ export default function LandlordBillDetailPage() {
                     </span>
                   )}
                 </Descriptions.Item>
-                <Descriptions.Item label="Tổng tiền">{bill.totalAmount?.toLocaleString()} VND</Descriptions.Item>
+                <Descriptions.Item label="Tổng tiền">{bill.totalAmount?.toLocaleString()} ₫</Descriptions.Item>
                 <Descriptions.Item label="Trạng thái">
                   <Tag color={bill.status ? "green" : "red"}>
                     {bill.status ? "Đã thanh toán" : "Chưa thanh toán"}
