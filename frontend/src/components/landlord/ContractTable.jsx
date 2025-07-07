@@ -17,13 +17,15 @@ function ContractHistoryTable({ roomId, onExport }) {
       .finally(() => setLoading(false));
   }, [roomId]);
   const columns = [
-    { title: "Contract No.", dataIndex: "contractNumber", key: "contractNumber", render: (num, record) => num || `#${record.id}` },
-    { title: "Status", dataIndex: "contractStatus", key: "contractStatus" },
-    { title: "Start Date", dataIndex: "contractStartDate", key: "contractStartDate", render: (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—" },
-    { title: "End Date", dataIndex: "contractEndDate", key: "contractEndDate", render: (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—" },
-    { title: "Created At", dataIndex: "createdDate", key: "createdDate", render: (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—" },
+    { title: "Số hợp đồng", dataIndex: "contractNumber", key: "contractNumber", render: (num, record) => num || `#${record.id}` },
+    { title: "Trạng thái", dataIndex: "contractStatus", key: "contractStatus",
+      render: (status) => status === "TERMINATED" ? "Đã chấm dứt" : status === "ACTIVE" ? "Đang hiệu lực" : status === "EXPIRED" ? "Hết hạn" : status },
+    { title: "Ngày bắt đầu", dataIndex: "contractStartDate", key: "contractStartDate", render: (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—" },
+    { title: "Ngày kết thúc", dataIndex: "contractEndDate", key: "contractEndDate", render: (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—" },
+    { title: "Ngày tạo", dataIndex: "createdDate", key: "createdDate", render: (d) => d ? `${new Date(d).toLocaleDateString("vi-VN")} ${new Date(d).toLocaleTimeString("vi-VN", { hour12: false })}` : "—" },
+    { title: "Ngày cập nhật", dataIndex: "updatedDate", key: "updatedDate", render: (d) => d ? `${new Date(d).toLocaleDateString("vi-VN")} ${new Date(d).toLocaleTimeString("vi-VN", { hour12: false })}` : "—" },
     {
-      title: "PDF",
+      title: "Tệp PDF",
       key: "pdf",
       render: (_, record) => (
         <Button
@@ -32,7 +34,7 @@ function ContractHistoryTable({ roomId, onExport }) {
           size="small"
           onClick={() => onExport && onExport(record.id)}
         >
-          PDF
+          Xuất PDF
         </Button>
       )
     }
@@ -50,10 +52,10 @@ function ContractHistoryTable({ roomId, onExport }) {
         style={{ background: '#fafbfc', minWidth: 800 }}
         footer={() => history.length > pageSize ? (
           <div style={{ textAlign: 'right' }}>
-            <span>Page: </span>
-            <Button size="small" disabled={page === 1} onClick={() => setPage(page - 1)} style={{ marginRight: 8 }}>Prev</Button>
+            <span>Trang: </span>
+            <Button size="small" disabled={page === 1} onClick={() => setPage(page - 1)} style={{ marginRight: 8 }}>Trước</Button>
             <span>{page}</span>
-            <Button size="small" disabled={page * pageSize >= history.length} onClick={() => setPage(page + 1)} style={{ marginLeft: 8 }}>Next</Button>
+            <Button size="small" disabled={page * pageSize >= history.length} onClick={() => setPage(page + 1)} style={{ marginLeft: 8 }}>Sau</Button>
           </div>
         ) : null}
       />
@@ -71,7 +73,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
     },
     {
       title: "Phòng",
-      render: (_, record) => record?.room?.roomNumber || record?.roomNumber || "Unknown",
+      render: (_, record) => record?.room?.roomNumber || record?.roomNumber || "Không rõ",
       align: "center",
       width: 90
     },
@@ -79,7 +81,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       title: "Ngày bắt đầu",
       dataIndex: "contractStartDate",
       render: (text) =>
-        text ? new Date(text).toLocaleDateString("en-GB") : "—",
+        text ? new Date(text).toLocaleDateString("vi-VN") : "—",
       align: "center",
       width: 110
     },
@@ -87,7 +89,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       title: "Ngày kết thúc",
       dataIndex: "contractEndDate",
       render: (text) =>
-        text ? new Date(text).toLocaleDateString("en-GB") : "—",
+        text ? new Date(text).toLocaleDateString("vi-VN") : "—",
       align: "center",
       width: 110
     },
@@ -95,8 +97,8 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       title: "Trạng thái",
       dataIndex: "contractStatus",
       render: status => (
-        <Tag color={status === "TERMINATED" ? "red" : status === "ACTIVE" ? "green" : "#888"}>
-          {status === "TERMINATED" ? "Đã chấm dứt" : status === "ACTIVE" ? "Đang hiệu lực" : status}
+        <Tag color={status === "TERMINATED" ? "red" : status === "ACTIVE" ? "green" : status === "EXPIRED" ? "#888" : "#888"}>
+          {status === "TERMINATED" ? "Đã chấm dứt" : status === "ACTIVE" ? "Đang hiệu lực" : status === "EXPIRED" ? "Hết hạn" : status}
         </Tag>
       ),
       align: "center",
@@ -127,14 +129,14 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
         if (now < start) {
           return (
             <span style={{ color: "#1890ff", fontWeight: 600 }}>
-              Not started
+              Chưa bắt đầu
             </span>
           );
         }
         if (now >= end) {
           return (
             <span style={{ color: "#ff4d4f", fontWeight: 600 }}>
-              Expired
+              Đã hết hạn
             </span>
           );
         }
@@ -210,32 +212,43 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
     {
       title: "Ngày tạo",
       dataIndex: "createdDate",
-      render: (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—",
+      render: (d) => d ? `${new Date(d).toLocaleDateString("vi-VN")} ${new Date(d).toLocaleTimeString("vi-VN", { hour12: false })}` : "—",
       align: "center",
       width: 110
     },
     {
       title: "Ngày cập nhật",
       dataIndex: "updatedDate",
-      render: (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—",
+      render: (d) => d ? `${new Date(d).toLocaleDateString("vi-VN")} ${new Date(d).toLocaleTimeString("vi-VN", { hour12: false })}` : "—",
       align: "center",
       width: 110
     },
     {
       title: "Thao tác",
       align: "center",
-      width: 350,
+      width: 400,
       render: (_, record) => {
         const isTerminatedOrExpired = record.contractStatus === "TERMINATED" || record.contractStatus === "EXPIRED";
         return (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+          <div
+            className="action-scrollbar"
+            style={{
+              display: 'flex',
+              flexWrap: 'nowrap',
+              gap: 8,
+              justifyContent: 'center',
+              minWidth: 400,
+              maxWidth: 500,
+              overflowX: 'auto'
+            }}
+          >
             <Button
               type="primary"
               icon={<FilePdfOutlined />}
               onClick={() => onExport(record.id)}
               size="small"
             >
-              Tệp PDF
+              Xuất PDF
             </Button>
             <Button
               type="default"
@@ -266,7 +279,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
             >
               Lịch sử
             </Button>
-            <Popconfirm title="Chấm dứt this contract?" onConfirm={() => onTerminate(record.id)} okText="Chấm dứt" cancelText="Hủy">
+            <Popconfirm title="Chấm dứt hợp đồng này?" onConfirm={() => onTerminate(record.id)} okText="Chấm dứt" cancelText="Hủy">
               <Button
                 type="primary"
                 danger
