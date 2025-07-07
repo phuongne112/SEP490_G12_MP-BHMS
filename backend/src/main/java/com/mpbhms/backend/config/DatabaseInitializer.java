@@ -94,7 +94,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Delete Contract", "/mpbhms/contracts/{id}", "DELETE", "Contract"));
             permissions.add(new Permission("Test Update User Info", "/mpbhms/contracts/test-update-user-info", "GET", "Contract"));
             permissions.add(new Permission("Get My Contracts", "/mpbhms/contracts/my-contracts", "GET", "Contract"));
-            permissions.add(new Permission("Get List Contracts History", "/mpbhms/contracts/room/{contractId}/history", "GET", "Contract"));
+            permissions.add(new Permission("Get List Contracts History", "/mpbhms/contracts/room/{roomId}/history", "GET", "Contract"));
             permissions.add(new Permission("Get Contract Amendments History", "/mpbhms/contracts/amendments/{contractId}", "GET", "Contract"));
             //OCR
             permissions.add(new Permission("OCR", "/mpbhms/ocr/detect-ocr", "POST", "Ocr"));
