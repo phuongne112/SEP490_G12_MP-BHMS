@@ -149,7 +149,7 @@ export default function RoomDetailPage() {
                     </Col>
                   ))
                 ) : (
-                  <Text>No images available.</Text>
+                  <Text>Không có hình ảnh.</Text>
                 )}
               </Row>
             </Col>
@@ -170,7 +170,7 @@ export default function RoomDetailPage() {
                   }}
                 >
                   <Title level={3} style={{ margin: 0 }}>
-                    Room {room.roomNumber}
+                    Phòng {room.roomNumber}
                   </Title>
                   {(() => {
                     if (!user) return true;
@@ -205,7 +205,7 @@ export default function RoomDetailPage() {
                           }
                         }}
                       >
-                        Book Appointment
+                        Đặt lịch hẹn
                       </button>
                       <Modal
                         open={loginModalOpen}
@@ -214,8 +214,8 @@ export default function RoomDetailPage() {
                           setLoginModalOpen(false);
                           navigate("/login");
                         }}
-                        okText="Login"
-                        cancelText="Cancel"
+                        okText="Đăng nhập"
+                        cancelText="Hủy"
                         closable={false}
                         maskClosable={false}
                         centered
@@ -224,10 +224,10 @@ export default function RoomDetailPage() {
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                           <span style={{ fontSize: 40, color: "#1890ff", marginBottom: 12 }}>🔒</span>
                           <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>
-                            You need to login to book an appointment.
+                            Bạn cần đăng nhập để đặt lịch hẹn.
                           </div>
                           <div style={{ fontSize: 15, color: "#555" }}>
-                            Please login to continue.
+                            Vui lòng đăng nhập để tiếp tục.
                           </div>
                         </div>
                       </Modal>
@@ -235,20 +235,20 @@ export default function RoomDetailPage() {
                   )}
                 </div>
                 <Text>
-                  <strong>Area:</strong> {room.area} m²
+                  <strong>Diện tích:</strong> {room.area} m²
                 </Text>
                 <Text>
-                  <strong>Price:</strong> {room.pricePerMonth?.toLocaleString()}{" "}
-                  VND/month
+                  <strong>Giá:</strong> {room.pricePerMonth?.toLocaleString()}{" "}
+                  VND/tháng
                 </Text>
                 <Text>
-                  <strong>Bedrooms:</strong> {room.numberOfBedrooms}
+                  <strong>Số phòng ngủ:</strong> {room.numberOfBedrooms}
                 </Text>
                 <Text>
-                  <strong>Bathrooms:</strong> {room.numberOfBathrooms}
+                  <strong>Số phòng tắm:</strong> {room.numberOfBathrooms}
                 </Text>
                 <Text>
-                  <strong>Status:</strong>{" "}
+                  <strong>Trạng thái:</strong>{" "}
                   <Tag
                     color={
                       room.roomStatus === "Available"
@@ -260,18 +260,22 @@ export default function RoomDetailPage() {
                         : "default"
                     }
                   >
-                    {room.roomStatus || "Unknown"}
+                    {room.roomStatus === "Available" ? "Có sẵn" :
+                     room.roomStatus === "Occupied" ? "Đã thuê" :
+                     room.roomStatus === "Maintenance" ? "Bảo trì" :
+                     room.roomStatus === "Inactive" ? "Không hoạt động" :
+                     room.roomStatus || "Không xác định"}
                   </Tag>
                 </Text>
                 <Text>
-                  <strong>Description:</strong> {room.description || "—"}
+                  <strong>Mô tả:</strong> {room.description || "—"}
                 </Text>
                 <Text>
-                  <strong>Active:</strong> {room.isActive ? "Yes" : "No"}
+                  <strong>Hoạt động:</strong> {room.isActive ? "Có" : "Không"}
                 </Text>
                 <Text>
-                  <strong>Landlord:</strong> {room.landlordName || "N/A"} |{" "}
-                  {room.landlordPhone || "No phone"}
+                  <strong>Chủ nhà:</strong> {room.landlordName || "Không có"} |{" "}
+                  {room.landlordPhone || "Không có số điện thoại"}
                 </Text>
               </Space>
 
@@ -279,7 +283,7 @@ export default function RoomDetailPage() {
               {room.assets?.length > 0 && (
                 <>
                   <Divider />
-                  <Title level={5}>Assets</Title>
+                  <Title level={5}>Tài sản</Title>
                   <ul>
                     {room.assets.map((a, i) => (
                       <li key={i}>{a.assetName}</li>
@@ -292,7 +296,7 @@ export default function RoomDetailPage() {
               {room.services?.length > 0 && (
                 <>
                   <Divider />
-                  <Title level={5}>Services</Title>
+                  <Title level={5}>Dịch vụ</Title>
                   <ul>
                     {room.services.map((s, i) => (
                       <li key={i}>{s.serviceName}</li>
