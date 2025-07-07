@@ -39,7 +39,7 @@ public class RenterServiceImpl implements RenterService {
     private final RoomRepository roomRepository;
 
     @Override
-    public ResultPaginationDTO getAllRenters(Specification<?> spec, Pageable pageable, String search) {
+    public ResultPaginationDTO getAllRenters(Specification<?> spec, Pageable pageable, String search, String checkInDateFrom, String checkInDateTo) {
         Specification<User> specWithRole = ((Specification<User>) spec).and((root, query, cb) ->
                 cb.equal(root.get("role").get("id"), 2)
         );
@@ -57,6 +57,24 @@ public class RenterServiceImpl implements RenterService {
             })
             .toList();
 
+        // Filter theo ngày nhận phòng nếu có
+        if (checkInDateFrom != null && !checkInDateFrom.isEmpty() && checkInDateTo != null && !checkInDateTo.isEmpty()) {
+            try {
+                java.time.LocalDate fromDate = java.time.LocalDate.parse(checkInDateFrom);
+                java.time.LocalDate toDate = java.time.LocalDate.parse(checkInDateTo);
+                filteredUsers = filteredUsers.stream()
+                    .filter(user -> {
+                        RoomUser ru = roomUserRepository.findTopByUserIdOrderByJoinedAtDesc(user.getId());
+                        if (ru == null || ru.getJoinedAt() == null) return false;
+                        java.time.LocalDate joined = ru.getJoinedAt().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+                        return (joined.compareTo(fromDate) >= 0 && joined.compareTo(toDate) <= 0);
+                    })
+                    .toList();
+            } catch (Exception e) {
+                // Nếu parse lỗi thì bỏ qua filter ngày
+            }
+        }
+
         // Phân trang lại thủ công
         int page = pageable.getPageNumber();
         int size = pageable.getPageSize();
@@ -67,7 +85,7 @@ public class RenterServiceImpl implements RenterService {
             : new ArrayList<>();
 
         Meta meta = new Meta();
-        meta.setPage(page + 1);
+        meta.setPage(page);
         meta.setPageSize(size);
         meta.setPages((int) Math.ceil((double) filteredUsers.size() / size));
         meta.setTotal(filteredUsers.size());

@@ -103,7 +103,15 @@ export default function AddRenterForm() {
           </Col>
           <Col span={12}>
             <Form.Item label="Ngày sinh" name="dateOfBirth" rules={[
-              { required: true, message: "Vui lòng chọn ngày sinh" }
+              { required: true, message: "Vui lòng chọn ngày sinh" },
+              { validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  if (value.isAfter && value.isAfter(new Date(), 'day')) {
+                    return Promise.reject(new Error("Ngày sinh không hợp lệ"));
+                  }
+                  return Promise.resolve();
+                }
+              }
             ]}>
               <DatePicker style={{ width: '100%' }} placeholder="Chọn ngày sinh" />
             </Form.Item>

@@ -59,12 +59,12 @@ export default function AdminSidebar() {
       path: "/admin/contract",
       requiredPermissions: ["View List Contract"],
     },
-    {
-      key: "/admin/settings",
-      icon: <SettingOutlined />,
-      label: "Tùy chọn khác",
-      path: "/admin/settings",
-    },
+    // {
+    //   key: "/admin/settings",
+    //   icon: <SettingOutlined />,
+    //   label: "Tùy chọn khác",
+    //   path: "/admin/settings",
+    // },
   ];
 
   const menuItems = adminMenu.filter((item) => {
