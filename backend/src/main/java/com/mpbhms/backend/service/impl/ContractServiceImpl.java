@@ -106,27 +106,84 @@ public class ContractServiceImpl implements ContractService {
 
     private java.util.Map<String, Object> buildContractDataMap(Contract contract) {
         java.util.Map<String, Object> map = new java.util.HashMap<>();
-        map.put("contract", contract);
-        map.put("room", contract.getRoom());
-        map.put("landlord", contract.getRoom().getLandlord());
-        // Mapping renters: chỉ truyền các trường cần thiết cho template
+
+        // Log giá trị cần kiểm tra
+        System.out.println("[DEBUG] Contract ID: " + contract.getId()
+            + ", Rent: " + contract.getRentAmount()
+            + ", Deposit: " + contract.getDepositAmount()
+            + ", Cycle: " + contract.getPaymentCycle());
+
+        // Lấy snapshot landlord từ ContractLandlordInfo
+        java.util.List<com.mpbhms.backend.entity.ContractLandlordInfo> landlordInfos =
+                contractLandlordInfoRepository.findByContractId(contract.getId());
+        com.mpbhms.backend.entity.ContractLandlordInfo landlordInfo =
+                (landlordInfos != null && !landlordInfos.isEmpty()) ? landlordInfos.get(0) : null;
+        java.util.Map<String, Object> landlord = new java.util.HashMap<>();
+        if (landlordInfo != null) {
+            landlord.put("fullName", landlordInfo.getFullName());
+            landlord.put("phoneNumber", landlordInfo.getPhoneNumber());
+            landlord.put("nationalID", landlordInfo.getNationalID());
+            landlord.put("permanentAddress", landlordInfo.getPermanentAddress());
+        } else if (contract.getRoom() != null && contract.getRoom().getLandlord() != null
+                && contract.getRoom().getLandlord().getUserInfo() != null) {
+            landlord.put("fullName", contract.getRoom().getLandlord().getUserInfo().getFullName());
+            landlord.put("phoneNumber", contract.getRoom().getLandlord().getUserInfo().getPhoneNumber());
+            landlord.put("nationalID", contract.getRoom().getLandlord().getUserInfo().getNationalID());
+            landlord.put("permanentAddress", contract.getRoom().getLandlord().getUserInfo().getPermanentAddress());
+        } else {
+            landlord.put("fullName", "Chưa rõ");
+            landlord.put("phoneNumber", "Chưa rõ");
+            landlord.put("nationalID", "Chưa rõ");
+            landlord.put("permanentAddress", "Chưa rõ");
+        }
+        map.put("landlord", landlord);
+
+        // Lấy snapshot renters từ ContractRenterInfo
+        java.util.List<ContractRenterInfo> renterInfos = contractRenterInfoRepository.findByContractId(contract.getId());
         java.util.List<java.util.Map<String, Object>> renters = new java.util.ArrayList<>();
-        if (contract.getRoomUsers() != null) {
-            for (RoomUser ru : contract.getRoomUsers()) {
-                if (ru.getUser() != null && ru.getUser().getUserInfo() != null) {
-                    java.util.Map<String, Object> renter = new java.util.HashMap<>();
-                    renter.put("fullName", ru.getUser().getUserInfo().getFullName());
-                    renter.put("phoneNumber", ru.getUser().getUserInfo().getPhoneNumber());
-                    renter.put("nationalID", ru.getUser().getUserInfo().getNationalID());
-                    renter.put("permanentAddress", ru.getUser().getUserInfo().getPermanentAddress());
-                    renters.add(renter);
-                }
+        if (renterInfos != null && !renterInfos.isEmpty()) {
+            for (ContractRenterInfo info : renterInfos) {
+                java.util.Map<String, Object> renter = new java.util.HashMap<>();
+                renter.put("fullName", info.getFullName());
+                renter.put("phoneNumber", info.getPhoneNumber());
+                renter.put("nationalID", info.getNationalID());
+                renter.put("permanentAddress", info.getPermanentAddress());
+                renters.add(renter);
             }
         }
         map.put("renters", renters);
-        map.put("startDate", contract.getContractStartDate());
-        map.put("endDate", contract.getContractEndDate());
-        // ... thêm các biến khác nếu cần
+
+        // Thông tin phòng
+        java.util.Map<String, Object> room = new java.util.HashMap<>();
+        if (contract.getRoom() != null) {
+            room.put("roomNumber", contract.getRoom().getRoomNumber());
+        } else {
+            room.put("roomNumber", "Không rõ");
+        }
+        map.put("room", room);
+
+        // Thông tin hợp đồng
+        map.put("contractNumber", contract.getContractNumber() != null ? contract.getContractNumber() : contract.getId());
+        // Format tiền tệ kiểu Việt Nam
+        java.text.NumberFormat currencyFormat = java.text.NumberFormat.getInstance(new java.util.Locale("vi", "VN"));
+        map.put("rentAmount", contract.getRentAmount() != null ? currencyFormat.format(contract.getRentAmount()) : "0");
+        map.put("depositAmount", contract.getDepositAmount() != null ? currencyFormat.format(contract.getDepositAmount()) : "0");
+        map.put("paymentCycle", contract.getPaymentCycle() != null ? contract.getPaymentCycle() : "");
+
+        // Format ngày
+        java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                .withZone(java.time.ZoneId.systemDefault());
+        map.put("startDate", contract.getContractStartDate() != null ? dateFormatter.format(contract.getContractStartDate()) : "");
+        map.put("endDate", contract.getContractEndDate() != null ? dateFormatter.format(contract.getContractEndDate()) : "");
+
+        // Điều khoản
+        if (contract.getTerms() != null && !contract.getTerms().isEmpty()) {
+            java.util.List<String> terms = contract.getTerms().stream()
+                    .map(com.mpbhms.backend.entity.ContractTerm::getContent)
+                    .toList();
+            map.put("terms", terms);
+        }
+
         return map;
     }
 
