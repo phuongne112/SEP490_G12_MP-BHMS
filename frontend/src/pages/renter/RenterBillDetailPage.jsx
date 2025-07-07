@@ -64,6 +64,24 @@ export default function RenterBillDetailPage() {
     }
   }, [action, bill]);
 
+  // Tự động kiểm tra trạng thái bill khi quay lại tab
+  useEffect(() => {
+    const handleVisibility = async () => {
+      if (document.visibilityState === 'visible' && paymentModalVisible && currentStep === 1) {
+        await fetchBill();
+        if (bill && bill.status) {
+          setCurrentStep(2);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleVisibility);
+    };
+  }, [paymentModalVisible, currentStep, bill]);
+
   const fetchBill = async () => {
     setLoading(true);
     try {

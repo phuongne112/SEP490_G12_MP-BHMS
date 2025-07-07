@@ -42,6 +42,8 @@ import RenterCheckinAssetPage from "../pages/renter/RenterCheckinAssetPage";
 import RenterCheckoutAssetPage from "../pages/renter/RenterCheckoutAssetPage";
 import LandlordContractTemplateManager from "../pages/landlord/LandlordContractTemplateManager";
 import LandlordLayout from '../components/layout/LandlordLayout';
+import RenterVnPayReturnPage from '../pages/renter/RenterVnPayReturnPage';
+import PaymentSuccessPage from '../pages/PaymentSuccessPage';
 
 export default function AppRouter() {
   return (
@@ -203,6 +205,7 @@ export default function AppRouter() {
           </RenterRoute>
         }
       />
+      <Route path="/renter/bills/:id/vnpay-return" element={<RenterVnPayReturnPage />} />
       <Route
         path="/renter/rooms/checkin-assets"
         element={
@@ -225,6 +228,7 @@ export default function AppRouter() {
       <Route path="/room" element={<RoomSection />} />
       <Route path="/403" element={<Error403 />} />
       <Route path="/" element={<Navigate to="/home" replace />} />
+      <Route path="/payment-success" element={<PaymentSuccessPage />} />
     </Routes>
   );
 }
