@@ -55,41 +55,34 @@ export default function RenterBillListPage() {
     unpaid: 0,
     totalAmount: 0,
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
 
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const user = useSelector((state) => state.account.user);
 
   useEffect(() => {
-    fetchBills();
-  }, []);
+    fetchBills(currentPage, pageSize);
+    // eslint-disable-next-line
+  }, [currentPage, pageSize]);
 
-  const fetchBills = async () => {
+  const fetchBills = async (page = currentPage, size = pageSize) => {
     setLoading(true);
     try {
-      const res = await getMyBills();
+      const res = await getMyBills({ page: page - 1, size });
       let billsData = res.content || [];
-      if (user && billsData.length > 0) {
-        billsData = billsData.filter((bill) => {
-          if (bill.renterId) return bill.renterId === user.id;
-          if (bill.renterIds) return bill.renterIds.includes(user.id);
-          if (bill.roomUsers)
-            return bill.roomUsers.some(
-              (u) => u.userId === user.id || u.id === user.id
-            );
-          return true;
-        });
-      }
       setBills(billsData);
-
-      const total = billsData.length;
+      setTotal(res.totalElements || billsData.length);
+      const totalStats = billsData.length;
       const paid = billsData.filter((bill) => bill.status).length;
-      const unpaid = total - paid;
+      const unpaid = totalStats - paid;
       const totalAmount = billsData.reduce(
         (sum, bill) => sum + (bill.totalAmount || 0),
         0
       );
-      setStats({ total, paid, unpaid, totalAmount });
+      setStats({ total: totalStats, paid, unpaid, totalAmount });
     } catch (err) {
       message.error("Không thể tải danh sách hóa đơn");
     }
@@ -166,31 +159,31 @@ export default function RenterBillListPage() {
           billType === 'REGULAR' ||
           billType === 'ROOM_RENT' ||
           billType === 'CONTRACT_ROOM_RENT' ||
-          billType.includes('ROOM_RENT')
+          (typeof billType === 'string' && billType.includes('ROOM_RENT'))
         ) {
           return <Tag color="blue">Tiền phòng</Tag>;
         }
         if (
           billType === 'SERVICE' ||
           billType === 'CONTRACT_SERVICE' ||
-          billType.includes('SERVICE')
+          (typeof billType === 'string' && billType.includes('SERVICE'))
         ) {
           return <Tag color="green">Dịch vụ</Tag>;
         }
-        if (billType === 'DEPOSIT' || billType.includes('DEPOSIT')) {
+        if (billType === 'DEPOSIT' || (typeof billType === 'string' && billType.includes('DEPOSIT'))) {
           return <Tag color="purple">Đặt cọc</Tag>;
-        }
-        if (
-          billType === 'CONTRACT_TOTAL' &&
-          record.items &&
-          Array.isArray(record.items) &&
-          record.items.length > 0 &&
-          record.items.every(item => item.itemType && item.itemType.includes('SERVICE'))
-        ) {
-          return <Tag color="green">Dịch vụ</Tag>;
         }
         if (billType === 'CONTRACT_TOTAL') {
           return <Tag color="geekblue">Tổng hợp đồng</Tag>;
+        }
+        if (billType === 'CUSTOM') {
+          return <Tag color="orange">Tùy chỉnh</Tag>;
+        }
+        if (billType === 'CONTRACT_INIT') {
+          return <Tag color="cyan">Khởi tạo hợp đồng</Tag>;
+        }
+        if (billType === 'OTHER') {
+          return <Tag>Khác</Tag>;
         }
         return <Tag>{billType}</Tag>;
       }
@@ -357,9 +350,15 @@ export default function RenterBillListPage() {
                   dataSource={bills}
                   rowKey="id"
                   pagination={{
-                    pageSize: 10,
+                    current: currentPage,
+                    pageSize: pageSize,
+                    total: total,
                     showSizeChanger: true,
                     showQuickJumper: true,
+                    onChange: (page, size) => {
+                      setCurrentPage(page);
+                      setPageSize(size);
+                    },
                     showTotal: (total, range) =>
                       `${range[0]}-${range[1]} của ${total} hóa đơn`,
                     position: ["bottomCenter"],

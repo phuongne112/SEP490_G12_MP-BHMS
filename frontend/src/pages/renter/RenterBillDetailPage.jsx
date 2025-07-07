@@ -133,6 +133,11 @@ export default function RenterBillDetailPage() {
       case "REGULAR": return "blue";
       case "CUSTOM": return "orange";
       case "DEPOSIT": return "purple";
+      case "SERVICE": return "green";
+      case "CONTRACT_TOTAL": return "geekblue";
+      case "CONTRACT_INIT": return "cyan";
+      case "CONTRACT_ROOM_RENT": return "blue";
+      case "OTHER": return "default";
       default: return "default";
     }
   };
@@ -145,7 +150,7 @@ export default function RenterBillDetailPage() {
       type === 'CONTRACT_ROOM_RENT' ||
       (typeof type === 'string' && type.includes('ROOM_RENT'))
     ) {
-      return "Tiền phòng";
+      return "Tiền phòng hợp đồng";
     }
     if (
       type === 'SERVICE' ||
@@ -168,6 +173,15 @@ export default function RenterBillDetailPage() {
     }
     if (type === 'CONTRACT_TOTAL') {
       return "Tổng hợp đồng";
+    }
+    if (type === 'CONTRACT_INIT') {
+      return "Khởi tạo hợp đồng";
+    }
+    if (type === 'CUSTOM') {
+      return "Tùy chỉnh";
+    }
+    if (type === 'OTHER') {
+      return "Khác";
     }
     return type || "Không xác định";
   };
