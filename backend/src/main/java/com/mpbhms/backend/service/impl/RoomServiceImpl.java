@@ -241,11 +241,11 @@ public class RoomServiceImpl implements RoomService {
         room.setMaxOccupants(request.getMaxOccupants());
         room.setBuilding(request.getBuilding());
 
-        // Chỉ update ảnh nếu FE gửi keepImageIds hoặc images
-        boolean updateImages = (keepImageIds != null && !keepImageIds.isEmpty()) || (images != null && images.length > 0);
+        // Chỉ update ảnh nếu FE gửi keepImageIds (có thể là mảng rỗng) hoặc images
+        boolean updateImages = keepImageIds != null || (images != null && images.length > 0);
         if (updateImages) {
             List<RoomImage> imagesToKeep = new ArrayList<>();
-            if (keepImageIds != null && !keepImageIds.isEmpty()) {
+            if (keepImageIds != null) {
                 for (RoomImage img : room.getImages()) {
                     if (keepImageIds.contains(img.getId())) {
                         imagesToKeep.add(img);
