@@ -140,7 +140,10 @@ export default function LandlordAddRoomPage() {
                 <Form.Item
                   name="roomNumberSuffix"
                   label="Số phòng (Suffix)"
-                  rules={[{ required: true, message: "Vui lòng nhập số phòng" }]}
+                  rules={[
+                    { required: true, message: "Vui lòng nhập số phòng" },
+                    { pattern: /^\d+$/, message: "Số phòng chỉ được phép là số" }
+                  ]}
                 >
                   <Input placeholder="e.g. 101" />
                 </Form.Item>
@@ -149,7 +152,7 @@ export default function LandlordAddRoomPage() {
                 <Form.Item
                   name="area"
                   label="Diện tích (m²)"
-                  rules={[{ required: true }]}
+                  rules={[{ required: true, message: "Vui lòng nhập diện tích phòng" }]}
                 >
                   <InputNumber min={1} max={1000} style={{ width: "100%" }} />
                 </Form.Item>
@@ -158,7 +161,7 @@ export default function LandlordAddRoomPage() {
                 <Form.Item
                   name="price"
                   label="Giá (VND/Month)"
-                  rules={[{ required: true }]}
+                  rules={[{ required: true, message: "Vui lòng nhập giá thuê mỗi tháng" }]}
                 >
                   <InputNumber
                     min={0}

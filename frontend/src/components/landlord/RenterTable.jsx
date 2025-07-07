@@ -1,17 +1,31 @@
 import React, { useEffect, useState } from "react";
-import { Table, Spin, Popconfirm, Button, message, Tag } from "antd";
-import { getAllRenters } from "../../services/renterApi";
-import { updateRenterStatus } from "../../services/renterApi";
+import { Table, Spin, Popconfirm, message, Tag } from "antd";
+import { getAllRenters, updateRenterStatus } from "../../services/renterApi";
+import dayjs from "dayjs";
 
 export default function RenterTable({ search = "", filter = {} }) {
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 5 });
   const [loading, setLoading] = useState(false);
 
+  // ✅ Xử lý filter để gửi về BE đúng format
   const buildFilterParams = () => {
     const params = {};
+
     if (search?.trim()) params.search = search.trim();
-    // Có thể giữ lại filter nâng cao cho phòng/ngày nếu muốn filter thủ công ở backend sau này
+
+    if (filter.checkInDateRange?.[0]) {
+      params.checkInDateFrom = dayjs(filter.checkInDateRange[0]).format(
+        "YYYY-MM-DD"
+      );
+    }
+
+    if (filter.checkInDateRange?.[1]) {
+      params.checkInDateTo = dayjs(filter.checkInDateRange[1]).format(
+        "YYYY-MM-DD"
+      );
+    }
+
     return params;
   };
 
@@ -19,68 +33,52 @@ export default function RenterTable({ search = "", filter = {} }) {
     setLoading(true);
     try {
       const response = await getAllRenters(page - 1, size, buildFilterParams());
-
       const result = response.result || [];
-
+      // ✅ FE filter theo phòng (room)
       let filtered = result;
-      // Filter thủ công ở FE nếu có filter phòng hoặc ngày
       if (filter.room) {
         filtered = filtered.filter(
           (item) => item.renterRoomInfo?.roomName === filter.room
         );
       }
-      if (filter.checkInDateRange?.[0] && filter.checkInDateRange?.[1]) {
-        const start = filter.checkInDateRange[0].startOf("day");
-        const end = filter.checkInDateRange[1].endOf("day");
-        filtered = filtered.filter((item) => {
-          if (item.checkInDate === "N/A") return false;
-          const checkIn = new Date(item.checkInDate);
-          return checkIn >= start.toDate() && checkIn <= end.toDate();
-        });
-      }
-      const formatted = filtered.map((item, index) => ({
+      const formatted = filtered.map((item) => ({
         key: item.id,
         id: item.id,
         name: item.userInfo?.fullName || item.username,
         room: item.renterRoomInfo?.roomName || "N/A",
         checkInDate: item.renterRoomInfo?.checkInDate
-          ? new Date(item.renterRoomInfo.checkInDate).toLocaleString()
+          ? new Date(item.renterRoomInfo.checkInDate).toLocaleDateString()
           : "N/A",
-        status: item.isActive === false ? "Ngừng thuê" : "Đang thuê",
+        status: item.isActive ? "Đang thuê" : "Ngừng thuê",
         isActive: item.isActive,
       }));
-
       setData(formatted);
-      if (
-        filter.room ||
-        (filter.checkInDateRange?.[0] && filter.checkInDateRange?.[1])
-      ) {
-        // Có filter nâng cao: phân trang FE
+      // ✅ Nếu có filter FE → dùng phân trang FE, current là page hiện tại
+      if (filter.room || filter.checkInDateRange?.[0]) {
         setPagination({
-          current: 1,
-          pageSize: response.meta.pageSize,
+          current: page,
+          pageSize: size,
           total: filtered.length,
         });
       } else {
-        // Không filter nâng cao: dùng phân trang backend
         setPagination({
-          current: response.meta.page,
-          pageSize: response.meta.pageSize,
-          total: response.meta.total,
+          current: response.meta?.page + 1 || 1,
+          pageSize: response.meta?.pageSize || 5,
+          total: response.meta?.total || 0,
         });
       }
     } catch (err) {
-      console.error("Failed to fetch renters:", err);
+      console.error("❌ Lỗi khi tải người thuê:", err);
+      message.error("Không thể tải danh sách người thuê.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    // Reset về trang 1 mỗi khi search thay đổi
     setPagination((p) => ({ ...p, current: 1 }));
     fetchData(1, pagination.pageSize);
-    // eslint-disable-next-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, filter]);
 
   const handleTableChange = (newPagination) => {
@@ -96,14 +94,14 @@ export default function RenterTable({ search = "", filter = {} }) {
     try {
       await updateRenterStatus(record.id, !record.isActive);
       message.success(
-        `Renter has been ${
-          !record.isActive ? "activated" : "deactivated"
-        } successfully!`
+        `Người thuê đã được ${
+          !record.isActive ? "kích hoạt" : "vô hiệu hóa"
+        } thành công.`
       );
-      // Fetch lại data từ server để đồng bộ trạng thái
       fetchData(pagination.current, pagination.pageSize);
     } catch (err) {
-      message.error("Failed to update status!");
+      console.error(err);
+      message.error("Cập nhật trạng thái thất bại.");
     }
   };
 
@@ -134,18 +132,18 @@ export default function RenterTable({ search = "", filter = {} }) {
       title: "Ngày nhận phòng",
       dataIndex: "checkInDate",
       align: "center",
-      width: 200,
+      width: 160,
     },
     {
       title: "Trạng thái",
       dataIndex: "status",
       align: "center",
-      width: 120,
+      width: 140,
       render: (_, record) => (
         <Popconfirm
           title={`Bạn có chắc muốn ${
-            record.isActive ? "deactivate" : "activate"
-          } this renter?`}
+            record.isActive ? "vô hiệu hóa" : "kích hoạt"
+          } người thuê này?`}
           onConfirm={() => handleChangeStatus(record)}
           okText="Có"
           cancelText="Không"

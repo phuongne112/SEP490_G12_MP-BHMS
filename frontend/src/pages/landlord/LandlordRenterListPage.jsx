@@ -48,7 +48,24 @@ export default function LandlordRenterListPage() {
   const fetchRenters = async (page = currentPage, size = pageSize) => {
     setLoading(true);
     try {
-      const res = await getAllRenters(page - 1, size, filter);
+      let cleanFilter = { ...filter };
+      if (cleanFilter.checkInDateRange) {
+        if (cleanFilter.checkInDateRange[0]) {
+          cleanFilter.checkInDateFrom = cleanFilter.checkInDateRange[0].format
+            ? cleanFilter.checkInDateRange[0].format("YYYY-MM-DD")
+            : cleanFilter.checkInDateRange[0];
+        }
+        if (cleanFilter.checkInDateRange[1]) {
+          cleanFilter.checkInDateTo = cleanFilter.checkInDateRange[1].format
+            ? cleanFilter.checkInDateRange[1].format("YYYY-MM-DD")
+            : cleanFilter.checkInDateRange[1];
+        }
+        delete cleanFilter.checkInDateRange;
+      }
+      Object.keys(cleanFilter).forEach(
+        (key) => (cleanFilter[key] == null || cleanFilter[key] === "") && delete cleanFilter[key]
+      );
+      const res = await getAllRenters(page - 1, size, cleanFilter);
       setRenters(res.result || res.data || []);
       setTotal(res.meta?.total ?? res.total ?? (res.result?.length ?? res.data?.length ?? 0));
     } catch (err) {
@@ -69,7 +86,8 @@ export default function LandlordRenterListPage() {
   };
 
   const handleFilter = (filterValues) => {
-    setFilter(filterValues);
+    console.log('Filter applied:', filterValues);
+    setFilter({ ...filterValues }); // clone object để luôn trigger re-render
   };
 
   const handleAddRenter = async () => {

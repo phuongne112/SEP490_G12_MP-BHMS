@@ -28,9 +28,11 @@ public class RenterController {
     public ResponseEntity<ResultPaginationDTO> getAllRenters(
             @Filter Specification<User> spec,
             Pageable pageable,
-            @RequestParam(required = false) String search
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String checkInDateFrom,
+            @RequestParam(required = false) String checkInDateTo
     ) {
-        return ResponseEntity.ok(renterService.getAllRenters(spec, pageable, search));
+        return ResponseEntity.ok(renterService.getAllRenters(spec, pageable, search, checkInDateFrom, checkInDateTo));
     }
 
     // ✅ 2. Tạo người thuê mới (mặc định roleId = 2)

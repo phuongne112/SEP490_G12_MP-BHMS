@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface RenterService {
 
-    ResultPaginationDTO getAllRenters(Specification<?> spec, Pageable pageable, String search);
+    ResultPaginationDTO getAllRenters(Specification<?> spec, Pageable pageable, String search, String checkInDateFrom, String checkInDateTo);
 
     CreateUserResponse createRenter(CreateUserRequest request);
 
