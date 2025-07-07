@@ -429,19 +429,8 @@ export default function LandlordContractListPage() {
               <Button onClick={() => { setFilter({}); setFilterVisible(false); setCurrentPage(1); }}>Xóa lọc</Button>
             </div>
           </div>
-          <div
-            style={{
-              height: 16
-            }}
-          />
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 8,
-            }}
-          >
+          <div style={{ height: 16 }} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div>
               Hiển thị
               <Select
@@ -492,7 +481,7 @@ export default function LandlordContractListPage() {
             <div style={{ marginBottom: 8 }}>Tiền đặt cọc mới:</div>
             <Input type="number" value={updateDeposit} onChange={e => setUpdateDeposit(e.target.value)} style={{ marginBottom: 12 }} />
             <div style={{ marginBottom: 8 }}>Chu kỳ thanh toán:</div>
-            <Select value={updatePaymentCycle} onChange={setUpdatePaymentCycle} style={{ width: '100%', marginBottom: 12 }} options={paymentCycleOptions.map(opt => ({...opt, label: opt.value === 'MONTHLY' ? 'Monthly' : opt.value === 'QUARTERLY' ? 'Quarterly' : 'Yearly'}))} />
+            <Select value={updatePaymentCycle} onChange={setUpdatePaymentCycle} style={{ width: '100%', marginBottom: 12 }} options={paymentCycleOptions.map(opt => ({...opt, label: opt.value === 'MONTHLY' ? 'Hàng tháng' : opt.value === 'QUARTERLY' ? 'Hàng quý' : 'Hàng năm'}))} />
             <div style={{ marginBottom: 8, fontWeight: 500 }}>Điều khoản hợp đồng:</div>
             <ul style={{ margin: '8px 0 8px 16px', padding: 0 }}>
               {updateTerms.length === 0 && <li>Chưa có điều khoản</li>}
@@ -514,7 +503,7 @@ export default function LandlordContractListPage() {
                     size="small"
                     onClick={() => setUpdateTerms(prev => prev.filter((_, i) => i !== idx))}
                   >
-                    Delete
+                    Xóa
                   </Button>
                 </li>
               ))}
@@ -536,9 +525,9 @@ export default function LandlordContractListPage() {
                 return (
                   <li key={id} style={{ marginBottom: 4, display: 'flex', alignItems: 'center' }}>
                     <span>
-                      {user?.fullName || 'Unknown name'}
+                      {user?.fullName || 'Không rõ tên'}
                       {user?.phoneNumber ? ` (${user.phoneNumber})` : ''}
-                      {updateContract?.roomUsers?.some(u => (u.userId || u.id) === id && u.isActive !== false) ? ' (Current)' : ' (New)'}
+                      {updateContract?.roomUsers?.some(u => (u.userId || u.id) === id && u.isActive !== false) ? ' (Đang ở)' : ' (Mới)'}
                     </span>
                     <Button
                       type="link"
@@ -547,7 +536,7 @@ export default function LandlordContractListPage() {
                       style={{ marginLeft: 8 }}
                       onClick={() => setUpdateRenters(prev => prev.filter(uid => uid !== id))}
                     >
-                      X
+                      Xóa
                     </Button>
                   </li>
                 );
@@ -557,7 +546,7 @@ export default function LandlordContractListPage() {
               <Select
                 style={{ width: '100%', marginBottom: 8 }}
                 showSearch
-                placeholder="Add tenant to contract"
+                placeholder="Thêm người thuê vào hợp đồng"
                 optionFilterProp="children"
                 value={null}
                 onChange={id => {
@@ -570,14 +559,14 @@ export default function LandlordContractListPage() {
                   .filter(r => !updateRenters.includes(r.id))
                   .map(r => ({
                     value: r.id,
-                    label: `${r.fullName || 'Unknown name'}${r.phoneNumber ? ` (${r.phoneNumber})` : ''}`
+                    label: `${r.fullName || 'Không rõ tên'}${r.phoneNumber ? ` (${r.phoneNumber})` : ''}`
                   }))}
               />
             )}
             <div style={{ color: '#888', fontSize: 12, marginTop: 8 }}>
-              * If you remove a current tenant, they will be removed from the new contract.<br/>
-              * If you add a new tenant, they will be added to the new contract.<br/>
-              * Maximum number of tenants: {maxCount}
+              * Nếu bạn xóa người thuê hiện tại, họ sẽ bị loại khỏi hợp đồng mới.<br/>
+              * Nếu bạn thêm người thuê mới, họ sẽ được thêm vào hợp đồng mới.<br/>
+              * Số lượng người thuê tối đa: {maxCount}
             </div>
           </Modal>
           <Modal open={amendmentsModalOpen} onCancel={() => setAmendmentsModalOpen(false)} footer={null} title="Yêu cầu thay đổi hợp đồng">
@@ -593,9 +582,9 @@ export default function LandlordContractListPage() {
                 >
                   <div style={{ width: '100%' }}>
                     <div style={{ fontWeight: 600, color: '#222', marginBottom: 4 }}>
-                      Reason for change:
+                      Lý do thay đổi:
                     </div>
-                    <div style={{ marginBottom: 8, color: '#222' }}>{item.reason || <span style={{ color: '#888' }}>No reason provided</span>}</div>
+                    <div style={{ marginBottom: 8, color: '#222' }}>{item.reason || <span style={{ color: '#888' }}>Không có lý do</span>}</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 8 }}>
                       <div><b>Loại:</b> {item.amendmentType}</div>
                       <div><b>Trạng thái:</b> {item.status}</div>
@@ -613,7 +602,7 @@ export default function LandlordContractListPage() {
                         </Button>
                         <Button
                           danger
-                          onClick={() => message.info('Reject action not yet implemented')}
+                          onClick={() => message.info('Chức năng từ chối chưa hỗ trợ')}
                         >
                           Từ chối
                         </Button>
@@ -622,7 +611,7 @@ export default function LandlordContractListPage() {
                   </div>
                 </List.Item>
               )}
-              locale={{ emptyText: "No change requests" }}
+              locale={{ emptyText: "Không có yêu cầu thay đổi" }}
             />
           </Modal>
           <Modal open={detailModalOpen} onCancel={() => setDetailModalOpen(false)} footer={null} title="Chi tiết hợp đồng">
@@ -630,8 +619,8 @@ export default function LandlordContractListPage() {
               <>
                 <div><b>Mã hợp đồng:</b> {detailContract.contractNumber || detailContract.id}</div>
                 <div><b>Phòng:</b> {detailContract.roomNumber}</div>
-                <div><b>Ngày bắt đầu:</b> {detailContract.contractStartDate ? new Date(detailContract.contractStartDate).toLocaleDateString() : ''}</div>
-                <div><b>Ngày kết thúc:</b> {detailContract.contractEndDate ? new Date(detailContract.contractEndDate).toLocaleDateString() : ''}</div>
+                <div><b>Ngày bắt đầu:</b> {detailContract.contractStartDate ? new Date(detailContract.contractStartDate).toLocaleDateString("vi-VN") : ''}</div>
+                <div><b>Ngày kết thúc:</b> {detailContract.contractEndDate ? new Date(detailContract.contractEndDate).toLocaleDateString("vi-VN") : ''}</div>
                 <div style={{ margin: '16px 0 8px 0', fontWeight: 500 }}>Danh sách điều khoản:</div>
                 <ul style={{ marginLeft: 16 }}>
                   {detailContract.terms && detailContract.terms.length > 0 ? detailContract.terms.map((term, idx) => (

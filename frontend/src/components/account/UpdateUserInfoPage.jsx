@@ -112,32 +112,65 @@ export default function UpdateUserInfoModal({
           >
             <Input />
           </Form.Item>
-          <Form.Item name="phoneNumber" label="Số điện thoại">
+          <Form.Item name="phoneNumber" label="Số điện thoại"
+            rules={[{ required: true, message: "Vui lòng nhập số điện thoại" }]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item name="phoneNumber2" label="Số điện thoại phụ">
+          <Form.Item name="phoneNumber2" label="Số điện thoại phụ"
+            rules={[
+              { required: true, message: "Vui lòng nhập số điện thoại phụ" },
+              {
+                pattern: /^\d{9,11}$/,
+                message: "Số điện thoại phụ phải là số và có 9-11 chữ số"
+              }
+            ]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item name="gender" label="Giới tính">
+          <Form.Item name="gender" label="Giới tính"
+            rules={[{ required: true, message: "Vui lòng chọn giới tính" }]}
+          >
             <Select placeholder="Chọn giới tính">
               <Select.Option value="Male">Nam</Select.Option>
               <Select.Option value="Female">Nữ</Select.Option>
               <Select.Option value="Other">Khác</Select.Option>
             </Select>
           </Form.Item>
-          <Form.Item name="birthDate" label="Ngày sinh">
+          <Form.Item name="birthDate" label="Ngày sinh"
+            rules={[
+              { required: true, message: "Vui lòng chọn ngày sinh" },
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  if (value.isAfter(dayjs(), 'day')) {
+                    return Promise.reject(new Error('Ngày sinh không được lớn hơn ngày hiện tại'));
+                  }
+                  return Promise.resolve();
+                }
+              }
+            ]}
+          >
             <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
           </Form.Item>
-          <Form.Item name="birthPlace" label="Nơi sinh">
+          <Form.Item name="birthPlace" label="Nơi sinh"
+            rules={[{ required: true, message: "Vui lòng nhập nơi sinh" }]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item name="nationalID" label="CMND/CCCD">
+          <Form.Item name="nationalID" label="CMND/CCCD"
+            rules={[{ required: true, message: "Vui lòng nhập CMND/CCCD" }]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item name="nationalIDIssuePlace" label="Nơi cấp">
+          <Form.Item name="nationalIDIssuePlace" label="Nơi cấp"
+            rules={[{ required: true, message: "Vui lòng nhập nơi cấp" }]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item name="permanentAddress" label="Địa chỉ thường trú">
+          <Form.Item name="permanentAddress" label="Địa chỉ thường trú"
+            rules={[{ required: true, message: "Vui lòng nhập địa chỉ thường trú" }]}
+          >
             <Input />
           </Form.Item>
           <Form.Item style={{ textAlign: "right" }}>

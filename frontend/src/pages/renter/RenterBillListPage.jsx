@@ -156,44 +156,69 @@ export default function RenterBillListPage() {
     },
     {
       title: "Loại hóa đơn",
-      dataIndex: "type",
-      key: "type",
+      dataIndex: "billType",
+      key: "billType",
       align: "center",
-      render: (type) => (
-        <Tag color={getBillTypeColor(type)}>
-          {type === "REGULAR"
-            ? "Regular"
-            : type === "CUSTOM"
-            ? "Custom"
-            : "Deposit"}
-        </Tag>
-      ),
       width: 120,
+      render: (billType, record) => {
+        if (!billType) return <span style={{ color: '#888' }}>Không xác định</span>;
+        if (
+          billType === 'REGULAR' ||
+          billType === 'ROOM_RENT' ||
+          billType === 'CONTRACT_ROOM_RENT' ||
+          billType.includes('ROOM_RENT')
+        ) {
+          return <Tag color="blue">Tiền phòng</Tag>;
+        }
+        if (
+          billType === 'SERVICE' ||
+          billType === 'CONTRACT_SERVICE' ||
+          billType.includes('SERVICE')
+        ) {
+          return <Tag color="green">Dịch vụ</Tag>;
+        }
+        if (billType === 'DEPOSIT' || billType.includes('DEPOSIT')) {
+          return <Tag color="purple">Đặt cọc</Tag>;
+        }
+        if (
+          billType === 'CONTRACT_TOTAL' &&
+          record.items &&
+          Array.isArray(record.items) &&
+          record.items.length > 0 &&
+          record.items.every(item => item.itemType && item.itemType.includes('SERVICE'))
+        ) {
+          return <Tag color="green">Dịch vụ</Tag>;
+        }
+        if (billType === 'CONTRACT_TOTAL') {
+          return <Tag color="geekblue">Tổng hợp đồng</Tag>;
+        }
+        return <Tag>{billType}</Tag>;
+      }
     },
     {
       title: "Từ ngày",
-      dataIndex: "from",
-      key: "from",
+      dataIndex: "fromDate",
+      key: "fromDate",
       align: "center",
       render: (date) => <Text>{formatDate(date)}</Text>,
       width: 100,
     },
     {
       title: "Đến ngày",
-      dataIndex: "to",
-      key: "to",
+      dataIndex: "toDate",
+      key: "toDate",
       align: "center",
       render: (date) => <Text>{formatDate(date)}</Text>,
       width: 100,
     },
     {
       title: "Tổng tiền",
-      dataIndex: "total",
-      key: "total",
+      dataIndex: "totalAmount",
+      key: "totalAmount",
       align: "center",
       render: (amount) => (
         <Text strong style={{ color: "#52c41a", fontSize: "16px" }}>
-          {amount?.toLocaleString()} ₫
+          {amount != null ? amount.toLocaleString() + ' ₫' : <span style={{ color: '#888' }}>Không xác định</span>}
         </Text>
       ),
       width: 120,

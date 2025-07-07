@@ -173,7 +173,13 @@ public class BillServiceImpl implements BillService {
         bill.setFromDate(fromInstant);
         bill.setToDate(toInstant);
         bill.setPaymentCycle(cycle);
-        bill.setBillType(BillType.CONTRACT_TOTAL);
+        // Nếu billType là CONTRACT_TOTAL nhưng không có dòng tiền phòng, thì chuyển thành SERVICE
+        boolean hasRoomRent = details.stream().anyMatch(d -> d.getItemType() == BillItemType.ROOM_RENT);
+        if (billType == BillType.CONTRACT_TOTAL && !hasRoomRent) {
+            bill.setBillType(BillType.SERVICE);
+        } else {
+            bill.setBillType(billType);
+        }
         bill.setBillDate(Instant.now());
         bill.setTotalAmount(totalAmount);
         bill.setStatus(false);
@@ -324,7 +330,13 @@ public class BillServiceImpl implements BillService {
         bill.setFromDate(fromDate.atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant());
         bill.setToDate(toDate.atTime(23, 59).atZone(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant());
         bill.setPaymentCycle(cycle);
-        bill.setBillType(billType);
+        // Nếu billType là CONTRACT_TOTAL nhưng không có dòng tiền phòng, thì chuyển thành SERVICE
+        boolean hasRoomRent = details.stream().anyMatch(d -> d.getItemType() == BillItemType.ROOM_RENT);
+        if (billType == BillType.CONTRACT_TOTAL && !hasRoomRent) {
+            bill.setBillType(BillType.SERVICE);
+        } else {
+            bill.setBillType(billType);
+        }
         bill.setBillDate(Instant.now());
         bill.setTotalAmount(totalAmount);
         bill.setStatus(false);
@@ -522,7 +534,7 @@ public class BillServiceImpl implements BillService {
         bill.setContract(contract);
         bill.setFromDate(fromInstant);
         bill.setToDate(toInstant);
-        bill.setBillType(BillType.CONTRACT_TOTAL);
+        bill.setBillType(BillType.SERVICE);
         bill.setBillDate(Instant.now());
         bill.setTotalAmount(totalAmount);
         bill.setStatus(false);

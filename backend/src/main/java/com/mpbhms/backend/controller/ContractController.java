@@ -26,8 +26,8 @@ public class ContractController {
 
     // ✅ Xuất hợp đồng thành file PDF
     @GetMapping("/{id}/export")
-    public ResponseEntity<byte[]> exportContractPdf(@PathVariable Long id) {
-        byte[] pdfBytes = contractService.generateContractPdf(id);
+    public ResponseEntity<byte[]> exportContractPdf(@PathVariable Long id, @RequestParam(required = false) Long templateId) {
+        byte[] pdfBytes = contractService.generateContractPdf(id, templateId);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=contract_" + id + ".pdf")

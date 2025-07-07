@@ -37,6 +37,11 @@ import com.mpbhms.backend.entity.ContractTerm;
 import com.mpbhms.backend.repository.ContractTermRepository;
 import com.mpbhms.backend.repository.ContractLandlordInfoRepository;
 import com.mpbhms.backend.dto.Meta;
+import com.mpbhms.backend.entity.ContractTemplate;
+import com.mpbhms.backend.service.ContractTemplateService;
+import com.github.jknack.handlebars.Handlebars;
+import com.github.jknack.handlebars.Template;
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -67,11 +72,140 @@ public class ContractServiceImpl implements ContractService {
     private final ContractAmendmentRepository contractAmendmentRepository;
     private final ContractTermRepository contractTermRepository;
     private final ContractLandlordInfoRepository contractLandlordInfoRepository;
+    private final ContractTemplateService contractTemplateService;
     private static final Logger logger = LoggerFactory.getLogger(ContractServiceImpl.class);
 
     @Override
     @Transactional
-    public byte[] generateContractPdf(Long contractId) {
+    public byte[] generateContractPdf(Long contractId, Long templateId) {
+        Contract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hợp đồng với mã: " + contractId));
+        Room room = contract.getRoom();
+        Long landlordId = room.getLandlord() != null ? room.getLandlord().getId() : null;
+        try {
+            // Nếu có template động thì dùng, không thì fallback về mẫu cứng
+            ContractTemplate template = null;
+            if (landlordId != null) {
+                try {
+                    template = contractTemplateService.getTemplateForLandlord(landlordId, templateId);
+                } catch (Exception ignored) {}
+            }
+            if (template != null) {
+                // Build data map
+                java.util.Map<String, Object> data = buildContractDataMap(contract);
+                String html = mergeTemplate(template.getContent(), data);
+                return htmlToPdf(html);
+            } else {
+                // Fallback: dùng mẫu cứng như cũ
+                return generateDefaultContractPdf(contractId);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Không thể tạo PDF", e);
+        }
+    }
+
+    private java.util.Map<String, Object> buildContractDataMap(Contract contract) {
+        java.util.Map<String, Object> map = new java.util.HashMap<>();
+
+        // Log giá trị cần kiểm tra
+        System.out.println("[DEBUG] Contract ID: " + contract.getId()
+            + ", Rent: " + contract.getRentAmount()
+            + ", Deposit: " + contract.getDepositAmount()
+            + ", Cycle: " + contract.getPaymentCycle());
+
+        // Lấy snapshot landlord từ ContractLandlordInfo
+        java.util.List<com.mpbhms.backend.entity.ContractLandlordInfo> landlordInfos =
+                contractLandlordInfoRepository.findByContractId(contract.getId());
+        com.mpbhms.backend.entity.ContractLandlordInfo landlordInfo =
+                (landlordInfos != null && !landlordInfos.isEmpty()) ? landlordInfos.get(0) : null;
+        java.util.Map<String, Object> landlord = new java.util.HashMap<>();
+        if (landlordInfo != null) {
+            landlord.put("fullName", landlordInfo.getFullName());
+            landlord.put("phoneNumber", landlordInfo.getPhoneNumber());
+            landlord.put("nationalID", landlordInfo.getNationalID());
+            landlord.put("permanentAddress", landlordInfo.getPermanentAddress());
+        } else if (contract.getRoom() != null && contract.getRoom().getLandlord() != null
+                && contract.getRoom().getLandlord().getUserInfo() != null) {
+            landlord.put("fullName", contract.getRoom().getLandlord().getUserInfo().getFullName());
+            landlord.put("phoneNumber", contract.getRoom().getLandlord().getUserInfo().getPhoneNumber());
+            landlord.put("nationalID", contract.getRoom().getLandlord().getUserInfo().getNationalID());
+            landlord.put("permanentAddress", contract.getRoom().getLandlord().getUserInfo().getPermanentAddress());
+        } else {
+            landlord.put("fullName", "Chưa rõ");
+            landlord.put("phoneNumber", "Chưa rõ");
+            landlord.put("nationalID", "Chưa rõ");
+            landlord.put("permanentAddress", "Chưa rõ");
+        }
+        map.put("landlord", landlord);
+
+        // Lấy snapshot renters từ ContractRenterInfo
+        java.util.List<ContractRenterInfo> renterInfos = contractRenterInfoRepository.findByContractId(contract.getId());
+        java.util.List<java.util.Map<String, Object>> renters = new java.util.ArrayList<>();
+        if (renterInfos != null && !renterInfos.isEmpty()) {
+            for (ContractRenterInfo info : renterInfos) {
+                java.util.Map<String, Object> renter = new java.util.HashMap<>();
+                renter.put("fullName", info.getFullName());
+                renter.put("phoneNumber", info.getPhoneNumber());
+                renter.put("nationalID", info.getNationalID());
+                renter.put("permanentAddress", info.getPermanentAddress());
+                renters.add(renter);
+            }
+        }
+        map.put("renters", renters);
+
+        // Thông tin phòng
+        java.util.Map<String, Object> room = new java.util.HashMap<>();
+        if (contract.getRoom() != null) {
+            room.put("roomNumber", contract.getRoom().getRoomNumber());
+        } else {
+            room.put("roomNumber", "Không rõ");
+        }
+        map.put("room", room);
+
+        // Thông tin hợp đồng
+        map.put("contractNumber", contract.getContractNumber() != null ? contract.getContractNumber() : contract.getId());
+        // Format tiền tệ kiểu Việt Nam
+        java.text.NumberFormat currencyFormat = java.text.NumberFormat.getInstance(new java.util.Locale("vi", "VN"));
+        map.put("rentAmount", contract.getRentAmount() != null ? currencyFormat.format(contract.getRentAmount()) : "0");
+        map.put("depositAmount", contract.getDepositAmount() != null ? currencyFormat.format(contract.getDepositAmount()) : "0");
+        map.put("paymentCycle", contract.getPaymentCycle() != null ? contract.getPaymentCycle() : "");
+
+        // Format ngày
+        java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                .withZone(java.time.ZoneId.systemDefault());
+        map.put("startDate", contract.getContractStartDate() != null ? dateFormatter.format(contract.getContractStartDate()) : "");
+        map.put("endDate", contract.getContractEndDate() != null ? dateFormatter.format(contract.getContractEndDate()) : "");
+
+        // Điều khoản
+        if (contract.getTerms() != null && !contract.getTerms().isEmpty()) {
+            java.util.List<String> terms = contract.getTerms().stream()
+                    .map(com.mpbhms.backend.entity.ContractTerm::getContent)
+                    .toList();
+            map.put("terms", terms);
+        }
+
+        return map;
+    }
+
+    private String mergeTemplate(String templateContent, java.util.Map<String, Object> data) throws Exception {
+        Handlebars handlebars = new Handlebars();
+        Template template = handlebars.compileInline(templateContent);
+        return template.apply(data);
+    }
+
+    private byte[] htmlToPdf(String html) throws Exception {
+        java.io.ByteArrayOutputStream os = new java.io.ByteArrayOutputStream();
+        PdfRendererBuilder builder = new PdfRendererBuilder();
+        builder.withHtmlContent(html, null);
+        // Nhúng Arial
+        builder.useFont(() -> getClass().getResourceAsStream("/fonts/arial.ttf"), "Arial");
+        builder.toStream(os);
+        builder.run();
+        return os.toByteArray();
+    }
+
+    // Hàm cũ giữ lại để fallback
+    public byte[] generateDefaultContractPdf(Long contractId) {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hợp đồng với mã: " + contractId));
         Room room = contract.getRoom();

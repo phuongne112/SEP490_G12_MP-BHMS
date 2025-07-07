@@ -8,7 +8,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 // ContractService.java
 public interface ContractService {
-    byte[] generateContractPdf(Long contractId);
+    byte[] generateContractPdf(Long contractId, Long templateId);
 
     ResultPaginationDTO getAllContracts(Specification<Contract> spec, Pageable pageable);
     ContractDTO updateContract(ContractDTO contractDTO);

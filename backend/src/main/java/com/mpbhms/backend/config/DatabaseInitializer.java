@@ -94,7 +94,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Delete Contract", "/mpbhms/contracts/{id}", "DELETE", "Contract"));
             permissions.add(new Permission("Test Update User Info", "/mpbhms/contracts/test-update-user-info", "GET", "Contract"));
             permissions.add(new Permission("Get My Contracts", "/mpbhms/contracts/my-contracts", "GET", "Contract"));
-            permissions.add(new Permission("Get List Contracts History", "/mpbhms/contracts/room/{contractId}/history", "GET", "Contract"));
+            permissions.add(new Permission("Get List Contracts History", "/mpbhms/contracts/room/{roomId}/history", "GET", "Contract"));
             permissions.add(new Permission("Get Contract Amendments History", "/mpbhms/contracts/amendments/{contractId}", "GET", "Contract"));
             //OCR
             permissions.add(new Permission("OCR", "/mpbhms/ocr/detect-ocr", "POST", "Ocr"));
@@ -150,6 +150,13 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Create VN pay Url", "/mpbhms/payment/create-vnpay-url", "POST", "Payment"));
             permissions.add(new Permission("Payment return", "/mpbhms/payment/vnpay-return", "GET", "Payment"));
             permissions.add(new Permission("Payment ipn", "/mpbhms/payment/vnpay-ipn", "GET", "Payment"));
+            // Contract Template Permissions
+            permissions.add(new Permission("View All Contract Templates", "/mpbhms/contract-templates", "GET", "ContractTemplate"));
+            permissions.add(new Permission("View Contract Template By ID", "/mpbhms/contract-templates/{id}", "GET", "ContractTemplate"));
+            permissions.add(new Permission("Create or Update Contract Template", "/mpbhms/contract-templates", "POST", "ContractTemplate"));
+            permissions.add(new Permission("Delete Contract Template", "/mpbhms/contract-templates/{id}", "DELETE", "ContractTemplate"));
+            permissions.add(new Permission("Set Default Contract Template", "/mpbhms/contract-templates/{id}/set-default", "POST", "ContractTemplate"));
+
             permissions = permissionRepository.saveAll(permissions);
         }
 
@@ -248,7 +255,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             landlordRole.setRoleName("LANDLORD");
             List<Permission> landlordPermission = new ArrayList<>(permissionRepository.findAll()
                     .stream()
-                    .filter(p -> List.of("Room","Renter","RoomUser","Bill","Ocr","Contract","Service","Schedule","User","Asset","ElectricReading").contains(p.getModule())) // hoặc theo API cụ thể
+                    .filter(p -> List.of("Room","ContractTemplate","Renter","RoomUser","Bill","Ocr","Contract","Service","Schedule","User","Asset","ElectricReading").contains(p.getModule())) // hoặc theo API cụ thể
                     .toList());
             // Đảm bảo LANDLORD có quyền xem booking (schedule)
             if (getAllSchedules != null && !landlordPermission.contains(getAllSchedules)) {
