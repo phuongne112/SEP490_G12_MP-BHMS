@@ -79,7 +79,8 @@ export default function LandlordEditRoomPage() {
 
   const handleUploadChange = ({ fileList: newFileList }) => {
     setFileList(newFileList);
-    setKeepImageIds(newFileList.filter((f) => f.id).map((f) => f.id));
+    // Chỉ giữ lại những ảnh cũ (có id) và không bị xóa (status !== 'removed')
+    setKeepImageIds(newFileList.filter((f) => f.id && f.status !== 'removed').map((f) => f.id));
   };
 
   const handleFinish = async (values) => {
@@ -101,7 +102,8 @@ export default function LandlordEditRoomPage() {
 
       const formData = new FormData();
       formData.append("room", JSON.stringify(roomDTO));
-      formData.append("keepImageIds", JSON.stringify(keepImageIds));
+      // Luôn gửi keepImageIds, có thể là mảng rỗng nếu xóa hết ảnh
+      formData.append("keepImageIds", JSON.stringify(keepImageIds || []));
 
       fileList.forEach((file) => {
         if (!file.id && file.originFileObj) {
@@ -279,9 +281,8 @@ export default function LandlordEditRoomPage() {
                     maxCount={8}
                     accept="image/*"
                     onRemove={(file) => {
-                      if (file.id) {
-                        setKeepImageIds((prev) => prev.filter((id) => id !== file.id));
-                      }
+                      // Logic xóa ảnh đã được xử lý trong handleUploadChange
+                      // Không cần làm gì thêm ở đây
                     }}
                   >
                     {fileList.length < 8 && (
