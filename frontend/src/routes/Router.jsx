@@ -40,6 +40,7 @@ import LandlordBookingListPage from "../pages/landlord/LandlordBookingListPage";
 import RenterContractPage from "../pages/renter/RenterContractPage";
 import RenterCheckinAssetPage from "../pages/renter/RenterCheckinAssetPage";
 import RenterCheckoutAssetPage from "../pages/renter/RenterCheckoutAssetPage";
+import LandlordContractTemplateManager from "../pages/landlord/LandlordContractTemplateManager";
 
 export default function AppRouter() {
   return (
@@ -266,6 +267,14 @@ export default function AppRouter() {
         element={
           <LandlordRoute>
             <LandlordBookingListPage />
+          </LandlordRoute>
+        }
+      />
+      <Route
+        path="/landlord/contract-templates"
+        element={
+          <LandlordRoute>
+            <LandlordContractTemplateManager />
           </LandlordRoute>
         }
       />

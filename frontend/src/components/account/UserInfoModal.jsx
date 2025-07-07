@@ -79,7 +79,7 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
               {info?.gender || "-"}
             </Descriptions.Item>
             <Descriptions.Item label="Ngày sinh">
-              {info?.birthDate || "-"}
+              {info?.birthDate ? (new Date(info.birthDate).toLocaleDateString("vi-VN")) : "-"}
             </Descriptions.Item>
             <Descriptions.Item label="Nơi sinh">
               {info?.birthPlace || "-"}

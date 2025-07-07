@@ -43,6 +43,12 @@ export default function LandlordSidebar() {
       path: "/landlord/contract",
     },
     {
+      key: "/landlord/contract-templates",
+      icon: <FileTextOutlined />,
+      label: "Mẫu hợp đồng",
+      path: "/landlord/contract-templates",
+    },
+    {
       key: "/landlord/services",
       icon: <ToolOutlined />,
       label: "Dịch vụ",
