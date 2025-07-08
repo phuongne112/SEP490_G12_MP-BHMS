@@ -14,6 +14,7 @@ services:
     environment:
       - MYSQL_DATABASE=mpbhms
       - MYSQL_ROOT_PASSWORD=123456
+      - TZ=Asia/Ho_Chi_Minh
     ports:
       - "3307:3306"
     expose:
@@ -26,11 +27,12 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://db-mysql:3306/mpbhms
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db-mysql:3306/mpbhms?serverTimezone=Asia/Ho_Chi_Minh
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=123456
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - MPBHMS_UPLOAD_FILE_BASE_URI=file:///uploads/
+      - TZ=Asia/Ho_Chi_Minh
     depends_on:
       - db-mysql
     volumes:

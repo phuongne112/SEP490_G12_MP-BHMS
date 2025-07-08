@@ -140,27 +140,36 @@ public class PaymentController {
         }
 
         String vnp_SecureHash = fields.get("vnp_SecureHash");
+        System.out.println("=== VNPAY IPN CALLBACK DEBUG ===");
+        System.out.println("All fields: " + fields);
 
         try {
             boolean valid = vnPayService.validateSignature(fields, vnp_SecureHash);
-            if (valid && "00".equals(fields.get("vnp_ResponseCode"))) {
-                Long billId = null;
-                if (fields.containsKey("vnp_TxnRef")) {
-                    billId = vnPayService.extractBillIdFromTxnRef(fields.get("vnp_TxnRef"));
-                }
-                if (billId != null) {
-                    Bill bill = billRepository.findById(billId).orElse(null);
-                    if (bill != null && (bill.getStatus() == null || !bill.getStatus())) {
-                        bill.setStatus(true);
-                        bill.setPaidDate(Instant.now());
-                        billRepository.save(bill);
-                    }
+            System.out.println("Signature valid: " + valid);
+            System.out.println("vnp_ResponseCode: " + fields.get("vnp_ResponseCode"));
+            Long billId = null;
+            if (fields.containsKey("vnp_TxnRef")) {
+                billId = vnPayService.extractBillIdFromTxnRef(fields.get("vnp_TxnRef"));
+                System.out.println("Extracted billId: " + billId);
+            }
+            if (valid && "00".equals(fields.get("vnp_ResponseCode")) && billId != null) {
+                Bill bill = billRepository.findById(billId).orElse(null);
+                if (bill != null && (bill.getStatus() == null || !bill.getStatus())) {
+                    bill.setStatus(true);
+                    bill.setPaidDate(Instant.now());
+                    billRepository.save(bill);
+                    System.out.println("Bill updated to PAID: " + billId);
+                } else {
+                    System.out.println("Bill not found or already paid: " + billId);
                 }
                 return ResponseEntity.ok("{\"RspCode\":\"00\",\"Message\":\"Confirm Success\"}");
             } else {
+                System.out.println("IPN: Not updating bill. valid=" + valid + ", responseCode=" + fields.get("vnp_ResponseCode") + ", billId=" + billId);
                 return ResponseEntity.badRequest().body("{\"RspCode\":\"97\",\"Message\":\"Invalid signature or response code\"}");
             }
         } catch (Exception e) {
+            System.out.println("IPN ERROR: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }

@@ -11,6 +11,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
 import java.util.*;
 
 @Service
@@ -45,10 +46,10 @@ public class VnPayService {
         String vnp_Amount = String.valueOf(amount * 100); // VNPay yêu cầu x100
 
         // ✅ Dùng thời gian thực tế
-        String vnp_CreateDate = LocalDateTime.now()
+        String vnp_CreateDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"))
                 .format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
 
-        String vnp_ExpireDate = LocalDateTime.now()
+        String vnp_ExpireDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"))
                 .plusMinutes(15)
                 .format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
 
