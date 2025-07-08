@@ -38,4 +38,7 @@ Page<Room> findAll(Specification<Room> spec, Pageable pageable);
     
     // Lấy danh sách room đã bị xóa mềm
     Page<Room> findByDeletedTrue(Pageable pageable);
+
+    // Tìm phòng theo số phòng và đã bị xóa mềm
+    java.util.Optional<Room> findByRoomNumberAndDeletedTrue(String roomNumber);
 }

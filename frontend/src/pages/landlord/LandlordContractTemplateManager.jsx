@@ -151,10 +151,10 @@ export default function LandlordContractTemplateManager() {
           layout="vertical"
           id="template-form"
         >
-          <Form.Item name="name" label="Tên mẫu">
+          <Form.Item name="name" label="Tên mẫu" rules={[{ required: true, message: 'Vui lòng nhập tên mẫu!' }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="content" label="Nội dung mẫu (HTML, hỗ trợ biến Handlebars)">
+          <Form.Item name="content" label="Nội dung mẫu (HTML, hỗ trợ biến Handlebars)" rules={[{ required: true, message: 'Vui lòng nhập nội dung mẫu!' }]}>
             <Input.TextArea rows={12} />
           </Form.Item>
         </Form>

@@ -64,6 +64,12 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public Room addRoom(AddRoomDTO request, MultipartFile[] images) {
+        // Kiểm tra phòng đã bị xóa mềm
+        Optional<Room> deletedRoomOpt = roomRepository.findByRoomNumberAndDeletedTrue(request.getRoomNumber());
+        if (deletedRoomOpt.isPresent()) {
+            // Trả về phòng đã bị xóa mềm để FE hỏi người dùng có muốn khôi phục không
+            return deletedRoomOpt.get();
+        }
         if (roomRepository.existsByRoomNumber(request.getRoomNumber())) {
             throw new com.mpbhms.backend.exception.BusinessException("Số phòng đã tồn tại");
         }

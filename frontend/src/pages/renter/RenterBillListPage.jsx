@@ -270,108 +270,110 @@ export default function RenterBillListPage() {
   ];
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <Layout style={{ minHeight: "100vh" }}>
       <Sider width={220} style={{ background: "#001529" }}>
         <RenterSidebar />
       </Sider>
+      <Layout>
+        <Content style={{ padding: 20, backgroundColor: "#f5f5f5", marginLeft: 0, minHeight: "100vh" }}>
+          <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+            <Card
+              style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+            >
+              <div style={{ marginBottom: 24 }}>
+                <Title
+                  level={2}
+                  style={{ color: "#1890ff", fontSize: isMobile ? 22 : 28 }}
+                >
+                  <FileDoneOutlined style={{ marginRight: 8 }} />
+                  Hóa đơn của tôi
+                </Title>
+                <Text type="secondary" style={{ fontSize: isMobile ? 13 : 16 }}>
+                  Quản lý và theo dõi các hóa đơn của bạn
+                </Text>
+              </div>
 
-      <div style={{ flex: 1, padding: "20px", backgroundColor: "#f5f5f5" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-          <Card
-            style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
-          >
-            <div style={{ marginBottom: 24 }}>
-              <Title
-                level={2}
-                style={{ color: "#1890ff", fontSize: isMobile ? 22 : 28 }}
-              >
-                <FileDoneOutlined style={{ marginRight: 8 }} />
-                Hóa đơn của tôi
-              </Title>
-              <Text type="secondary" style={{ fontSize: isMobile ? 13 : 16 }}>
-                Quản lý và theo dõi các hóa đơn của bạn
-              </Text>
-            </div>
+              <Row gutter={16} style={{ marginBottom: 24 }}>
+                <Col span={6}>
+                  <Card>
+                    <Statistic
+                      title="Tổng số hóa đơn"
+                      value={stats.total}
+                      prefix={<FileTextOutlined />}
+                      valueStyle={{ color: "#1890ff" }}
+                    />
+                  </Card>
+                </Col>
+                <Col span={6}>
+                  <Card>
+                    <Statistic
+                      title="Đã thanh toán"
+                      value={stats.paid}
+                      prefix={<CheckCircleOutlined />}
+                      valueStyle={{ color: "#52c41a" }}
+                    />
+                  </Card>
+                </Col>
+                <Col span={6}>
+                  <Card>
+                    <Statistic
+                      title="Chưa thanh toán"
+                      value={stats.unpaid}
+                      prefix={<ClockCircleOutlined />}
+                      valueStyle={{ color: "#faad14" }}
+                    />
+                  </Card>
+                </Col>
+                <Col span={6}>
+                  <Card>
+                    <Statistic
+                      title="Tổng tiền"
+                      value={stats.totalAmount}
+                      prefix={<DollarOutlined />}
+                      suffix="₫"
+                      valueStyle={{ color: "#52c41a" }}
+                      formatter={(value) => value.toLocaleString()}
+                    />
+                  </Card>
+                </Col>
+              </Row>
 
-            <Row gutter={16} style={{ marginBottom: 24 }}>
-              <Col span={6}>
-                <Card>
-                  <Statistic
-                    title="Tổng số hóa đơn"
-                    value={stats.total}
-                    prefix={<FileTextOutlined />}
-                    valueStyle={{ color: "#1890ff" }}
+              <Card title="Danh sách hóa đơn" style={{ marginTop: 16 }}>
+                {loading ? (
+                  <div style={{ textAlign: "center", padding: "40px" }}>
+                    <Spin size="large" />
+                    <div style={{ marginTop: 16 }}>Đang tải...</div>
+                  </div>
+                ) : (
+                  <Table
+                    columns={columns}
+                    dataSource={bills}
+                    rowKey="id"
+                    pagination={{
+                      current: currentPage,
+                      pageSize: pageSize,
+                      total: total,
+                      showSizeChanger: true,
+                      showQuickJumper: true,
+                      onChange: (page, size) => {
+                        setCurrentPage(page);
+                        setPageSize(size);
+                      },
+                      showTotal: (total, range) =>
+                        `${range[0]}-${range[1]} của ${total} hóa đơn`,
+                      position: ["bottomCenter"],
+                      pageSizeOptions: [5, 10, 20, 50, 100],
+                    }}
+                    scroll={{ x: 1000 }}
+                    size="middle"
+                    bordered
                   />
-                </Card>
-              </Col>
-              <Col span={6}>
-                <Card>
-                  <Statistic
-                    title="Đã thanh toán"
-                    value={stats.paid}
-                    prefix={<CheckCircleOutlined />}
-                    valueStyle={{ color: "#52c41a" }}
-                  />
-                </Card>
-              </Col>
-              <Col span={6}>
-                <Card>
-                  <Statistic
-                    title="Chưa thanh toán"
-                    value={stats.unpaid}
-                    prefix={<ClockCircleOutlined />}
-                    valueStyle={{ color: "#faad14" }}
-                  />
-                </Card>
-              </Col>
-              <Col span={6}>
-                <Card>
-                  <Statistic
-                    title="Tổng tiền"
-                    value={stats.totalAmount}
-                    prefix={<DollarOutlined />}
-                    suffix="₫"
-                    valueStyle={{ color: "#52c41a" }}
-                    formatter={(value) => value.toLocaleString()}
-                  />
-                </Card>
-              </Col>
-            </Row>
-
-            <Card title="Danh sách hóa đơn" style={{ marginTop: 16 }}>
-              {loading ? (
-                <div style={{ textAlign: "center", padding: "40px" }}>
-                  <Spin size="large" />
-                  <div style={{ marginTop: 16 }}>Đang tải...</div>
-                </div>
-              ) : (
-                <Table
-                  columns={columns}
-                  dataSource={bills}
-                  rowKey="id"
-                  pagination={{
-                    current: currentPage,
-                    pageSize: pageSize,
-                    total: total,
-                    showSizeChanger: true,
-                    showQuickJumper: true,
-                    onChange: (page, size) => {
-                      setCurrentPage(page);
-                      setPageSize(size);
-                    },
-                    showTotal: (total, range) =>
-                      `${range[0]}-${range[1]} của ${total} hóa đơn`,
-                    position: ["bottomCenter"],
-                  }}
-                  scroll={{ x: 1000 }}
-                  size="middle"
-                  bordered
-                />
-              )}
+                )}
+              </Card>
             </Card>
-          </Card>
-        </div>
-      </div>
-    </div>
+          </div>
+        </Content>
+      </Layout>
+    </Layout>
   );
 }

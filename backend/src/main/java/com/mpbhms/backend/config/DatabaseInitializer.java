@@ -219,7 +219,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             Permission getBillById = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/{id}", "GET");
             if (getBillById != null) renterPermission.add(getBillById);
             Permission getMyBills = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/my", "GET");
-            if (getMyBills != null) renterPermission.add(getMyBills);
+            if (getMyBills != null && !renterPermission.contains(getMyBills)) renterPermission.add(getMyBills);
             //Payment
             Permission createVnpayUrl = permissionRepository.findByModuleAndApiPathAndMethod("Payment", "/mpbhms/payment/create-vnpay-url", "POST");
             if (createVnpayUrl != null) renterPermission.add(createVnpayUrl);

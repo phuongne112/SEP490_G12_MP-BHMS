@@ -27,7 +27,7 @@ export default function TextInput({
           name={name}
           value={value}
           onChange={onChange}
-          placeholder="	Nhập tại đây..."
+          placeholder="Nhập tại đây..."
           required={required}
           style={{
             ...inputStyle,

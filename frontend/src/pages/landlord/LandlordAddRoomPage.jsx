@@ -11,6 +11,7 @@ import {
   Row,
   Col,
   Switch,
+  Modal,
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
@@ -79,7 +80,33 @@ export default function LandlordAddRoomPage() {
       }
     } catch (err) {
       const res = err.response?.data;
-      if (res && typeof res === "object") {
+      if (res && typeof res === "object" && res.message && res.roomId) {
+        Modal.confirm({
+          title: "Phòng đã bị xóa",
+          content: res.message,
+          okText: "Có, khôi phục",
+          cancelText: "Không",
+          onOk: async () => {
+            try {
+              await axiosClient.patch(`/rooms/${res.roomId}/restore`);
+              message.success("Khôi phục phòng thành công!");
+              if (
+                user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
+                user?.role?.roleName?.toUpperCase?.() === "SUBADMIN"
+              ) {
+                navigate("/admin/rooms");
+              } else {
+                navigate("/landlord/rooms");
+              }
+            } catch (e) {
+              message.error("Khôi phục phòng thất bại!");
+            }
+          },
+          onCancel: () => {
+            message.info("Bạn đã hủy khôi phục phòng.");
+          },
+        });
+      } else if (res && typeof res === "object") {
         if (res.message) {
           message.error(res.message);
         } else {
