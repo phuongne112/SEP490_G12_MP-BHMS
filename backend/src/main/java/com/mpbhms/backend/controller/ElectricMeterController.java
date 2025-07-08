@@ -26,12 +26,12 @@ public class ElectricMeterController {
 
         if (result.startsWith("File không hợp lệ") || result.startsWith("Không tìm thấy")
                 || result.startsWith("Lỗi") || result.startsWith("Giá trị không hợp lệ")
-                || result.startsWith("OCR timeout")) {
+                || result.startsWith("OCR timeout") || result.startsWith("Invalid") || result.equals("Không quét được chỉ số điện")) {
             return ResponseEntity.badRequest().body(
-                    new ApiResponse<>(400, "Bad Request", "An error occurred while processing the image", result));
+                    new ApiResponse<>(400, "Yêu cầu không hợp lệ", "Có lỗi xảy ra khi xử lý ảnh", result));
         }
 
-        return ResponseEntity.ok(new ApiResponse<>(200, null, "Success", result));
+        return ResponseEntity.ok(new ApiResponse<>(200, null, "Thành công", result));
     }
 
     @PostMapping("/save-reading")
@@ -40,6 +40,6 @@ public class ElectricMeterController {
             @RequestParam("value") String value
     ) {
         detectionService.saveElectricReading(value, roomId);
-        return ResponseEntity.ok(new ApiResponse<>(200, null, "Saved successfully", value));
+        return ResponseEntity.ok(new ApiResponse<>(200, null, "Lưu thành công", value));
     }
 }

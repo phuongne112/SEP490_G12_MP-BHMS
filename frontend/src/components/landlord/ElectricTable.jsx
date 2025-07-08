@@ -31,7 +31,7 @@ export default function ElectricTable({
   // Only detect, do not save
   const handleDetect = async () => {
     if (!file) {
-      message.error("Please select an image!");
+      message.error("Vui lòng chọn một ảnh!");
       return;
     }
     setDetecting(true);
@@ -40,8 +40,8 @@ export default function ElectricTable({
       setOcrResult(res.data.data);
       setInputValue(res.data.data);
     } catch (err) {
-      setOcrResult(err.response?.data?.data || "Error during OCR");
-      message.error(err.response?.data?.message || "Error during OCR");
+      setOcrResult(err.response?.data?.data || "Lỗi khi quét OCR");
+      message.error(err.response?.data?.message || "Lỗi khi quét OCR");
     } finally {
       setDetecting(false);
     }
@@ -50,20 +50,22 @@ export default function ElectricTable({
   // Save to DB
   const handleSaveReading = async () => {
     if (!inputValue) {
-      message.error("Please enter the new reading!");
+      message.error("Vui lòng nhập chỉ số mới!");
       return;
     }
+    // Lấy phần số trước dấu chấm
+    const valueToSave = inputValue.split(".")[0];
     setSaving(true);
     try {
-      await saveElectricReading(selectedRoom.roomId, inputValue);
-      message.success("Saved new reading!");
+      await saveElectricReading(selectedRoom.roomId, valueToSave);
+      message.success("Đã lưu chỉ số mới!");
       setModalOpen(false);
       setFile(null);
       setOcrResult("");
       setInputValue("");
       if (onReload) onReload();
     } catch (err) {
-      message.error("Error while saving reading");
+      message.error("Lỗi khi lưu chỉ số");
     } finally {
       setSaving(false);
     }
@@ -71,17 +73,17 @@ export default function ElectricTable({
 
   const columns = [
     { title: "Phòng", dataIndex: "roomNumber" },
-    { title: "Tháng trước", dataIndex: "oldReading" },
-    { title: "Tháng này", dataIndex: "newReading" },
+    { title: "Chỉ số cũ", dataIndex: "oldReading" },
+    { title: "Chỉ số mới", dataIndex: "newReading" },
     {
-      title: "Ngày",
+      title: "Ngày ghi",
       dataIndex: "createdDate",
       render: (value) => value ? dayjs(value).format("DD/MM/YYYY HH:mm") : ""
     },
     {
       title: "Thao tác",
       render: (_, record) => (
-        <Button onClick={() => handleOcrClick(record)}>Scan Reading</Button>
+        <Button onClick={() => handleOcrClick(record)}>Quét chỉ số</Button>
       ),
     },
   ];
@@ -103,7 +105,7 @@ export default function ElectricTable({
       <Modal
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
-        title={`Scan electric reading for room ${selectedRoom?.roomNumber}`}
+        title={`Quét chỉ số điện cho phòng ${selectedRoom?.roomNumber}`}
         footer={null}
       >
         <Upload
@@ -115,7 +117,7 @@ export default function ElectricTable({
           maxCount={1}
           showUploadList={file ? [{ name: file.name }] : false}
         >
-          <Button>Select meter image</Button>
+          <Button>Chọn ảnh công tơ</Button>
         </Upload>
         <Button
           type="primary"
@@ -123,12 +125,12 @@ export default function ElectricTable({
           loading={detecting}
           style={{ marginTop: 8, marginBottom: 8 }}
         >
-          Scan OCR
+          Quét OCR
         </Button>
         <Input
           value={inputValue}
           onChange={e => setInputValue(e.target.value)}
-          placeholder="Enter new reading"
+          placeholder="Nhập chỉ số mới"
           style={{ marginBottom: 8 }}
         />
         <Button
@@ -137,11 +139,11 @@ export default function ElectricTable({
           loading={saving}
           block
         >
-          Save
+          Lưu
         </Button>
         {ocrResult && (
           <div style={{ marginTop: 16, color: ocrResult.match(/^\d{5}(\.\d)?$/) ? 'green' : 'red' }}>
-            OCR Result: {ocrResult}
+            Kết quả OCR: {ocrResult}
           </div>
         )}
       </Modal>
