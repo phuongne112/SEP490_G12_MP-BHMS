@@ -34,7 +34,7 @@ public class RoomController {
     @Autowired
     private RoomService roomService;
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<AddRoomDTOResponse> addRoom(
+    public ResponseEntity<?> addRoom(
             @RequestPart("room") String roomJson,
             @RequestPart(name = "images", required = false) MultipartFile[] images) throws com.fasterxml.jackson.core.JsonProcessingException {
         com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
@@ -50,18 +50,27 @@ public class RoomController {
             }
             throw new com.mpbhms.backend.exception.ValidationException("Dữ liệu không hợp lệ", errorMap);
         }
-        Room savedRoom = roomService.addRoom(request, images);
+        Room result = roomService.addRoom(request, images);
+        if (result.getDeleted() != null && result.getDeleted()) {
+            // Nếu phòng đã bị xóa mềm, trả về thông báo và thông tin phòng
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("message", "Phòng này đã từng tồn tại và đang bị xoá. Bạn có muốn khôi phục lại không?");
+            resp.put("roomId", result.getId());
+            resp.put("roomNumber", result.getRoomNumber());
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(resp);
+        }
+        // Nếu tạo mới thành công, trả về thông tin phòng
         AddRoomDTOResponse response = new AddRoomDTOResponse();
-        response.setId(savedRoom.getId());
-        response.setRoomNumber(savedRoom.getRoomNumber());
-        response.setArea(savedRoom.getArea());
-        response.setPricePerMonth(savedRoom.getPricePerMonth());
-        response.setRoomStatus(savedRoom.getRoomStatus() != null ? savedRoom.getRoomStatus().name() : null);
-        response.setNumberOfBedrooms(savedRoom.getNumberOfBedrooms());
-        response.setNumberOfBathrooms(savedRoom.getNumberOfBathrooms());
-        response.setDescription(savedRoom.getDescription());
-        response.setMaxOccupants(savedRoom.getMaxOccupants());
-        response.setBuilding(savedRoom.getBuilding());
+        response.setId(result.getId());
+        response.setRoomNumber(result.getRoomNumber());
+        response.setArea(result.getArea());
+        response.setPricePerMonth(result.getPricePerMonth());
+        response.setRoomStatus(result.getRoomStatus() != null ? result.getRoomStatus().name() : null);
+        response.setNumberOfBedrooms(result.getNumberOfBedrooms());
+        response.setNumberOfBathrooms(result.getNumberOfBathrooms());
+        response.setDescription(result.getDescription());
+        response.setMaxOccupants(result.getMaxOccupants());
+        response.setBuilding(result.getBuilding());
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
     @PatchMapping("/{id}/status")

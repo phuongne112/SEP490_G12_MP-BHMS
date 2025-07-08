@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Dropdown, Menu, Modal, Spin } from "antd";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../../store/accountSlice";
+import { logout as logoutService } from "../../services/authService";
 import { getAccountInfo, getPersonalInfo } from "../../services/userApi";
 import { useNavigate } from "react-router-dom";
 
@@ -15,10 +15,7 @@ export default function UserMenu() {
   const [infoData, setInfoData] = useState(null);
 
   const handleLogout = () => {
-    dispatch(logout());
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.location.href = "/home";
+    logoutService(dispatch);
   };
 
   const openAccountModal = async () => {

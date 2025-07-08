@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { logout } from "../../store/accountSlice";
+import { logout as logoutService } from "../../services/authService";
 import logo from "../../assets/logo.png";
 import {
   Dropdown,
@@ -106,11 +106,7 @@ export default function Header() {
   };
 
   const handleLogout = () => {
-    navigate("/home", { replace: true });
-    dispatch(logout());
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.dispatchEvent(new Event("token-changed"));
+    logoutService(dispatch);
   };
 
   useEffect(() => {

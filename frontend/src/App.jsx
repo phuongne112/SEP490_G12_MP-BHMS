@@ -20,12 +20,16 @@ function App() {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("showWelcome");
-      navigate("/login");
+      // Chỉ redirect về login nếu không phải đang ở trang public
+      const publicPaths = ["/home", "/rooms", "/forgotPassword", "/resetPassword"];
+      if (!publicPaths.some((p) => location.pathname.startsWith(p))) {
+        navigate("/login");
+      }
     };
 
     window.addEventListener("force-logout", handleForceLogout);
     return () => window.removeEventListener("force-logout", handleForceLogout);
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   // ✅ Kiểm tra token định kỳ và refresh nếu cần
   useEffect(() => {

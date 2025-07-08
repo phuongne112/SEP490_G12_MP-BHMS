@@ -22,6 +22,7 @@ export default function RenterContractPage() {
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [rejectLoading, setRejectLoading] = useState(false);
   const user = useSelector((state) => state.account.user);
 
   useEffect(() => {
@@ -118,6 +119,7 @@ export default function RenterContractPage() {
       message.error("Please enter a rejection reason!");
       return;
     }
+    setRejectLoading(true);
     try {
       await rejectAmendment(rejectingId, rejectReason);
       message.success("Amendment rejected!");
@@ -131,6 +133,7 @@ export default function RenterContractPage() {
     } catch {
       message.error("Rejection failed!");
     }
+    setRejectLoading(false);
   };
 
   const handleExportPdf = async () => {
@@ -343,11 +346,15 @@ export default function RenterContractPage() {
         </Modal>
         <Modal
           open={rejectModalOpen}
-          onCancel={() => setRejectModalOpen(false)}
+          onCancel={() => {
+            setRejectModalOpen(false);
+            setRejectingId(null);
+            setRejectReason("");
+          }}
           onOk={doRejectAmendment}
           okText="Xác nhận từ chối"
           title="Lý do từ chối thay đổi hợp đồng"
-          confirmLoading={rejectingId !== null && rejectModalOpen}
+          confirmLoading={rejectLoading}
         >
           <div>Vui lòng nhập lý do từ chối:</div>
           <textarea
