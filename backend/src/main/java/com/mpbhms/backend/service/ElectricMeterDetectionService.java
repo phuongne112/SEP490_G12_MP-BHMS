@@ -64,7 +64,7 @@ public class ElectricMeterDetectionService {
     public String detectAndReadFromFile(MultipartFile file) throws IOException, InterruptedException {
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
-            return "Invalid file: only image files (jpg, png, bmp, gif) are accepted";
+            return "File không hợp lệ: chỉ chấp nhận ảnh (jpg, png, bmp, gif)";
         }
 
         HttpHeaders headers = new HttpHeaders();
@@ -86,7 +86,7 @@ public class ElectricMeterDetectionService {
             }
         }
 
-        if (bestBox == null) return "No high-confidence reading area found";
+        if (bestBox == null) return "Không tìm thấy vùng chỉ số có độ tin cậy cao";
 
         BufferedImage original = ImageIO.read(file.getInputStream());
         int width = original.getWidth();
@@ -125,7 +125,7 @@ public class ElectricMeterDetectionService {
         HttpEntity<byte[]> ocrEntity = new HttpEntity<>(croppedBytes, ocrHeaders);
         ResponseEntity<Void> ocrInit = restTemplate.postForEntity(ocrEndpoint + "/vision/v3.2/read/analyze", ocrEntity, Void.class);
         String operationUrl = ocrInit.getHeaders().getFirst("Operation-Location");
-        if (operationUrl == null) return "Error: Operation-Location not received";
+        if (operationUrl == null) return "Lỗi: Không nhận được Operation-Location";
 
         for (int i = 0; i < 10; i++) {
             Thread.sleep(1000);
@@ -141,9 +141,12 @@ public class ElectricMeterDetectionService {
 
                 String resultDigits = sb.toString().replaceAll("[^0-9]", "").trim();
 
+                // Nếu có 6 số, chỉ lấy 5 số đầu (bỏ số đỏ)
+                if (resultDigits.length() == 6) return resultDigits.substring(0, 5);
+                // Nếu có 5 số, lấy nguyên 5 số
                 if (resultDigits.length() == 5) return resultDigits;
-                if (resultDigits.length() == 6) return resultDigits.substring(0, 5) + "." + resultDigits.charAt(5);
-                return "Invalid value: " + resultDigits;
+                // Trường hợp khác, trả về thông báo không quét được
+                return "Không quét được chỉ số điện";
             }
         }
 
@@ -151,8 +154,10 @@ public class ElectricMeterDetectionService {
     }
 
     public void saveElectricReading(String resultValue, Long roomId) {
+        // Lấy phần số trước dấu chấm nếu có
+        String valueToSave = resultValue.split("\\.")[0];
         CustomService electricityCustomService = serviceRepository.findByServiceType(ServiceType.ELECTRICITY);
-        if (electricityCustomService == null) throw new RuntimeException("Không tìm thấy service ELECTRICITY");
+        if (electricityCustomService == null) throw new RuntimeException("Không tìm thấy dịch vụ ĐIỆN");
 
         Room room = roomRepository.findById(roomId).orElseThrow(() -> new RuntimeException("Không tìm thấy phòng"));
 
@@ -160,7 +165,7 @@ public class ElectricMeterDetectionService {
         if (latestOpt.isPresent()) {
             ServiceReading latest = latestOpt.get();
             latest.setOldReading(latest.getNewReading());
-            latest.setNewReading(new BigDecimal(resultValue));
+            latest.setNewReading(new BigDecimal(valueToSave));
             latest.setUpdatedDate(Instant.now());
             latest.setUpdatedBy("OCR");
             serviceReadingRepository.save(latest);
@@ -169,7 +174,7 @@ public class ElectricMeterDetectionService {
             reading.setRoom(room);
             reading.setService(electricityCustomService);
             reading.setOldReading(BigDecimal.ZERO);
-            reading.setNewReading(new BigDecimal(resultValue));
+            reading.setNewReading(new BigDecimal(valueToSave));
             reading.setCreatedDate(Instant.now());
             reading.setCreatedBy("OCR");
             serviceReadingRepository.save(reading);
