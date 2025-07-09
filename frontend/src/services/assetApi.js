@@ -29,3 +29,10 @@ export const deleteAsset = async (id) => {
   const response = await axiosClient.delete(`/assets/${id}`);
   return response;
 };
+
+// Lấy asset theo roomId cho renter
+export const getAssetsByRoomId = async (roomId) => {
+  const url = `/assets?roomId=${encodeURIComponent(roomId)}`;
+  const response = await axiosClient.get(url);
+  return response;
+};

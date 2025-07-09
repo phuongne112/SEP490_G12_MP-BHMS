@@ -86,6 +86,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Approve Amendment", "/mpbhms/room-users/approve-amendment/{amendmentId}", "POST", "RoomUser"));
             permissions.add(new Permission("Reject Amendment", "/mpbhms/room-users/reject-amendment/{amendmentId}", "POST", "RoomUser"));
             permissions.add(new Permission("Get Contract Amendments", "/mpbhms/room-users/contract-amendments/{contractId}", "GET", "RoomUser"));
+            permissions.add(new Permission("Get My Room", "/mpbhms/room-users/my-room", "GET", "RoomUser"));
             //Contract
             permissions.add(new Permission("Export contract", "/mpbhms/contracts/{id}/export", "GET", "Contract"));
             permissions.add(new Permission("View List Contract", "/mpbhms/contracts", "GET", "Contract"));
@@ -137,15 +138,15 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("View Assets", "/mpbhms/assets", "GET", "Asset"));
             permissions.add(new Permission("Get Asset by ID", "/mpbhms/assets/{id}", "GET", "Asset"));
             // Asset check-in/check-out (nếu có API riêng)
-            permissions.add(new Permission("Check-in Asset", "/mpbhms/assets/checkin", "POST", "Asset"));
-            permissions.add(new Permission("Check-out Asset", "/mpbhms/assets/checkout", "POST", "Asset"));
+            permissions.add(new Permission("Check-in/Check-out Asset", "/mpbhms/assets/checkin", "POST", "Asset"));
             //Electric Reading
             permissions.add(new Permission("Create Electric Reading", "/mpbhms/electric-readings", "POST", "ElectricReading"));
             permissions.add(new Permission("Update Electric Reading", "/mpbhms/electric-readings/{id}", "PUT", "ElectricReading"));
             permissions.add(new Permission("Delete Electric Reading", "/mpbhms/electric-readings/{id}", "DELETE", "ElectricReading"));
             permissions.add(new Permission("View Electric Readings", "/mpbhms/electric-readings", "GET", "ElectricReading"));
             permissions.add(new Permission("Get Electric Reading by ID", "/mpbhms/electric-readings/{id}", "GET", "ElectricReading"));
-
+            //Asset-Inventory
+            permissions.add(new Permission("Asset Checkin", "/mpbhms/asset-inventory/checkin", "POST", "AssetInventory"));
             //Payment
             permissions.add(new Permission("Create VN pay Url", "/mpbhms/payment/create-vnpay-url", "POST", "Payment"));
             permissions.add(new Permission("Payment return", "/mpbhms/payment/vnpay-return", "GET", "Payment"));

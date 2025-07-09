@@ -20,13 +20,25 @@ export default function PermissionFilterPopover({ onApply }) {
       <div style={{ marginBottom: 12 }}>
         <div style={{ fontSize: 13, marginBottom: 4 }}>Chức năng</div>
         <Select style={{ width: "100%" }} value={module} onChange={setModule}>
-          <Option value="All">Tất cả</Option>
-          <Option value="User">Người dùng</Option>
-          <Option value="Role">Vai trò</Option>
-          <Option value="Notification">Thông báo</Option>
-          <Option value="Permission">Quyền</Option>
-          <Option value="Room">Phòng</Option>
-        </Select>
+        <Option value="All">All</Option>
+        <Option value="User">User</Option>
+        <Option value="Role">Role</Option>
+        <Option value="Notification">Notification</Option>
+        <Option value="Permission">Permission</Option>
+        <Option value="Room">Room</Option>
+        <Option value="Renter">Renter</Option>
+        <Option value="Bill">Bill</Option>
+        <Option value="Service">Service</Option>
+        <Option value="Contract">Contract</Option>
+        <Option value="Ocr">OCR</Option>
+        <Option value="Payment">Payment</Option>
+        <Option value="Schedule">Schedule</Option>
+        <Option value="RoomUser">RoomUser</Option>
+        <Option value="Asset">Asset</Option>
+        <Option value="ElectricReading">ElectricReading</Option>
+        <Option value="AssetInventory">AssetInventory</Option>
+        <Option value="ContractTemplate">ContractTemplate</Option>
+</Select>
       </div>
 
       <div style={{ marginBottom: 12 }}>

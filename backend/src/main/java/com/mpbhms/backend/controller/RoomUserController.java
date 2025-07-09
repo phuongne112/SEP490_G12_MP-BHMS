@@ -12,10 +12,20 @@ import org.springframework.web.bind.annotation.*;
 import com.mpbhms.backend.entity.ApiResponse;
 import com.mpbhms.backend.exception.BusinessException;
 import com.mpbhms.backend.dto.ContractAmendmentDTO;
+import com.mpbhms.backend.entity.Room;
+import java.util.stream.Collectors;
 
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
+import com.mpbhms.backend.entity.RoomUser;
+import com.mpbhms.backend.entity.UserInfo;
+import com.mpbhms.backend.entity.CustomService;
+import com.mpbhms.backend.entity.Asset;
+import com.mpbhms.backend.entity.Contract;
+import com.mpbhms.backend.enums.RoomStatus;
+import com.mpbhms.backend.repository.UserRepository;
+import com.mpbhms.backend.repository.RoomUserRepository;
 
 @RestController
 @RequestMapping("/mpbhms/room-users")
@@ -24,6 +34,8 @@ public class RoomUserController {
 
     private final RoomUserService roomUserService;
     private final ContractService contractService;
+    private final UserRepository userRepository;
+    private final RoomUserRepository roomUserRepository;
 
     @PostMapping("/add-many")
     public ResponseEntity<?> addUsersToRoom(@RequestBody AddUsersToRoomRequest request) {
@@ -170,5 +182,19 @@ public class RoomUserController {
         String reason = request.get("reason");
         contractService.requestTerminateContract(contractId, reason);
         return ResponseEntity.ok(new ApiResponse<>(200, null, "Đã gửi yêu cầu kết thúc hợp đồng.", null));
+    }
+
+    /**
+     * API: Lấy thông tin phòng hiện tại của người thuê (chi tiết)
+     */
+    @GetMapping("/my-room")
+    public ResponseEntity<?> getMyRoom() {
+        try {
+            java.util.Map<String, Object> dto = roomUserService.getCurrentRenterRoomDetail();
+            return ResponseEntity.ok(dto);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Lỗi khi lấy thông tin phòng: " + e.getMessage());
+        }
     }
 }
