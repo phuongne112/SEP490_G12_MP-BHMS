@@ -15,4 +15,5 @@ public interface AssetService {
     void deleteAsset(Long id);
     List<AssetDTO> findByAssetName(String assetName);
     ResultPaginationDTO searchAssets(String assetName, String assetStatus, Integer minQuantity, Integer maxQuantity, Pageable pageable);
+    AssetDTO assignAssetToRoom(Long assetId, Long roomId);
 } 

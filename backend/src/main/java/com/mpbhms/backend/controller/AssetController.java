@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.RequestPart;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
 import org.springframework.data.domain.PageRequest;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/mpbhms/assets")
@@ -99,5 +100,11 @@ public class AssetController {
     public ResponseEntity<Void> deleteAsset(@PathVariable Long id) {
         assetService.deleteAsset(id);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{assetId}/assign-room")
+    public ResponseEntity<AssetDTO> assignAssetToRoom(@PathVariable Long assetId, @RequestBody Map<String, Long> request) {
+        Long roomId = request.get("roomId");
+        return ResponseEntity.ok(assetService.assignAssetToRoom(assetId, roomId));
     }
 } 

@@ -90,6 +90,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             //Contract
             permissions.add(new Permission("Export contract", "/mpbhms/contracts/{id}/export", "GET", "Contract"));
             permissions.add(new Permission("View List Contract", "/mpbhms/contracts", "GET", "Contract"));
+            permissions.add(new Permission("Get List Contract By Room", "/mpbhms/contracts/by-room", "GET", "Contract"));
             permissions.add(new Permission("Create Contract", "/mpbhms/contracts", "POST", "Contract"));
             permissions.add(new Permission("Update Contract", "/mpbhms/contracts", "PUT", "Contract"));
             permissions.add(new Permission("Delete Contract", "/mpbhms/contracts/{id}", "DELETE", "Contract"));
@@ -137,6 +138,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Delete Asset", "/mpbhms/assets/{id}", "DELETE", "Asset"));
             permissions.add(new Permission("View Assets", "/mpbhms/assets", "GET", "Asset"));
             permissions.add(new Permission("Get Asset by ID", "/mpbhms/assets/{id}", "GET", "Asset"));
+            permissions.add(new Permission("Assign Asset To Room", "/mpbhms/assets/{assetId}/assign-room", "POST", "Asset"));
             // Asset check-in/check-out (nếu có API riêng)
             permissions.add(new Permission("Check-in/Check-out Asset", "/mpbhms/assets/checkin", "POST", "Asset"));
             //Electric Reading
@@ -147,6 +149,8 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Get Electric Reading by ID", "/mpbhms/electric-readings/{id}", "GET", "ElectricReading"));
             //Asset-Inventory
             permissions.add(new Permission("Asset Checkin", "/mpbhms/asset-inventory/checkin", "POST", "AssetInventory"));
+            permissions.add(new Permission("Asset List By Room Contract", "/mpbhms/asset-inventory/by-room-contract", "GET", "AssetInventory"));
+            permissions.add(new Permission("Asset List By Room ", "/mpbhms/asset-inventory/by-room", "GET", "AssetInventory"));
             //Payment
             permissions.add(new Permission("Create VN pay Url", "/mpbhms/payment/create-vnpay-url", "POST", "Payment"));
             permissions.add(new Permission("Payment return", "/mpbhms/payment/vnpay-return", "GET", "Payment"));

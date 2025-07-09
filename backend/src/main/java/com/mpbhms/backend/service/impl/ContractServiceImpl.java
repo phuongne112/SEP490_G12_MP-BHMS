@@ -58,6 +58,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -1082,9 +1083,9 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
     }
 
     @Override
-    public java.util.List<ContractDTO> getContractsByRoomId(Long roomId) {
-        java.util.List<Contract> contracts = contractRepository.findByRoomId(roomId);
-        return contracts.stream().map(this::toDTO).toList();
+    public List<ContractDTO> getContractsByRoomId(Long roomId) {
+        List<Contract> contracts = contractRepository.findByRoomId(roomId);
+        return contracts.stream().map(this::toDTO).collect(java.util.stream.Collectors.toList());
     }
 
     @Transactional
