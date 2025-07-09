@@ -39,5 +39,7 @@ public interface RoomService {
      */
     boolean addServiceToRoom(Long roomId, Long serviceId);
     boolean addServiceToRoom(Long roomId, Long serviceId, java.math.BigDecimal initialReading);
+    List<Room> getAllRoomsNoPaging();
+    List<Room> getRoomsByIds(List<Long> ids);
 }
 

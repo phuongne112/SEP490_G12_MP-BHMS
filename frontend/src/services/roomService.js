@@ -19,6 +19,11 @@ export const getAllRooms = async (page = 0, size = 9, filter = "", sort = "") =>
   return response.data;
 };
 
+export const getAllRoomsNoPaging = async () => {
+  const response = await axiosClient.get("rooms/all");
+  return response.data;
+};
+
 export const updateRoomStatus = async (roomId, status) => {
   const response = await axiosClient.patch(`/rooms/${roomId}/status`, { roomStatus: status });
   return response.data;
@@ -71,5 +76,10 @@ export const addServiceToRoom = async (roomId, serviceId, initialReading = null)
  */
 export const getMyRoom = async () => {
   const response = await axiosClient.get("/room-users/my-room");
+  return response.data;
+};
+
+export const getRoomsWithElectricReadings = async () => {
+  const response = await axiosClient.get("rooms/with-electric-readings");
   return response.data;
 };

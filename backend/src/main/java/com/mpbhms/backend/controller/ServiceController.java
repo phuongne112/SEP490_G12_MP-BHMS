@@ -22,6 +22,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 @RestController
 @RequestMapping("/mpbhms/services")
@@ -105,9 +107,31 @@ public class ServiceController {
     }
 
     @GetMapping("/readings")
-    public List<ServiceReadingDTO> getServiceReadingsByServiceId(@RequestParam Long serviceId) {
-        return serviceReadingRepository.findByService_Id(serviceId)
-            .stream()
+    public List<ServiceReadingDTO> getServiceReadingsByServiceId(
+        @RequestParam Long serviceId,
+        @RequestParam(required = false) Long roomId,
+        @RequestParam(required = false) String startDate, // yyyy-MM-dd
+        @RequestParam(required = false) String endDate // yyyy-MM-dd
+    ) {
+        List<ServiceReading> readings;
+        if (startDate != null && endDate != null) {
+            LocalDate fromDate = LocalDate.parse(startDate);
+            LocalDate toDate = LocalDate.parse(endDate);
+            Instant from = fromDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+            Instant to = toDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+            if (roomId != null) {
+                readings = serviceReadingRepository.findByServiceIdAndRoomIdAndDateRange(serviceId, roomId, from, to);
+            } else {
+                readings = serviceReadingRepository.findByServiceIdAndDateRange(serviceId, from, to);
+            }
+        } else {
+            if (roomId != null) {
+                readings = serviceReadingRepository.findByServiceIdAndRoomId(serviceId, roomId);
+            } else {
+                readings = serviceReadingRepository.findByService_Id(serviceId);
+            }
+        }
+        return readings.stream()
             .map(sr -> new ServiceReadingDTO(
                 sr.getId(),
                 sr.getRoom() != null ? sr.getRoom().getId() : null,
