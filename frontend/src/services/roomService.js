@@ -65,3 +65,11 @@ export const addServiceToRoom = async (roomId, serviceId, initialReading = null)
   const response = await axiosClient.post(`/rooms/${roomId}/add-service`, requestBody);
   return response.data;
 };
+
+/**
+ * Lấy thông tin phòng hiện tại của người thuê
+ */
+export const getMyRoom = async () => {
+  const response = await axiosClient.get("/room-users/my-room");
+  return response.data;
+};

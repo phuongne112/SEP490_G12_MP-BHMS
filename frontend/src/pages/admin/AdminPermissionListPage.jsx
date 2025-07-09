@@ -327,19 +327,23 @@ export default function AdminPermissionListPage() {
                     rules={[{ required: true, message: "Chọn module" }]}
                   >
                     <Select placeholder="Chọn module">
-                      <Option value="User">Người dùng</Option>
-                      <Option value="Renter">Người thuê</Option>
-                      <Option value="Room">Phòng</Option>
-                      <Option value="Notification">Thông báo</Option>
-                      <Option value="Role">Vai trò</Option>
-                      <Option value="Permission">Quyền</Option>
-                      <Option value="Bill">Hóa đơn</Option>
-                      <Option value="Service">Dịch vụ</Option>
-                      <Option value="Contract">Hợp đồng</Option>
+                      <Option value="User">User</Option>
+                      <Option value="Renter">Renter</Option>
+                      <Option value="Room">Room</Option>
+                      <Option value="Notification">Notification</Option>
+                      <Option value="Role">Role</Option>
+                      <Option value="Permission">Permission</Option>
+                      <Option value="Bill">Bill</Option>
+                      <Option value="Service">Service</Option>
+                      <Option value="Contract">Contract</Option>
                       <Option value="Ocr">OCR</Option>
-                      <Option value="Payment">Thanh toán</Option>
-                      <Option value="Schedule">Lịch hẹn</Option>
-                      <Option value="RoomUser">Người dùng - Phòng</Option>
+                      <Option value="Payment">Payment</Option>
+                      <Option value="Schedule">Schedule</Option>
+                      <Option value="RoomUser">RoomUser</Option>
+                      <Option value="Asset">Asset</Option>
+                      <Option value="ElectricReading">ElectricReading</Option>
+                      <Option value="AssetInventory">AssetInventory</Option>
+                      <Option value="ContractTemplate">ContractTemplate</Option>
                     </Select>
                   </Form.Item>
                 </Col>

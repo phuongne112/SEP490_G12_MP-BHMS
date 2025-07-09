@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Card, Table, Button, Input, Tag, Typography, message, Spin, Space } from "antd";
+import { Card, Table, Button, Input, Tag, Typography, message, Spin, Space, Select, Checkbox } from "antd";
 import { CheckCircleOutlined, CloseCircleOutlined, FileDoneOutlined } from "@ant-design/icons";
 import RenterSidebar from "../../components/layout/RenterSidebar";
+import { useLocation } from "react-router-dom";
+import axiosClient from "../../services/axiosClient";
 
 const { Title, Text } = Typography;
 
@@ -48,31 +50,66 @@ export default function RenterCheckinAssetPage() {
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [notes, setNotes] = useState({});
+  const [actualStatusState, setActualStatusState] = useState({});
+  const [enoughState, setEnoughState] = useState({});
+  const location = useLocation();
 
   useEffect(() => {
-    // TODO: Replace with API call
-    setAssets(mockAssets);
+    // Lấy asset từ location.state nếu có
+    if (location.state && Array.isArray(location.state.assets)) {
+      setAssets(location.state.assets);
+    }
     setLoading(false);
-  }, []);
+  }, [location.state]);
+
+  const statusOptions = [
+    { label: "Tốt", value: "Good" },
+    { label: "Hỏng", value: "Broken" },
+    { label: "Thiếu", value: "Missing" },
+    { label: "Đủ", value: "Enough" },
+    { label: "Khác", value: "Other" },
+  ];
+
+  const handleActualStatusChange = (id, value) => {
+    setActualStatusState((prev) => ({ ...prev, [id]: value }));
+  };
+  const handleEnoughChange = (id, checked) => {
+    setEnoughState((prev) => ({ ...prev, [id]: checked }));
+  };
 
   const handleNoteChange = (id, value) => {
     setNotes((prev) => ({ ...prev, [id]: value }));
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setConfirming(true);
-    // TODO: Call API to confirm check-in asset
-    setTimeout(() => {
-      setConfirming(false);
-      message.success("Check-in asset confirmation submitted successfully!");
-    }, 1200);
+    // Chuẩn bị dữ liệu kiểm kê
+    const contractId = Number(location.state?.contractId) || null;
+    console.log('contractId gửi lên:', contractId);
+    const roomNumber = location.state?.roomId || "";
+    const result = assets.map(asset => ({
+      assetId: asset.id,
+      contractId,
+      roomNumber,
+      status: actualStatusState[asset.id] || asset.assetStatus,
+      isEnough: enoughState[asset.id] !== undefined ? enoughState[asset.id] : true,
+      note: notes[asset.id] !== undefined ? notes[asset.id] : asset.note || "",
+      type: "CHECKIN"
+    }));
+    try {
+      await axiosClient.post('/asset-inventory/checkin', result);
+      message.success("Đã lưu kiểm kê tài sản thành công!");
+    } catch (err) {
+      message.error("Lỗi khi lưu kiểm kê tài sản!");
+    }
+    setConfirming(false);
   };
 
   const columns = [
     {
       title: "Tên tài sản",
-      dataIndex: "name",
-      key: "name",
+      dataIndex: "assetName",
+      key: "assetName",
       render: (text) => <Text strong>{text}</Text>,
     },
     {
@@ -83,11 +120,38 @@ export default function RenterCheckinAssetPage() {
     },
     {
       title: "Tình trạng",
-      dataIndex: "condition",
-      key: "condition",
+      dataIndex: "assetStatus",
+      key: "assetStatus",
       align: "center",
       render: (cond) => (
         <Tag color={cond === "Good" ? "green" : "orange"}>{cond === "Good" ? "Tốt" : "Khác"}</Tag>
+      ),
+    },
+    {
+      title: "Trạng thái thực tế",
+      dataIndex: "actualStatus",
+      key: "actualStatus",
+      render: (_, record) => (
+        <Select
+          value={actualStatusState[record.id] || record.assetStatus}
+          options={statusOptions}
+          onChange={val => handleActualStatusChange(record.id, val)}
+          style={{ width: 120 }}
+        />
+      ),
+    },
+    {
+      title: "Đủ/Thiếu",
+      dataIndex: "isEnough",
+      key: "isEnough",
+      align: "center",
+      render: (_, record) => (
+        <Checkbox
+          checked={enoughState[record.id] !== undefined ? enoughState[record.id] : true}
+          onChange={e => handleEnoughChange(record.id, e.target.checked)}
+        >
+          Đủ
+        </Checkbox>
       ),
     },
     {
@@ -125,6 +189,8 @@ export default function RenterCheckinAssetPage() {
             <div style={{ margin: isMobile ? "12px 0" : "24px 0", overflowX: isMobile ? "auto" : "unset" }}>
               {loading ? (
                 <Spin size="large" />
+              ) : assets.length === 0 ? (
+                <div style={{ color: '#888', textAlign: 'center', padding: 24 }}>Không có tài sản nào trong phòng.</div>
               ) : (
                 <Table
                   columns={columns}

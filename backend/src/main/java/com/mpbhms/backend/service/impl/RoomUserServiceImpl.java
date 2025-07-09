@@ -16,6 +16,7 @@ import com.mpbhms.backend.repository.ContractRenterInfoRepository;
 import com.mpbhms.backend.repository.ServiceRepository;
 import com.mpbhms.backend.repository.ServiceReadingRepository;
 import com.mpbhms.backend.service.RoomUserService;
+import com.mpbhms.backend.util.CurrentUserUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -217,6 +218,108 @@ public class RoomUserServiceImpl implements RoomUserService {
             contract.setContractStatus(ContractStatus.TERMINATED);
             contractRepository.save(contract);
         }
+    }
+
+    @Override
+    public Room getCurrentRenterRoom() {
+        String username = com.mpbhms.backend.util.CurrentUserUtil.getCurrentUserLogin().orElse(null);
+        System.out.println("Current username: " + username);
+        if (username == null) return null;
+        User user = userRepository.findByUsername(username);
+        if (user == null) {
+            user = userRepository.findByEmail(username);
+        }
+        System.out.println("User: " + user);
+        if (user == null) return null;
+        RoomUser roomUser = roomUserRepository.findTopByUserIdOrderByJoinedAtDesc(user.getId());
+        System.out.println("RoomUser: " + roomUser);
+        if (roomUser == null || !Boolean.TRUE.equals(roomUser.getIsActive())) return null;
+        System.out.println("Room: " + (roomUser != null ? roomUser.getRoom() : null));
+        return roomUser.getRoom();
+    }
+
+    @Override
+    public java.util.Map<String, Object> getCurrentRenterRoomDetail() {
+        String username = com.mpbhms.backend.util.CurrentUserUtil.getCurrentUserLogin().orElse(null);
+        if (username == null) return null;
+        User user = userRepository.findByUsername(username);
+        if (user == null) {
+            user = userRepository.findByEmail(username);
+        }
+        if (user == null) return null;
+        RoomUser roomUser = roomUserRepository.findTopByUserIdOrderByJoinedAtDesc(user.getId());
+        if (roomUser == null || !Boolean.TRUE.equals(roomUser.getIsActive())) return null;
+        Room room = roomUser.getRoom();
+        if (room == null) return null;
+        Contract contract = roomUser.getContract();
+        User landlord = room.getLandlord();
+        com.mpbhms.backend.entity.UserInfo landlordInfo = landlord != null ? landlord.getUserInfo() : null;
+        java.util.List<RoomUser> roommates = room.getRoomUsers() != null ?
+            room.getRoomUsers().stream().filter(ru -> Boolean.TRUE.equals(ru.getIsActive())).toList() : java.util.Collections.emptyList();
+        java.util.List<com.mpbhms.backend.entity.CustomService> services = room.getServices() != null ? room.getServices() : java.util.Collections.emptyList();
+        java.util.List<com.mpbhms.backend.entity.Asset> assets = room.getAssets() != null ? room.getAssets() : java.util.Collections.emptyList();
+        java.util.List<String> images = room.getImages() != null ?
+            room.getImages().stream().map(img -> img.getImageURL() != null ? img.getImageURL() : "").toList() : java.util.Collections.emptyList();
+
+        java.util.Map<String, Object> dto = new java.util.HashMap<>();
+        dto.put("roomNumber", room.getRoomNumber());
+        dto.put("building", room.getBuilding());
+        dto.put("area", room.getArea());
+        dto.put("pricePerMonth", room.getPricePerMonth());
+        dto.put("maxOccupants", room.getMaxOccupants());
+        dto.put("status", room.getRoomStatus() != null ? room.getRoomStatus().name() : null);
+        dto.put("description", room.getDescription());
+        dto.put("images", images);
+        java.util.Map<String, Object> landlordDto = new java.util.HashMap<>();
+        if (landlord != null) {
+            landlordDto.put("username", landlord.getUsername());
+            landlordDto.put("email", landlord.getEmail());
+            if (landlordInfo != null) {
+                landlordDto.put("fullName", landlordInfo.getFullName());
+                landlordDto.put("phoneNumber", landlordInfo.getPhoneNumber());
+            }
+        }
+        dto.put("landlord", landlordDto);
+        java.util.List<java.util.Map<String, Object>> serviceDtos = services.stream().map(s -> {
+            java.util.Map<String, Object> m = new java.util.HashMap<>();
+            m.put("serviceName", s.getServiceName());
+            m.put("serviceType", s.getServiceType() != null ? s.getServiceType().name() : null);
+            m.put("unit", s.getUnit());
+            m.put("unitPrice", s.getUnitPrice());
+            return m;
+        }).toList();
+        dto.put("services", serviceDtos);
+        java.util.List<java.util.Map<String, Object>> assetDtos = assets.stream().map(a -> {
+            java.util.Map<String, Object> m = new java.util.HashMap<>();
+            m.put("assetName", a.getAssetName());
+            m.put("quantity", a.getQuantity());
+            m.put("status", a.getAssetStatus() != null ? a.getAssetStatus().name() : null);
+            m.put("assetImage", a.getAssetImage());
+            return m;
+        }).toList();
+        dto.put("assets", assetDtos);
+        if (contract != null) {
+            java.util.Map<String, Object> contractDto = new java.util.HashMap<>();
+            contractDto.put("id", contract.getId());
+            contractDto.put("contractId", contract.getId());
+            contractDto.put("contractStartDate", contract.getContractStartDate());
+            contractDto.put("contractEndDate", contract.getContractEndDate());
+            contractDto.put("contractStatus", contract.getContractStatus() != null ? contract.getContractStatus().name() : null);
+            contractDto.put("depositAmount", contract.getDepositAmount());
+            contractDto.put("rentAmount", contract.getRentAmount());
+            contractDto.put("paymentCycle", contract.getPaymentCycle() != null ? contract.getPaymentCycle().name() : null);
+            dto.put("contract", contractDto);
+        }
+        java.util.List<java.util.Map<String, Object>> roommateDtos = roommates.stream().map(ru -> {
+            java.util.Map<String, Object> m = new java.util.HashMap<>();
+            if (ru.getUser() != null && ru.getUser().getUserInfo() != null) {
+                m.put("fullName", ru.getUser().getUserInfo().getFullName());
+            }
+            m.put("joinedAt", ru.getJoinedAt());
+            return m;
+        }).toList();
+        dto.put("roommates", roommateDtos);
+        return dto;
     }
 }
 

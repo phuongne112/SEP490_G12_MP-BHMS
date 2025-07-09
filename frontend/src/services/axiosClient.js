@@ -2,6 +2,7 @@ import axios from "axios";
 
 // 👉 Lấy biến môi trường từ file .env
 const BASE_URL = `${import.meta.env.VITE_BACKEND_URL}/mpbhms/`;
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 console.log("✅ Backend URL:", import.meta.env.VITE_BACKEND_URL);
 
 const REFRESH_URL = `${import.meta.env.VITE_BACKEND_URL}/mpbhms/auth/refresh`;
