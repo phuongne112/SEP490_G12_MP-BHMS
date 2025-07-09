@@ -6,6 +6,8 @@ import com.mpbhms.backend.entity.Contract;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.util.List;
+
 // ContractService.java
 public interface ContractService {
     byte[] generateContractPdf(Long contractId, Long templateId);
@@ -60,7 +62,7 @@ public interface ContractService {
 
     void terminateContract(Long contractId);
 
-    java.util.List<com.mpbhms.backend.dto.ContractDTO> getContractsByRoomId(Long roomId);
+    List<ContractDTO> getContractsByRoomId(Long roomId);
 
     void requestTerminateContract(Long contractId, String reason);
 }

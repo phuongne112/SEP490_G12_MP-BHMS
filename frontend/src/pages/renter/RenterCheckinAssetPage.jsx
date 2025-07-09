@@ -4,6 +4,7 @@ import { CheckCircleOutlined, CloseCircleOutlined, FileDoneOutlined } from "@ant
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import { useLocation } from "react-router-dom";
 import axiosClient from "../../services/axiosClient";
+import { getAssetInventoryByRoomAndContract } from '../../services/assetApi';
 
 const { Title, Text } = Typography;
 
@@ -55,11 +56,38 @@ export default function RenterCheckinAssetPage() {
   const location = useLocation();
 
   useEffect(() => {
-    // Lấy asset từ location.state nếu có
-    if (location.state && Array.isArray(location.state.assets)) {
-      setAssets(location.state.assets);
+    const roomId = location.state?.roomId;
+    const contractId = location.state?.contractId;
+    if (roomId && contractId) {
+      getAssetInventoryByRoomAndContract(roomId, contractId).then(res => {
+        const inventory = res.data || [];
+        if (inventory.length > 0) {
+          setAssets(inventory.map(item => ({
+            id: item.assetId,
+            assetName: item.assetName,
+            assetStatus: item.status,
+            note: item.note,
+            ...item
+          })));
+        } else {
+          axiosClient.get(`/assets?roomId=${roomId}`).then(res2 => {
+            setAssets(res2.data?.result || []);
+          }).catch(() => setAssets([]));
+        }
+        setLoading(false);
+      }).catch(() => {
+        axiosClient.get(`/assets?roomId=${roomId}`).then(res2 => {
+          setAssets(res2.data?.result || []);
+          setLoading(false);
+        }).catch(() => {
+          setAssets([]);
+          setLoading(false);
+        });
+      });
+    } else {
+      setAssets([]);
+      setLoading(false);
     }
-    setLoading(false);
   }, [location.state]);
 
   const statusOptions = [

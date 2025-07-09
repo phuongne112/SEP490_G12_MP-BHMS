@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import com.mpbhms.backend.util.SecurityUtil;
 import org.springframework.web.server.ResponseStatusException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/mpbhms/contracts")
@@ -44,6 +45,10 @@ public class ContractController {
         return ResponseEntity.ok(contractService.getAllContracts(spec, pageable));
     }
 
+    @GetMapping("/by-room")
+    public ResponseEntity<List<ContractDTO>> getContractsByRoomId(@RequestParam Long roomId) {
+        return ResponseEntity.ok(contractService.getContractsByRoomId(roomId));
+    }
 
     // Tạo hợp đồng mới
     @PostMapping

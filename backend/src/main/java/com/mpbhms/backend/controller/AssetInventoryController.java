@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import com.mpbhms.backend.entity.AssetInventory;
 
 @RestController
 @RequestMapping("/mpbhms/asset-inventory")
@@ -17,5 +18,15 @@ public class AssetInventoryController {
     public ResponseEntity<?> checkinAssets(@RequestBody List<AssetInventoryRequest> requestList) {
         assetInventoryService.saveCheckinAssets(requestList);
         return ResponseEntity.ok("Đã lưu kiểm kê tài sản thành công!");
+    }
+
+    @GetMapping("/by-room")
+    public ResponseEntity<List<AssetInventory>> getAssetsByRoom(@RequestParam String roomNumber) {
+        return ResponseEntity.ok(assetInventoryService.getAssetsByRoomNumber(roomNumber));
+    }
+
+    @GetMapping("/by-room-contract")
+    public ResponseEntity<List<AssetInventory>> getAssetsByRoomAndContract(@RequestParam String roomNumber, @RequestParam Long contractId) {
+        return ResponseEntity.ok(assetInventoryService.getAssetsByRoomNumberAndContractId(roomNumber, contractId));
     }
 } 

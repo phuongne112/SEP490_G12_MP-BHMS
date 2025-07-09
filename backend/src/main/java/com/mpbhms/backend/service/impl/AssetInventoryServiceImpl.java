@@ -36,4 +36,14 @@ public class AssetInventoryServiceImpl implements AssetInventoryService {
             assetInventoryRepository.save(entity);
         }
     }
+
+    @Override
+    public List<AssetInventory> getAssetsByRoomNumber(String roomNumber) {
+        return assetInventoryRepository.findByRoomNumber(roomNumber);
+    }
+
+    @Override
+    public List<AssetInventory> getAssetsByRoomNumberAndContractId(String roomNumber, Long contractId) {
+        return assetInventoryRepository.findByRoomNumberAndContractId(roomNumber, contractId);
+    }
 } 

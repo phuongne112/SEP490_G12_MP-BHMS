@@ -106,6 +106,14 @@ public class AssetServiceImpl implements AssetService {
         return result;
     }
 
+    @Override
+    public AssetDTO assignAssetToRoom(Long assetId, Long roomId) {
+        Asset asset = assetRepository.findById(assetId).orElseThrow(() -> new RuntimeException("Không tìm thấy tài sản"));
+        Room room = roomRepository.findById(roomId).orElseThrow(() -> new RuntimeException("Không tìm thấy phòng"));
+        asset.setRoom(room);
+        return toDTO(assetRepository.save(asset));
+    }
+
     private String normalizeAssetStatus(String status) {
         if (status == null || status.isEmpty()) return status;
         return status.substring(0, 1).toUpperCase() + status.substring(1).toLowerCase();

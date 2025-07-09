@@ -36,3 +36,18 @@ export const getAssetsByRoomId = async (roomId) => {
   const response = await axiosClient.get(url);
   return response;
 };
+
+export const assignAssetToRoom = async (assetId, roomId) => {
+  const response = await axiosClient.post(`/assets/${assetId}/assign-room`, { roomId });
+  return response;
+};
+
+export const getAssetInventoryByRoom = async (roomNumber) => {
+  const response = await axiosClient.get(`/asset-inventory/by-room?roomNumber=${encodeURIComponent(roomNumber)}`);
+  return response;
+};
+
+export const getAssetInventoryByRoomAndContract = async (roomNumber, contractId) => {
+  const response = await axiosClient.get(`/asset-inventory/by-room-contract?roomNumber=${encodeURIComponent(roomNumber)}&contractId=${contractId}`);
+  return response;
+};
