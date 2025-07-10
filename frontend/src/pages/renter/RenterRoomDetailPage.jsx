@@ -12,12 +12,14 @@ import {
   Alert,
   Spin,
   Card,
+  Table,
+  message,
 } from "antd";
 import { useNavigate } from "react-router-dom";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import { getMyRoom } from "../../services/roomService";
-import { getAllAssets, getAssetsByRoomId } from "../../services/assetApi";
+import { getAllAssets, getAssetsByRoom, getAssetsByRoomNumber } from "../../services/assetApi";
 import { BACKEND_URL } from "../../services/axiosClient";
 import dayjs from "dayjs";
 
@@ -53,13 +55,28 @@ export default function RenterRoomDetailPage() {
       setLoading(true);
       try {
         const room = await getMyRoom();
+        console.log('Room info:', room);
         setRoomInfo(room);
-        if (room && room.roomNumber) {
-          const assetRes = await getAssetsByRoomId(room.roomNumber);
-          setAssets(assetRes?.data?.result || []);
+        // Kiểm tra các trường có thể là id phòng
+        console.log('room.id:', room?.id, 'room.roomId:', room?.roomId, 'room.roomNumber:', room?.roomNumber);
+        let realRoomId = null;
+        if (room) {
+          if (typeof room.id === 'number' && !isNaN(room.id)) realRoomId = room.id;
+          else if (typeof room.roomId === 'number' && !isNaN(room.roomId)) realRoomId = room.roomId;
+        }
+        if (realRoomId) {
+          const assetRes = await getAssetsByRoom(realRoomId);
+          setAssets(assetRes?.data || []);
+        } else if (room?.roomNumber) {
+          const assetRes = await getAssetsByRoomNumber(room.roomNumber);
+          setAssets(assetRes?.data || []);
+        } else {
+          setAssets([]);
+          message.error('Không tìm thấy ID hoặc mã phòng hợp lệ để lấy tài sản!');
         }
       } catch {
         setRoomInfo(null);
+        setAssets([]);
       }
       setLoading(false);
     }
@@ -77,17 +94,17 @@ export default function RenterRoomDetailPage() {
     let assetList = assets;
     if (!assets || assets.length === 0) {
       try {
-        const assetRes = await getAssetsByRoomId(roomInfo.roomNumber);
-        assetList = assetRes?.data?.result || [];
+        const assetRes = await getAssetsByRoom(roomInfo.id);
+        assetList = assetRes?.data || [];
         setAssets(assetList);
       } catch {
         assetList = [];
       }
     }
     if (type === 'checkin') {
-      navigate("/renter/rooms/checkin-assets", { state: { roomId: roomInfo.roomNumber, contractId: roomInfo.contract?.contractId || roomInfo.contract?.id, assets: assetList } });
+      navigate("/renter/rooms/checkin-assets", { state: { roomId: roomInfo.id, contractId: roomInfo.contract?.contractId || roomInfo.contract?.id, assets: assetList } });
     } else {
-      navigate("/renter/rooms/checkout-assets", { state: { roomId: roomInfo.roomNumber, contractId: roomInfo.contract?.contractId || roomInfo.contract?.id, assets: assetList } });
+      navigate("/renter/rooms/checkout-assets", { state: { roomId: roomInfo.id, contractId: roomInfo.contract?.contractId || roomInfo.contract?.id, assets: assetList } });
     }
   };
 
@@ -212,6 +229,27 @@ export default function RenterRoomDetailPage() {
                 </div>
               </Col>
             </Row>
+            {/* Hiển thị danh sách tài sản của phòng giống landlord */}
+            <div style={{ marginTop: 32 }}>
+              <Typography.Title level={5}>Danh sách tài sản của phòng</Typography.Title>
+              {assets && assets.length > 0 ? (
+                <Table
+                  dataSource={assets}
+                  loading={loading}
+                  rowKey={row => row.id || row.assetId}
+                  columns={[
+                    { title: "Tên tài sản", dataIndex: "assetName", key: "assetName" },
+                    { title: "Số lượng", dataIndex: "quantity", key: "quantity" },
+                    { title: "Tình trạng", dataIndex: "status", key: "status" },
+                    { title: "Ghi chú", dataIndex: "note", key: "note" },
+                  ]}
+                  pagination={false}
+                  style={{ marginTop: 12 }}
+                />
+              ) : (
+                <div style={{ color: '#888', fontSize: 16, margin: '16px 0' }}>Không có tài sản nào trong phòng này.</div>
+              )}
+            </div>
           </Card>
 
           {/* Bạn cùng phòng */}

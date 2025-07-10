@@ -344,6 +344,7 @@ export default function AdminPermissionListPage() {
                       <Option value="ElectricReading">ElectricReading</Option>
                       <Option value="AssetInventory">AssetInventory</Option>
                       <Option value="ContractTemplate">ContractTemplate</Option>
+                      <Option value="RoomAsset">RoomAsset</Option>
                     </Select>
                   </Form.Item>
                 </Col>
