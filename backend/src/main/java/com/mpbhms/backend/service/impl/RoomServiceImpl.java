@@ -478,4 +478,15 @@ public class RoomServiceImpl implements RoomService {
         return created;
     }
 
+    @Override
+    public List<Room> getAllRoomsNoPaging() {
+        return roomRepository.findAll().stream().filter(r -> r.getDeleted() == null || !r.getDeleted()).toList();
+    }
+
+    @Override
+    public List<Room> getRoomsByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return new ArrayList<>();
+        return roomRepository.findAllById(ids).stream().filter(r -> r.getDeleted() == null || !r.getDeleted()).toList();
+    }
+
 }

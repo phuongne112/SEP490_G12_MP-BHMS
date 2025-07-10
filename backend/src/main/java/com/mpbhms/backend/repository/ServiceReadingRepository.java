@@ -32,6 +32,17 @@ public interface ServiceReadingRepository extends JpaRepository<ServiceReading, 
             @Param("to") Instant to
     );
 
+    @Query("SELECT s FROM ServiceReading s WHERE s.service.id = :serviceId AND s.createdDate BETWEEN :from AND :to")
+    List<ServiceReading> findByServiceIdAndDateRange(@Param("serviceId") Long serviceId, @Param("from") Instant from, @Param("to") Instant to);
+
+    @Query("SELECT s FROM ServiceReading s WHERE s.service.id = :serviceId AND s.room.id = :roomId AND s.createdDate BETWEEN :from AND :to")
+    List<ServiceReading> findByServiceIdAndRoomIdAndDateRange(@Param("serviceId") Long serviceId, @Param("roomId") Long roomId, @Param("from") Instant from, @Param("to") Instant to);
+
+    @Query("SELECT s FROM ServiceReading s WHERE s.service.id = :serviceId AND s.room.id = :roomId")
+    List<ServiceReading> findByServiceIdAndRoomId(@Param("serviceId") Long serviceId, @Param("roomId") Long roomId);
+
     List<ServiceReading> findByService_Id(Long serviceId);
 
+    @Query("SELECT DISTINCT s.room.id FROM ServiceReading s")
+    List<Long> findDistinctRoomIds();
 }

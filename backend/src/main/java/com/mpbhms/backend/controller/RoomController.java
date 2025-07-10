@@ -27,12 +27,15 @@ import java.util.List;
 
 import com.mpbhms.backend.entity.ApiResponse;
 import com.mpbhms.backend.exception.BusinessException;
+import com.mpbhms.backend.repository.ServiceReadingRepository;
 
 @RestController
 @RequestMapping("/mpbhms/rooms")
 public class RoomController {
     @Autowired
     private RoomService roomService;
+    @Autowired
+    private com.mpbhms.backend.repository.ServiceReadingRepository serviceReadingRepository;
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> addRoom(
             @RequestPart("room") String roomJson,
@@ -89,6 +92,12 @@ public class RoomController {
         ResultPaginationDTO response = roomService.getAllRooms(spec, pageable);
         return ResponseEntity.ok(response);
     }
+    @GetMapping("/all")
+    public ResponseEntity<List<RoomDTO>> getAllRoomsNoPaging() {
+        List<Room> rooms = roomService.getAllRoomsNoPaging();
+        List<RoomDTO> dtos = roomService.convertToRoomDTOList(rooms);
+        return ResponseEntity.ok(dtos);
+    }
     @PostMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<AddRoomDTOResponse> updateRoom(
             @PathVariable Long id,
@@ -140,6 +149,14 @@ public class RoomController {
     public ResponseEntity<ResultPaginationDTO> getDeletedRooms(Pageable pageable) {
         ResultPaginationDTO response = roomService.getDeletedRooms(pageable);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/with-electric-readings")
+    public ResponseEntity<List<RoomDTO>> getRoomsWithElectricReadings() {
+        List<Long> roomIds = serviceReadingRepository.findDistinctRoomIds();
+        List<Room> rooms = roomService.getRoomsByIds(roomIds);
+        List<RoomDTO> dtos = roomService.convertToRoomDTOList(rooms);
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/{id}")
