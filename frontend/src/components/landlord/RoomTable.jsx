@@ -1,11 +1,13 @@
 import React, { useState } from "react";
-import { Card, Row, Col, Button, Badge, Skeleton, Tag, Dropdown, Menu, message, Modal, Select, Input, Upload, Tooltip } from "antd";
+import { Card, Row, Col, Button, Badge, Skeleton, Tag, Dropdown, Menu, message, Modal, Select, Input, Upload, Tooltip, Table, Tabs } from "antd";
 import { updateRoomStatus, toggleRoomActiveStatus, deleteRoom, addServiceToRoom } from "../../services/roomService";
 import { getAllServicesList } from "../../services/serviceApi";
 import { detectElectricOcr } from "../../services/electricOcrApi";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { UserOutlined, ClockCircleOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
+import { getAllAssets, getAssetInventoryByRoom, getAssetInventoryByRoomAndContract, getAssetsByRoom, addAssetToRoom } from "../../services/assetApi";
+import axiosClient from "../../services/axiosClient";
 
 const { Meta } = Card;
 const { Option } = Select;
@@ -58,6 +60,31 @@ const [updateContractData, setUpdateContractData] = useState({
     requiresTenantApproval: true
 });
 const [updatingContract, setUpdatingContract] = useState(false);
+
+// For asset management
+const [assetModalOpen, setAssetModalOpen] = useState(false);
+const [assetList, setAssetList] = useState([]);
+const [assetLoading, setAssetLoading] = useState(false);
+const [selectedAssetId, setSelectedAssetId] = useState(null);
+const [assetSearch, setAssetSearch] = useState("");
+const [assetPage, setAssetPage] = useState(1);
+const [assetTotal, setAssetTotal] = useState(0);
+const [assetPageSize, setAssetPageSize] = useState(5);
+const [assetRoomId, setAssetRoomId] = useState(null);
+
+const [viewAssetModalOpen, setViewAssetModalOpen] = useState(false);
+const [viewAssetRoomId, setViewAssetRoomId] = useState(null);
+const [roomAssets, setRoomAssets] = useState([]);
+const [roomAssetsLoading, setRoomAssetsLoading] = useState(false);
+const [assetListGoc, setAssetListGoc] = useState([]);
+const [assetListGocLoading, setAssetListGocLoading] = useState(false);
+const [contractList, setContractList] = useState([]);
+const [selectedContractId, setSelectedContractId] = useState(null);
+
+const [addAssetInventoryModalOpen, setAddAssetInventoryModalOpen] = useState(false);
+const [assetToAdd, setAssetToAdd] = useState(null);
+const [addAssetInventoryForm, setAddAssetInventoryForm] = useState({ quantity: 1, status: '', note: '' });
+
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
 
@@ -335,6 +362,75 @@ const user = useSelector((state) => state.account.user);
         }
     };
 
+    const openAssetModal = (room) => {
+        setAssetRoomId(room.id);
+        setAssetModalOpen(true);
+        fetchAssetList(1, "");
+    };
+
+    const fetchAssetList = async (page = 1, search = "") => {
+        setAssetLoading(true);
+        try {
+            const res = await getAllAssets(page - 1, assetPageSize, { assetName: search });
+            setAssetList(res.data?.result || res.result || []);
+            setAssetTotal(res.data?.meta?.total || res.meta?.total || 0);
+            setAssetPage(page);
+        } catch {
+            setAssetList([]);
+        }
+        setAssetLoading(false);
+    };
+
+    const handleAssetAssign = async () => {
+        if (!selectedAssetId || !assetRoomId) return;
+        // Tìm asset được chọn
+        const asset = assetList.find(a => a.id === selectedAssetId);
+        setAssetToAdd(asset);
+        setAddAssetInventoryForm({ quantity: 1, status: '', note: '' });
+        setAssetModalOpen(false);
+        setAddAssetInventoryModalOpen(true);
+    };
+
+    // Thay fetchRoomAssets bằng API mới
+    const fetchRoomAssets = async (roomId) => {
+        setAssetListGocLoading(true);
+        try {
+            const res = await getAssetsByRoom(roomId);
+            setAssetListGoc(res.data || []);
+        } catch {
+            setAssetListGoc([]);
+        }
+        setAssetListGocLoading(false);
+    };
+
+    // Sửa openViewAssetModal để gọi fetchRoomAssets chuẩn
+    const openViewAssetModal = async (room) => {
+        setViewAssetRoomId(room.id);
+        setViewAssetModalOpen(true);
+        fetchRoomAssets(room.id);
+    };
+
+    // Sửa handleConfirmAddAssetInventory để dùng addAssetToRoom
+    const handleConfirmAddAssetInventory = async () => {
+        if (!assetToAdd || !assetRoomId) return;
+        try {
+            await addAssetToRoom({
+                roomId: assetRoomId,
+                assetId: assetToAdd.id,
+                quantity: addAssetInventoryForm.quantity,
+                status: addAssetInventoryForm.status,
+                note: addAssetInventoryForm.note
+            });
+            message.success('Đã thêm tài sản vào phòng với tình trạng riêng!');
+            setAddAssetInventoryModalOpen(false);
+            setAssetToAdd(null);
+            setSelectedAssetId(null);
+            fetchRoomAssets(assetRoomId);
+        } catch {
+            message.error('Lỗi khi thêm tài sản vào phòng!');
+        }
+    };
+
     const statusMenu = (room) => (
         <Menu
             onClick={({ key }) => {
@@ -363,6 +459,39 @@ const user = useSelector((state) => state.account.user);
         );
     }
     
+    const onAddAsset = (room) => {
+        message.info('Thêm tài sản vào phòng ' + room.roomNumber);
+    };
+
+    const handleAddAssetInView = () => {
+        setAssetRoomId(viewAssetRoomId);
+        setAssetModalOpen(true);
+        fetchAssetList(1, "");
+    };
+
+    const handleContractChange = async (value) => {
+        setSelectedContractId(value);
+        setRoomAssetsLoading(true);
+        // Lấy roomNumber từ viewAssetRoomId và rooms
+        let roomNumber = null;
+        if (viewAssetRoomId && rooms && rooms.length > 0) {
+            const room = rooms.find(r => r.id === viewAssetRoomId);
+            if (room) roomNumber = room.roomNumber;
+        }
+        if (!roomNumber) {
+            setRoomAssets([]);
+            setRoomAssetsLoading(false);
+            return;
+        }
+        try {
+            const res = await getAssetInventoryByRoomAndContract(roomNumber, value);
+            setRoomAssets(res.data || []);
+        } catch {
+            setRoomAssets([]);
+        }
+        setRoomAssetsLoading(false);
+    };
+
     return (
         <>
             <Row gutter={[16, 16]}>
@@ -381,28 +510,92 @@ const user = useSelector((state) => state.account.user);
                         <Col key={room.id} xs={24} sm={12} md={8}>
                             <Card
                                 cover={
-                                    <img
-                                        alt="room"
-                                        src={imageUrl}
-                                        style={{ height: 200, objectFit: "cover", width: "100%" }}
-                                    />
+                                    <div style={{ position: 'relative' }}>
+                                        <img
+                                            alt="room"
+                                            src={imageUrl}
+                                            style={{ height: 200, objectFit: "cover", width: "100%" }}
+                                        />
+                                        {/* Overlay action buttons on image */}
+                                        <Button
+                                            type="default"
+                                            style={{
+                                                position: 'absolute',
+                                                top: 10,
+                                                left: 10,
+                                                zIndex: 2,
+                                                borderRadius: 6,
+                                                minWidth: 110,
+                                                height: 36,
+                                                background: 'rgba(255,255,255,0.85)',
+                                                fontWeight: 500
+                                            }}
+                                            onClick={() => {
+                                                if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
+                                                    navigate(`/admin/rooms/${room.id}/assign`);
+                                                } else {
+                                                    navigate(`/landlord/rooms/${room.id}/assign`);
+                                                }
+                                            }}
+                                        >
+                                            Gán người thuê
+                                        </Button>
+                                        <Button
+                                            type="primary"
+                                            style={{
+                                                position: 'absolute',
+                                                top: 10,
+                                                left: '50%',
+                                                transform: 'translateX(-50%)',
+                                                zIndex: 2,
+                                                borderRadius: 6,
+                                                minWidth: 140,
+                                                height: 36,
+                                                fontWeight: 500,
+                                                background: '#1976d2',
+                                                color: '#fff',
+                                                border: 'none',
+                                                boxShadow: '0 2px 8px rgba(25, 118, 210, 0.08)'
+                                            }}
+                                            onClick={() => openViewAssetModal(room)}
+                                        >
+                                            Xem tài sản
+                                        </Button>
+                                        <Button
+                                            type="dashed"
+                                            style={{
+                                                position: 'absolute',
+                                                top: 10,
+                                                right: 10,
+                                                zIndex: 2,
+                                                borderRadius: 6,
+                                                minWidth: 110,
+                                                height: 36,
+                                                fontWeight: 500,
+                                                borderColor: '#52c41a',
+                                                color: '#52c41a',
+                                                background: 'rgba(255,255,255,0.85)'
+                                            }}
+                                            onClick={() => openServiceModal(room)}
+                                        >
+                                            Thêm dịch vụ
+                                        </Button>
+                                    </div>
                                 }
                             >
                                 <Meta
                                     title={
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span>{room.roomNumber}</span>
-                                            {room.building && (
-                                                <span style={{ marginLeft: 8, fontWeight: 400, color: '#888', fontSize: 13 }}>
-                                                    | {room.building}
-                                                </span>
-                                            )}
+                                            <span style={{ fontSize: 22, fontWeight: 700, color: '#222' }}>{room.roomNumber}</span>
                                             <Tag 
                                                 color={room.isActive ? "green" : "red"}
                                                 onClick={() => handleToggleActive(room.id)}
                                                 style={{
                                                     cursor: 'pointer',
-                                                    opacity: togglingId === room.id ? 0.5 : 1
+                                                    opacity: togglingId === room.id ? 0.5 : 1,
+                                                    fontSize: 15,
+                                                    padding: '4px 12px',
+                                                    borderRadius: 8
                                                 }}
                                             >
                                                 {room.isActive ? "Đang hoạt động" : "Ngừng hoạt động"}
@@ -410,18 +603,21 @@ const user = useSelector((state) => state.account.user);
                                         </div>
                                     }
                                     description={
-                                        <div>
+                                        <div style={{ padding: '10px 0 0 0' }}>
                                             {room.building && (
-                                                <div>Building: {room.building}</div>
+                                                <div style={{ fontSize: 15, color: '#666', fontWeight: 500, marginBottom: 2 }}>Tòa nhà: <span style={{ color: '#222' }}>{room.building}</span></div>
                                             )}
-                                            <div>Giá: {room.pricePerMonth?.toLocaleString("vi-VN")} VND/tháng</div>
+                                            <div style={{ fontSize: 17, color: '#1a237e', fontWeight: 600, marginBottom: 2 }}>Giá: <span style={{ color: '#d32f2f' }}>{room.pricePerMonth?.toLocaleString("vi-VN")} VND/tháng</span></div>
                                             {room.area && (
-                                                <div>Diện tích: {room.area} m²</div>
+                                                <div style={{ fontSize: 15, color: '#666', fontWeight: 500, marginBottom: 2 }}>Diện tích: <span style={{ color: '#222' }}>{room.area} m²</span></div>
                                             )}
                                         </div>
                                     }
                                 />
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 18, alignItems: 'center' }}>
+                                {/* New flex row for top action buttons */}
+                                <div style={{ display: 'none' }} />
+                                {/* Centered row for other actions */}
+                                <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
                                     <Button
                                         type="primary"
                                         style={{ borderRadius: 6, minWidth: 80, height: 38 }}
@@ -434,19 +630,6 @@ const user = useSelector((state) => state.account.user);
                                         }}
                                     >
                                         Sửa
-                                    </Button>
-                                    <Button
-                                        type="default"
-                                        style={{ borderRadius: 6, minWidth: 120, height: 38 }}
-                                        onClick={() => {
-                                            if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
-                                                navigate(`/admin/rooms/${room.id}/assign`);
-                                            } else {
-                                                navigate(`/landlord/rooms/${room.id}/assign`);
-                                            }
-                                        }}
-                                    >
-                                        Gán người thuê
                                     </Button>
                                     <Button
                                         type="primary"
@@ -480,13 +663,6 @@ const user = useSelector((state) => state.account.user);
                                             />
                                         </a>
                                     </Dropdown>
-                                    <Button
-                                        type="dashed"
-                                        style={{ borderRadius: 6, minWidth: 120, height: 38, fontWeight: 500, borderColor: '#52c41a', color: '#52c41a' }}
-                                        onClick={() => openServiceModal(room)}
-                                    >
-                                        Thêm dịch vụ
-                                    </Button>
                                 </div>
                             </Card>
                         </Col>
@@ -583,6 +759,141 @@ const user = useSelector((state) => state.account.user);
                     </div>
                 )}
             </Modal>
+            {/* Modal chọn tài sản để thêm vào phòng */}
+            <Modal
+                open={assetModalOpen}
+                title="Chọn tài sản để thêm vào phòng"
+                onCancel={() => { setAssetModalOpen(false); setSelectedAssetId(null); }}
+                onOk={handleAssetAssign}
+                okText="Thêm vào phòng"
+                okButtonProps={{ disabled: !selectedAssetId }}
+                width={700}
+            >
+                <Input.Search
+                    placeholder="Tìm kiếm tài sản"
+                    value={assetSearch}
+                    onChange={e => { setAssetSearch(e.target.value); fetchAssetList(1, e.target.value); }}
+                    style={{ marginBottom: 16, width: 300 }}
+                    allowClear
+                />
+                <Table
+                    dataSource={assetList}
+                    loading={assetLoading}
+                    rowKey="id"
+                    pagination={{
+                        current: assetPage,
+                        pageSize: assetPageSize,
+                        total: assetTotal,
+                        onChange: (page) => fetchAssetList(page, assetSearch),
+                    }}
+                    rowSelection={{
+                        type: "radio",
+                        selectedRowKeys: selectedAssetId ? [selectedAssetId] : [],
+                        onChange: (selectedRowKeys) => setSelectedAssetId(selectedRowKeys[0]),
+                    }}
+                    columns={[
+                        { title: "Tên tài sản", dataIndex: "assetName", key: "assetName" },
+                        { title: "Số lượng", dataIndex: "quantity", key: "quantity" },
+                        { title: "Trạng thái", dataIndex: "assetStatus", key: "assetStatus" },
+                        { title: "Ghi chú", dataIndex: "conditionNote", key: "conditionNote" },
+                    ]}
+                />
+            </Modal>
+            {/* Modal xem danh sách tài sản của phòng */}
+            <Modal
+                open={viewAssetModalOpen}
+                title="Danh sách tài sản của phòng"
+                onCancel={() => setViewAssetModalOpen(false)}
+                footer={null}
+                width={900}
+            >
+                <Button
+                    type="primary"
+                    style={{ marginBottom: 16 }}
+                    onClick={handleAddAssetInView}
+                >
+                    Thêm tài sản
+                </Button>
+                <Tabs defaultActiveKey="goc">
+                    <Tabs.TabPane tab="Danh mục tài sản gốc" key="goc">
+                        <Table
+                            dataSource={assetListGoc}
+                            loading={assetListGocLoading}
+                            rowKey="id"
+                            columns={[
+                                { title: "Tên tài sản", dataIndex: "assetName", key: "assetName" },
+                                { title: "Số lượng", dataIndex: "quantity", key: "quantity" },
+                                { title: "Trạng thái", dataIndex: "assetStatus", key: "assetStatus" },
+                                { title: "Ghi chú", dataIndex: "conditionNote", key: "conditionNote" },
+                            ]}
+                            pagination={false}
+                        />
+                    </Tabs.TabPane>
+                    <Tabs.TabPane tab="Lịch sử kiểm kê" key="kiemke">
+                        <div style={{ marginBottom: 12 }}>
+                            <Select
+                                style={{ width: 300 }}
+                                placeholder="Chọn hợp đồng để xem kiểm kê"
+                                value={selectedContractId}
+                                onChange={handleContractChange}
+                            >
+                                {contractList.map(c => (
+                                    <Select.Option key={c.id} value={c.id}>
+                                        {c.contractCode || `Hợp đồng #${c.id}`} (Từ {c.startDate} đến {c.endDate})
+                                    </Select.Option>
+                                ))}
+                            </Select>
+                        </div>
+                        <Table
+                            dataSource={roomAssets}
+                            loading={roomAssetsLoading}
+                            rowKey="id"
+                            columns={[
+                                { title: "ID tài sản", dataIndex: "assetId", key: "assetId" },
+                                { title: "Tình trạng", dataIndex: "status", key: "status" },
+                                { title: "Đủ/Thiếu", dataIndex: "isEnough", key: "isEnough", render: val => val ? "Đủ" : "Thiếu" },
+                                { title: "Ghi chú", dataIndex: "note", key: "note" },
+                                { title: "Loại kiểm kê", dataIndex: "type", key: "type" },
+                            ]}
+                            pagination={false}
+                        />
+                    </Tabs.TabPane>
+                </Tabs>
+            </Modal>
+            {/* Modal nhập tình trạng riêng khi thêm tài sản vào phòng */}
+            <Modal
+                open={addAssetInventoryModalOpen}
+                title={`Thêm tài sản vào phòng với tình trạng riêng`}
+                onCancel={() => setAddAssetInventoryModalOpen(false)}
+                onOk={handleConfirmAddAssetInventory}
+                okText="Thêm vào phòng"
+                width={400}
+            >
+                <div><b>Tài sản:</b> {assetToAdd?.assetName}</div>
+                <div style={{ margin: '12px 0' }}>
+                    <Input
+                        type="number"
+                        min={1}
+                        value={addAssetInventoryForm.quantity}
+                        onChange={e => setAddAssetInventoryForm(f => ({ ...f, quantity: e.target.value }))}
+                        placeholder="Số lượng"
+                        style={{ marginBottom: 8 }}
+                    />
+                    <Input
+                        value={addAssetInventoryForm.status}
+                        onChange={e => setAddAssetInventoryForm(f => ({ ...f, status: e.target.value }))}
+                        placeholder="Tình trạng"
+                        style={{ marginBottom: 8 }}
+                    />
+                    <Input.TextArea
+                        value={addAssetInventoryForm.note}
+                        onChange={e => setAddAssetInventoryForm(f => ({ ...f, note: e.target.value }))}
+                        placeholder="Ghi chú (nếu có)"
+                        autoSize
+                    />
+                </div>
+            </Modal>
         </>
     );
 }
+

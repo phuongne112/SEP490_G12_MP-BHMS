@@ -56,6 +56,12 @@ export default function RenterCheckinAssetPage() {
   const location = useLocation();
 
   useEffect(() => {
+    const assetsFromState = location.state?.assets;
+    if (assetsFromState && Array.isArray(assetsFromState)) {
+      setAssets(assetsFromState);
+      setLoading(false);
+      return;
+    }
     const roomId = location.state?.roomId;
     const contractId = location.state?.contractId;
     if (roomId && contractId) {
@@ -70,19 +76,12 @@ export default function RenterCheckinAssetPage() {
             ...item
           })));
         } else {
-          axiosClient.get(`/assets?roomId=${roomId}`).then(res2 => {
-            setAssets(res2.data?.result || []);
-          }).catch(() => setAssets([]));
+          setAssets([]);
         }
         setLoading(false);
       }).catch(() => {
-        axiosClient.get(`/assets?roomId=${roomId}`).then(res2 => {
-          setAssets(res2.data?.result || []);
-          setLoading(false);
-        }).catch(() => {
-          setAssets([]);
-          setLoading(false);
-        });
+        setAssets([]);
+        setLoading(false);
       });
     } else {
       setAssets([]);
