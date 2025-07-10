@@ -137,8 +137,8 @@ export default function RenterBillListPage() {
     },
     {
       title: "Phòng",
-      dataIndex: "roomId",
-      key: "roomId",
+      dataIndex: "roomNumber",
+      key: "roomNumber",
       align: "center",
       render: (roomNumber) => (
         <Tag color="blue" style={{ fontWeight: "bold" }}>

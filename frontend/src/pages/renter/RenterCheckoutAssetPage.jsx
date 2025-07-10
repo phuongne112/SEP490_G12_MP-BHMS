@@ -56,32 +56,31 @@ export default function RenterCheckoutAssetPage() {
   const location = useLocation();
 
   useEffect(() => {
-    const assetsFromState = location.state?.assets;
-    if (assetsFromState && Array.isArray(assetsFromState)) {
-      setAssets(assetsFromState);
-      setLoading(false);
-      return;
-    }
     const roomId = location.state?.roomId;
-    const contractId = location.state?.contractId;
-    if (roomId && contractId) {
-      getAssetInventoryByRoomAndContract(roomId, contractId).then(res => {
-        const inventory = res.data || [];
-        if (inventory.length > 0) {
-          setAssets(inventory.map(item => ({
-            id: item.assetId,
-            assetName: item.assetName,
-            assetStatus: item.status,
-            note: item.note,
-            ...item
-          })));
-        } else {
+    const roomNumber = location.state?.roomNumber;
+    if (roomId) {
+      setLoading(true);
+      import('../../services/assetApi').then(({ getAssetsByRoom }) => {
+        getAssetsByRoom(roomId).then(res => {
+          const assets = res.data || [];
+          setAssets(assets);
+          setLoading(false);
+        }).catch(() => {
           setAssets([]);
-        }
-        setLoading(false);
-      }).catch(() => {
-        setAssets([]);
-        setLoading(false);
+          setLoading(false);
+        });
+      });
+    } else if (roomNumber) {
+      setLoading(true);
+      import('../../services/assetApi').then(({ getAssetsByRoomNumber }) => {
+        getAssetsByRoomNumber(roomNumber).then(res => {
+          const assets = res.data || [];
+          setAssets(assets);
+          setLoading(false);
+        }).catch(() => {
+          setAssets([]);
+          setLoading(false);
+        });
       });
     } else {
       setAssets([]);
@@ -109,14 +108,14 @@ export default function RenterCheckoutAssetPage() {
   const handleConfirm = async () => {
     setConfirming(true);
     const contractId = Number(location.state?.contractId) || null;
-    const roomNumber = location.state?.roomId || "";
+    const roomId = location.state?.roomId || null;
     const result = assets.map(asset => ({
-      assetId: asset.id,
+      assetId: asset.assetId || asset.id,
       contractId,
-      roomNumber,
-      status: actualStatusState[asset.id] || asset.assetStatus || asset.condition,
-      isEnough: enoughState[asset.id] !== undefined ? enoughState[asset.id] : true,
-      note: notes[asset.id] !== undefined ? notes[asset.id] : asset.note || "",
+      roomId,
+      status: actualStatusState[asset.assetId || asset.id] || asset.status,
+      isEnough: enoughState[asset.assetId || asset.id] !== undefined ? enoughState[asset.assetId || asset.id] : true,
+      note: notes[asset.assetId || asset.id] !== undefined ? notes[asset.assetId || asset.id] : asset.note || "",
       type: "CHECKOUT"
     }));
     try {

@@ -139,14 +139,9 @@ export default function RenterContractPage() {
   const handleExportPdf = async () => {
     if (!contract?.id) return;
     try {
-      const res = await exportContractPdf(contract.id);
-      const blob = res.data;
+      const blob = await exportContractPdf(contract.id);
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Contract_${contract.contractNumber || contract.id}.pdf`;
-      a.click();
-      window.URL.revokeObjectURL(url);
+      window.open(url, "_blank");
     } catch (err) {
       message.error("Failed to download contract!");
     }
