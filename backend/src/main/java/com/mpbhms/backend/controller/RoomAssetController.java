@@ -32,6 +32,13 @@ public class RoomAssetController {
         return ResponseEntity.ok(roomAssetService.getAssetsByRoom(roomId));
     }
 
+    @GetMapping("/by-room-number")
+    public ResponseEntity<java.util.List<RoomAssetDTO>> getAssetsByRoomNumber(@RequestParam String roomNumber) {
+        return roomRepository.findByRoomNumberAndDeletedFalse(roomNumber)
+                .map(room -> ResponseEntity.ok(roomAssetService.getAssetsByRoom(room.getId())))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<RoomAssetDTO> updateRoomAsset(@PathVariable Long id, @RequestParam Integer quantity,
                                                      @RequestParam String status, @RequestParam(required = false) String note) {

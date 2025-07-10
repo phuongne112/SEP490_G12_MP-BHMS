@@ -33,6 +33,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
+import axiosClient from '../../services/axiosClient';
 dayjs.extend(customParseFormat);
 
 const { Sider, Content } = Layout;
@@ -153,6 +154,15 @@ export default function LandlordBillListPage() {
       message.success("Bill sent to renter successfully");
     } catch (err) {
       message.error("Gửi thất bại");
+    }
+  };
+
+  const handleSendEmail = async (id) => {
+    try {
+      await axiosClient.post(`/bills/send-email/${id}`);
+      message.success("Đã gửi hóa đơn qua email thành công!");
+    } catch (err) {
+      message.error("Gửi email thất bại!");
     }
   };
 
@@ -277,7 +287,7 @@ export default function LandlordBillListPage() {
     {
       title: "Thao tác",
       align: "center",
-      width: 280,
+      width: 320,
       render: (_, record) => (
         <Space>
           <Button 
@@ -316,6 +326,14 @@ export default function LandlordBillListPage() {
             size="small"
           >
             Gửi
+          </Button>
+          <Button 
+            icon={<SendOutlined />}
+            onClick={() => handleSendEmail(record.id)}
+            size="small"
+            style={{ background: '#52c41a', color: '#fff' }}
+          >
+            Gửi Email
           </Button>
         </Space>
       ),

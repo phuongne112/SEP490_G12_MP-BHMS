@@ -18,6 +18,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import com.mpbhms.backend.service.EmailService;
+import com.mpbhms.backend.service.VnPayService;
 
 @RestController
 @RequestMapping("/mpbhms/bills")
@@ -25,6 +27,8 @@ import java.util.Map;
 public class BillController {
 
     private final BillService billService;
+    private final EmailService emailService;
+    private final VnPayService vnPayService;
 
     @PostMapping("/generate-first")
     public BillResponse generateFirstBill(@RequestParam Long contractId) {
@@ -97,10 +101,8 @@ public class BillController {
     }
 
     @GetMapping("/my")
-    public Page<BillResponse> getMyBills(@RequestParam(defaultValue = "0") int page,
-                                         @RequestParam(defaultValue = "10") int size) {
+    public Page<BillResponse> getMyBills(Pageable pageable) {
         Long userId = com.mpbhms.backend.util.SecurityUtil.getCurrentUserId();
-        Pageable pageable = PageRequest.of(page, size);
         return billService.getBillsByUserId(userId, pageable).map(billService::toResponse);
     }
 
@@ -123,5 +125,40 @@ public class BillController {
 
         // Tạo Bill và BillDetail qua service (service đã xử lý đúng thứ tự và cascade)
         return billService.createCustomBill(roomId, name, description, amount, fromDate, toDate);
+    }
+
+    @PostMapping("/send-email/{billId}")
+    public ResponseEntity<?> sendBillEmail(@PathVariable Long billId) {
+        Bill bill = billService.getBillById(billId);
+        byte[] pdfBytes = billService.generateBillPdf(billId);
+        // Lấy email của tất cả người thuê trong hợp đồng
+        List<String> emails = bill.getContract().getRoomUsers().stream()
+            .filter(ru -> ru.getUser() != null && ru.getUser().getEmail() != null)
+            .map(ru -> ru.getUser().getEmail())
+            .distinct()
+            .toList();
+        String subject = "Hóa đơn phòng " + bill.getRoom().getRoomNumber();
+        String paymentUrl = "";
+        try {
+            paymentUrl = vnPayService.createPaymentUrl(bill.getId(), bill.getTotalAmount().longValue(), "Thanh toán hóa đơn #" + bill.getId());
+        } catch (Exception e) {
+            paymentUrl = null;
+        }
+        String content = "Xin chào, vui lòng xem hóa đơn đính kèm.<br>" +
+                (paymentUrl != null ? ("Để thanh toán hóa đơn, vui lòng bấm vào <a href='" + paymentUrl + "'>đây</a>.<br>Hoặc copy link: " + paymentUrl) : "Không tạo được link thanh toán tự động.");
+        int sent = 0;
+        for (String email : emails) {
+            try {
+                emailService.sendBillWithAttachment(email, subject, content, pdfBytes);
+                sent++;
+            } catch (Exception e) {
+                // Có thể log lỗi gửi từng email
+            }
+        }
+        if (sent > 0) {
+            return ResponseEntity.ok("Đã gửi email hóa đơn cho " + sent + " người thuê!");
+        } else {
+            return ResponseEntity.status(500).body("Không gửi được email cho người thuê nào!");
+        }
     }
 }

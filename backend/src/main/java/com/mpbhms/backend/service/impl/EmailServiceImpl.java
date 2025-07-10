@@ -61,4 +61,19 @@ public class EmailServiceImpl implements EmailService {
             throw new RuntimeException("Gửi email thông báo thất bại", e);
         }
     }
+
+    @Override
+    public void sendBillWithAttachment(String toEmail, String subject, String content, byte[] pdfBytes) {
+        MimeMessage message = mailSender.createMimeMessage();
+        try {
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+            helper.setText(content, true);
+            helper.addAttachment("bill.pdf", new org.springframework.core.io.ByteArrayResource(pdfBytes));
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            throw new RuntimeException("Gửi email hóa đơn thất bại", e);
+        }
+    }
 }
