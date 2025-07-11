@@ -5,7 +5,7 @@ import { getAllServicesList } from "../../services/serviceApi";
 import { detectElectricOcr } from "../../services/electricOcrApi";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { UserOutlined, ClockCircleOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
+import { UserOutlined, ClockCircleOutlined, ExclamationCircleOutlined, CheckCircleFilled } from "@ant-design/icons";
 import { getAllAssets, getAssetInventoryByRoom, getAssetInventoryByRoomAndContract, getAssetsByRoom, addAssetToRoom } from "../../services/assetApi";
 import axiosClient from "../../services/axiosClient";
 
@@ -26,6 +26,32 @@ const getStatusProps = (status) => {
             return { status: 'default', text: 'Không xác định' };
     }
 };
+
+// CenterToast component
+function CenterToast({ message, visible }) {
+  if (!visible) return null;
+  return (
+    <div style={{
+      position: "fixed",
+      top: 32,
+      left: "50%",
+      transform: "translateX(-50%)",
+      background: "#fff",
+      borderRadius: 12,
+      boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+      padding: "14px 32px",
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      zIndex: 9999,
+      fontWeight: 500,
+      fontSize: 16
+    }}>
+      <CheckCircleFilled style={{ color: "#52c41a", fontSize: 22 }} />
+      {message}
+    </div>
+  );
+}
 
 export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
     const [updatingId, setUpdatingId] = useState(null);
@@ -84,6 +110,8 @@ const [selectedContractId, setSelectedContractId] = useState(null);
 const [addAssetInventoryModalOpen, setAddAssetInventoryModalOpen] = useState(false);
 const [assetToAdd, setAssetToAdd] = useState(null);
 const [addAssetInventoryForm, setAddAssetInventoryForm] = useState({ quantity: 1, status: '', note: '' });
+
+const [centerToast, setCenterToast] = useState({ visible: false, message: "" });
 
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
@@ -431,6 +459,43 @@ const user = useSelector((state) => state.account.user);
         }
     };
 
+    // Xóa dịch vụ khỏi phòng
+    const handleRemoveService = async (serviceId) => {
+        if (!selectedRoom) return;
+        const service = selectedRoom.services?.find(s => s.id === serviceId);
+        if (!service) return;
+        Modal.confirm({
+            title: `Xác nhận xóa dịch vụ` ,
+            content: `Bạn có chắc chắn muốn xóa dịch vụ "${service.serviceName}" khỏi phòng này?` ,
+            okText: "Xóa",
+            cancelText: "Hủy",
+            okType: "danger",
+            onOk: async () => {
+                try {
+                    await axiosClient.delete(`/rooms/${selectedRoom.id}/remove-service/${serviceId}`);
+                    setCenterToast({ visible: true, message: "Đã xóa dịch vụ khỏi phòng!" });
+                    setTimeout(() => setCenterToast({ visible: false, message: "" }), 2000);
+                    // Cập nhật lại UI: gọi lại onRoomsUpdate nếu có
+                    if (onRoomsUpdate) onRoomsUpdate();
+                    // Đóng modal nếu không còn dịch vụ nào
+                    setServiceModalOpen(false);
+                } catch (err) {
+                    let msg = "Không thể xóa dịch vụ khỏi phòng!";
+                    if (err?.response?.data) {
+                        if (typeof err.response.data === "string") {
+                            msg = err.response.data;
+                        } else if (err.response.data.message) {
+                            msg = err.response.data.message;
+                        } else if (err.response.data.error) {
+                            msg = err.response.data.error;
+                        }
+                    }
+                    message.error(msg);
+                }
+            }
+        });
+    };
+
     const statusMenu = (room) => (
         <Menu
             onClick={({ key }) => {
@@ -494,6 +559,7 @@ const user = useSelector((state) => state.account.user);
 
     return (
         <>
+            <CenterToast message={centerToast.message} visible={centerToast.visible} />
             <Row gutter={[16, 16]}>
                 {rooms.map((room) => {
                     const getImageUrl = (url) => {
@@ -681,8 +747,24 @@ const user = useSelector((state) => state.account.user);
             >
                 {services.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                        <p>This room already has all services!</p>
-                        <p>No more services to add.</p>
+                        <p><b>Phòng đã có đủ dịch vụ!</b></p>
+                        <div style={{ margin: '12px 0', textAlign: 'left' }}>
+                            <div style={{ fontWeight: 500, marginBottom: 4 }}>Các dịch vụ hiện tại của phòng:</div>
+                            <ul style={{ paddingLeft: 20 }}>
+                                {(selectedRoom?.services && selectedRoom.services.length > 0)
+                                    ? selectedRoom.services.map(s => (
+                                        <li key={s.id} style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+                                            <span style={{ flex: 1 }}>{s.serviceName} ({s.serviceType})</span>
+                                            <Button danger size="small" onClick={() => handleRemoveService(s.id)} style={{ marginLeft: 8 }}>
+                                                Xóa
+                                            </Button>
+                                        </li>
+                                    ))
+                                    : <li>Chưa có dịch vụ nào</li>
+                                }
+                            </ul>
+                        </div>
+                        <p style={{ color: '#888', fontSize: 13 }}>Không còn dịch vụ nào để thêm.</p>
                     </div>
                 ) : (
                     <>

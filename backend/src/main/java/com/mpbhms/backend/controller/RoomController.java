@@ -181,6 +181,16 @@ public class RoomController {
         return ResponseEntity.ok(resp);
     }
 
+    @DeleteMapping("/{roomId}/remove-service/{serviceId}")
+    public ResponseEntity<?> removeServiceFromRoom(@PathVariable Long roomId, @PathVariable Long serviceId) {
+        boolean removed = roomService.removeServiceFromRoom(roomId, serviceId);
+        if (removed) {
+            return ResponseEntity.ok().body("Đã xóa dịch vụ khỏi phòng thành công.");
+        } else {
+            return ResponseEntity.badRequest().body("Không thể xóa dịch vụ khỏi phòng (có thể dịch vụ không tồn tại hoặc đã phát sinh hóa đơn).");
+        }
+    }
+
     // Xử lý lỗi validation toàn cục
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {

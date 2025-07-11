@@ -320,21 +320,21 @@ export default function LandlordBillListPage() {
           >
             Xuất PDF
           </Button>
-          <Button 
-            icon={<SendOutlined />}
-            onClick={() => handleSend(record.id)}
-            size="small"
+          {/* Chỉ hiển thị nút Gửi Email nếu hóa đơn chưa thanh toán */}
+          <Popover
+            content={record.status ? 'Chỉ gửi email cho hóa đơn chưa thanh toán' : 'Gửi hóa đơn cho khách'}
+            placement="top"
           >
-            Gửi
-          </Button>
-          <Button 
-            icon={<SendOutlined />}
-            onClick={() => handleSendEmail(record.id)}
-            size="small"
-            style={{ background: '#52c41a', color: '#fff' }}
-          >
-            Gửi Email
-          </Button>
+            <Button 
+              icon={<SendOutlined />} // Gửi Email
+              onClick={() => handleSendEmail(record.id)}
+              size="small"
+              style={{ background: '#52c41a', color: '#fff', opacity: record.status ? 0.7 : 1, cursor: record.status ? 'not-allowed' : 'pointer' }}
+              disabled={record.status === true}
+            >
+              Gửi Email
+            </Button>
+          </Popover>
         </Space>
       ),
     },
