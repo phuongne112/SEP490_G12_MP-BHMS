@@ -170,7 +170,7 @@ public class RoomUserServiceImpl implements RoomUserService {
                 contractRepository.save(contract);
                 
                 // Cập nhật trạng thái phòng thành "Còn trống"
-                room.setRoomStatus(com.mpbhms.backend.enums.RoomStatus.Available);
+                room.setRoomStatus(com.mpbhms.backend.enums.RoomStatus.AVAILABLE);
                 roomRepository.save(room);
             } else {
                 // Vẫn còn người ở lại - cần xử lý logic phân chia tiền phòng

@@ -36,13 +36,19 @@ public class RoomController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> addRoom(
             @RequestPart("room") String roomJson,
-            @RequestPart(name = "images", required = false) MultipartFile[] images) throws com.fasterxml.jackson.core.JsonProcessingException {
+            @RequestPart(name = "images", required = false) MultipartFile[] images
+    ) throws com.fasterxml.jackson.core.JsonProcessingException {
+
         com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
         AddRoomDTO request = objectMapper.readValue(roomJson, AddRoomDTO.class);
-        // Validate manually (since @Valid doesn't work with @RequestPart String)
-        org.springframework.validation.BeanPropertyBindingResult errors = new org.springframework.validation.BeanPropertyBindingResult(request, "addRoomDTO");
-        org.springframework.validation.Validator validator = new org.springframework.validation.beanvalidation.LocalValidatorFactoryBean();
-        validator.validate(request, errors);
+
+        // ✅ Validate thủ công
+        org.springframework.validation.BeanPropertyBindingResult errors =
+                new org.springframework.validation.BeanPropertyBindingResult(request, "addRoomDTO");
+        org.springframework.validation.beanvalidation.LocalValidatorFactoryBean validatorFactory =
+                new org.springframework.validation.beanvalidation.LocalValidatorFactoryBean();
+        validatorFactory.afterPropertiesSet(); // ✅ Phải gọi để init Validator
+        validatorFactory.validate(request, errors);
         if (errors.hasErrors()) {
             Map<String, String> errorMap = new HashMap<>();
             for (FieldError fieldError : errors.getFieldErrors()) {
@@ -50,16 +56,19 @@ public class RoomController {
             }
             throw new com.mpbhms.backend.exception.ValidationException("Dữ liệu không hợp lệ", errorMap);
         }
+
+        // ✅ Gọi service tạo phòng
         Room result = roomService.addRoom(request, images);
         if (result.getDeleted() != null && result.getDeleted()) {
-            // Nếu phòng đã bị xóa mềm, trả về thông báo và thông tin phòng
+            // Phòng đã tồn tại và bị xóa mềm → trả về 409 CONFLICT
             Map<String, Object> resp = new HashMap<>();
             resp.put("message", "Phòng này đã từng tồn tại và đang bị xoá. Bạn có muốn khôi phục lại không?");
             resp.put("roomId", result.getId());
             resp.put("roomNumber", result.getRoomNumber());
             return ResponseEntity.status(HttpStatus.CONFLICT).body(resp);
         }
-        // Nếu tạo mới thành công, trả về thông tin phòng
+
+        // ✅ Trả về phòng đã tạo thành công
         AddRoomDTOResponse response = new AddRoomDTOResponse();
         response.setId(result.getId());
         response.setRoomNumber(result.getRoomNumber());
@@ -71,8 +80,10 @@ public class RoomController {
         response.setDescription(result.getDescription());
         response.setMaxOccupants(result.getMaxOccupants());
         response.setBuilding(result.getBuilding());
+
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
+
     @PatchMapping("/{id}/status")
     public ResponseEntity<Void> updateRoomStatus(@PathVariable Long id, @Valid @RequestBody UpdateRoomStatusDTO request) {
         roomService.updateRoomStatus(id, request.getRoomStatus());
@@ -83,14 +94,17 @@ public class RoomController {
         roomService.toggleActiveStatus(id);
         return ResponseEntity.ok().build();
     }
-    @GetMapping()
+    @GetMapping
     public ResponseEntity<ResultPaginationDTO> getAllRooms(
-            @Filter Specification<Room> spec, Pageable pageable) {
-        ResultPaginationDTO response = roomService.getAllRooms(spec, pageable);
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = Pageable.ofSize(size).withPage(page);
+        ResultPaginationDTO response = roomService.getAllRooms(null, pageable);
         return ResponseEntity.ok(response);
     }
-    @PostMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<AddRoomDTOResponse> updateRoom(
+
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateRoom(
             @PathVariable Long id,
             @RequestPart("room") String roomJson,
             @RequestPart(name = "keepImageIds", required = false) String keepImageIdsJson,
@@ -98,12 +112,41 @@ public class RoomController {
     ) throws com.fasterxml.jackson.core.JsonProcessingException {
         com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
         AddRoomDTO request = objectMapper.readValue(roomJson, AddRoomDTO.class);
-        // Parse keepImageIdsJson thành List<Long>
+
+        // ✅ Validate thủ công
+        org.springframework.validation.BeanPropertyBindingResult errors =
+                new org.springframework.validation.BeanPropertyBindingResult(request, "addRoomDTO");
+        org.springframework.validation.beanvalidation.LocalValidatorFactoryBean validatorFactory =
+                new org.springframework.validation.beanvalidation.LocalValidatorFactoryBean();
+        validatorFactory.afterPropertiesSet();
+        validatorFactory.validate(request, errors);
+        if (errors.hasErrors()) {
+            Map<String, String> errorMap = new HashMap<>();
+            for (FieldError fieldError : errors.getFieldErrors()) {
+                errorMap.put(fieldError.getField(), fieldError.getDefaultMessage());
+            }
+            throw new com.mpbhms.backend.exception.ValidationException("Dữ liệu không hợp lệ", errorMap);
+        }
+
+        // ✅ Parse keepImageIds nếu có
         List<Long> keepImageIdLongs = null;
         if (keepImageIdsJson != null && !keepImageIdsJson.isEmpty()) {
-            keepImageIdLongs = objectMapper.readValue(keepImageIdsJson, objectMapper.getTypeFactory().constructCollectionType(List.class, Long.class));
+            keepImageIdLongs = objectMapper.readValue(keepImageIdsJson,
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, Long.class));
         }
-        Room updatedRoom = roomService.updateRoom(id, request, keepImageIdLongs, images);
+
+        // ✅ Gọi service & bắt lỗi nếu phòng không tồn tại
+        Room updatedRoom;
+        try {
+            updatedRoom = roomService.updateRoom(id, request, keepImageIdLongs, images);
+        } catch (com.mpbhms.backend.exception.ResourceNotFoundException ex) {
+            Map<String, Object> body = new HashMap<>();
+            body.put("errorCode", "RESOURCE_NOT_FOUND");
+            body.put("message", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+        }
+
+        // ✅ Mapping result
         AddRoomDTOResponse response = new AddRoomDTOResponse();
         response.setId(updatedRoom.getId());
         response.setRoomNumber(updatedRoom.getRoomNumber());
@@ -115,8 +158,11 @@ public class RoomController {
         response.setDescription(updatedRoom.getDescription());
         response.setMaxOccupants(updatedRoom.getMaxOccupants());
         response.setBuilding(updatedRoom.getBuilding());
+
         return ResponseEntity.ok(response);
     }
+
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteRoom(@PathVariable Long id) {
@@ -176,5 +222,21 @@ public class RoomController {
         // Việt hóa thông báo lỗi tổng quát
         errors.put("_message", "Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại các trường thông tin!");
         return ResponseEntity.badRequest().body(errors);
+    }
+    @ExceptionHandler(com.mpbhms.backend.exception.ValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleValidationException(com.mpbhms.backend.exception.ValidationException ex) {
+        Map<String, Object> errorBody = new HashMap<>();
+        errorBody.put("errorCode", "VALIDATION_ERROR");
+        errorBody.put("message", ex.getMessage());
+        errorBody.put("errors", ex.getErrors());
+        return ResponseEntity.badRequest().body(errorBody);
+    }
+
+    @ExceptionHandler(com.mpbhms.backend.exception.ResourceNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleResourceNotFound(com.mpbhms.backend.exception.ResourceNotFoundException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("errorCode", "RESOURCE_NOT_FOUND");
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 }
