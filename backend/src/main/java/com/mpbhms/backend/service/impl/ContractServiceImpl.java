@@ -59,6 +59,7 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 @RequiredArgsConstructor
@@ -75,6 +76,9 @@ public class ContractServiceImpl implements ContractService {
     private final ContractLandlordInfoRepository contractLandlordInfoRepository;
     private final ContractTemplateService contractTemplateService;
     private static final Logger logger = LoggerFactory.getLogger(ContractServiceImpl.class);
+
+    @Value("${contract.pending.expire-days:2}")
+    private int contractPendingExpireDays;
 
     @Override
     @Transactional
@@ -1109,6 +1113,47 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
         amendment.setStatus(ContractAmendment.AmendmentStatus.PENDING);
         amendment.setApprovedByLandlord(false);
         contractAmendmentRepository.save(amendment);
+    }
+
+    /**
+     * Scheduled task: Tự động duyệt hợp đồng PENDING nếu quá thời gian chờ duyệt
+     */
+    @Scheduled(cron = "0 0 2 * * ?") // Chạy lúc 2h sáng hàng ngày
+    public void autoApprovePendingContracts() {
+        java.time.Instant now = java.time.Instant.now();
+        java.util.List<Contract> pendingContracts = contractRepository.findAll().stream()
+            .filter(c -> c.getContractStatus() == com.mpbhms.backend.enums.ContractStatus.PENDING)
+            .toList();
+        for (Contract contract : pendingContracts) {
+            if (contract.getCreatedDate() != null) {
+                java.time.Instant deadline = contract.getCreatedDate().plusSeconds(contractPendingExpireDays * 24 * 60 * 60L);
+                if (deadline.isBefore(now)) {
+                    contract.setContractStatus(com.mpbhms.backend.enums.ContractStatus.ACTIVE);
+                    contractRepository.save(contract);
+                    // Gửi notification cho các bên
+                    if (contract.getRoomUsers() != null) {
+                        for (var ru : contract.getRoomUsers()) {
+                            if (ru.getUser() != null) {
+                                notificationService.createAndSend(new com.mpbhms.backend.dto.NotificationDTO() {{
+                                    setRecipientId(ru.getUser().getId());
+                                    setTitle("Hợp đồng đã được tự động duyệt");
+                                    setMessage("Hợp đồng #" + contract.getId() + " đã được hệ thống tự động duyệt do quá hạn chờ xác nhận.");
+                                    setType(com.mpbhms.backend.enums.NotificationType.CUSTOM);
+                                }});
+                            }
+                        }
+                    }
+                    if (contract.getRoom() != null && contract.getRoom().getLandlord() != null) {
+                        notificationService.createAndSend(new com.mpbhms.backend.dto.NotificationDTO() {{
+                            setRecipientId(contract.getRoom().getLandlord().getId());
+                            setTitle("Hợp đồng đã được tự động duyệt");
+                            setMessage("Hợp đồng #" + contract.getId() + " đã được hệ thống tự động duyệt do quá hạn chờ xác nhận.");
+                            setType(com.mpbhms.backend.enums.NotificationType.CUSTOM);
+                        }});
+                    }
+                }
+            }
+        }
     }
 }
 

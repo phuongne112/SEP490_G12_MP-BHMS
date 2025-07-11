@@ -41,5 +41,9 @@ public interface RoomService {
     boolean addServiceToRoom(Long roomId, Long serviceId, java.math.BigDecimal initialReading);
     List<Room> getAllRoomsNoPaging();
     List<Room> getRoomsByIds(List<Long> ids);
+    /**
+     * Xóa service khỏi phòng (nếu chưa phát sinh hóa đơn liên quan)
+     */
+    boolean removeServiceFromRoom(Long roomId, Long serviceId);
 }
 

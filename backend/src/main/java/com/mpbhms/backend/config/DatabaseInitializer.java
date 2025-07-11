@@ -52,6 +52,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("View Deleted Rooms", "/mpbhms/rooms/deleted", "GET", "Room"));
             permissions.add(new Permission("View Room with Renter", "/mpbhms/rooms/with-renter", "GET", "Room"));
             permissions.add(new Permission("Get Room by ID", "/mpbhms/rooms/{id}", "GET", "Room"));
+            permissions.add(new Permission("Delete service of room", "/mpbhms/rooms/{roomId}/remove-service/{serviceId}", "DELETE", "Room"));
             //User
             permissions.add(new Permission("Create User", "/mpbhms/users", "POST", "User"));
             permissions.add(new Permission("Update User", "/mpbhms/users", "PUT", "User"));
@@ -111,6 +112,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Delete Bill", "/mpbhms/bills/{id}", "DELETE", "Bill"));
             permissions.add(new Permission("Generate", "/mpbhms/bills/service-bill", "POST", "Bill"));
             permissions.add(new Permission("Export Bill", "/mpbhms/bills/{id}/export", "GET", "Bill"));
+            permissions.add(new Permission("Send bill to Email", "/mpbhms/bills/send-email/{billId}", "POST", "Bill"));
             //Renter
             permissions.add(new Permission("Get Renter List", "/mpbhms/renters", "GET", "Renter"));
             permissions.add(new Permission("Create new Renter", "/mpbhms/renters", "POST", "Renter"));

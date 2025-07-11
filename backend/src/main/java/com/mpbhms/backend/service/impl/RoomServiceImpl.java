@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.util.Optional;
+import com.mpbhms.backend.repository.BillDetailRepository;
 
 @Service
 public class RoomServiceImpl implements RoomService {
@@ -54,6 +55,9 @@ public class RoomServiceImpl implements RoomService {
 
     @Autowired
     private com.mpbhms.backend.repository.ServiceRepository serviceRepository;
+
+    @Autowired
+    private BillDetailRepository billDetailRepository;
 
     @Autowired
     @Value("${file.upload-dir}")
@@ -476,6 +480,32 @@ public class RoomServiceImpl implements RoomService {
             created = true;
         }
         return created;
+    }
+
+    @Override
+    public boolean removeServiceFromRoom(Long roomId, Long serviceId) {
+        Room room = roomRepository.findByIdAndDeletedFalse(roomId)
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng với id: " + roomId));
+        com.mpbhms.backend.entity.CustomService service = serviceRepository.findById(serviceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy dịch vụ với id: " + serviceId));
+        if (room.getServices() == null) return false;
+        boolean exists = room.getServices().stream().anyMatch(s -> s.getId().equals(serviceId));
+        if (!exists) return false;
+        // Kiểm tra nếu dịch vụ đã phát sinh hóa đơn thì không cho xóa
+        if (!billDetailRepository.findByServiceIdAndRoomId(serviceId, roomId).isEmpty()) {
+            throw new BusinessException("Không thể xóa dịch vụ đã phát sinh hóa đơn. Vui lòng ngừng sử dụng từ kỳ sau.");
+        }
+        // Nếu là dịch vụ điện, xóa ServiceReading chưa phát sinh hóa đơn
+        if (service.getServiceType() == ServiceType.ELECTRICITY) {
+            java.util.List<ServiceReading> readings = serviceReadingRepository.findByServiceIdAndRoomId(serviceId, roomId);
+            for (ServiceReading reading : readings) {
+                serviceReadingRepository.delete(reading);
+            }
+        }
+        // Xóa dịch vụ khỏi phòng
+        room.getServices().removeIf(s -> s.getId().equals(serviceId));
+        roomRepository.save(room);
+        return true;
     }
 
     @Override
