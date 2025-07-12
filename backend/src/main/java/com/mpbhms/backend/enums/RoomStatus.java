@@ -1,7 +1,7 @@
 package com.mpbhms.backend.enums;
 
 public enum RoomStatus {
-    AVAILABLE,
+    Available,
     Occupied,
     Maintenance,
     Inactive
