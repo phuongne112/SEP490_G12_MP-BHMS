@@ -3,6 +3,7 @@ package com.mpbhms.backend.exception;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.mpbhms.backend.entity.ApiResponse;
+import jakarta.persistence.EntityNotFoundException;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -11,23 +12,21 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
-
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.util.HashMap;
 import java.util.Map;
-import jakarta.persistence.EntityNotFoundException;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private ResponseEntity<ApiResponse<?>> buildResponse(HttpStatus status, String errorCode, String message,
-            Object data) {
+                                                         Object data) {
         ApiResponse<?> response = new ApiResponse<>(
                 status.value(),
                 errorCode,
@@ -89,7 +88,7 @@ public class GlobalExceptionHandler {
                 "Dữ liệu JSON không hợp lệ hoặc thiếu trường bắt buộc.", null);
     }
 
-    @ExceptionHandler({ JsonParseException.class, JsonMappingException.class })
+    @ExceptionHandler({JsonParseException.class, JsonMappingException.class})
     public ResponseEntity<ApiResponse<?>> handleJsonMappingExceptions(Exception ex) {
         return buildResponse(HttpStatus.BAD_REQUEST, "JSON_PARSE_ERROR", "Lỗi khi phân tích cú pháp JSON.", null);
     }
@@ -105,7 +104,7 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, "INVALID_PATH_PARAM", "Tham số trong URL không hợp lệ.", null);
     }
 
-    @ExceptionHandler({ DataIntegrityViolationException.class, ConstraintViolationException.class })
+    @ExceptionHandler({DataIntegrityViolationException.class, ConstraintViolationException.class})
     public ResponseEntity<ApiResponse<?>> handleDataIntegrityViolation(Exception ex) {
         String message = "Dữ liệu bị trùng lặp hoặc vi phạm ràng buộc.";
         Throwable cause = ex.getCause();
@@ -130,14 +129,16 @@ public class GlobalExceptionHandler {
                 ex.getMessage() != null ? ex.getMessage() : "Không tìm thấy tài nguyên.", null);
     }
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiResponse<?>> handleRuntimeException(RuntimeException ex) {
-        return buildResponse(HttpStatus.BAD_REQUEST, "RUNTIME_ERROR", ex.getMessage(), null);
-    }
-
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ApiResponse<?>> handleNotFoundException(NotFoundException ex) {
         return buildResponse(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ApiResponse<?>> handleRuntimeException(RuntimeException ex) {
+        ex.printStackTrace(); // Ghi log để debug
+        return buildResponse(HttpStatus.BAD_REQUEST, "RUNTIME_ERROR",
+                ex.getMessage() != null ? ex.getMessage() : "Có lỗi xảy ra trong quá trình xử lý.", null);
     }
 
     @ExceptionHandler(Exception.class)
@@ -147,5 +148,5 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getClass().getSimpleName(),
                 "Lỗi hệ thống. Vui lòng thử lại sau!", null);
     }
-
 }
+  

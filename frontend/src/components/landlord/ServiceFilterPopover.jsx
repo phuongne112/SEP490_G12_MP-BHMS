@@ -3,7 +3,7 @@ import { Form, InputNumber, Select, Button, Space } from 'antd';
 
 const { Option } = Select;
 
-export default function ServiceFilterPopover({ onFilter, onClose }) {
+export default function ServiceFilterPopover({ onFilter, onClose, onReset }) {
   const [form] = Form.useForm();
 
   const serviceTypeOptions = [
@@ -19,6 +19,12 @@ export default function ServiceFilterPopover({ onFilter, onClose }) {
     );
     onFilter(cleanedValues);
     onClose(); // Close the popover after applying
+  };
+
+  const handleReset = () => {
+    form.resetFields();
+    if (onReset) onReset();
+    if (onClose) onClose();
   };
 
   return (
@@ -39,8 +45,11 @@ export default function ServiceFilterPopover({ onFilter, onClose }) {
               <Select placeholder="-- Tất cả --" options={serviceTypeOptions} allowClear />
           </Form.Item>
           <Form.Item>
-              <Button type="primary" htmlType="submit" block>
+              <Button type="primary" htmlType="submit" block style={{ marginBottom: 8 }}>
                   Áp dụng
+              </Button>
+              <Button htmlType="button" block onClick={handleReset}>
+                  Xóa lọc
               </Button>
           </Form.Item>
       </Form>

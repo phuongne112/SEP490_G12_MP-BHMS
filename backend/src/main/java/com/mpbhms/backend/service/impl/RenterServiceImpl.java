@@ -24,6 +24,7 @@ import com.mpbhms.backend.dto.RenterRoomInfoDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -114,7 +115,7 @@ public class RenterServiceImpl implements RenterService {
         user.setEmail(dto.getEmail());
         user.setUsername(dto.getUsername());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
-        user.setIsActive(true);
+        user.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
 
         Role renterRole = roleRepository.findById(2L)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy vai trò người thuê (ID = 2)"));

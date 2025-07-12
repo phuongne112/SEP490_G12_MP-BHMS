@@ -51,3 +51,34 @@ export const getAssetInventoryByRoomAndContract = async (roomNumber, contractId)
   const response = await axiosClient.get(`/asset-inventory/by-room-contract?roomNumber=${encodeURIComponent(roomNumber)}&contractId=${contractId}`);
   return response;
 };
+
+// RoomAsset APIs
+export const getAssetsByRoom = async (roomId) => {
+  const response = await axiosClient.get(`/room-assets/by-room?roomId=${roomId}`);
+  return response;
+};
+
+export const addAssetToRoom = async ({ roomId, assetId, quantity, status, note }) => {
+  const params = new URLSearchParams({ roomId, assetId, quantity, status });
+  if (note) params.append('note', note);
+  const response = await axiosClient.post(`/room-assets?${params.toString()}`);
+  return response;
+};
+
+export const updateRoomAsset = async ({ id, quantity, status, note }) => {
+  const params = new URLSearchParams({ quantity, status });
+  if (note) params.append('note', note);
+  const response = await axiosClient.put(`/room-assets/${id}?${params.toString()}`);
+  return response;
+};
+
+export const deleteRoomAsset = async (id) => {
+  const response = await axiosClient.delete(`/room-assets/${id}`);
+  return response;
+};
+
+// Lấy RoomAsset theo roomNumber (chuỗi)
+export const getAssetsByRoomNumber = async (roomNumber) => {
+  const response = await axiosClient.get(`/room-assets/by-room-number?roomNumber=${roomNumber}`);
+  return response;
+};

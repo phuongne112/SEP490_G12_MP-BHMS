@@ -93,11 +93,12 @@ export default function LandlordServiceListPage() {
   };
 
   const handleAdvancedFilterApply = (advancedFilters) => {
-    // Merges advanced filters with existing filters (like search term)
-    const newFilters = { ...activeFilters, ...advancedFilters };
+    // Gộp với searchInput nếu có, nhưng KHÔNG merge với activeFilters cũ
+    const newFilters = { ...advancedFilters };
+    if (searchInput) newFilters.serviceName = searchInput;
     setActiveFilters(newFilters);
     setPagination(p => ({ ...p, current: 1 }));
-    setIsFilterOpen(false); // Close popover on apply
+    setIsFilterOpen(false);
   };
   
   const handleEdit = (id) => {
@@ -177,6 +178,14 @@ export default function LandlordServiceListPage() {
     fetchServices(1, value, activeFilters);
   };
 
+  // Thêm hàm reset filter
+  const handleResetFilter = () => {
+    setActiveFilters({});
+    setSearchInput("");
+    setPagination(p => ({ ...p, current: 1 }));
+    fetchServices(1, pagination.pageSize, {});
+  };
+
   return (
     <Layout style={{ minHeight: "100vh", flexDirection: "row" }}>
       <Sider width={220} style={{ background: "#001529" }}>
@@ -196,7 +205,7 @@ export default function LandlordServiceListPage() {
                     style={{ width: 250 }}
                 />
                 <Popover
-                  content={<ServiceFilterPopover onFilter={handleAdvancedFilterApply} onClose={() => setIsFilterOpen(false)} />}
+                  content={<ServiceFilterPopover onFilter={handleAdvancedFilterApply} onClose={() => setIsFilterOpen(false)} onReset={handleResetFilter} />}
                   trigger="click"
                   placement="bottomRight"
                   open={isFilterOpen}
@@ -252,13 +261,13 @@ export default function LandlordServiceListPage() {
                   <Button key="back" onClick={handleModalCancel}>Hủy</Button>,
                   <Popconfirm
                     key="submit"
-                    title="Update the service"
-                    description="Are you sure you want to save these changes?"
+                    title="Cập nhật dịch vụ"
+                    description="Bạn có chắc chắn muốn lưu thay đổi này không?"
                     onConfirm={() => form.submit()}
-                    okText="Yes, Update"
-                    cancelText="No"
+                    okText="Cập nhật"
+                    cancelText="Hủy"
                   >
-                    <Button type="primary" loading={isSubmitting}>Update</Button>
+                    <Button type="primary" loading={isSubmitting}>Cập nhật</Button>
                   </Popconfirm>
                 ]
               ) : (

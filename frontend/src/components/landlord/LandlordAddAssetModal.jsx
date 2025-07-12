@@ -52,7 +52,7 @@ export default function LandlordAddAssetModal({ open, onClose, onSuccess, asset,
       let response;
       if (mode === "edit" && asset) {
         response = await updateAsset(asset.id, formData);
-        message.success("Asset updated successfully!");
+        message.success("Cập nhật tài sản thành công!");
       } else {
         response = await addAsset(formData);
         message.success("Thêm tài sản thành công!");
@@ -74,8 +74,8 @@ export default function LandlordAddAssetModal({ open, onClose, onSuccess, asset,
       if (mode === "edit") {
         Modal.confirm({
           title: "Bạn có chắc muốn cập nhật asset này không?",
-          okText: "Yes",
-          cancelText: "No",
+          okText: "Có",
+          cancelText: "Không",
           onOk: async () => {
             await doUpdate(values);
           }

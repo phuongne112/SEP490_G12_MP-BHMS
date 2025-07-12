@@ -18,6 +18,7 @@ import dayjs from "dayjs";
 import { useSelector } from "react-redux";
 import axiosClient from "../../services/axiosClient";
 import { getPersonalInfo } from "../../services/userApi";
+import { ArrowLeftOutlined } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 
@@ -111,8 +112,31 @@ export default function LandlordBookAppointmentPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        flexDirection: "column"
       }}
     >
+      <Button
+        onClick={() => navigate(-1)}
+        style={{
+          alignSelf: "flex-start",
+          margin: "24px 0 0 32px",
+          fontWeight: 600,
+          fontSize: 18,
+          background: "#fff",
+          border: "1.5px solid #e0e0e0",
+          borderRadius: 12,
+          color: "#1677ff",
+          boxShadow: "0 2px 8px rgba(24,144,255,0.07)",
+          padding: "6px 22px 6px 16px",
+          display: "flex",
+          alignItems: "center",
+          gap: 8
+        }}
+        icon={<ArrowLeftOutlined style={{ fontSize: 20, marginRight: 4 }} />}
+        type="default"
+      >
+        Quay lại
+      </Button>
       <Modal
         open={loginModalOpen}
         onCancel={() => setLoginModalOpen(false)}

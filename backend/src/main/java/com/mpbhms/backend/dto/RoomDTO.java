@@ -20,9 +20,9 @@ public class RoomDTO {
     private String landlordPhone;
     private Boolean isActive;
     private Integer maxOccupants;
-    private List<RoomImageDTO> images;  // ✅ cần thiết
-    private List<ServiceDTO> services;  // ✅ cần thiết
-    private List<AssetDTO> assets;      // ✅ cần thiết
+    private List<RoomImageDTO> images;
+    private List<ServiceDTO> services;
+    private List<AssetDTO> assets;
     private String building;
     private boolean hasActiveContract;
 }

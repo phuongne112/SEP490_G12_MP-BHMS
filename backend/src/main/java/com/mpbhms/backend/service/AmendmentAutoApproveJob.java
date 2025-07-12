@@ -38,8 +38,28 @@ public class AmendmentAutoApproveJob {
                         am.setApprovedByTenants(true);
                         am.setStatus(ContractAmendment.AmendmentStatus.APPROVED);
                         amendmentRepo.save(am);
-                        // Gửi notification cho các bên nếu muốn
-                        // TODO: notificationService.createAndSendAutoApproveNotification(am);
+                        // Gửi notification cho các bên
+                        if (am.getContract() != null && am.getContract().getRoomUsers() != null) {
+                            for (var ru : am.getContract().getRoomUsers()) {
+                                if (ru.getUser() != null) {
+                                    notificationService.createAndSend(new com.mpbhms.backend.dto.NotificationDTO() {{
+                                        setRecipientId(ru.getUser().getId());
+                                        setTitle("Yêu cầu sửa đổi hợp đồng đã được tự động duyệt");
+                                        setMessage("Yêu cầu sửa đổi hợp đồng #" + am.getContract().getId() + " đã được hệ thống tự động duyệt do quá hạn chờ xác nhận.");
+                                        setType(com.mpbhms.backend.enums.NotificationType.CUSTOM);
+                                    }});
+                                }
+                            }
+                            // Gửi cho chủ nhà nếu có
+                            if (am.getContract().getRoom() != null && am.getContract().getRoom().getLandlord() != null) {
+                                notificationService.createAndSend(new com.mpbhms.backend.dto.NotificationDTO() {{
+                                    setRecipientId(am.getContract().getRoom().getLandlord().getId());
+                                    setTitle("Yêu cầu sửa đổi hợp đồng đã được tự động duyệt");
+                                    setMessage("Yêu cầu sửa đổi hợp đồng #" + am.getContract().getId() + " đã được hệ thống tự động duyệt do quá hạn chờ xác nhận.");
+                                    setType(com.mpbhms.backend.enums.NotificationType.CUSTOM);
+                                }});
+                            }
+                        }
                     }
                 } else if (deadline.minus(1, ChronoUnit.DAYS).isBefore(now)) {
                     // Còn 1 ngày sẽ hết hạn, gửi notification nhắc nhở

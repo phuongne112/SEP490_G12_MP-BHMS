@@ -2,7 +2,17 @@ import React, { useState, useEffect } from "react";
 import Footer from "../components/layout/Footer";
 import Header from "../components/layout/Header";
 import RoomList from "../components/home/RoomList";
-import { Slider, Select, Button, Typography, Carousel, Dropdown, Badge, Input, Spin } from "antd";
+import {
+  Slider,
+  Select,
+  Button,
+  Typography,
+  Carousel,
+  Dropdown,
+  Badge,
+  Input,
+  Spin,
+} from "antd";
 import { useNavigate } from "react-router-dom";
 import { BellOutlined } from "@ant-design/icons";
 import { getAllRooms } from "../services/roomService";
@@ -43,7 +53,9 @@ export default function HomePage() {
       try {
         const res = await getAllRooms(0, 1000, "", "");
         const allRooms = res.result || [];
-        const uniqueBuildings = Array.from(new Set(allRooms.map(r => r.building).filter(Boolean)));
+        const uniqueBuildings = Array.from(
+          new Set(allRooms.map((r) => r.building).filter(Boolean))
+        );
         setBuildingOptions(uniqueBuildings);
       } catch (e) {
         setBuildingOptions([]);
@@ -120,7 +132,7 @@ export default function HomePage() {
         }}
       >
         <div>
-          <div style={{ height: 450, overflow: "hidden" }}>
+          <div style={{ height: 500, overflow: "hidden" }}>
             <img
               src="/banners/banner1.png"
               alt="Banner 1"
@@ -129,7 +141,7 @@ export default function HomePage() {
           </div>
         </div>
         <div>
-          <div style={{ height: 450, overflow: "hidden" }}>
+          <div style={{ height: 500, overflow: "hidden" }}>
             <img
               src="/banners/banner2.png"
               alt="Banner 2"
@@ -138,10 +150,37 @@ export default function HomePage() {
           </div>
         </div>
         <div>
-          <div style={{ height: 450, overflow: "hidden" }}>
+          <div style={{ height: 500, overflow: "hidden" }}>
             <img
               src="/banners/banner3.png"
               alt="Banner 3"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          </div>
+        </div>
+        <div>
+          <div style={{ height: 500, overflow: "hidden" }}>
+            <img
+              src="/banners/banner4.png"
+              alt="Banner 4"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          </div>
+        </div>
+        <div>
+          <div style={{ height: 500, overflow: "hidden" }}>
+            <img
+              src="/banners/banner5.png"
+              alt="Banner 5"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          </div>
+        </div>
+        <div>
+          <div style={{ height: 500, overflow: "hidden" }}>
+            <img
+              src="/banners/banner6.png"
+              alt="Banner 6"
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           </div>
@@ -237,15 +276,17 @@ export default function HomePage() {
           <FilterBox title="Tòa nhà">
             <Select
               value={building}
-              onChange={val => setBuilding(val)}
+              onChange={(val) => setBuilding(val)}
               style={{ width: "100%" }}
               loading={buildingLoading}
               allowClear
               placeholder="Chọn tòa nhà"
             >
               <Option value="">Tất cả</Option>
-              {buildingOptions.map(b => (
-                <Option key={b} value={b}>{b}</Option>
+              {buildingOptions.map((b) => (
+                <Option key={b} value={b}>
+                  {b}
+                </Option>
               ))}
             </Select>
           </FilterBox>

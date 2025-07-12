@@ -66,6 +66,8 @@ export default function UserTable({
           id: item.id,
           email: item.email,
           username: item.username,
+          fullName: item.fullName,
+          phoneNumber: item.phoneNumber,
           isActive: item.isActive,
           createdAt: item.createdDate?.slice(0, 10),
           status: item.isActive ? "Đang hoạt động" : "Ngừng hoạt động",
@@ -117,12 +119,22 @@ export default function UserTable({
       render: (_, __, index) => (pagination.current - 1) * pageSize + index + 1,
     },
     {
+      title: "Họ và tên",
+      dataIndex: "fullName",
+      render: (text) => text || "---",
+    },
+    {
       title: "Email",
       dataIndex: "email",
     },
     {
       title: "Tên đăng nhập",
       dataIndex: "username",
+    },
+    {
+      title: "Số điện thoại",
+      dataIndex: "phoneNumber",
+      render: (text) => text || "---",
     },
     {
       title: "Ngày tạo",

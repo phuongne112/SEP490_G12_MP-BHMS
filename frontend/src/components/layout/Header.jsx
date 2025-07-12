@@ -304,6 +304,36 @@ export default function Header() {
             style={{ color: "#cbd5e1", fontSize: 15, cursor: "pointer" }}
             onMouseOver={(e) => (e.target.style.color = "#fff")}
             onMouseOut={(e) => (e.target.style.color = "#cbd5e1")}
+            onClick={() => {
+              if (label === "Phòng") {
+                if (window.location.pathname === "/" || window.location.pathname === "/home") {
+                  setTimeout(() => {
+                    const el = document.getElementById("room-list-section");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                  }, 100);
+                } else {
+                  navigate("/home");
+                  setTimeout(() => {
+                    const el = document.getElementById("room-list-section");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                  }, 400);
+                }
+              }
+              if (label === "Liên hệ") {
+                if (window.location.pathname === "/" || window.location.pathname === "/home") {
+                  setTimeout(() => {
+                    const el = document.getElementById("footer");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                  }, 100);
+                } else {
+                  navigate("/home");
+                  setTimeout(() => {
+                    const el = document.getElementById("footer");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                  }, 400);
+                }
+              }
+            }}
           >
             {label}
           </span>

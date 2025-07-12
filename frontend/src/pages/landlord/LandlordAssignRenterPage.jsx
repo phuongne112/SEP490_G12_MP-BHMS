@@ -182,6 +182,9 @@ export default function LandlordAssignRenterPage() {
     );
   }
 
+  // Nếu phòng đang bảo trì hoặc ngừng hoạt động, không cho gán người thuê
+  const isRoomInactive = room.roomStatus === 'Maintenance' || room.roomStatus === 'Inactive';
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Sider width={220}>
@@ -243,6 +246,11 @@ export default function LandlordAssignRenterPage() {
               </Space>
             </Card>
             <Card title="Gán người thuê" style={{ flex: 2 }}>
+              {isRoomInactive && (
+                <div style={{ color: 'red', marginBottom: 16 }}>
+                  Không thể gán người thuê vào phòng này vì phòng đang ở trạng thái "{room.roomStatus === 'Maintenance' ? 'Bảo trì' : 'Ngừng hoạt động'}".
+                </div>
+              )}
               <Form
                 form={form}
                 layout="vertical"
@@ -251,6 +259,7 @@ export default function LandlordAssignRenterPage() {
                   paymentCycle: "MONTHLY",
                   depositAmount: room.pricePerMonth || 0
                 }}
+                disabled={isRoomInactive}
               >
                 <Form.Item
                   label="Chọn người thuê"

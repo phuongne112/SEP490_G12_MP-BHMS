@@ -416,6 +416,7 @@ export default function LandlordBillCreatePage() {
                     picker="month" 
                     placeholder="Chọn tháng"
                     style={{ width: '100%' }}
+                    disabledDate={date => date && date.endOf('month').isBefore(dayjs().startOf('month'))}
                   />
                 </Form.Item>
               </>

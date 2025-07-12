@@ -344,7 +344,16 @@ export default function RoomDetailPage() {
                     <Title level={5} style={{ color: "#1976d2" }}>Tài sản</Title>
                     <ul style={{ marginLeft: 18 }}>
                       {room.assets.map((a, i) => (
-                        <li key={i}>{a.assetName}</li>
+                        <li key={i} style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+                          {a.assetImage ? (
+                            <img
+                              src={getImageUrl(a.assetImage)}
+                              alt={a.assetName}
+                              style={{ width: 40, height: 28, objectFit: 'cover', borderRadius: 4, marginRight: 10, border: '1px solid #e0e0e0', background: '#fafafa' }}
+                            />
+                          ) : null}
+                          <span>{a.assetName}</span>
+                        </li>
                       ))}
                     </ul>
                   </>

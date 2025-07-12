@@ -52,6 +52,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("View Deleted Rooms", "/mpbhms/rooms/deleted", "GET", "Room"));
             permissions.add(new Permission("View Room with Renter", "/mpbhms/rooms/with-renter", "GET", "Room"));
             permissions.add(new Permission("Get Room by ID", "/mpbhms/rooms/{id}", "GET", "Room"));
+            permissions.add(new Permission("Delete service of room", "/mpbhms/rooms/{roomId}/remove-service/{serviceId}", "DELETE", "Room"));
             //User
             permissions.add(new Permission("Create User", "/mpbhms/users", "POST", "User"));
             permissions.add(new Permission("Update User", "/mpbhms/users", "PUT", "User"));
@@ -111,6 +112,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Delete Bill", "/mpbhms/bills/{id}", "DELETE", "Bill"));
             permissions.add(new Permission("Generate", "/mpbhms/bills/service-bill", "POST", "Bill"));
             permissions.add(new Permission("Export Bill", "/mpbhms/bills/{id}/export", "GET", "Bill"));
+            permissions.add(new Permission("Send bill to Email", "/mpbhms/bills/send-email/{billId}", "POST", "Bill"));
             //Renter
             permissions.add(new Permission("Get Renter List", "/mpbhms/renters", "GET", "Renter"));
             permissions.add(new Permission("Create new Renter", "/mpbhms/renters", "POST", "Renter"));
@@ -130,6 +132,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Get All Schedules", "/mpbhms/schedules", "GET", "Schedule"));
             permissions.add(new Permission("Get Schedule", "/mpbhms/schedules/{id}", "GET", "Schedule"));
             permissions.add(new Permission("Update Schedule Status", "/mpbhms/schedules/{id}/status", "PATCH", "Schedule"));
+            permissions.add(new Permission("Update Schedule", "/mpbhms/schedules/{id}", "PUT", "Schedule"));
             permissions.add(new Permission("Delete Schedule", "/mpbhms/schedules/{id}", "DELETE", "Schedule"));
             permissions.add(new Permission("Get My Schedules", "/mpbhms/schedules/my", "GET", "Schedule"));
             //Asset
@@ -161,6 +164,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Create or Update Contract Template", "/mpbhms/contract-templates", "POST", "ContractTemplate"));
             permissions.add(new Permission("Delete Contract Template", "/mpbhms/contract-templates/{id}", "DELETE", "ContractTemplate"));
             permissions.add(new Permission("Set Default Contract Template", "/mpbhms/contract-templates/{id}/set-default", "POST", "ContractTemplate"));
+            permissions.add(new Permission("View Rooms With Electric Readings", "/mpbhms/rooms/with-electric-readings", "GET", "Room"));
 
             permissions = permissionRepository.saveAll(permissions);
         }
@@ -236,8 +240,26 @@ public class DatabaseInitializer implements CommandLineRunner {
             if (getAllSchedules != null) renterPermission.add(getAllSchedules);
             Permission getScheduleById = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/mpbhms/schedules/{id}", "GET");
             if (getScheduleById != null) renterPermission.add(getScheduleById);
+            // Khai báo các permission Schedule dùng chung cho các role
             Permission createSchedule = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/mpbhms/schedules", "POST");
+            Permission updateScheduleStatus = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/mpbhms/schedules/{id}/status", "PATCH");
+            Permission updateSchedule = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/mpbhms/schedules/{id}", "PUT");
+            Permission deleteSchedule = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/mpbhms/schedules/{id}", "DELETE");
+
+            // Quyền cho RENTER
             if (createSchedule != null) renterPermission.add(createSchedule);
+            if (updateScheduleStatus != null) renterPermission.add(updateScheduleStatus);
+            if (updateSchedule != null) renterPermission.add(updateSchedule);
+            if (deleteSchedule != null) renterPermission.add(deleteSchedule);
+            if (viewRoom != null) renterPermission.add(viewRoom);
+
+            // Quyền cập nhật lịch hẹn cho RENTER
+            // Permission updateScheduleStatus = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/mpbhms/schedules/{id}/status", "PATCH");
+            // if (updateScheduleStatus != null) renterPermission.add(updateScheduleStatus);
+
+            // Quyền cập nhật toàn bộ lịch hẹn cho RENTER
+            // Permission updateSchedule = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/mpbhms/schedules/{id}", "PUT");
+            // if (updateSchedule != null) renterPermission.add(updateSchedule);
 
 // Export contract permission
             Permission exportContract = permissionRepository.findByModuleAndApiPathAndMethod("Contract", "/mpbhms/contracts/{id}/export", "GET");
@@ -296,6 +318,44 @@ public class DatabaseInitializer implements CommandLineRunner {
             }
             subAdminRole.setPermissionEntities(subAdminPermission);
             roleRepository.save(subAdminRole);
+
+            // Thêm role USER cho user thường
+            Role userRole = new Role();
+            userRole.setRoleName("USER");
+            List<Permission> userPermissions = new ArrayList<>();
+
+            // Quyền cho USER: cho phép xóa lịch hẹn của chính mình
+            if (deleteSchedule != null) userPermissions.add(deleteSchedule);
+
+            // Quyền tạo lịch hẹn
+            // Permission createSchedule = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/mpbhms/schedules", "POST");
+            if (createSchedule != null) userPermissions.add(createSchedule);
+
+            // Quyền xem lịch hẹn của mình
+            // Permission getMySchedules = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/mpbhms/schedules/my", "GET");
+            if (getMySchedules != null) userPermissions.add(getMySchedules);
+
+            // Quyền cập nhật lịch hẹn
+            // Permission updateScheduleStatus = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/mpbhms/schedules/{id}/status", "PATCH");
+            if (updateScheduleStatus != null) userPermissions.add(updateScheduleStatus);
+
+            // Quyền cập nhật toàn bộ lịch hẹn
+            // Permission updateSchedule = permissionRepository.findByModuleAndApiPathAndMethod("Schedule", "/mpbhms/schedules/{id}", "PUT");
+            if (updateSchedule != null) userPermissions.add(updateSchedule);
+
+            // Quyền xem thông báo của mình
+            if (viewMyNotification != null && !userPermissions.contains(viewMyNotification)) {
+                userPermissions.add(viewMyNotification);
+            }
+            if (markReadNotification != null && !userPermissions.contains(markReadNotification)) {
+                userPermissions.add(markReadNotification);
+            }
+
+            // Quyền xem phòng
+            if (viewRoom != null) userPermissions.add(viewRoom);
+
+            userRole.setPermissionEntities(userPermissions);
+            roleRepository.save(userRole);
         }
 
         // --- Init Users ---
