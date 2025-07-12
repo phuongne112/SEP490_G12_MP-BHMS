@@ -93,6 +93,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiResponse<?>> handleRuntimeException(RuntimeException ex) {
+        ex.printStackTrace(); // Log lỗi ra console
         return buildResponse(HttpStatus.BAD_REQUEST, "RUNTIME_ERROR", ex.getMessage() != null ? ex.getMessage() : "Có lỗi xảy ra trong quá trình xử lý.", null);
     }
 

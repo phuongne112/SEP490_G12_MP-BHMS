@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import com.mpbhms.backend.util.SecurityUtil;
 
 @Service
 public class ScheduleServiceImpl implements ScheduleService {
@@ -85,7 +86,68 @@ public class ScheduleServiceImpl implements ScheduleService {
     }
 
     @Override
+    public ScheduleDTO updateSchedule(Long id, CreateScheduleRequest request) {
+        Schedule schedule = scheduleRepository.findById(id).orElseThrow();
+        
+        // Cập nhật thông tin lịch hẹn
+        if (request.getRoomId() != null) {
+            Room room = roomRepository.findById(request.getRoomId()).orElseThrow();
+            schedule.setRoom(room);
+        }
+        if (request.getRenterId() != null) {
+            Optional<User> renter = userRepository.findById(request.getRenterId());
+            renter.ifPresent(schedule::setRenter);
+        }
+        schedule.setFullName(request.getFullName());
+        schedule.setPhone(request.getPhone());
+        schedule.setEmail(request.getEmail());
+        schedule.setAppointmentTime(request.getAppointmentTime());
+        schedule.setNote(request.getNote());
+        
+        schedule = scheduleRepository.save(schedule);
+        return toDTO(schedule);
+    }
+
+    @Override
     public void deleteSchedule(Long id) {
+        Schedule schedule = scheduleRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch hẹn"));
+
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        User currentUser = null;
+        if (currentUserId != null) {
+            currentUser = userRepository.findById(currentUserId).orElse(null);
+        }
+
+        // Chỉ chặn các role đặc biệt
+        boolean isForbiddenRole = false;
+        if (currentUser != null && currentUser.getRole() != null) {
+            String roleName = currentUser.getRole().getRoleName();
+            if ("ADMIN".equals(roleName) || "SUBADMIN".equals(roleName) || "LANDLORD".equals(roleName)) {
+                isForbiddenRole = true;
+            }
+        }
+        if (isForbiddenRole) {
+            throw new RuntimeException("Bạn không có quyền xóa lịch hẹn này!");
+        }
+
+        boolean isOwner = false;
+        if (currentUser != null) {
+            // Nếu là renter của lịch hẹn
+            if (schedule.getRenter() != null && schedule.getRenter().getId().equals(currentUser.getId())) {
+                isOwner = true;
+            }
+            // Nếu là user thường hoặc không có role, kiểm tra email trùng với lịch hẹn
+            if (schedule.getEmail() != null && schedule.getEmail().equalsIgnoreCase(currentUser.getEmail())) {
+                isOwner = true;
+            }
+        }
+        System.out.println("[DEBUG] isOwner: " + isOwner);
+
+        if (!isOwner) {
+            throw new RuntimeException("Bạn không có quyền xóa lịch hẹn này!");
+        }
+
         scheduleRepository.deleteById(id);
     }
 
