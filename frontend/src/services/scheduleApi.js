@@ -8,6 +8,8 @@ const scheduleApi = {
   getAll: () => axiosClient.get("/schedules"),
   // Lấy chi tiết lịch hẹn theo id (nếu cần)
   getById: (id) => axiosClient.get(`/schedules/${id}`),
+  // Cập nhật lịch hẹn
+  update: (id, data) => axiosClient.put(`/schedules/${id}`, data),
   // Xóa lịch hẹn (nếu cần)
   delete: (id) => axiosClient.delete(`/schedules/${id}`),
 };

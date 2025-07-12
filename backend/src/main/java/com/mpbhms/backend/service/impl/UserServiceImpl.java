@@ -110,6 +110,11 @@ public class UserServiceImpl implements UserService {
         dto.setCreatedDate(user.getCreatedDate());
         dto.setUpdatedBy(user.getUpdatedBy());
         dto.setUpdatedDate(user.getUpdatedDate());
+        // Map thông tin cá nhân nếu có
+        if (user.getUserInfo() != null) {
+            dto.setFullName(user.getUserInfo().getFullName());
+            dto.setPhoneNumber(user.getUserInfo().getPhoneNumber());
+        }
         return dto;
     }
     @Override

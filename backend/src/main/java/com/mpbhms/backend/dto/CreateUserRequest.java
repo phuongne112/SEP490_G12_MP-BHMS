@@ -25,5 +25,7 @@ public class CreateUserRequest {
 
     @Password
     private String password;
+
+    private Boolean isActive;
 }
 

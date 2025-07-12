@@ -71,6 +71,14 @@ public class PermissionInterceptor implements HandlerInterceptor {
                     if ("/mpbhms/notifications".equals(path) && "GET".equals(httpMethod)) {
                         return true;
                     }
+                    // Nếu là API xóa lịch hẹn, cũng cho phép
+                    if (path != null && path.matches("/mpbhms/schedules/\\{[^/]+\\}") && "DELETE".equals(httpMethod)) {
+                        return true;
+                    }
+                    // Nếu là API edit lịch hẹn, cũng cho phép
+                    if (path != null && path.matches("/mpbhms/schedules/\\{[^/]+\\}") && "PUT".equals(httpMethod)) {
+                        return true;
+                    }
                     // Với các API khác, từ chối truy cập
                     throw new IdInvalidException("You do not have permission to access this endpoint!!!");
                 }

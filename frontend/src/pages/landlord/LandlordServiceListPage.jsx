@@ -261,13 +261,13 @@ export default function LandlordServiceListPage() {
                   <Button key="back" onClick={handleModalCancel}>Hủy</Button>,
                   <Popconfirm
                     key="submit"
-                    title="Update the service"
-                    description="Are you sure you want to save these changes?"
+                    title="Cập nhật dịch vụ"
+                    description="Bạn có chắc chắn muốn lưu thay đổi này không?"
                     onConfirm={() => form.submit()}
-                    okText="Yes, Update"
-                    cancelText="No"
+                    okText="Cập nhật"
+                    cancelText="Hủy"
                   >
-                    <Button type="primary" loading={isSubmitting}>Update</Button>
+                    <Button type="primary" loading={isSubmitting}>Cập nhật</Button>
                   </Popconfirm>
                 ]
               ) : (

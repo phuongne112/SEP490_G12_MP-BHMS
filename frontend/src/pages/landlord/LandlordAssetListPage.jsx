@@ -119,7 +119,7 @@ export default function LandlordAssetListPage() {
   const handleDeleteAsset = async (id) => {
     try {
       await deleteAsset(id);
-      message.success("Asset deleted successfully!");
+      message.success("Xóa tài sản thành công!");
       fetchAssets(currentPage, filter, pageSize);
     } catch (err) {
       message.error(err.response?.data?.message || "Failed to delete asset");

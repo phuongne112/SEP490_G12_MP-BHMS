@@ -192,9 +192,9 @@ export default function LandlordEditRoomPage() {
                 <Form.Item
                   name="roomNumberSuffix"
                   label="Số phòng"
-                  rules={[{ required: true, message: "Vui lòng nhập số phòng" }]}
+                  rules={[{ required: true, message: "Vui lòng nhập số phòng (chỉ gồm số)" }]}
                 >
-                  <Input placeholder="Ví dụ: 101" />
+                  <InputNumber placeholder="Ví dụ: 101" style={{ width: '100%' }} min={1} step={1} stringMode={false} />
                 </Form.Item>
               </Col>
               <Col span={12}>

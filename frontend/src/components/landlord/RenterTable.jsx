@@ -49,7 +49,7 @@ export default function RenterTable({ search = "", filter = {} }) {
         checkInDate: item.renterRoomInfo?.checkInDate
           ? new Date(item.renterRoomInfo.checkInDate).toLocaleDateString()
           : "N/A",
-        status: item.isActive ? "Đang thuê" : "Ngừng thuê",
+        status: (item.renterRoomInfo?.roomName && item.renterRoomInfo?.roomName !== "N/A") ? "Đang thuê" : "Ngừng thuê",
         isActive: item.isActive,
       }));
       setData(formatted);
@@ -105,6 +105,19 @@ export default function RenterTable({ search = "", filter = {} }) {
     }
   };
 
+  const handleChangeAccountStatus = async (record) => {
+    try {
+      await updateRenterStatus(record.id, !record.isActive);
+      message.success(
+        `Tài khoản đã được ${!record.isActive ? "kích hoạt" : "vô hiệu hóa"} thành công.`
+      );
+      fetchData(pagination.current, pagination.pageSize);
+    } catch (err) {
+      console.error(err);
+      message.error("Cập nhật trạng thái tài khoản thất bại.");
+    }
+  };
+
   const columns = [
     {
       title: "STT",
@@ -139,21 +152,29 @@ export default function RenterTable({ search = "", filter = {} }) {
       dataIndex: "status",
       align: "center",
       width: 140,
-      render: (_, record) => (
+      render: (status) => (
+        <Tag color={status === "Đang thuê" ? "green" : "red"}>
+          {status}
+        </Tag>
+      ),
+    },
+    {
+      title: "Trạng thái tài khoản",
+      dataIndex: "isActive",
+      align: "center",
+      width: 160,
+      render: (active, record) => (
         <Popconfirm
           title={`Bạn có chắc muốn ${
             record.isActive ? "vô hiệu hóa" : "kích hoạt"
-          } người thuê này?`}
-          onConfirm={() => handleChangeStatus(record)}
+          } tài khoản này?`}
+          onConfirm={() => handleChangeAccountStatus(record)}
           okText="Có"
           cancelText="Không"
           placement="top"
         >
-          <Tag
-            color={record.isActive ? "green" : "red"}
-            style={{ cursor: "pointer" }}
-          >
-            {record.isActive ? "Đang thuê" : "Ngừng thuê"}
+          <Tag color={active ? "green" : "red"} style={{ cursor: "pointer" }}>
+            {active ? "Đang hoạt động" : "Ngừng hoạt động"}
           </Tag>
         </Popconfirm>
       ),

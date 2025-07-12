@@ -165,12 +165,14 @@ export default function AppRouter() {
         <Route path="bills" element={<LandlordBillListPage />} />
         <Route path="bills/create" element={<LandlordBillCreatePage />} />
         <Route path="bills/:id" element={<LandlordBillDetailPage />} />
-        <Route path="rooms/:roomId/book" element={<UserRoute><LandlordBookAppointmentPage /></UserRoute>} />
         <Route path="users" element={<LandlordUserListPage />} />
         <Route path="assets" element={<LandlordAssetListPage />} />
         <Route path="bookings" element={<LandlordBookingListPage />} />
         <Route path="contract-templates" element={<LandlordContractTemplateManager />} />
       </Route>
+
+      {/* Đặt lịch hẹn: route riêng ngoài LandlordRoute */}
+      <Route path="/landlord/rooms/:roomId/book" element={<UserRoute><LandlordBookAppointmentPage /></UserRoute>} />
 
       {/* Renter Routes */}
       <Route

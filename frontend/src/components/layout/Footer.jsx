@@ -4,6 +4,7 @@ import { FaFacebookF, FaYoutube, FaLinkedinIn } from "react-icons/fa";
 export default function Footer() {
   return (
     <footer
+      id="footer"
       style={{ background: "#fff", borderTop: "1px solid #eee", padding: 0 }}
     >
       <div

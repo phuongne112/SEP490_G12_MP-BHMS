@@ -13,6 +13,7 @@ public interface ScheduleService {
     List<ScheduleDTO> getAllSchedules();
     ScheduleDTO getSchedule(Long id);
     ScheduleDTO updateStatus(Long id, ScheduleStatus status);
+    ScheduleDTO updateSchedule(Long id, CreateScheduleRequest request);
     void deleteSchedule(Long id);
     List<ScheduleDTO> getSchedulesByLandlord(Long landlordId);
     ResultPaginationDTO searchAndFilter(Long landlordId, String search, ScheduleStatus status, Instant from, Instant to, int page, int pageSize);
