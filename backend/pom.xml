@@ -76,6 +76,8 @@
 			<artifactId>jpa</artifactId>
 			<version>3.1.7</version>
 		</dependency>
+
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>
@@ -94,12 +96,20 @@
 			<artifactId>handlebars</artifactId>
 			<version>4.3.1</version>
 		</dependency>
+
 		<dependency>
 			<groupId>com.openhtmltopdf</groupId>
 			<artifactId>openhtmltopdf-pdfbox</artifactId>
 			<version>1.0.10</version>
 		</dependency>
 	</dependencies>
+	<repositories>
+		<repository>
+			<id>jitpack.io</id>
+			<url>https://jitpack.io</url>
+		</repository>
+	</repositories>
+
 
 	<build>
 		<plugins>
@@ -115,6 +125,16 @@
 					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<compilerArgs>
+						<arg>-Xlint:unchecked</arg>
+					</compilerArgs>
+				</configuration>
+			</plugin>
+
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
