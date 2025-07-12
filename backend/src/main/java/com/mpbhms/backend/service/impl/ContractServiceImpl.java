@@ -706,7 +706,7 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
                 
                 // Cập nhật trạng thái phòng thành Available
                 Room room = contract.getRoom();
-                room.setRoomStatus(com.mpbhms.backend.enums.RoomStatus.AVAILABLE);
+                room.setRoomStatus(com.mpbhms.backend.enums.RoomStatus.Available);
                 // Lưu room ở đây nếu cần
                 
                 // Gửi thông báo cho người thuê
