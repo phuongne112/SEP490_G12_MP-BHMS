@@ -108,6 +108,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Create Bill", "/mpbhms/bills/create", "POST", "Bill"));
             permissions.add(new Permission("Get Bill by id", "/mpbhms/bills/{id}", "GET", "Bill"));
             permissions.add(new Permission("Get All Bills", "/mpbhms/bills", "GET", "Bill"));
+            permissions.add(new Permission("Create Custom Bills", "/mpbhms/bills/custom", "POST", "Bill"));
             permissions.add(new Permission("Get My Bills", "/mpbhms/bills/my", "GET", "Bill"));
             permissions.add(new Permission("Delete Bill", "/mpbhms/bills/{id}", "DELETE", "Bill"));
             permissions.add(new Permission("Generate", "/mpbhms/bills/service-bill", "POST", "Bill"));
