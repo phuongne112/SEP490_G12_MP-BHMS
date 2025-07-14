@@ -781,14 +781,15 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
                     // Notification for contract expiration
                     NotificationDTO notification = new NotificationDTO();
                     notification.setRecipientId(roomUser.getUser().getId());
-                    notification.setTitle("Hợp đồng đã hết hạn");
+                    notification.setTitle("Contract has expired");
                     notification.setMessage(String.format(
-                        "Hợp đồng phòng %s đã hết hạn vào ngày %s. Vui lòng liên hệ chủ phòng để gia hạn.",
+                        "Contract for room %s has expired on %s. Please contact the landlord to renew.",
                         contract.getRoom().getRoomNumber(),
                         java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
                             .format(contract.getContractEndDate().atZone(java.time.ZoneId.systemDefault()))
                     ));
                     notification.setType(com.mpbhms.backend.enums.NotificationType.CONTRACT_EXPIRED);
+                    
                     try {
                         notificationService.createAndSend(notification);
                     } catch (Exception e) {
@@ -808,14 +809,15 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
                 if (roomUser.getIsActive() && roomUser.getUser() != null) {
                     NotificationDTO notification = new NotificationDTO();
                     notification.setRecipientId(roomUser.getUser().getId());
-                    notification.setTitle("Hợp đồng đã được gia hạn");
+                    notification.setTitle("Contract has been renewed");
                     notification.setMessage(String.format(
-                        "Hợp đồng phòng %s đã được gia hạn đến ngày %s.",
+                        "Contract for room %s has been renewed until %s.",
                         contract.getRoom().getRoomNumber(),
                         java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
                             .format(contract.getContractEndDate().atZone(java.time.ZoneId.systemDefault()))
                     ));
                     notification.setType(com.mpbhms.backend.enums.NotificationType.CONTRACT_RENEWED);
+                    
                     try {
                         notificationService.createAndSend(notification);
                     } catch (Exception e) {
@@ -1027,13 +1029,14 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
                 if (roomUser.getIsActive() && roomUser.getUser() != null) {
                     NotificationDTO notification = new NotificationDTO();
                     notification.setRecipientId(roomUser.getUser().getId());
-                    notification.setTitle("Hợp đồng đã được cập nhật");
+                    notification.setTitle("Contract has been updated");
                     notification.setMessage(String.format(
-                        "Hợp đồng phòng %s đã được cập nhật: %s. Vui lòng kiểm tra và phê duyệt.",
+                        "Contract for room %s has been updated: %s. Please review and approve.",
                         contract.getRoom().getRoomNumber(),
                         request.getReasonForUpdate()
                     ));
                     notification.setType(com.mpbhms.backend.enums.NotificationType.CUSTOM);
+                    
                     try {
                         notificationService.createAndSend(notification);
                     } catch (Exception e) {
