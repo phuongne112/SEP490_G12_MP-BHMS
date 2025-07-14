@@ -110,7 +110,7 @@ export default function LandlordBookAppointmentPage(props) {
 
   // Nếu là popup chỉ render Card nội dung, không bọc div minHeight 100vh...
   if (isPopup) {
-    return (
+  return (
       <Card
         style={{
           maxWidth: 950,
@@ -291,16 +291,16 @@ export default function LandlordBookAppointmentPage(props) {
                 </Form.Item>
 
                 <Form.Item>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    size="large"
-                    loading={submitting}
-                    disabled={isUnavailable || !user}
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  size="large"
+                  loading={submitting}
+                  disabled={isUnavailable || !user}
                     style={{ marginTop: 8, marginRight: 8, width: 140, display: 'inline-block' }}
-                  >
-                    Đặt lịch
-                  </Button>
+                >
+                  Đặt lịch
+                </Button>
                   <Button
                     onClick={onCancel}
                     size="large"

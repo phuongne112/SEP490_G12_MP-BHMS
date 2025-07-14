@@ -44,7 +44,7 @@ export default function RenterTable({ search = "", filter = {} }) {
       const formatted = filtered.map((item) => ({
         key: item.id,
         id: item.id,
-        name: item.userInfo?.fullName || item.username,
+        name: item.fullName || item.username,
         room: item.renterRoomInfo?.roomName || "N/A",
         checkInDate: item.renterRoomInfo?.checkInDate
           ? new Date(item.renterRoomInfo.checkInDate).toLocaleDateString()

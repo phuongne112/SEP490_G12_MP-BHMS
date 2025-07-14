@@ -26,6 +26,7 @@ import com.mpbhms.backend.entity.Contract;
 import com.mpbhms.backend.enums.RoomStatus;
 import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.repository.RoomUserRepository;
+import com.mpbhms.backend.service.AmendmentAutoApproveJob;
 
 @RestController
 @RequestMapping("/mpbhms/room-users")
@@ -36,6 +37,7 @@ public class RoomUserController {
     private final ContractService contractService;
     private final UserRepository userRepository;
     private final RoomUserRepository roomUserRepository;
+    private final AmendmentAutoApproveJob amendmentAutoApproveJob;
 
     @PostMapping("/add-many")
     public ResponseEntity<?> addUsersToRoom(@RequestBody AddUsersToRoomRequest request) {
@@ -195,6 +197,20 @@ public class RoomUserController {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body("Lỗi khi lấy thông tin phòng: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Test trigger thủ công job auto-approve amendment (chỉ dùng cho test)
+     */
+    @PostMapping("/test-auto-approve-amendments")
+    public ResponseEntity<ApiResponse<?>> testAutoApproveAmendments() {
+        try {
+            // Gọi trực tiếp method auto-approve
+            amendmentAutoApproveJob.autoApproveExpiredAmendments();
+            return ResponseEntity.ok(new ApiResponse<>(200, null, "Đã chạy job auto-approve amendments thành công.", null));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(400, null, "Lỗi: " + e.getMessage(), null));
         }
     }
 }

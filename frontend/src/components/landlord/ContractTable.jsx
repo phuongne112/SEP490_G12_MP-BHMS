@@ -3,6 +3,12 @@ import { Table, Button, Popconfirm, Statistic, Space, Spin, Tag } from "antd";
 import { FilePdfOutlined, EditOutlined, HistoryOutlined, ReloadOutlined, StopOutlined } from "@ant-design/icons";
 import { getContractHistoryByRoom } from "../../services/contractApi";
 
+const paymentCycleVN = {
+  MONTHLY: "Hàng tháng",
+  QUARTERLY: "Quý",
+  YEARLY: "Năm"
+};
+
 const { Countdown } = Statistic;
 
 function ContractHistoryTable({ roomId, onExport }) {
@@ -205,7 +211,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       title: "Chu kỳ thanh toán",
       dataIndex: "paymentCycle",
       key: "paymentCycle",
-      render: (cycle) => cycle || "—",
+      render: (cycle) => paymentCycleVN[cycle] || cycle || "—",
       align: "center",
       width: 120
     },
