@@ -8,6 +8,7 @@ import { useSelector } from "react-redux";
 import { UserOutlined, ClockCircleOutlined, ExclamationCircleOutlined, CheckCircleFilled } from "@ant-design/icons";
 import { getAllAssets, getAssetInventoryByRoom, getAssetInventoryByRoomAndContract, getAssetsByRoom, addAssetToRoom } from "../../services/assetApi";
 import axiosClient from "../../services/axiosClient";
+import image1 from '../../assets/RoomImage/image1.png';
 
 const { Meta } = Card;
 const { Option } = Select;
@@ -557,19 +558,20 @@ const user = useSelector((state) => state.account.user);
         setRoomAssetsLoading(false);
     };
 
+    const getImageUrl = (url) => {
+        if (!url) return image1;
+        if (url.startsWith("http")) return url;
+        return BACKEND_URL + url;
+    };
+
     return (
         <>
             <CenterToast message={centerToast.message} visible={centerToast.visible} />
             <Row gutter={[16, 16]}>
                 {rooms.map((room) => {
-                    const getImageUrl = (url) => {
-                        if (!url) return "/img/room-default.png";
-                        if (url.startsWith("http")) return url;
-                        return BACKEND_URL + url;
-                    };
                     const imageUrl = room.images && room.images.length > 0
                         ? getImageUrl(room.images[0].imageUrl)
-                        : "/img/room-default.png";
+                        : image1;
                     const currentStatusProps = getStatusProps(room.roomStatus);
 
                     return (
@@ -580,7 +582,8 @@ const user = useSelector((state) => state.account.user);
                                         <img
                                             alt="room"
                                             src={imageUrl}
-                                            style={{ height: 200, objectFit: "cover", width: "100%" }}
+                                            style={{ height: 200, objectFit: "cover", width: "100%", background: '#f5f5f5', borderRadius: 0 }}
+                                            onError={e => { e.target.onerror = null; e.target.src = image1; }}
                                         />
                                         {/* Overlay action buttons on image */}
                                         <Button
@@ -813,7 +816,11 @@ const user = useSelector((state) => state.account.user);
                     <Input
                         placeholder="Nhập số điện mới (VD: 12345.6)"
                         value={electricValue}
-                        onChange={e => setElectricValue(e.target.value)}
+                        onChange={e => {
+                            // Chỉ cho phép số và dấu chấm
+                            const val = e.target.value.replace(/[^0-9.]/g, "");
+                            setElectricValue(val);
+                        }}
                         style={{ marginBottom: 12 }}
                     />
                     <div style={{ textAlign: 'center', marginBottom: 12 }}>

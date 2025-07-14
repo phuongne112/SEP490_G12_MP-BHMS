@@ -19,6 +19,7 @@ import { useSelector } from "react-redux";
 import axiosClient from "../../services/axiosClient";
 import { getPersonalInfo } from "../../services/userApi";
 import { ArrowLeftOutlined } from "@ant-design/icons";
+import image1 from '../../assets/RoomImage/image1.png';
 
 const { Title, Text } = Typography;
 
@@ -97,15 +98,32 @@ export default function LandlordBookAppointmentPage(props) {
         note: values.note,
       });
 
-      message.success("Appointment booked successfully!");
+      message.success("Đặt lịch hẹn thành công!");
       if (onSuccess) onSuccess();
       else navigate(-1);
     } catch (err) {
-      message.error("Failed to book appointment");
+      message.error("Đặt lịch hẹn thất bại!");
       console.error("[DEBUG] booking error:", err);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+
+  const getImageUrl = (img) => {
+    if (!img) return null;
+    if (typeof img === "string") {
+      if (img.startsWith("http")) return img;
+      if (img.startsWith("/uploads/")) return BACKEND_URL + img;
+      return BACKEND_URL + "/uploads/" + img;
+    }
+    if (typeof img === "object" && img.imageUrl) {
+      if (img.imageUrl.startsWith("http")) return img.imageUrl;
+      if (img.imageUrl.startsWith("/uploads/")) return BACKEND_URL + img.imageUrl;
+      return BACKEND_URL + "/uploads/" + img.imageUrl;
+    }
+    return null;
   };
 
   // Nếu là popup chỉ render Card nội dung, không bọc div minHeight 100vh...
@@ -137,9 +155,10 @@ export default function LandlordBookAppointmentPage(props) {
               justifyContent: "center",
             }}
           >
-            {room.images && room.images.length > 0 ? (
+            {/* Hiển thị ảnh phòng */}
+            {room.images && Array.isArray(room.images) && room.images.length > 0 && getImageUrl(room.images[0]) ? (
               <img
-                src={room.images[0].imageUrl}
+                src={getImageUrl(room.images[0])}
                 alt="Room"
                 style={{
                   width: 300,
@@ -149,6 +168,35 @@ export default function LandlordBookAppointmentPage(props) {
                   marginBottom: 18,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                 }}
+                onError={e => { e.target.onerror = null; e.target.src = image1; }}
+              />
+            ) : room.image ? (
+              <img
+                src={getImageUrl(room.image)}
+                alt="Room"
+                style={{
+                  width: 300,
+                  height: 200,
+                  objectFit: "cover",
+                  borderRadius: 12,
+                  marginBottom: 18,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                }}
+                onError={e => { e.target.onerror = null; e.target.src = image1; }}
+              />
+            ) : room.imageUrl ? (
+              <img
+                src={getImageUrl(room.imageUrl)}
+                alt="Room"
+                style={{
+                  width: 300,
+                  height: 200,
+                  objectFit: "cover",
+                  borderRadius: 12,
+                  marginBottom: 18,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                }}
+                onError={e => { e.target.onerror = null; e.target.src = image1; }}
               />
             ) : (
               <div
@@ -164,40 +212,42 @@ export default function LandlordBookAppointmentPage(props) {
                   color: "#888",
                 }}
               >
-                No image
+                Không có ảnh
               </div>
             )}
             <Title level={4} style={{ marginBottom: 8 }}>
               {room.name || room.roomNumber}
             </Title>
             <Text>
-              <b>Area:</b> {room.area || "-"} m²
+              <b>Diện tích:</b> {room.area || "-"} m²
             </Text>
             <br />
             <Text>
-              <b>Price:</b>{" "}
+              <b>Giá:</b>{" "}
               {room.pricePerMonth
                 ? room.pricePerMonth.toLocaleString()
                 : room.price?.toLocaleString() || "-"}{" "}
-              VND/month
+              VND/tháng
             </Text>
             <br />
             <Text>
-              <b>Amenities:</b> {room.amenities || room.description || "-"}
+              <b>Tiện ích:</b> {room.amenities || room.description || "-"}
             </Text>
             <br />
             <Text>
-              <b>Status:</b>{" "}
+              <b>Trạng thái:</b>{" "}
               <Tag
                 color={
-                  room.status === "Available"
+                  ((room.roomStatus || room.status || "").toUpperCase()) === "AVAILABLE"
                     ? "green"
-                    : room.status === "Booked"
+                    : ["OCCUPIED", "BOOKED", "FULL"].includes((room.roomStatus || room.status || "").toUpperCase())
                     ? "red"
+                    : ["UNAVAILABLE", "INACTIVE", "MAINTENANCE"].includes((room.roomStatus || room.status || "").toUpperCase())
+                    ? "default"
                     : "default"
                 }
               >
-                {room.status || room.roomStatus || "-"}
+                {getRoomStatusVN(room.roomStatus || room.status)}
               </Tag>
             </Text>
           </Col>
@@ -223,22 +273,22 @@ export default function LandlordBookAppointmentPage(props) {
                 disabled={isUnavailable || !user}
               >
                 <Form.Item
-                  label="Your Name"
+                  label="Họ và tên"
                   name="name"
                   rules={[
-                    { required: true, message: "Please enter your name" },
+                    { required: true, message: "Vui lòng nhập họ và tên" },
                   ]}
                 >
                   <Input size="large" />
                 </Form.Item>
 
                 <Form.Item
-                  label="Phone Number"
+                  label="Số điện thoại"
                   name="phone"
                   rules={[
                     {
                       required: true,
-                      message: "Please enter your phone number",
+                      message: "Vui lòng nhập số điện thoại",
                     },
                   ]}
                 >
@@ -252,7 +302,7 @@ export default function LandlordBookAppointmentPage(props) {
                     {
                       required: true,
                       type: "email",
-                      message: "Please enter a valid email",
+                      message: "Vui lòng nhập đúng định dạng email",
                     },
                   ]}
                 >
@@ -262,31 +312,33 @@ export default function LandlordBookAppointmentPage(props) {
                 <Form.Item
                   label="Ngày"
                   name="date"
-                  rules={[{ required: true, message: "Please select a date" }]}
+                  rules={[{ required: true, message: "Vui lòng chọn ngày" }]}
                 >
                   <DatePicker
                     size="large"
                     style={{ width: "100%" }}
                     disabledDate={(d) => d && d < dayjs().startOf("day")}
+                    placeholder="Chọn ngày"
                   />
                 </Form.Item>
 
                 <Form.Item
                   label="Giờ"
                   name="time"
-                  rules={[{ required: true, message: "Please select a time" }]}
+                  rules={[{ required: true, message: "Vui lòng chọn giờ" }]}
                 >
                   <TimePicker
                     size="large"
                     style={{ width: "100%" }}
                     format="HH:mm"
+                    placeholder="Chọn giờ"
                   />
                 </Form.Item>
 
                 <Form.Item label="Ghi chú" name="note">
                   <Input.TextArea
                     rows={3}
-                    placeholder="Any note for landlord?"
+                    placeholder="Ghi chú cho chủ nhà (nếu có)"
                   />
                 </Form.Item>
 
@@ -312,7 +364,7 @@ export default function LandlordBookAppointmentPage(props) {
 
                 {isUnavailable && (
                   <div style={{ color: "red", marginTop: 12 }}>
-                    This room is not available for booking.
+                    Phòng này hiện không thể đặt lịch hẹn.
                   </div>
                 )}
               </Form>
@@ -354,9 +406,9 @@ export default function LandlordBookAppointmentPage(props) {
                   justifyContent: "center",
                 }}
               >
-                {room.images && room.images.length > 0 ? (
+                {room.images && Array.isArray(room.images) && room.images.length > 0 && getImageUrl(room.images[0]) ? (
                   <img
-                    src={room.images[0].imageUrl}
+                    src={getImageUrl(room.images[0])}
                     alt="Room"
                     style={{
                       width: 300,
@@ -366,6 +418,35 @@ export default function LandlordBookAppointmentPage(props) {
                       marginBottom: 18,
                       boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                     }}
+                    onError={e => { e.target.onerror = null; e.target.src = image1; }}
+                  />
+                ) : room.image ? (
+                  <img
+                    src={getImageUrl(room.image)}
+                    alt="Room"
+                    style={{
+                      width: 300,
+                      height: 200,
+                      objectFit: "cover",
+                      borderRadius: 12,
+                      marginBottom: 18,
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                    }}
+                    onError={e => { e.target.onerror = null; e.target.src = image1; }}
+                  />
+                ) : room.imageUrl ? (
+                  <img
+                    src={getImageUrl(room.imageUrl)}
+                    alt="Room"
+                    style={{
+                      width: 300,
+                      height: 200,
+                      objectFit: "cover",
+                      borderRadius: 12,
+                      marginBottom: 18,
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                    }}
+                    onError={e => { e.target.onerror = null; e.target.src = image1; }}
                   />
                 ) : (
                   <div
@@ -381,40 +462,42 @@ export default function LandlordBookAppointmentPage(props) {
                       color: "#888",
                     }}
                   >
-                    No image
+                    Không có ảnh
                   </div>
                 )}
                 <Title level={4} style={{ marginBottom: 8 }}>
                   {room.name || room.roomNumber}
                 </Title>
                 <Text>
-                  <b>Area:</b> {room.area || "-"} m²
+                  <b>Diện tích:</b> {room.area || "-"} m²
                 </Text>
                 <br />
                 <Text>
-                  <b>Price:</b>{" "}
+                  <b>Giá:</b>{" "}
                   {room.pricePerMonth
                     ? room.pricePerMonth.toLocaleString()
                     : room.price?.toLocaleString() || "-"}{" "}
-                  VND/month
+                  VND/tháng
                 </Text>
                 <br />
                 <Text>
-                  <b>Amenities:</b> {room.amenities || room.description || "-"}
+                  <b>Tiện ích:</b> {room.amenities || room.description || "-"}
                 </Text>
                 <br />
                 <Text>
-                  <b>Status:</b>{" "}
+                  <b>Trạng thái:</b>{" "}
                   <Tag
                     color={
-                      room.status === "Available"
+                      ((room.roomStatus || room.status || "").toUpperCase()) === "AVAILABLE"
                         ? "green"
-                        : room.status === "Booked"
+                        : ["OCCUPIED", "BOOKED", "FULL"].includes((room.roomStatus || room.status || "").toUpperCase())
                         ? "red"
+                        : ["UNAVAILABLE", "INACTIVE", "MAINTENANCE"].includes((room.roomStatus || room.status || "").toUpperCase())
+                        ? "default"
                         : "default"
                     }
                   >
-                    {room.status || room.roomStatus || "-"}
+                    {getRoomStatusVN(room.roomStatus || room.status)}
                   </Tag>
                 </Text>
               </Col>
@@ -440,22 +523,22 @@ export default function LandlordBookAppointmentPage(props) {
                     disabled={isUnavailable || !user}
                   >
                     <Form.Item
-                      label="Your Name"
+                      label="Họ và tên"
                       name="name"
                       rules={[
-                        { required: true, message: "Please enter your name" },
+                        { required: true, message: "Vui lòng nhập họ và tên" },
                       ]}
                     >
                       <Input size="large" />
                     </Form.Item>
 
                     <Form.Item
-                      label="Phone Number"
+                      label="Số điện thoại"
                       name="phone"
                       rules={[
                         {
                           required: true,
-                          message: "Please enter your phone number",
+                          message: "Vui lòng nhập số điện thoại",
                         },
                       ]}
                     >
@@ -469,7 +552,7 @@ export default function LandlordBookAppointmentPage(props) {
                         {
                           required: true,
                           type: "email",
-                          message: "Please enter a valid email",
+                          message: "Vui lòng nhập đúng định dạng email",
                         },
                       ]}
                     >
@@ -479,31 +562,33 @@ export default function LandlordBookAppointmentPage(props) {
                     <Form.Item
                       label="Ngày"
                       name="date"
-                      rules={[{ required: true, message: "Please select a date" }]}
+                      rules={[{ required: true, message: "Vui lòng chọn ngày" }]}
                     >
                       <DatePicker
                         size="large"
                         style={{ width: "100%" }}
                         disabledDate={(d) => d && d < dayjs().startOf("day")}
+                        placeholder="Chọn ngày"
                       />
                     </Form.Item>
 
                     <Form.Item
                       label="Giờ"
                       name="time"
-                      rules={[{ required: true, message: "Please select a time" }]}
+                      rules={[{ required: true, message: "Vui lòng chọn giờ" }]}
                     >
                       <TimePicker
                         size="large"
                         style={{ width: "100%" }}
                         format="HH:mm"
+                        placeholder="Chọn giờ"
                       />
                     </Form.Item>
 
                     <Form.Item label="Ghi chú" name="note">
                       <Input.TextArea
                         rows={3}
-                        placeholder="Any note for landlord?"
+                        placeholder="Ghi chú cho chủ nhà (nếu có)"
                       />
                     </Form.Item>
 
@@ -532,7 +617,7 @@ export default function LandlordBookAppointmentPage(props) {
 
                     {isUnavailable && (
                       <div style={{ color: "red", marginTop: 12 }}>
-                        This room is not available for booking.
+                        Phòng này hiện không thể đặt lịch hẹn.
                       </div>
                     )}
                   </Form>
@@ -545,19 +630,41 @@ export default function LandlordBookAppointmentPage(props) {
           open={loginModalOpen}
           onCancel={() => setLoginModalOpen(false)}
           onOk={handleLoginConfirm}
-          okText="Login"
-          cancelText="Cancel"
+          okText="Đăng nhập"
+          cancelText="Hủy"
           closable={false}
           maskClosable={false}
           centered
         >
           <div style={{ textAlign: "center", fontSize: 16, fontWeight: 500 }}>
-            You need to login to book an appointment.
+            Bạn cần đăng nhập để đặt lịch hẹn.
             <br />
-            Please login to continue.
+            Vui lòng đăng nhập để tiếp tục.
           </div>
         </Modal>
       </div>
     </div>
   );
 }
+
+// Mapping trạng thái phòng sang tiếng Việt
+const getRoomStatusVN = (status) => {
+  switch ((status || "").toUpperCase()) {
+    case "AVAILABLE":
+      return "Còn trống";
+    case "OCCUPIED":
+      return "Đã thuê";
+    case "BOOKED":
+      return "Đã đặt trước";
+    case "UNAVAILABLE":
+      return "Không khả dụng";
+    case "INACTIVE":
+      return "Ngừng hoạt động";
+    case "MAINTENANCE":
+      return "Bảo trì";
+    case "FULL":
+      return "Đã đầy";
+    default:
+      return "Không xác định";
+  }
+};
