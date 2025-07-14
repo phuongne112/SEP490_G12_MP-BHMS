@@ -255,7 +255,19 @@ export default function LandlordContractListPage() {
     }
   };
 
-  const handleUpdateContract = (contract) => {
+  const handleUpdateContract = async (contract) => {
+    // Lấy danh sách amendment của hợp đồng này
+    let contractAmendments = [];
+    try {
+      const res = await getContractAmendments(contract.id);
+      contractAmendments = res.data || [];
+    } catch {
+      contractAmendments = [];
+    }
+    if (contractAmendments.some(a => a.status === "PENDING")) {
+      message.warning("Bạn không thể gửi yêu cầu thay đổi mới khi hợp đồng đang có yêu cầu thay đổi chờ duyệt.");
+      return;
+    }
     setUpdateContract(contract);
     setUpdateReason("");
     setUpdateRentAmount(contract.rentAmount);
@@ -588,10 +600,9 @@ export default function LandlordContractListPage() {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 8 }}>
                       <div><b>Loại:</b> {item.amendmentType}</div>
                       <div><b>Trạng thái:</b> {item.status}</div>
+                      <div><b>Ngày tạo:</b> {item.createdDate ? new Date(item.createdDate).toLocaleDateString("vi-VN") : 'Không có'}</div>
                     </div>
-                    <div style={{ marginBottom: 8 }}>
-                      <b>Thay đổi:</b> <span style={{ color: '#1677ff' }}>{item.oldValue}</span> &rarr; <span style={{ color: '#52c41a' }}>{item.newValue}</span>
-                    </div>
+      
                     {item.status === 'PENDING' && !item.approvedByLandlord && (
                       <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                         <Button

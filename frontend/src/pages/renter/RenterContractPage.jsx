@@ -330,8 +330,10 @@ export default function RenterContractPage() {
                   ]}
                 >
                   <div>
-                    <b>{item.amendmentType}</b> | {item.oldValue} → {item.newValue} | {item.status}
-                    <div style={{ color: '#888', fontSize: 12 }}>{item.reason}</div>
+                    <div style={{ color: '#222', fontSize: 15, fontWeight: 500, margin: '6px 0' }}>{item.reason}</div>
+                    <div style={{ color: '#222', fontSize: 13, marginTop: 2 }}>
+                      Ngày tạo: {item.createdDate ? dayjs(item.createdDate).format("DD/MM/YYYY") : 'Không có'}
+                    </div>
                   </div>
                 </List.Item>
               )}

@@ -391,7 +391,7 @@ export default function LandlordBillCreatePage() {
                     onChange={handleRoomChange}
                     showSearch
                     filterOption={(input, option) =>
-                      option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                      String(option.children).toLowerCase().indexOf(input.toLowerCase()) >= 0
                     }
                   >
                     {rooms.map(room => (
@@ -434,7 +434,7 @@ export default function LandlordBillCreatePage() {
                     onChange={handleContractChange}
                     showSearch
                     filterOption={(input, option) =>
-                      option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                      String(option.children).toLowerCase().indexOf(input.toLowerCase()) >= 0
                     }
                   >
                     {contracts.map(contract => (
@@ -492,7 +492,7 @@ export default function LandlordBillCreatePage() {
                     placeholder="Chọn phòng"
                     showSearch
                     filterOption={(input, option) =>
-                      option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                      String(option.children).toLowerCase().indexOf(input.toLowerCase()) >= 0
                     }
                   >
                     {rooms.map(room => (

@@ -159,148 +159,157 @@ export default function LandlordEditRoomPage() {
         )}
       </Sider>
       <Layout style={{ marginTop: 20, marginLeft: 15 }}>
-        <PageHeader title="Chỉnh sửa phòng" />
-        <Button
-          icon={<ArrowLeftOutlined />}
-          style={{ marginBottom: 16 }}
-          onClick={() => {
-            if (
-              user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
-              user?.role?.roleName?.toUpperCase?.() === "SUBADMIN"
-            ) {
-              navigate("/admin/rooms");
-            } else {
-              navigate("/landlord/rooms");
-            }
-          }}
-        >
-          Quay lại danh sách phòng
-        </Button>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: '100%', maxWidth: 1500, display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '24px 0 16px 0', padding: '0 16px' }}>
+            <Button
+              type="link"
+              icon={<ArrowLeftOutlined />}
+              style={{ fontSize: 16 }}
+              onClick={() => {
+                if (
+                  user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
+                  user?.role?.roleName?.toUpperCase?.() === "SUBADMIN"
+                ) {
+                  navigate("/admin/rooms");
+                } else {
+                  navigate("/landlord/rooms");
+                }
+              }}
+            >
+              Quay lại danh sách phòng
+            </Button>
+            <h2 style={{ margin: 0, fontWeight: 600, fontSize: 26 }}>Chỉnh sửa phòng</h2>
+          </div>
+        </div>
         <Content style={{ padding: "24px" }}>
-          <Form layout="vertical" form={form} onFinish={handleFinish}>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  name="building"
-                  label="Tòa"
-                  rules={[{ required: true, message: "Vui lòng nhập tên tòa" }]}
-                >
-                  <Input placeholder="Ví dụ: A" />
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 120px)' }}>
+            <div style={{ width: '100%', maxWidth: 1500, background: '#fff', padding: 32, borderRadius: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+              <Form layout="vertical" form={form} onFinish={handleFinish}>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item
+                      name="building"
+                      label="Tòa"
+                      rules={[{ required: true, message: "Vui lòng nhập tên tòa" }]}
+                    >
+                      <Input placeholder="Ví dụ: A" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="roomNumberSuffix"
+                      label="Số phòng"
+                      rules={[{ required: true, message: "Vui lòng nhập số phòng (chỉ gồm số)" }]}
+                    >
+                      <InputNumber placeholder="Ví dụ: 101" style={{ width: '100%' }} min={1} step={1} stringMode={false} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="area"
+                      label="Diện tích (m²)"
+                      rules={[{ required: true, message: "Vui lòng nhập diện tích" }]}
+                    >
+                      <InputNumber min={1} max={1000} style={{ width: "100%" }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="price"
+                      label="Giá (VND/tháng)"
+                      rules={[{ required: true, message: "Vui lòng nhập giá" }]}
+                    >
+                      <InputNumber min={0} style={{ width: "100%" }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="roomStatus"
+                      label="Trạng thái phòng"
+                      rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
+                    >
+                      <Select>
+                        <Option value="Available">Còn trống</Option>
+                        <Option value="Inactive">Ngừng hoạt động</Option>
+                        <Option value="Occupied">Đã thuê</Option>
+                        <Option value="Maintenance">Bảo trì</Option>
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="numberOfBedrooms"
+                      label="Số phòng ngủ"
+                      rules={[{ required: true, message: "Vui lòng nhập số phòng ngủ" }]}
+                    >
+                      <InputNumber min={1} max={10} style={{ width: "100%" }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="numberOfBathrooms"
+                      label="Số phòng tắm"
+                      rules={[{ required: true, message: "Vui lòng nhập số phòng tắm" }]}
+                    >
+                      <InputNumber min={1} max={10} style={{ width: "100%" }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="maxOccupants"
+                      label="Số người tối đa"
+                      rules={[{ required: true, message: "Vui lòng nhập số người tối đa" }]}
+                    >
+                      <InputNumber min={1} max={20} style={{ width: "100%" }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="isActive"
+                      label="Trạng thái hoạt động"
+                      valuePropName="checked"
+                    >
+                      <Switch checkedChildren="Đang hoạt động" unCheckedChildren="Ngừng hoạt động" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={24}>
+                    <Form.Item name="description" label="Mô tả">
+                      <TextArea rows={2} placeholder="Nhập mô tả..." />
+                    </Form.Item>
+                  </Col>
+                  <Col span={24}>
+                    <Form.Item label="Hình ảnh">
+                      <Upload
+                        listType="picture-card"
+                        fileList={fileList}
+                        onChange={handleUploadChange}
+                        beforeUpload={() => false}
+                        multiple
+                        maxCount={8}
+                        accept="image/*"
+                        onRemove={(file) => {
+                          // Logic xóa ảnh đã được xử lý trong handleUploadChange
+                          // Không cần làm gì thêm ở đây
+                        }}
+                      >
+                        {fileList.length < 8 && (
+                          <div>
+                            <PlusOutlined />
+                            <div style={{ marginTop: 8 }}>Tải lên</div>
+                          </div>
+                        )}
+                      </Upload>
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Form.Item>
+                  <Button type="primary" htmlType="submit" loading={loading}>
+                    Cập nhật phòng
+                  </Button>
                 </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="roomNumberSuffix"
-                  label="Số phòng"
-                  rules={[{ required: true, message: "Vui lòng nhập số phòng (chỉ gồm số)" }]}
-                >
-                  <InputNumber placeholder="Ví dụ: 101" style={{ width: '100%' }} min={1} step={1} stringMode={false} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="area"
-                  label="Diện tích (m²)"
-                  rules={[{ required: true, message: "Vui lòng nhập diện tích" }]}
-                >
-                  <InputNumber min={1} max={1000} style={{ width: "100%" }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="price"
-                  label="Giá (VND/tháng)"
-                  rules={[{ required: true, message: "Vui lòng nhập giá" }]}
-                >
-                  <InputNumber min={0} style={{ width: "100%" }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="roomStatus"
-                  label="Trạng thái phòng"
-                  rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
-                >
-                  <Select>
-                    <Option value="Available">Còn trống</Option>
-                    <Option value="Inactive">Ngừng hoạt động</Option>
-                    <Option value="Occupied">Đã thuê</Option>
-                    <Option value="Maintenance">Bảo trì</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="numberOfBedrooms"
-                  label="Số phòng ngủ"
-                  rules={[{ required: true, message: "Vui lòng nhập số phòng ngủ" }]}
-                >
-                  <InputNumber min={1} max={10} style={{ width: "100%" }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="numberOfBathrooms"
-                  label="Số phòng tắm"
-                  rules={[{ required: true, message: "Vui lòng nhập số phòng tắm" }]}
-                >
-                  <InputNumber min={1} max={10} style={{ width: "100%" }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="maxOccupants"
-                  label="Số người tối đa"
-                  rules={[{ required: true, message: "Vui lòng nhập số người tối đa" }]}
-                >
-                  <InputNumber min={1} max={20} style={{ width: "100%" }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="isActive"
-                  label="Trạng thái hoạt động"
-                  valuePropName="checked"
-                >
-                  <Switch checkedChildren="Đang hoạt động" unCheckedChildren="Ngừng hoạt động" />
-                </Form.Item>
-              </Col>
-              <Col span={24}>
-                <Form.Item name="description" label="Mô tả">
-                  <TextArea rows={2} placeholder="Nhập mô tả..." />
-                </Form.Item>
-              </Col>
-              <Col span={24}>
-                <Form.Item label="Hình ảnh">
-                  <Upload
-                    listType="picture-card"
-                    fileList={fileList}
-                    onChange={handleUploadChange}
-                    beforeUpload={() => false}
-                    multiple
-                    maxCount={8}
-                    accept="image/*"
-                    onRemove={(file) => {
-                      // Logic xóa ảnh đã được xử lý trong handleUploadChange
-                      // Không cần làm gì thêm ở đây
-                    }}
-                  >
-                    {fileList.length < 8 && (
-                      <div>
-                        <PlusOutlined />
-                        <div style={{ marginTop: 8 }}>Tải lên</div>
-                      </div>
-                    )}
-                  </Upload>
-                </Form.Item>
-              </Col>
-            </Row>
-            <Form.Item>
-              <Button type="primary" htmlType="submit" loading={loading}>
-                Cập nhật phòng
-              </Button>
-            </Form.Item>
-          </Form>
+              </Form>
+            </div>
+          </div>
         </Content>
       </Layout>
     </Layout>

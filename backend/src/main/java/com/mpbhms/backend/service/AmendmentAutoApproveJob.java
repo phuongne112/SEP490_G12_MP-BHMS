@@ -8,9 +8,12 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 public class AmendmentAutoApproveJob {
+    private static final Logger logger = LoggerFactory.getLogger(AmendmentAutoApproveJob.class);
     private final ContractAmendmentRepository amendmentRepo;
     private final NotificationService notificationService;
 
@@ -38,26 +41,37 @@ public class AmendmentAutoApproveJob {
                         am.setApprovedByTenants(true);
                         am.setStatus(ContractAmendment.AmendmentStatus.APPROVED);
                         amendmentRepo.save(am);
+                        logger.info("[AutoApprove] Amendment #{} auto-approved. Sending notifications...", am.getId());
                         // Gửi notification cho các bên
                         if (am.getContract() != null && am.getContract().getRoomUsers() != null) {
                             for (var ru : am.getContract().getRoomUsers()) {
                                 if (ru.getUser() != null) {
-                                    notificationService.createAndSend(new com.mpbhms.backend.dto.NotificationDTO() {{
-                                        setRecipientId(ru.getUser().getId());
-                                        setTitle("Yêu cầu sửa đổi hợp đồng đã được tự động duyệt");
-                                        setMessage("Yêu cầu sửa đổi hợp đồng #" + am.getContract().getId() + " đã được hệ thống tự động duyệt do quá hạn chờ xác nhận.");
-                                        setType(com.mpbhms.backend.enums.NotificationType.CUSTOM);
-                                    }});
+                                    try {
+                                        logger.info("[AutoApprove] Send notification to user {} for amendment #{}", ru.getUser().getId(), am.getId());
+                                        notificationService.createAndSend(new com.mpbhms.backend.dto.NotificationDTO() {{
+                                            setRecipientId(ru.getUser().getId());
+                                            setTitle("Yêu cầu sửa đổi hợp đồng đã được tự động duyệt");
+                                            setMessage("Yêu cầu sửa đổi hợp đồng #" + am.getContract().getId() + " đã được hệ thống tự động duyệt do quá hạn chờ xác nhận.");
+                                            setType(com.mpbhms.backend.enums.NotificationType.CUSTOM);
+                                        }});
+                                    } catch (Exception e) {
+                                        logger.error("[AutoApprove] Error sending notification to user {}: {}", ru.getUser().getId(), e.getMessage());
+                                    }
                                 }
                             }
                             // Gửi cho chủ nhà nếu có
                             if (am.getContract().getRoom() != null && am.getContract().getRoom().getLandlord() != null) {
-                                notificationService.createAndSend(new com.mpbhms.backend.dto.NotificationDTO() {{
-                                    setRecipientId(am.getContract().getRoom().getLandlord().getId());
-                                    setTitle("Yêu cầu sửa đổi hợp đồng đã được tự động duyệt");
-                                    setMessage("Yêu cầu sửa đổi hợp đồng #" + am.getContract().getId() + " đã được hệ thống tự động duyệt do quá hạn chờ xác nhận.");
-                                    setType(com.mpbhms.backend.enums.NotificationType.CUSTOM);
-                                }});
+                                try {
+                                    logger.info("[AutoApprove] Send notification to landlord {} for amendment #{}", am.getContract().getRoom().getLandlord().getId(), am.getId());
+                                    notificationService.createAndSend(new com.mpbhms.backend.dto.NotificationDTO() {{
+                                        setRecipientId(am.getContract().getRoom().getLandlord().getId());
+                                        setTitle("Yêu cầu sửa đổi hợp đồng đã được tự động duyệt");
+                                        setMessage("Yêu cầu sửa đổi hợp đồng #" + am.getContract().getId() + " đã được hệ thống tự động duyệt do quá hạn chờ xác nhận.");
+                                        setType(com.mpbhms.backend.enums.NotificationType.CUSTOM);
+                                    }});
+                                } catch (Exception e) {
+                                    logger.error("[AutoApprove] Error sending notification to landlord {}: {}", am.getContract().getRoom().getLandlord().getId(), e.getMessage());
+                                }
                             }
                         }
                     }

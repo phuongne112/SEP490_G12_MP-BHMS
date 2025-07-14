@@ -79,7 +79,7 @@ export default function LandlordAddRenterPage() {
             open={modalOpen}
             onCancel={() => setModalOpen(false)}
             footer={null}
-            title="Users without a role"
+            title="Tài khoản chưa có vai trò"
           >
             <Table
               dataSource={userList}
@@ -88,12 +88,12 @@ export default function LandlordAddRenterPage() {
               columns={[
                 { title: "ID", dataIndex: "id" },
                 { title: "Email", dataIndex: "email" },
-                { title: "Username", dataIndex: "username" },
+                { title: "Tên đăng nhập", dataIndex: "username" },
                 {
-                  title: "Action",
+                  title: "Thao tác",
                   render: (_, record) => (
                     <Button type="primary" onClick={() => handleGrantRenter(record)}>
-                      Grant Renter Role
+                      Cấp quyền người thuê
                     </Button>
                   ),
                 },
