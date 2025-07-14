@@ -30,7 +30,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<?>> handleResourceNotFound(ResourceNotFoundException ex) {
-        return buildResponse(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", ex.getMessage() != null ? ex.getMessage() : "Không tìm thấy tài nguyên.", null);
+        return buildResponse(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND",
+                ex.getMessage() != null ? ex.getMessage() : "Không tìm thấy tài nguyên.", null);
     }
 
     @ExceptionHandler({
@@ -43,22 +44,27 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<?>> handleIllegalArgument(IllegalArgumentException ex) {
-        return buildResponse(HttpStatus.BAD_REQUEST, "ILLEGAL_ARGUMENT", ex.getMessage() != null ? ex.getMessage() : "Tham số truyền vào không hợp lệ.", null);
+        return buildResponse(HttpStatus.BAD_REQUEST, "ILLEGAL_ARGUMENT",
+                ex.getMessage() != null ? ex.getMessage() : "Tham số truyền vào không hợp lệ.", null);
     }
 
     @ExceptionHandler(NullPointerException.class)
     public ResponseEntity<ApiResponse<?>> handleNullPointer(NullPointerException ex) {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "NULL_POINTER", "Lỗi hệ thống: dữ liệu bị thiếu hoặc null.", null);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "NULL_POINTER",
+                "Lỗi hệ thống: dữ liệu bị thiếu hoặc null.", null);
     }
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<?>> handleBusinessException(BusinessException ex) {
-        return buildResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage() != null ? ex.getMessage() : "Có lỗi nghiệp vụ xảy ra.", ex.getData());
+        return buildResponse(ex.getStatus(), ex.getErrorCode(),
+                ex.getMessage() != null ? ex.getMessage() : "Có lỗi nghiệp vụ xảy ra.", ex.getData());
     }
 
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ApiResponse<?>> handleValidationException(ValidationException ex) {
-        return buildResponse(ex.getStatus(), "VALIDATION_ERROR", ex.getMessage() != null ? ex.getMessage() : "Dữ liệu không hợp lệ. Vui lòng kiểm tra lại!", ex.getErrors());
+        return buildResponse(ex.getStatus(), "VALIDATION_ERROR",
+                ex.getMessage() != null ? ex.getMessage() : "Dữ liệu không hợp lệ. Vui lòng kiểm tra lại!",
+                ex.getErrors());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -69,7 +75,8 @@ public class GlobalExceptionHandler {
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
-        return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại các trường thông tin!", errors);
+        return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR",
+                "Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại các trường thông tin!", errors);
     }
 
     @ExceptionHandler({ DataIntegrityViolationException.class, ConstraintViolationException.class })
@@ -94,12 +101,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiResponse<?>> handleRuntimeException(RuntimeException ex) {
         ex.printStackTrace(); // Log lỗi ra console
-        return buildResponse(HttpStatus.BAD_REQUEST, "RUNTIME_ERROR", ex.getMessage() != null ? ex.getMessage() : "Có lỗi xảy ra trong quá trình xử lý.", null);
+        return buildResponse(HttpStatus.BAD_REQUEST, "RUNTIME_ERROR",
+                ex.getMessage() != null ? ex.getMessage() : "Có lỗi xảy ra trong quá trình xử lý.", null);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleGlobalException(Exception ex) {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getClass().getSimpleName(), "Lỗi hệ thống. Vui lòng thử lại sau!", null);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getClass().getSimpleName(),
+                "Lỗi hệ thống. Vui lòng thử lại sau!", null);
     }
 
 }
