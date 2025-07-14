@@ -134,7 +134,7 @@ public class AuthControllerTest {
                                 .content(objectMapper.writeValueAsString(loginDTO)))
                                 .andDo(print())
                                 .andExpect(status().isUnauthorized())
-                                .andExpect(jsonPath("$.message").value("Invalid username or password"));
+                                .andExpect(jsonPath("$.message").value("Tên đăng nhập hoặc mật khẩu không đúng."));
         }
 
         // TC03: Email not found
@@ -212,7 +212,7 @@ public class AuthControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestBody))
                                 .andExpect(status().isOk())
-                                .andExpect(content().string("Password reset successful."));
+                                .andExpect(content().string("M?t kh?u ?ã ???c ??t l?i thành công."));
         }
 
         // TC02: Reset password with invalid token
@@ -269,7 +269,7 @@ public class AuthControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestBody))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.message").value("Reset link sent if email is registered."));
+                                .andExpect(jsonPath("$.message").value("Liên kết đặt lại đã được gửi nếu email đã đăng ký."));
         }
 
         // TC_06:Không có trường email
@@ -284,7 +284,7 @@ public class AuthControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestBody))
                                 .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.message").value("Email not found in the system."));
+                                .andExpect(jsonPath("$.message").value("Email không tồn tại trong hệ thống."));
         }
 
         @Test
