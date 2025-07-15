@@ -19,6 +19,7 @@ import axiosClient from "../../services/axiosClient";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import { BACKEND_URL } from "../../services/axiosClient";
 
 const { Sider, Content } = Layout;
 const { TextArea } = Input;
@@ -60,13 +61,19 @@ export default function LandlordEditRoomPage() {
         form.setFieldsValue(initVals);
 
         setFileList(
-          (room.images || []).map((img) => ({
-            uid: String(img.id),
-            name: img.imageUrl.split("/").pop(),
-            status: "done",
-            url: img.imageUrl,
-            id: img.id,
-          }))
+          (room.images || []).map((img) => {
+            let url = img.imageUrl;
+            if (url && !url.startsWith("http")) {
+              url = BACKEND_URL + url;
+            }
+            return {
+              uid: String(img.id),
+              name: url.split("/").pop(),
+              status: "done",
+              url,
+              id: img.id,
+            };
+          })
         );
         setKeepImageIds((room.images || []).map((img) => img.id));
       } catch (e) {
