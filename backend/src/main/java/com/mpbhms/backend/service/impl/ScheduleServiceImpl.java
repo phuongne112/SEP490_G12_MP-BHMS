@@ -57,8 +57,8 @@ public class ScheduleServiceImpl implements ScheduleService {
         if (room.getLandlord() != null) {
             NotificationDTO noti = new NotificationDTO();
             noti.setRecipientId(room.getLandlord().getId());
-            noti.setTitle("Có lịch hẹn mới");
-            noti.setMessage("Bạn có lịch hẹn mới từ " + request.getFullName() + " cho phòng " + room.getRoomNumber());
+            noti.setTitle("Lịch hẹn mới");
+            noti.setMessage("Bạn vừa nhận được một lịch hẹn mới từ " + request.getFullName() + " cho phòng " + room.getRoomNumber() + ". Vui lòng kiểm tra và xác nhận lịch hẹn này.");
             noti.setType(NotificationType.SCHEDULE);
             notificationService.createAndSend(noti);
         }

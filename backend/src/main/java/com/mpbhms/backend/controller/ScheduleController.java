@@ -69,7 +69,7 @@ public class ScheduleController {
         } else if (email != null) {
             return ResponseEntity.ok(scheduleService.getSchedulesByEmail(email));
         } else {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(null); // "Yêu cầu không hợp lệ: Vui lòng cung cấp renterId hoặc email"
         }
     }
 } 
