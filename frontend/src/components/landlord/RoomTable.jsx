@@ -640,70 +640,69 @@ const user = useSelector((state) => state.account.user);
                                             style={{ height: 200, objectFit: "cover", width: "100%", background: '#f5f5f5', borderRadius: 0 }}
                                             onError={e => { e.target.onerror = null; e.target.src = image1; }}
                                         />
-                                        {/* Overlay action buttons on image */}
-                                        <Button
-                                            type="default"
-                                            style={{
-                                                position: 'absolute',
-                                                top: 10,
-                                                left: 10,
-                                                zIndex: 2,
-                                                borderRadius: 6,
-                                                minWidth: 110,
-                                                height: 36,
-                                                background: 'rgba(255,255,255,0.85)',
-                                                fontWeight: 500
-                                            }}
-                                            onClick={() => {
-                                                if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
-                                                    navigate(`/admin/rooms/${room.id}/assign`);
-                                                } else {
-                                                    navigate(`/landlord/rooms/${room.id}/assign`);
-                                                }
-                                            }}
-                                        >
-                                            Gán người thuê
-                                        </Button>
-                                        <Button
-                                            type="primary"
-                                            style={{
-                                                position: 'absolute',
-                                                top: 10,
-                                                left: '50%',
-                                                transform: 'translateX(-50%)',
-                                                zIndex: 2,
-                                                borderRadius: 6,
-                                                minWidth: 140,
-                                                height: 36,
-                                                fontWeight: 500,
-                                                background: '#1976d2',
-                                                color: '#fff',
-                                                border: 'none',
-                                                boxShadow: '0 2px 8px rgba(25, 118, 210, 0.08)'
-                                            }}
-                                            onClick={() => openViewAssetModal(room)}
-                                        >
-                                            Xem tài sản
-                                        </Button>
-                                        <Button
-                                            type="dashed"
-                                            style={{
-                                                position: 'absolute',
-                                                top: 10,
-                                                right: 10,
-                                                zIndex: 2,
-                                                borderRadius: 6,
-                                                minWidth: 110,
-                                                height: 36,
-                                                fontWeight: 500,
-                                                borderColor: '#52c41a',
-                                                color: '#52c41a',
-                                                background: 'rgba(255,255,255,0.85)'
-                                            }}
-                                            onClick={() => openServiceModal(room)}
-                                        >
-                                            Thêm dịch vụ
-                                        </Button>
+                                        {/* Sửa lại layout nút: dùng flexbox, căn đều, không bị đè */}
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: 10,
+                                            left: 0,
+                                            width: '100%',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            gap: 8,
+                                            padding: '0 10px',
+                                            zIndex: 2
+                                        }}>
+                                            <Button
+                                                type="default"
+                                                style={{
+                                                    borderRadius: 6,
+                                                    minWidth: 110,
+                                                    height: 36,
+                                                    background: 'rgba(255,255,255,0.85)',
+                                                    fontWeight: 500
+                                                }}
+                                                onClick={() => {
+                                                    if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
+                                                        navigate(`/admin/rooms/${room.id}/assign`);
+                                                    } else {
+                                                        navigate(`/landlord/rooms/${room.id}/assign`);
+                                                    }
+                                                }}
+                                            >
+                                                Gán người thuê
+                                            </Button>
+                                            <Button
+                                                type="primary"
+                                                style={{
+                                                    borderRadius: 6,
+                                                    minWidth: 140,
+                                                    height: 36,
+                                                    fontWeight: 500,
+                                                    background: '#1976d2',
+                                                    color: '#fff',
+                                                    border: 'none',
+                                                    boxShadow: '0 2px 8px rgba(25, 118, 210, 0.08)'
+                                                }}
+                                                onClick={() => openViewAssetModal(room)}
+                                            >
+                                                Xem tài sản
+                                            </Button>
+                                            <Button
+                                                type="dashed"
+                                                style={{
+                                                    borderRadius: 6,
+                                                    minWidth: 110,
+                                                    height: 36,
+                                                    fontWeight: 500,
+                                                    borderColor: '#52c41a',
+                                                    color: '#52c41a',
+                                                    background: 'rgba(255,255,255,0.85)'
+                                                }}
+                                                onClick={() => openServiceModal(room)}
+                                            >
+                                                Thêm dịch vụ
+                                            </Button>
+                                        </div>
                                     </div>
                                 }
                             >
