@@ -44,6 +44,7 @@ import com.lowagie.text.FontFactory;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfWriter;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -126,8 +127,12 @@ public class BillServiceImpl implements BillService {
         Instant fromInstant = fromDate.atStartOfDay(vnZone).toInstant();
         Instant toInstant = toDate.atTime(23, 59).atZone(vnZone).toInstant();
 
-        // 4. Dịch vụ của phòng
-        List<CustomService> services = room.getServices();
+        // 4. Dịch vụ của phòng (chỉ lấy dịch vụ đang hoạt động trong kỳ này)
+        List<CustomService> services = room.getServiceMappings().stream()
+            .filter(mapping -> Boolean.TRUE.equals(mapping.getIsActive()) ||
+                (mapping.getEndDate() == null || !mapping.getEndDate().isBefore(toDate)))
+            .map(RoomServiceMapping::getService)
+            .collect(Collectors.toList());
         for (CustomService service : services) {
             if (service.getServiceType() == ServiceType.ELECTRICITY) {
                 // Điện: tính theo chỉ số
@@ -282,7 +287,13 @@ public class BillServiceImpl implements BillService {
             Instant fromInstant = fromDate.atStartOfDay(vnZone).toInstant();
             Instant toInstant = toDate.atTime(23, 59).atZone(vnZone).toInstant();
 
-            for (CustomService service : room.getServices()) {
+            // Lấy dịch vụ active
+            List<CustomService> services = room.getServiceMappings().stream()
+                .filter(mapping -> Boolean.TRUE.equals(mapping.getIsActive()) ||
+                    (mapping.getEndDate() == null || !mapping.getEndDate().isBefore(toDate)))
+                .map(RoomServiceMapping::getService)
+                .collect(Collectors.toList());
+            for (CustomService service : services) {
                 if (service.getServiceType() == ServiceType.ELECTRICITY) {
                     List<ServiceReading> readings = serviceReadingRepository.findByRoomAndServiceAndDateRange(
                             room.getId(), service, fromInstant, toInstant
@@ -441,7 +452,12 @@ public class BillServiceImpl implements BillService {
         Instant fromInstant = monthStart.atStartOfDay(vnZone).toInstant();
         Instant toInstant = monthEnd.atTime(23, 59).atZone(vnZone).toInstant();
         List<BillDetailResponse> result = new ArrayList<>();
-        for (CustomService service : room.getServices()) {
+        List<CustomService> services = room.getServiceMappings().stream()
+            .filter(mapping -> Boolean.TRUE.equals(mapping.getIsActive()) ||
+                (mapping.getEndDate() == null || !mapping.getEndDate().isBefore(monthEnd)))
+            .map(RoomServiceMapping::getService)
+            .collect(Collectors.toList());
+        for (CustomService service : services) {
             if (service.getServiceType() == ServiceType.ELECTRICITY) {
                 List<ServiceReading> readings = serviceReadingRepository.findByRoomAndServiceAndDateRange(
                         room.getId(), service, fromInstant, toInstant
@@ -493,7 +509,12 @@ public class BillServiceImpl implements BillService {
         Instant toInstant = monthEnd.atTime(23, 59).atZone(vnZone).toInstant();
         List<BillDetail> details = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
-        for (CustomService service : room.getServices()) {
+        List<CustomService> services = room.getServiceMappings().stream()
+            .filter(mapping -> Boolean.TRUE.equals(mapping.getIsActive()) ||
+                (mapping.getEndDate() == null || !mapping.getEndDate().isBefore(monthEnd)))
+            .map(RoomServiceMapping::getService)
+            .collect(Collectors.toList());
+        for (CustomService service : services) {
             if (service.getServiceType() == ServiceType.ELECTRICITY) {
                 List<ServiceReading> readings = serviceReadingRepository.findByRoomAndServiceAndDateRange(
                         room.getId(), service, fromInstant, toInstant

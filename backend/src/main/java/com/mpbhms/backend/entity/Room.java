@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +41,11 @@ public class Room extends BaseEntity {
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RoomUser> roomUsers = new ArrayList<>();
 
+    // Thay thế RoomServiceLink bằng RoomServiceMapping
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RoomServiceMapping> serviceMappings = new ArrayList<>();
 
+    // Quan hệ cũ giữ lại để không lỗi, sẽ migrate dần
     @ManyToMany
     @JoinTable(
             name = "room_services",

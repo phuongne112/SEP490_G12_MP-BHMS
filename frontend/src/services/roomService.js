@@ -83,3 +83,10 @@ export const getRoomsWithElectricReadings = async () => {
   const response = await axiosClient.get("rooms/with-electric-readings");
   return response.data;
 };
+
+/**
+ * Ngừng sử dụng dịch vụ cho phòng
+ */
+export const deactivateServiceForRoom = async (roomId, serviceId) => {
+  return axiosClient.patch(`/rooms/${roomId}/deactivate-service/${serviceId}`);
+};

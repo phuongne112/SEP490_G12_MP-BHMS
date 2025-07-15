@@ -191,6 +191,15 @@ public class RoomController {
         }
     }
 
+    @PatchMapping("/{roomId}/deactivate-service/{serviceId}")
+    public ResponseEntity<?> deactivateService(
+        @PathVariable Long roomId,
+        @PathVariable Long serviceId
+    ) {
+        roomService.deactivateServiceForRoom(roomId, serviceId);
+        return ResponseEntity.ok("Đã ngừng sử dụng dịch vụ cho phòng này.");
+    }
+
     // Xử lý lỗi validation toàn cục
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
