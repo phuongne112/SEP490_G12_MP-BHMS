@@ -7,6 +7,10 @@ import { useSelector } from "react-redux";
 import { Layout } from "antd";
 import { FilterOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+dayjs.extend(utc);
+dayjs.extend(timezone);
 import { sendNotification } from "../../services/notificationApi";
 
 const { Sider, Content } = Layout;
@@ -114,7 +118,7 @@ export default function LandlordBookingListPage() {
     { title: "Tên Người Dùng", dataIndex: "fullName" },
     { title: "Số điện thoại", dataIndex: "phone" },
     { title: "Email", dataIndex: "email" },
-    { title: "Thời gian hẹn", dataIndex: "appointmentTime" },
+    { title: "Thời gian hẹn", dataIndex: "appointmentTime", render: (t) => t ? dayjs(t).tz("Asia/Ho_Chi_Minh").format("DD/MM/YYYY HH:mm") : "-" },
     { title: "Phòng", dataIndex: "roomId" },
     { title: "Ghi chú", dataIndex: "note" },
     {

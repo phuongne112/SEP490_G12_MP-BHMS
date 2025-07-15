@@ -4,6 +4,10 @@ import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import axiosClient from "../../services/axiosClient";
 import scheduleApi from '../../services/scheduleApi';
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+dayjs.extend(utc);
+dayjs.extend(timezone);
 const { Title } = Typography;
 
 export default function BookingListModal({ open, onClose, currentUser }) {
@@ -93,9 +97,19 @@ export default function BookingListModal({ open, onClose, currentUser }) {
     { title: "Phòng", dataIndex: "roomId", key: "roomId" },
     { title: "Tên", dataIndex: "fullName", key: "fullName" },
     { title: "SĐT", dataIndex: "phone", key: "phone" },
-    { title: "Thời gian", dataIndex: "appointmentTime", key: "appointmentTime" },
+    { title: "Thời gian", dataIndex: "appointmentTime", key: "appointmentTime",
+      render: (t) => t ? dayjs(t).tz("Asia/Ho_Chi_Minh").format("DD/MM/YYYY HH:mm") : "-"
+    },
     { title: "Ghi chú", dataIndex: "note", key: "note" },
-    { title: "Trạng thái", dataIndex: "status", key: "status" },
+    { title: "Trạng thái", dataIndex: "status", key: "status",
+      render: (s) => {
+        if (s === "PENDING") return "Chờ xác nhận";
+        if (s === "CONFIRMED") return "Đã xác nhận";
+        if (s === "COMPLETED") return "Hoàn thành";
+        if (s === "CANCELLED") return "Đã hủy";
+        return s;
+      }
+    },
     {
       title: "Thao tác",
       key: "action",
