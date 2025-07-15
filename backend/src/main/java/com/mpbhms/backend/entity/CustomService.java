@@ -34,4 +34,7 @@ public class CustomService extends BaseEntity {
     @OneToMany(mappedBy = "service", cascade = CascadeType.ALL)
     @JsonManagedReference  // ⬅️ THÊM DÒNG NÀY
     private List<ServiceReading> serviceReadings = new ArrayList<>();
+
+    @OneToMany(mappedBy = "service")
+    private List<RoomServiceMapping> roomMappings = new ArrayList<>();
 }

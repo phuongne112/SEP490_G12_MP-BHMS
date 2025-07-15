@@ -3,6 +3,7 @@ package com.mpbhms.backend.dto;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Data
 public class ServiceDTO {
@@ -11,4 +12,6 @@ public class ServiceDTO {
     private String unit;
     private BigDecimal unitPrice;
     private String serviceType;
+    private Boolean isActive;
+    private LocalDate endDate;
 }

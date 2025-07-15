@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Card, Row, Col, Button, Badge, Skeleton, Tag, Dropdown, Menu, message, Modal, Select, Input, Upload, Tooltip, Table, Tabs } from "antd";
-import { updateRoomStatus, toggleRoomActiveStatus, deleteRoom, addServiceToRoom } from "../../services/roomService";
+import { updateRoomStatus, toggleRoomActiveStatus, deleteRoom, addServiceToRoom, deactivateServiceForRoom } from "../../services/roomService";
 import { getAllServicesList } from "../../services/serviceApi";
 import { detectElectricOcr } from "../../services/electricOcrApi";
 import { useNavigate } from "react-router-dom";
@@ -9,6 +9,7 @@ import { UserOutlined, ClockCircleOutlined, ExclamationCircleOutlined, CheckCirc
 import { getAllAssets, getAssetInventoryByRoom, getAssetInventoryByRoomAndContract, getAssetsByRoom, addAssetToRoom } from "../../services/assetApi";
 import axiosClient from "../../services/axiosClient";
 import image1 from '../../assets/RoomImage/image1.png';
+import { Modal as AntdModal } from "antd";
 
 const { Meta } = Card;
 const { Option } = Select;
@@ -114,6 +115,9 @@ const [addAssetInventoryForm, setAddAssetInventoryForm] = useState({ quantity: 1
 
 const [centerToast, setCenterToast] = useState({ visible: false, message: "" });
 
+// Trong state, thêm allServices để lưu tất cả dịch vụ
+const [allServices, setAllServices] = useState([]);
+
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
 
@@ -154,22 +158,20 @@ const user = useSelector((state) => state.account.user);
         setSelectedRoom(room);
         setServiceModalOpen(true);
         setSelectedServices([]);
-        // Lấy danh sách dịch vụ
         try {
             const res = await getAllServicesList();
-            const allServices = res.data || [];
-            
-            // Lọc ra các dịch vụ chưa có trong phòng
-            const existingServiceIds = room.services?.map(s => s.id) || [];
-            const availableServices = allServices.filter(service => !existingServiceIds.includes(service.id));
-            
+            const all = res.data || [];
+            setAllServices(all);
+            // Lấy danh sách dịch vụ đang active trong phòng
+            const activeServiceIds = (room.services || []).filter(s => s.isActive !== false && !s.endDate).map(s => s.id);
+            // Chỉ lọc ra các dịch vụ chưa active trong phòng (cho phép thêm lại dịch vụ đã từng ngừng/xóa)
+            const availableServices = all.filter(service => !activeServiceIds.includes(service.id));
             setServices(availableServices);
-            
-            // Nếu không còn dịch vụ nào để thêm
             if (availableServices.length === 0) {
-                message.info("Phòng này đã có tất cả các dịch vụ!");
+                message.info("Phòng này đã có tất cả các dịch vụ đang sử dụng!");
             }
         } catch {
+            setAllServices([]);
             setServices([]);
         }
     };
@@ -491,9 +493,62 @@ const user = useSelector((state) => state.account.user);
                             msg = err.response.data.error;
                         }
                     }
-                    message.error(msg);
+                    // Nếu lỗi do đã phát sinh hóa đơn, show cảnh báo rõ ràng
+                    if (msg && msg.toLowerCase().includes("hóa đơn")) {
+                        AntdModal.warning({
+                            title: "Không thể xóa dịch vụ đã phát sinh hóa đơn",
+                            content: (
+                                <div>
+                                    <div>Không thể xóa dịch vụ đã phát sinh hóa đơn. Vui lòng ngừng sử dụng từ kỳ sau hoặc thêm dịch vụ mới nếu muốn thay đổi.</div>
+                                    <div style={{marginTop:8, color:'#888'}}>Nếu muốn thay đổi giá/gói dịch vụ, hãy thêm dịch vụ mới và ngừng dịch vụ cũ từ kỳ tiếp theo.</div>
+                                </div>
+                            ),
+                            okText: "Đã hiểu"
+                        });
+                    } else {
+                        message.error(msg);
+                    }
                 }
             }
+        });
+    };
+
+    // Thêm hàm xử lý ngừng sử dụng dịch vụ:
+    const handleDeactivateService = async (serviceId) => {
+        if (!selectedRoom) return;
+        const service = selectedRoom.services?.find(s => s.id === serviceId);
+        if (!service) return;
+        
+        Modal.confirm({
+          title: `Xác nhận ngừng sử dụng dịch vụ`,
+          content: `Bạn có chắc chắn muốn ngừng sử dụng dịch vụ "${service.serviceName}" cho phòng này?`,
+          okText: "Ngừng sử dụng",
+          cancelText: "Hủy",
+          okType: "danger",
+          onOk: async () => {
+            try {
+              await deactivateServiceForRoom(selectedRoom.id, serviceId);
+              message.success("Đã ngừng sử dụng dịch vụ cho phòng!");
+              if (onRoomsUpdate) onRoomsUpdate();
+            } catch (err) {
+              const backendMsg = err.response?.data?.message || err.response?.data || err.message;
+              // Nếu là lỗi về ngày ngừng dịch vụ, show modal lớn
+              if (backendMsg.includes("chỉ được phép ngừng dịch vụ vào ngày cuối kỳ") || backendMsg.includes("ngày 28-31")) {
+                Modal.info({
+                  title: "Không thể ngừng sử dụng dịch vụ",
+                  content: (
+                    <div>
+                      <div style={{ marginBottom: 8 }}>{backendMsg}</div>
+                      <div>Nếu muốn thay đổi giá/gói dịch vụ, hãy thêm dịch vụ mới và ngừng dịch vụ cũ từ kỳ tiếp theo.</div>
+                    </div>
+                  ),
+                  okText: "Đã hiểu"
+                });
+              } else {
+                message.error("Không thể ngừng sử dụng dịch vụ: " + backendMsg);
+              }
+            }
+          }
         });
     };
 
@@ -748,47 +803,58 @@ const user = useSelector((state) => state.account.user);
                 okButtonProps={{ disabled: services.length === 0 }}
                 title={`Thêm dịch vụ vào phòng ${selectedRoom?.roomNumber}`}
             >
-                {services.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                        <p><b>Phòng đã có đủ dịch vụ!</b></p>
-                        <div style={{ margin: '12px 0', textAlign: 'left' }}>
-                            <div style={{ fontWeight: 500, marginBottom: 4 }}>Các dịch vụ hiện tại của phòng:</div>
-                            <ul style={{ paddingLeft: 20 }}>
-                                {(selectedRoom?.services && selectedRoom.services.length > 0)
-                                    ? selectedRoom.services.map(s => (
-                                        <li key={s.id} style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
-                                            <span style={{ flex: 1 }}>{s.serviceName} ({s.serviceType})</span>
-                                            <Button danger size="small" onClick={() => handleRemoveService(s.id)} style={{ marginLeft: 8 }}>
-                                                Xóa
+                <div style={{ marginBottom: 16 }}>
+                    <p style={{ color: '#666', fontSize: 14 }}>
+                        Chọn dịch vụ để thêm vào phòng {selectedRoom?.roomNumber}:
+                    </p>
+                </div>
+                <Select
+                    mode="multiple"
+                    style={{ width: "100%" }}
+                    placeholder="Chọn dịch vụ"
+                    value={selectedServices}
+                    onChange={setSelectedServices}
+                    disabled={allServices.length === 0}
+                >
+                    {allServices.map((s) => {
+                        const isActive = (selectedRoom?.services || []).some(rs => rs.id === s.id && rs.isActive !== false && !rs.endDate);
+                        return (
+                            <Option key={s.id} value={s.id} disabled={isActive}>
+                                {s.serviceName} ({s.serviceType}) {isActive ? " - Đã có" : ""}
+                            </Option>
+                        );
+                    })}
+                </Select>
+                {/* Danh sách dịch vụ hiện tại của phòng */}
+                <div style={{ marginTop: 24 }}>
+                    <div style={{ fontWeight: 500, marginBottom: 4 }}>Các dịch vụ hiện tại của phòng:</div>
+                    <ul style={{ paddingLeft: 20 }}>
+                        {(selectedRoom?.services && selectedRoom.services.length > 0)
+                            ? selectedRoom.services.map(s => {
+                                const isActive = s.isActive !== false && !s.endDate;
+                                return (
+                                    <li key={s.id} style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+                                        <span style={{ flex: 1 }}>
+                                            {s.serviceName} ({s.serviceType})
+                                            <span style={{ marginLeft: 8, fontSize: 13, color: isActive ? '#52c41a' : '#888' }}>
+                                                {isActive ? 'Đang sử dụng' : 'Đã ngừng'}
+                                            </span>
+                                        </span>
+                                        <Button danger size="small" onClick={() => handleRemoveService(s.id)} style={{ marginLeft: 8 }}>
+                                            Xóa
+                                        </Button>
+                                        {isActive && (
+                                            <Button type="default" size="small" onClick={() => handleDeactivateService(s.id)} style={{ marginLeft: 8 }}>
+                                                Ngừng sử dụng
                                             </Button>
-                                        </li>
-                                    ))
-                                    : <li>Chưa có dịch vụ nào</li>
-                                }
-                            </ul>
-                        </div>
-                        <p style={{ color: '#888', fontSize: 13 }}>Không còn dịch vụ nào để thêm.</p>
-                    </div>
-                ) : (
-                    <>
-                        <div style={{ marginBottom: 16 }}>
-                            <p style={{ color: '#666', fontSize: 14 }}>
-                                Chọn dịch vụ để thêm vào phòng {selectedRoom?.roomNumber}:
-                            </p>
-                        </div>
-                        <Select
-                            mode="multiple"
-                            style={{ width: "100%" }}
-                            placeholder="Chọn dịch vụ"
-                            value={selectedServices}
-                            onChange={setSelectedServices}
-                        >
-                            {services.map((s) => (
-                                <Option key={s.id} value={s.id}>{s.serviceName} ({s.serviceType})</Option>
-                            ))}
-                        </Select>
-                    </>
-                )}
+                                        )}
+                                    </li>
+                                );
+                            })
+                            : <li>Chưa có dịch vụ nào</li>
+                        }
+                    </ul>
+                </div>
             </Modal>
             {/* Modal nhập chỉ số điện hoặc OCR */}
             <Modal

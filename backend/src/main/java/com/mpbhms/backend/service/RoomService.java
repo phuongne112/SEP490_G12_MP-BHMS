@@ -45,5 +45,9 @@ public interface RoomService {
      * Xóa service khỏi phòng (nếu chưa phát sinh hóa đơn liên quan)
      */
     boolean removeServiceFromRoom(Long roomId, Long serviceId);
+    /**
+     * Ngừng sử dụng dịch vụ cho phòng (set isActive=false, endDate=now)
+     */
+    void deactivateServiceForRoom(Long roomId, Long serviceId);
 }
 

@@ -37,6 +37,14 @@ import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.util.Optional;
 import com.mpbhms.backend.repository.BillDetailRepository;
+import com.mpbhms.backend.repository.RoomServiceMappingRepository;
+import com.mpbhms.backend.entity.RoomServiceMapping;
+import java.time.LocalDate;
+import com.mpbhms.backend.entity.Contract;
+import com.mpbhms.backend.enums.PaymentCycle;
+import com.mpbhms.backend.repository.BillRepository;
+import com.mpbhms.backend.entity.Bill;
+import java.time.ZoneId;
 
 @Service
 public class RoomServiceImpl implements RoomService {
@@ -58,6 +66,12 @@ public class RoomServiceImpl implements RoomService {
 
     @Autowired
     private BillDetailRepository billDetailRepository;
+
+    @Autowired
+    private RoomServiceMappingRepository roomServiceMappingRepository;
+
+    @Autowired
+    private BillRepository billRepository;
 
     @Autowired
     @Value("${file.upload-dir}")
@@ -203,13 +217,15 @@ public class RoomServiceImpl implements RoomService {
         dto.setImages(imageDTOs);
 
         // ✅ Convert services
-        List<ServiceDTO> serviceDTOs = room.getServices().stream().map(service -> {
+        List<ServiceDTO> serviceDTOs = room.getServiceMappings().stream().map(mapping -> {
             ServiceDTO s = new ServiceDTO();
-            s.setId(service.getId());
-            s.setServiceName(service.getServiceName());
-            s.setUnit(service.getUnit());
-            s.setUnitPrice(service.getUnitPrice());
-            s.setServiceType(service.getServiceType().name());
+            s.setId(mapping.getService().getId());
+            s.setServiceName(mapping.getService().getServiceName());
+            s.setUnit(mapping.getService().getUnit());
+            s.setUnitPrice(mapping.getService().getUnitPrice());
+            s.setServiceType(mapping.getService().getServiceType().name());
+            s.setIsActive(mapping.getIsActive());
+            s.setEndDate(mapping.getEndDate());
             return s;
         }).toList();
         dto.setServices(serviceDTOs);
@@ -422,20 +438,33 @@ public class RoomServiceImpl implements RoomService {
             .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng với id: " + roomId));
         com.mpbhms.backend.entity.CustomService service = serviceRepository.findById(serviceId)
             .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy dịch vụ với id: " + serviceId));
-        if (room.getServices() == null) room.setServices(new java.util.ArrayList<>());
-        boolean exists = room.getServices().stream().anyMatch(s -> s.getId().equals(serviceId));
-        
-        // Nếu dịch vụ đã tồn tại, không cho phép thêm lại
-        if (exists) {
+
+        // Nếu là dịch vụ điện, kiểm tra phòng đã có dịch vụ điện active chưa
+        if (service.getServiceType() == ServiceType.ELECTRICITY) {
+            boolean hasActiveElectric = room.getServiceMappings().stream()
+                .anyMatch(mapping -> mapping.getIsActive() != null && mapping.getIsActive()
+                    && mapping.getService() != null
+                    && mapping.getService().getServiceType() == ServiceType.ELECTRICITY);
+            if (hasActiveElectric) {
+                throw new BusinessException("Phòng này đã có đồng hồ điện đang hoạt động. Vui lòng ngừng dịch vụ điện cũ trước khi thêm mới.");
+            }
+        }
+
+        // Kiểm tra mapping đã tồn tại và còn active chưa
+        Optional<RoomServiceMapping> existing = roomServiceMappingRepository.findByRoomIdAndServiceId(roomId, serviceId);
+        if (existing.isPresent() && Boolean.TRUE.equals(existing.get().getIsActive())) {
             throw new BusinessException("Dịch vụ đã tồn tại trong phòng này. Không thể thêm trùng.");
         }
-        
-        // Thêm dịch vụ mới vào phòng
-        room.getServices().add(service);
-        roomRepository.save(room);
-        
+
+        // Tạo mới mapping
+        RoomServiceMapping mapping = new RoomServiceMapping();
+        mapping.setRoom(room);
+        mapping.setService(service);
+        mapping.setIsActive(true);
+        mapping.setEndDate(null);
+        roomServiceMappingRepository.save(mapping);
+
         // Nếu là điện, tạo ServiceReading ban đầu = 0
-        boolean created = false;
         if (service.getServiceType() == ServiceType.ELECTRICITY) {
             ServiceReading reading = new ServiceReading();
             reading.setRoom(room);
@@ -444,9 +473,8 @@ public class RoomServiceImpl implements RoomService {
             reading.setNewReading(java.math.BigDecimal.ZERO);
             reading.setCreatedDate(java.time.Instant.now());
             serviceReadingRepository.save(reading);
-            created = true;
         }
-        return created;
+        return true;
     }
 
     @Override
@@ -455,20 +483,33 @@ public class RoomServiceImpl implements RoomService {
             .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng với id: " + roomId));
         com.mpbhms.backend.entity.CustomService service = serviceRepository.findById(serviceId)
             .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy dịch vụ với id: " + serviceId));
-        if (room.getServices() == null) room.setServices(new java.util.ArrayList<>());
-        boolean exists = room.getServices().stream().anyMatch(s -> s.getId().equals(serviceId));
-        
-        // Nếu dịch vụ đã tồn tại, không cho phép thêm lại
-        if (exists) {
+
+        // Nếu là dịch vụ điện, kiểm tra phòng đã có dịch vụ điện active chưa
+        if (service.getServiceType() == ServiceType.ELECTRICITY) {
+            boolean hasActiveElectric = room.getServiceMappings().stream()
+                .anyMatch(mapping -> mapping.getIsActive() != null && mapping.getIsActive()
+                    && mapping.getService() != null
+                    && mapping.getService().getServiceType() == ServiceType.ELECTRICITY);
+            if (hasActiveElectric) {
+                throw new BusinessException("Phòng này đã có đồng hồ điện đang hoạt động. Vui lòng ngừng dịch vụ điện cũ trước khi thêm mới.");
+            }
+        }
+
+        // Kiểm tra mapping đã tồn tại và còn active chưa
+        Optional<RoomServiceMapping> existing = roomServiceMappingRepository.findByRoomIdAndServiceId(roomId, serviceId);
+        if (existing.isPresent() && Boolean.TRUE.equals(existing.get().getIsActive())) {
             throw new BusinessException("Dịch vụ đã tồn tại trong phòng này. Không thể thêm trùng.");
         }
-        
-        // Thêm dịch vụ mới vào phòng
-        room.getServices().add(service);
-        roomRepository.save(room);
-        
+
+        // Tạo mới mapping
+        RoomServiceMapping mapping = new RoomServiceMapping();
+        mapping.setRoom(room);
+        mapping.setService(service);
+        mapping.setIsActive(true);
+        mapping.setEndDate(null);
+        roomServiceMappingRepository.save(mapping);
+
         // Nếu là điện và có initialReading, tạo ServiceReading
-        boolean created = false;
         if (service.getServiceType() == ServiceType.ELECTRICITY && initialReading != null) {
             ServiceReading reading = new ServiceReading();
             reading.setRoom(room);
@@ -477,35 +518,86 @@ public class RoomServiceImpl implements RoomService {
             reading.setNewReading(initialReading);
             reading.setCreatedDate(java.time.Instant.now());
             serviceReadingRepository.save(reading);
-            created = true;
         }
-        return created;
+        return true;
     }
 
     @Override
     public boolean removeServiceFromRoom(Long roomId, Long serviceId) {
-        Room room = roomRepository.findByIdAndDeletedFalse(roomId)
-            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng với id: " + roomId));
-        com.mpbhms.backend.entity.CustomService service = serviceRepository.findById(serviceId)
-            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy dịch vụ với id: " + serviceId));
-        if (room.getServices() == null) return false;
-        boolean exists = room.getServices().stream().anyMatch(s -> s.getId().equals(serviceId));
-        if (!exists) return false;
-        // Kiểm tra nếu dịch vụ đã phát sinh hóa đơn thì không cho xóa
-        if (!billDetailRepository.findByServiceIdAndRoomId(serviceId, roomId).isEmpty()) {
-            throw new BusinessException("Không thể xóa dịch vụ đã phát sinh hóa đơn. Vui lòng ngừng sử dụng từ kỳ sau.");
-        }
-        // Nếu là dịch vụ điện, xóa ServiceReading chưa phát sinh hóa đơn
-        if (service.getServiceType() == ServiceType.ELECTRICITY) {
-            java.util.List<ServiceReading> readings = serviceReadingRepository.findByServiceIdAndRoomId(serviceId, roomId);
-            for (ServiceReading reading : readings) {
-                serviceReadingRepository.delete(reading);
+        // Tìm mapping (RoomServiceMapping)
+        RoomServiceMapping mapping = roomServiceMappingRepository.findByRoomIdAndServiceId(roomId, serviceId)
+            .orElseThrow(() -> new BusinessException("Không tìm thấy mapping dịch vụ trong phòng"));
+
+        // Nếu mapping đang active, kiểm tra hóa đơn
+        if (Boolean.TRUE.equals(mapping.getIsActive())) {
+            if (!billDetailRepository.findByServiceIdAndRoomId(serviceId, roomId).isEmpty()) {
+                throw new BusinessException("Không thể xóa dịch vụ đã phát sinh hóa đơn. Vui lòng ngừng sử dụng từ kỳ sau.");
             }
         }
-        // Xóa dịch vụ khỏi phòng
-        room.getServices().removeIf(s -> s.getId().equals(serviceId));
-        roomRepository.save(room);
+        // Nếu là dịch vụ điện, xóa luôn các bản ghi ServiceReading liên quan
+        if (mapping.getService() != null && mapping.getService().getServiceType() == ServiceType.ELECTRICITY) {
+            List<ServiceReading> readings = serviceReadingRepository.findByRoomAndService(mapping.getRoom(), mapping.getService());
+            serviceReadingRepository.deleteAll(readings);
+        }
+        // Nếu mapping đã ngừng sử dụng (isActive=false), cho phép xóa luôn
+        roomServiceMappingRepository.delete(mapping);
         return true;
+    }
+
+    @Override
+    public void deactivateServiceForRoom(Long roomId, Long serviceId) {
+        RoomServiceMapping mapping = roomServiceMappingRepository.findByRoomIdAndServiceId(roomId, serviceId)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy dịch vụ trong phòng này"));
+        
+        // Kiểm tra thời điểm ngừng dịch vụ có phù hợp không
+        validateDeactivationTiming(roomId);
+        
+        mapping.setIsActive(false);
+        mapping.setEndDate(LocalDate.now());
+        roomServiceMappingRepository.save(mapping);
+    }
+    
+    /**
+     * Kiểm tra thời điểm ngừng dịch vụ có phù hợp với chu kỳ thanh toán
+     */
+    private void validateDeactivationTiming(Long roomId) {
+        // Lấy hợp đồng active của phòng
+        Contract activeContract = contractRepository.findActiveByRoomId(roomId)
+            .orElseThrow(() -> new BusinessException("Không có hợp đồng đang hoạt động cho phòng này"));
+        
+        PaymentCycle cycle = activeContract.getPaymentCycle();
+        LocalDate today = LocalDate.now();
+        boolean isAllowed = false;
+        switch (cycle) {
+            case MONTHLY:
+                isAllowed = (today.getDayOfMonth() >= 28) || (today.getDayOfMonth() <= 5);
+                break;
+            case QUARTERLY:
+                isAllowed = ((today.getMonthValue() % 3 == 0) && today.getDayOfMonth() >= 28)
+                            || ((today.getMonthValue() % 3 == 1) && today.getDayOfMonth() <= 5);
+                break;
+            case YEARLY:
+                isAllowed = (today.getMonthValue() == 12 && today.getDayOfMonth() >= 28)
+                            || (today.getMonthValue() == 1 && today.getDayOfMonth() <= 5);
+                break;
+        }
+        if (!isAllowed) {
+            throw new BusinessException(
+                "Bạn chỉ được phép ngừng dịch vụ vào ngày cuối kỳ hoặc đầu kỳ thanh toán (ví dụ: ngày 28-31 hoặc 1-5 của tháng/kỳ). " +
+                "Vui lòng thực hiện thao tác này vào thời điểm phù hợp để đảm bảo hóa đơn được tính toán chính xác."
+            );
+        }
+        // Kiểm tra có hóa đơn chưa thanh toán không
+        List<Bill> unpaidBills = billRepository.findByRoomId(roomId, Pageable.unpaged())
+            .getContent().stream()
+            .filter(bill -> !Boolean.TRUE.equals(bill.getStatus()))
+            .toList();
+        if (!unpaidBills.isEmpty()) {
+            throw new BusinessException(
+                "Không thể ngừng dịch vụ khi có hóa đơn chưa thanh toán. " +
+                "Vui lòng thanh toán hết hóa đơn trước khi ngừng dịch vụ."
+            );
+        }
     }
 
     @Override

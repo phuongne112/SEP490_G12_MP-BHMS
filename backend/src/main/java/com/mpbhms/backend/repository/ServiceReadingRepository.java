@@ -45,4 +45,6 @@ public interface ServiceReadingRepository extends JpaRepository<ServiceReading, 
 
     @Query("SELECT DISTINCT s.room.id FROM ServiceReading s")
     List<Long> findDistinctRoomIds();
+
+    List<ServiceReading> findByRoomAndService(Room room, CustomService service);
 }
