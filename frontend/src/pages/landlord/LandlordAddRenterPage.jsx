@@ -80,25 +80,32 @@ export default function LandlordAddRenterPage() {
             onCancel={() => setModalOpen(false)}
             footer={null}
             title="Tài khoản chưa có vai trò"
+            width={700} // Giới hạn chiều rộng modal
+            bodyStyle={{ padding: 0 }} // Giảm padding nếu cần
           >
-            <Table
-              dataSource={userList}
-              loading={loading}
-              rowKey="id"
-              columns={[
-                { title: "ID", dataIndex: "id" },
-                { title: "Email", dataIndex: "email" },
-                { title: "Tên đăng nhập", dataIndex: "username" },
-                {
-                  title: "Thao tác",
-                  render: (_, record) => (
-                    <Button type="primary" onClick={() => handleGrantRenter(record)}>
-                      Cấp quyền người thuê
-                    </Button>
-                  ),
-                },
-              ]}
-            />
+            <div style={{ padding: 24 }}>
+              <Table
+                dataSource={userList}
+                loading={loading}
+                rowKey="id"
+                scroll={{ x: 600 }} // Cho phép scroll ngang nếu tràn
+                columns={[
+                  { title: "ID", dataIndex: "id", width: 60 },
+                  { title: "Email", dataIndex: "email", width: 220 },
+                  { title: "Tên đăng nhập", dataIndex: "username", width: 160 },
+                  {
+                    title: "Thao tác",
+                    width: 160,
+                    render: (_, record) => (
+                      <Button type="primary" onClick={() => handleGrantRenter(record)}>
+                        Cấp quyền người thuê
+                      </Button>
+                    ),
+                  },
+                ]}
+                pagination={{ pageSize: 5 }}
+              />
+            </div>
           </Modal>
           <div style={{ marginTop: 16 }}>
             <AddRenterForm onSubmit={handleSubmit} />
