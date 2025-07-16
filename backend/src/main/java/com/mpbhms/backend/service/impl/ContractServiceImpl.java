@@ -1127,6 +1127,7 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
         for (Contract contract : pendingContracts) {
             if (contract.getCreatedDate() != null) {
                 java.time.Instant deadline = contract.getCreatedDate().plusSeconds(contractPendingExpireDays * 24 * 60 * 60L);
+                logger.info("[AutoApprove] Contract #{} created at {}, deadline at {}", contract.getId(), contract.getCreatedDate(), deadline);
                 if (deadline.isBefore(now)) {
                     contract.setContractStatus(com.mpbhms.backend.enums.ContractStatus.ACTIVE);
                     contractRepository.save(contract);
