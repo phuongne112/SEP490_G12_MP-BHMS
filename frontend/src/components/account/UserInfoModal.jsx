@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Modal, Descriptions, Spin, Alert, Button } from "antd";
+import { Modal, Descriptions, Spin, Alert, Button, Upload, Modal as AntdModal, Form, Input, message } from "antd";
 import { getPersonalInfo } from "../../services/userApi";
 import { getCurrentUser } from "../../services/authService";
 import BookingListModal from "./BookingListModal";
+import { InboxOutlined } from '@ant-design/icons';
 
 export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
   const [loading, setLoading] = useState(true);
@@ -10,6 +11,12 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
   const [error, setError] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [ocrModalOpen, setOcrModalOpen] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrResult, setOcrResult] = useState(null);
+  const [frontFile, setFrontFile] = useState(null);
+  const [backFile, setBackFile] = useState(null);
+  const [form] = Form.useForm();
 
   useEffect(() => {
     if (!open) return;
@@ -39,6 +46,47 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
 
     fetchData();
   }, [open]);
+
+  useEffect(() => {
+    if (info) {
+      form.setFieldsValue({
+        fullName: info.fullName,
+        phoneNumber: info.phoneNumber,
+        phoneNumber2: info.phoneNumber2,
+        gender: info.gender,
+        birthDate: info.birthDate ? new Date(info.birthDate).toISOString().slice(0,10) : undefined,
+        birthPlace: info.birthPlace,
+        nationalID: info.nationalID,
+        nationalIDIssuePlace: info.nationalIDIssuePlace,
+        permanentAddress: info.permanentAddress,
+      });
+    }
+  }, [info, form]);
+
+  const handleOcr = async () => {
+    if (!frontFile || !backFile) {
+      message.error("Vui lòng chọn đủ 2 ảnh mặt trước và mặt sau CCCD!");
+      return;
+    }
+    setOcrLoading(true);
+    try {
+      const res = await ocrCccd(frontFile, backFile);
+      setOcrResult(res);
+      // Tự động điền vào form
+      form.setFieldsValue({
+        fullName: res.fullName,
+        nationalID: res.nationalID,
+        birthDate: res.birthDate,
+        nationalIDIssuePlace: res.nationalIDIssuePlace,
+        permanentAddress: res.permanentAddress,
+      });
+      message.success("Nhận diện thành công! Đã tự động điền thông tin.");
+      setOcrModalOpen(false);
+    } catch {
+      message.error("Nhận diện thất bại. Vui lòng thử lại!");
+    }
+    setOcrLoading(false);
+  };
 
   return (
     <Modal
@@ -106,6 +154,9 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
             <Button onClick={() => setShowBookingModal(true)}>
               Xem lịch hẹn
             </Button>
+            <Button onClick={() => setOcrModalOpen(true)}>
+              OCR CCCD
+            </Button>
             <Button
               type="primary"
               onClick={() => {
@@ -116,6 +167,44 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
               Cập nhật
             </Button>
           </div>
+          <AntdModal
+            open={ocrModalOpen}
+            onCancel={() => setOcrModalOpen(false)}
+            title="Nhận diện CCCD bằng ảnh"
+            footer={null}
+          >
+            <Form layout="vertical">
+              <Form.Item label="Ảnh mặt trước CCCD">
+                <Upload.Dragger
+                  accept="image/*"
+                  beforeUpload={file => { setFrontFile(file); return false; }}
+                  fileList={frontFile ? [frontFile] : []}
+                  onRemove={() => setFrontFile(null)}
+                  maxCount={1}
+                >
+                  <p className="ant-upload-drag-icon"><InboxOutlined /></p>
+                  <p>Kéo thả hoặc bấm để chọn ảnh mặt trước</p>
+                </Upload.Dragger>
+              </Form.Item>
+              <Form.Item label="Ảnh mặt sau CCCD">
+                <Upload.Dragger
+                  accept="image/*"
+                  beforeUpload={file => { setBackFile(file); return false; }}
+                  fileList={backFile ? [backFile] : []}
+                  onRemove={() => setBackFile(null)}
+                  maxCount={1}
+                >
+                  <p className="ant-upload-drag-icon"><InboxOutlined /></p>
+                  <p>Kéo thả hoặc bấm để chọn ảnh mặt sau</p>
+                </Upload.Dragger>
+              </Form.Item>
+              <Form.Item>
+                <Button type="primary" loading={ocrLoading} onClick={handleOcr} block>
+                  Nhận diện và điền thông tin
+                </Button>
+              </Form.Item>
+            </Form>
+          </AntdModal>
           <BookingListModal
             open={showBookingModal}
             onClose={() => setShowBookingModal(false)}

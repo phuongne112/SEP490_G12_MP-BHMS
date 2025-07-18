@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Row, Col, DatePicker, Select, Button, Popover } from "antd";
+import { Layout, Row, Col, DatePicker, Select, Button, Popover, message, Modal, Table, Input, Space } from "antd";
 import dayjs from "dayjs";
 import PageHeader from "../../components/common/PageHeader";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
@@ -7,6 +7,7 @@ import ElectricTable from "../../components/landlord/ElectricTable";
 import { getElectricReadings } from "../../services/electricReadingApi";
 import { getRoomsWithElectricReadings } from "../../services/roomService";
 import { FilterOutlined } from "@ant-design/icons";
+import { enableAutoScan, disableAutoScan, getAutoScanStatus, getScanLogs, getScanFolder, setScanFolder, getScanImages, getCurrentScanningImage } from "../../services/electricReadingApi";
 
 const { Sider, Content } = Layout;
 const { Option } = Select;
@@ -29,6 +30,19 @@ export default function LandlordElectricListPage() {
   const [filterVisible, setFilterVisible] = useState(false);
   const [tempDateRange, setTempDateRange] = useState(dateRange);
   const [tempRoom, setTempRoom] = useState(selectedRoom);
+  const [autoScanStatus, setAutoScanStatus] = useState("Đang kiểm tra...");
+  const [autoScanLoading, setAutoScanLoading] = useState(false);
+  const [logModalVisible, setLogModalVisible] = useState(false);
+  const [scanLogs, setScanLogs] = useState([]);
+  const [logLoading, setLogLoading] = useState(false);
+  const [logPage, setLogPage] = useState(1);
+  const [logTotal, setLogTotal] = useState(0);
+  const logPageSize = 10;
+  const [scanFolder, setScanFolderState] = useState("");
+  const [scanFolderInput, setScanFolderInput] = useState("");
+  const [scanFolderLoading, setScanFolderLoading] = useState(false);
+  const [scanImages, setScanImages] = useState([]);
+  const [currentScanning, setCurrentScanning] = useState("");
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -135,6 +149,121 @@ export default function LandlordElectricListPage() {
     </div>
   );
 
+  const fetchAutoScanStatus = async () => {
+    setAutoScanLoading(true);
+    try {
+      const res = await getAutoScanStatus();
+      setAutoScanStatus(res);
+    } catch {
+      setAutoScanStatus("Không xác định");
+    }
+    setAutoScanLoading(false);
+  };
+
+  useEffect(() => {
+    fetchAutoScanStatus();
+  }, []);
+
+  const handleToggleAutoScan = async (enable) => {
+    setAutoScanLoading(true);
+    try {
+      if (enable) {
+        await enableAutoScan();
+        message.success("Đã bật auto scan thành công!");
+      } else {
+        await disableAutoScan();
+        message.success("Đã tắt auto scan thành công!");
+      }
+      fetchAutoScanStatus();
+    } catch {
+      message.error("Thao tác thất bại. Vui lòng thử lại!");
+    }
+    setAutoScanLoading(false);
+  };
+
+  const fetchScanLogs = async (page = 1) => {
+    setLogLoading(true);
+    try {
+      const res = await getScanLogs({ page: page - 1, size: logPageSize });
+      setScanLogs(res.content || []);
+      setLogTotal(res.totalElements || 0);
+      setLogPage(page);
+    } catch {
+      setScanLogs([]);
+    }
+    setLogLoading(false);
+  };
+
+  const openLogModal = () => {
+    fetchScanLogs(1);
+    setLogModalVisible(true);
+  };
+
+  const logColumns = [
+    { title: "File", dataIndex: "fileName", key: "fileName" },
+    { title: "Phòng", dataIndex: "roomId", key: "roomId" },
+    { title: "Kết quả", dataIndex: "result", key: "result", render: (text) => text || "-" },
+    { title: "Thời gian", dataIndex: "scanTime", key: "scanTime", render: (t) => t ? new Date(t).toLocaleString() : "-" },
+    { title: "Lỗi", dataIndex: "errorMessage", key: "errorMessage", render: (text) => text ? <span style={{ color: 'red' }}>{text}</span> : "-" },
+  ];
+
+  useEffect(() => {
+    let interval = null;
+    if (autoScanStatus === "Auto scan ON") {
+      interval = setInterval(() => {
+        reloadElectricData();
+      }, 10000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+    // eslint-disable-next-line
+  }, [autoScanStatus]);
+
+  const fetchScanFolder = async () => {
+    try {
+      const res = await getScanFolder();
+      setScanFolderState(res.scanFolder || "");
+      setScanFolderInput(res.scanFolder || "");
+    } catch {}
+  };
+  useEffect(() => {
+    fetchScanFolder();
+  }, []);
+
+  const handleSaveScanFolder = async () => {
+    setScanFolderLoading(true);
+    try {
+      await setScanFolder(scanFolderInput);
+      setScanFolderState(scanFolderInput);
+      message.success("Đã cập nhật thư mục quét!");
+    } catch {
+      message.error("Cập nhật thư mục thất bại!");
+    }
+    setScanFolderLoading(false);
+  };
+
+  const fetchScanImagesAndCurrent = async () => {
+    try {
+      const [imgs, curr] = await Promise.all([
+        getScanImages(),
+        getCurrentScanningImage(),
+      ]);
+      setScanImages(Array.isArray(imgs) ? imgs : []);
+      setCurrentScanning(curr.current);
+    } catch {
+      setScanImages([]);
+    }
+  };
+
+  useEffect(() => {
+    if (autoScanStatus === "Auto scan ON") {
+      fetchScanImagesAndCurrent();
+      const interval = setInterval(fetchScanImagesAndCurrent, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [autoScanStatus]);
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Sider width={220} style={{ background: "#001529" }}>
@@ -145,6 +274,39 @@ export default function LandlordElectricListPage() {
         <PageHeader title="Chỉ số điện tổng" />
         <Content style={{ margin: "20px" }}>
           <Row gutter={16} style={{ marginBottom: 20 }}>
+            <Col span={24} style={{ marginBottom: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, overflowX: "auto", padding: 8, background: "#fafafa", borderRadius: 8 }}>
+                {Array.isArray(scanImages) && scanImages.length === 0 ? (
+                  <span>Không có ảnh trong thư mục quét.</span>
+                ) : (
+                  Array.isArray(scanImages) && scanImages.map((img) => (
+                    <div key={img} style={{ border: currentScanning === img ? "2px solid #1890ff" : "1px solid #eee", borderRadius: 4, padding: 2, background: currentScanning === img ? "#e6f7ff" : "#fff" }}>
+                      <img
+                        src={scanFolder + "/" + img}
+                        alt={img}
+                        style={{ width: 80, height: 80, objectFit: "cover", display: "block" }}
+                      />
+                      <div style={{ fontSize: 12, textAlign: "center", maxWidth: 80, wordBreak: "break-all" }}>{img}</div>
+                      {currentScanning === img && <div style={{ color: "#1890ff", fontWeight: "bold", textAlign: "center" }}>Đang quét</div>}
+                    </div>
+                  ))
+                )}
+              </div>
+            </Col>
+            <Col span={24} style={{ marginBottom: 8 }}>
+              <Space>
+                <span>Thư mục quét hiện tại:</span>
+                <Input
+                  style={{ width: 400 }}
+                  value={scanFolderInput}
+                  onChange={e => setScanFolderInput(e.target.value)}
+                  disabled={scanFolderLoading}
+                />
+                <Button type="primary" loading={scanFolderLoading} onClick={handleSaveScanFolder}>
+                  Lưu
+                </Button>
+              </Space>
+            </Col>
             <Col>
               <Popover
                 content={filterContent}
@@ -162,6 +324,20 @@ export default function LandlordElectricListPage() {
                 Lưu hóa đơn
               </Button>
             </Col>
+            <Col>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span>Auto Scan:</span>
+                <Button
+                  loading={autoScanLoading}
+                  type={autoScanStatus === "Auto scan ON" ? "primary" : "default"}
+                  onClick={() => handleToggleAutoScan(autoScanStatus !== "Auto scan ON")}
+                >
+                  {autoScanStatus === "Auto scan ON" ? "Tắt" : "Bật"}
+                </Button>
+                <span style={{ minWidth: 90 }}>{autoScanStatus}</span>
+                <Button onClick={openLogModal}>Lịch sử quét</Button>
+              </div>
+            </Col>
           </Row>
           <ElectricTable
             dataSource={pagedData}
@@ -174,6 +350,26 @@ export default function LandlordElectricListPage() {
           />
         </Content>
       </Layout>
+      <Modal
+        open={logModalVisible}
+        onCancel={() => setLogModalVisible(false)}
+        title="Lịch sử quét chỉ số điện tự động"
+        footer={null}
+        width={800}
+      >
+        <Table
+          columns={logColumns}
+          dataSource={scanLogs}
+          rowKey="id"
+          loading={logLoading}
+          pagination={{
+            current: logPage,
+            pageSize: logPageSize,
+            total: logTotal,
+            onChange: (page) => fetchScanLogs(page),
+          }}
+        />
+      </Modal>
     </Layout>
   );
 }
