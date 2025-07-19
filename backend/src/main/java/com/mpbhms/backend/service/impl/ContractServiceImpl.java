@@ -1192,6 +1192,29 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
                         } catch (Exception e) {
                             logger.error("[AutoApproveAmendment] Lỗi khi áp dụng amendment #{}: {}", amendment.getId(), e.getMessage());
                         }
+                        // Gửi notification cho landlord và renter
+                        Contract contract = amendment.getContract();
+                        String msg = "Yêu cầu thay đổi hợp đồng #" + contract.getId() + " đã được hệ thống tự động duyệt sau quá hạn.";
+                        if (contract.getRoomUsers() != null) {
+                            for (RoomUser ru : contract.getRoomUsers()) {
+                                if (ru.getUser() != null) {
+                                    notificationService.createAndSend(new com.mpbhms.backend.dto.NotificationDTO() {{
+                                        setRecipientId(ru.getUser().getId());
+                                        setTitle("Yêu cầu thay đổi hợp đồng đã được tự động duyệt");
+                                        setMessage(msg);
+                                        setType(com.mpbhms.backend.enums.NotificationType.CUSTOM);
+                                    }});
+                                }
+                            }
+                        }
+                        if (contract.getRoom() != null && contract.getRoom().getLandlord() != null) {
+                            notificationService.createAndSend(new com.mpbhms.backend.dto.NotificationDTO() {{
+                                setRecipientId(contract.getRoom().getLandlord().getId());
+                                setTitle("Yêu cầu thay đổi hợp đồng đã được tự động duyệt");
+                                setMessage(msg);
+                                setType(com.mpbhms.backend.enums.NotificationType.CUSTOM);
+                            }});
+                        }
                     } else {
                         // Nếu là TERMINATION thì gọi terminateContract
                         try {
@@ -1199,8 +1222,30 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
                         } catch (Exception e) {
                             logger.error("[AutoApproveAmendment] Lỗi khi terminate contract #{}: {}", amendment.getContract().getId(), e.getMessage());
                         }
+                        // Gửi notification cho landlord và renter
+                        Contract contract = amendment.getContract();
+                        String msg = "Yêu cầu chấm dứt hợp đồng #" + contract.getId() + " đã được hệ thống tự động duyệt sau quá hạn.";
+                        if (contract.getRoomUsers() != null) {
+                            for (RoomUser ru : contract.getRoomUsers()) {
+                                if (ru.getUser() != null) {
+                                    notificationService.createAndSend(new com.mpbhms.backend.dto.NotificationDTO() {{
+                                        setRecipientId(ru.getUser().getId());
+                                        setTitle("Yêu cầu chấm dứt hợp đồng đã được tự động duyệt");
+                                        setMessage(msg);
+                                        setType(com.mpbhms.backend.enums.NotificationType.CUSTOM);
+                                    }});
+                                }
+                            }
+                        }
+                        if (contract.getRoom() != null && contract.getRoom().getLandlord() != null) {
+                            notificationService.createAndSend(new com.mpbhms.backend.dto.NotificationDTO() {{
+                                setRecipientId(contract.getRoom().getLandlord().getId());
+                                setTitle("Yêu cầu chấm dứt hợp đồng đã được tự động duyệt");
+                                setMessage(msg);
+                                setType(com.mpbhms.backend.enums.NotificationType.CUSTOM);
+                            }});
+                        }
                     }
-                    // Gửi notification nếu cần
                 }
             } else {
                 logger.warn("[AutoApproveAmendment] Amendment #{} has null createdDate!", amendment.getId());
