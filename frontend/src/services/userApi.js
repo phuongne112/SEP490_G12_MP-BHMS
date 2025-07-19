@@ -49,3 +49,19 @@ export const createPersonalInfo = async (data) => {
   const res = await axiosClient.post("users/me/info", data);
   return res.data;
 };
+
+// Lấy tổng số user và phân loại user theo role
+export const getUserStats = async () => {
+  // Lấy tất cả user với size lớn để đếm (hoặc backend nên có API riêng)
+  const res = await getAllUsers(0, 1000);
+  const users = res?.result || [];
+  const stats = { total: 0, admin: 0, renter: 0, guest: 0 };
+  users.forEach(u => {
+    const role = u.role?.roleName?.toUpperCase?.() || "GUEST";
+    if (role === "ADMIN") stats.admin++;
+    else if (role === "RENTER") stats.renter++;
+    else stats.guest++;
+    stats.total++;
+  });
+  return stats;
+};

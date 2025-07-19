@@ -745,6 +745,11 @@ const user = useSelector((state) => state.account.user);
                                         type="primary"
                                         style={{ borderRadius: 6, minWidth: 80, height: 38 }}
                                         onClick={() => {
+                                            // Chặn sửa nếu phòng có người ở
+                                            if (room.roomUsers && room.roomUsers.filter(u => u.isActive).length > 0) {
+                                                message.error("Không thể chỉnh sửa phòng khi vẫn còn người ở!");
+                                                return;
+                                            }
                                             if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
                                                 navigate(`/admin/rooms/${room.id}/edit`);
                                             } else {

@@ -82,3 +82,16 @@ export const getAssetsByRoomNumber = async (roomNumber) => {
   const response = await axiosClient.get(`/room-assets/by-room-number?roomNumber=${roomNumber}`);
   return response;
 };
+
+// Lấy tổng số asset và phân loại asset
+export const getAssetStats = async () => {
+  const res = await getAllAssets(0, 1000);
+  const assets = res?.data?.result || [];
+  const stats = { total: 0, byType: {} };
+  assets.forEach(a => {
+    const type = a.assetStatus || "Khác";
+    stats.byType[type] = (stats.byType[type] || 0) + 1;
+    stats.total++;
+  });
+  return stats;
+};

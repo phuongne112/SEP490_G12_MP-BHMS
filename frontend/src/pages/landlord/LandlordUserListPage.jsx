@@ -88,6 +88,21 @@ export default function LandlordUserListPage() {
   const handleAddUser = async () => {
     try {
       const values = await addForm.validateFields();
+      // Kiểm tra trùng số điện thoại và CCCD/CMND
+      try {
+        const res = await getAllUsers(0, 1000);
+        const users = res?.result || [];
+        const phoneExists = users.some(u => u.phoneNumber === values.phoneNumber);
+        const cccdExists = users.some(u => u.citizenId && values.citizenId && u.citizenId === values.citizenId);
+        if (phoneExists) {
+          addForm.setFields([{ name: 'phoneNumber', errors: ['Số điện thoại đã tồn tại.'] }]);
+          return;
+        }
+        if (cccdExists) {
+          addForm.setFields([{ name: 'citizenId', errors: ['Số CCCD/CMND đã tồn tại.'] }]);
+          return;
+        }
+      } catch (err) {}
       setAddLoading(true);
       await createUser(values);
       message.success("Add user successfully!");

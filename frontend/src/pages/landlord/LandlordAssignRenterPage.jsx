@@ -4,7 +4,7 @@ import { ArrowLeftOutlined, UserAddOutlined } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import { useNavigate, useParams } from "react-router-dom";
-import { getAllRooms } from "../../services/roomService";
+import { getAllRooms, getRoomById } from "../../services/roomService";
 import { getRentersForAssign } from "../../services/renterApi";
 import axiosClient from "../../services/axiosClient";
 import { useSelector } from "react-redux";
@@ -65,10 +65,9 @@ export default function LandlordAssignRenterPage() {
 
   const fetchRoomDetails = async () => {
     try {
-      const res = await getAllRooms(0, 1000, `id=${roomId}`);
-      if (res.result && res.result.length > 0) {
-        setRoom(res.result[0]);
-      }
+      const res = await getRoomById(roomId);
+      console.log("Chi tiết phòng:", res); // Log dữ liệu phòng để debug
+      setRoom(res);
     } catch (err) {
       message.error("Failed to load room details");
     } finally {
@@ -242,6 +241,9 @@ export default function LandlordAssignRenterPage() {
                 </div>
                 <div>
                   <Text strong>Phòng tắm:</Text> {room.numberOfBathrooms}
+                </div>
+                <div>
+                  <Text strong>Số người đang ở:</Text> {room.roomUsers ? room.roomUsers.filter(u => u.isActive).length : 0}
                 </div>
               </Space>
             </Card>

@@ -73,8 +73,8 @@ export default function UpdateUserInfoModal({
       onClose();
       onBackToInfoModal?.();
     } catch (err) {
-      if (err.response?.data?.error === "VALIDATION_ERROR") {
-        const fieldErrors = err.response.data.data;
+      const fieldErrors = err.response?.data?.data;
+      if (fieldErrors && typeof fieldErrors === "object") {
         form.setFields(
           Object.entries(fieldErrors).map(([field, message]) => ({
             name: field,
