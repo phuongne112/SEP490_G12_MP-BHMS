@@ -51,6 +51,7 @@ export default function Header() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedNoti, setSelectedNoti] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [ocrData, setOcrData] = useState(null);
 
   let dateStr = "N/A";
   if (selectedNoti?.createdDate && dayjs(selectedNoti.createdDate).isValid()) {
@@ -483,10 +484,11 @@ export default function Header() {
       <UserInfoModal
         open={isInfoModalOpen}
         onClose={() => setIsInfoModalOpen(false)}
-        onShowUpdateModal={(create = false) => {
+        onShowUpdateModal={(create = false, ocrData = null) => {
           setIsInfoModalOpen(false);
           setIsCreate(create); // ✅ set trạng thái tạo mới hay update
           setShowUpdateInfoModal(true);
+          setOcrData(ocrData);
         }}
       />
       <UpdateUserInfoModal
@@ -494,6 +496,7 @@ export default function Header() {
         isCreate={isCreate} // ✅ truyền prop này vào
         onClose={() => setShowUpdateInfoModal(false)}
         onBackToInfoModal={() => setIsInfoModalOpen(true)}
+        ocrData={ocrData}
       />
       <Modal
         open={modalOpen}
@@ -504,11 +507,17 @@ export default function Header() {
       >
         <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
           Tiêu đề:{" "}
-          <span style={{ fontWeight: 400 }}>{selectedNoti?.title}</span>
+          <span style={{ fontWeight: 400 }}>
+            {selectedNoti?.title === 'Booking Confirmed' ? 'Đặt lịch đã xác nhận' : selectedNoti?.title}
+          </span>
         </div>
         <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
           Nội dung:{" "}
-          <span style={{ fontWeight: 400 }}>{selectedNoti?.message}</span>
+          <span style={{ fontWeight: 400 }}>
+            {selectedNoti?.message && selectedNoti?.message.startsWith('Your booking for room') && selectedNoti?.message.includes('has been confirmed by the landlord')
+              ? `Lịch hẹn của bạn cho phòng ${selectedNoti?.message.match(/room (\d+)/)?.[1] || ''} đã được chủ nhà xác nhận!`
+              : selectedNoti?.message}
+          </span>
         </div>
         <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
           Ngày tạo: <span style={{ fontWeight: 400 }}>{dateStr}</span>

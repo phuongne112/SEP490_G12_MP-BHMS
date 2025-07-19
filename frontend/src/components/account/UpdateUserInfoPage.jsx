@@ -9,26 +9,70 @@ import {
   Spin,
   Select,
   Popconfirm,
+  Upload,
+  Row,
+  Col,
 } from "antd";
 import dayjs from "dayjs";
 import {
   createPersonalInfo,
   getPersonalInfo,
   updatePersonalInfo,
+  ocrCccd,
 } from "../../services/userApi";
+import { InboxOutlined } from '@ant-design/icons';
 
 export default function UpdateUserInfoModal({
   open,
   isCreate,
   onClose,
   onBackToInfoModal,
+  ocrData,
 }) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [frontFile, setFrontFile] = useState(null);
+  const [backFile, setBackFile] = useState(null);
+  const [frontPreview, setFrontPreview] = useState(null);
+  const [backPreview, setBackPreview] = useState(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+
+    if (ocrData) {
+      // Nếu có dữ liệu OCR, tự động điền vào form
+      let birthDateValue = null;
+      if (ocrData.birthDate) {
+        let raw = ocrData.birthDate.replace(" PM", "").replace(" AM", "").replace(" ", "T");
+        const tryFormats = [
+          "YYYY-MM-DDTHH:mm:ss",
+          "YYYY-MM-DD HH:mm:ss",
+          "YYYY-MM-DD",
+          "DD/MM/YYYY",
+          "DD-MM-YYYY"
+        ];
+        for (const fmt of tryFormats) {
+          const d = dayjs(raw, fmt, true);
+          if (d.isValid()) {
+            birthDateValue = d;
+            break;
+          }
+        }
+      }
+      form.setFieldsValue({
+        fullName: ocrData.fullName,
+        nationalID: ocrData.nationalID,
+        birthDate: birthDateValue,
+        gender: ocrData.gender,
+        birthPlace: ocrData.birthPlace,
+        permanentAddress: ocrData.permanentAddress,
+        nationalIDIssuePlace: ocrData.nationalIDIssuePlace,
+      });
+      setInitialLoading(false);
+      return;
+    }
 
     if (isCreate) {
       form.resetFields();
@@ -53,12 +97,30 @@ export default function UpdateUserInfoModal({
         .catch(() => message.error("Không thể tải thông tin cá nhân."))
         .finally(() => setInitialLoading(false));
     }
-  }, [open, isCreate]);
+  }, [open, isCreate, ocrData]);
 
   const onFinish = async (values) => {
+    let birthDateInstant = null;
+    if (values.birthDate) {
+      let d = values.birthDate;
+      if (typeof d === "string") {
+        let raw = d.trim().replace(/[^0-9/\-]/g, "");
+        const tryFormats = ["DD/MM/YYYY", "DD-MM-YYYY", "YYYY-MM-DD"];
+        for (const fmt of tryFormats) {
+          const parsed = dayjs(raw, fmt, true);
+          if (parsed.isValid()) {
+            d = parsed;
+            break;
+          }
+        }
+      }
+      if (typeof d !== "string" && d.isValid && d.isValid()) {
+        birthDateInstant = d.toISOString();
+      }
+    }
     const payload = {
       ...values,
-      birthDate: values.birthDate ? values.birthDate.toISOString() : null,
+      birthDate: birthDateInstant,
     };
 
     try {
@@ -91,6 +153,58 @@ export default function UpdateUserInfoModal({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFrontChange = (file) => {
+    setFrontFile(file);
+    setFrontPreview(URL.createObjectURL(file));
+    return false;
+  };
+  const handleBackChange = (file) => {
+    setBackFile(file);
+    setBackPreview(URL.createObjectURL(file));
+    return false;
+  };
+  const handleOcr = async () => {
+    if (!frontFile || !backFile) {
+      message.error("Vui lòng chọn đủ 2 ảnh mặt trước và mặt sau CCCD!");
+      return;
+    }
+    setOcrLoading(true);
+    try {
+      const res = await ocrCccd(frontFile, backFile);
+      const data = res?.data || res;
+      let genderValue = "Other";
+      const genderText = (data.gender || "").toLowerCase().trim().normalize("NFC");
+      if (genderText === "nam") genderValue = "Male";
+      else if (genderText === "nữ" || genderText === "nu") genderValue = "Female";
+      // Chuẩn hóa ngày sinh
+      let birthDateValue = null;
+      if (data.birthDate) {
+        const tryFormats = ["DD/MM/YYYY", "DD-MM-YYYY", "YYYY-MM-DD"];
+        for (const fmt of tryFormats) {
+          const d = dayjs(data.birthDate, fmt, true);
+          if (d.isValid()) {
+            birthDateValue = d;
+            break;
+          }
+        }
+      }
+      form.setFieldsValue({
+        fullName: data.fullName,
+        nationalID: data.nationalID,
+        birthDate: birthDateValue,
+        gender: genderValue,
+        birthPlace: data.birthPlace,
+        permanentAddress: data.permanentAddress,
+        nationalIDIssuePlace: data.nationalIDIssuePlace,
+      });
+      message.success("Nhận diện thành công! Đã tự động điền thông tin.");
+    } catch (e) {
+      console.error("Lỗi OCR CCCD:", e);
+      message.error("Nhận diện thất bại. Vui lòng thử lại!");
+    }
+    setOcrLoading(false);
   };
 
   return (
@@ -173,25 +287,81 @@ export default function UpdateUserInfoModal({
           >
             <Input />
           </Form.Item>
-          <Form.Item style={{ textAlign: "right" }}>
-            <Button onClick={onClose} style={{ marginRight: 8 }}>
-              Huỷ
-            </Button>
-            <Popconfirm
-              title={isCreate ? "Xác nhận tạo mới" : "Xác nhận cập nhật"}
-              description={
-                isCreate
-                  ? "Bạn có chắc chắn muốn tạo thông tin cá nhân này không?"
-                  : "Bạn có chắc chắn muốn cập nhật thông tin cá nhân này không?"
-              }
-              onConfirm={() => form.submit()}
-              okText="Đồng ý"
-              cancelText="Huỷ"
+          <Row gutter={16} style={{ marginBottom: 0 }}>
+            <Col span={12}>
+              <div style={{ marginBottom: 8, fontWeight: 500 }}>Ảnh mặt trước CCCD</div>
+              <Upload.Dragger
+                accept="image/*"
+                beforeUpload={handleFrontChange}
+                fileList={frontFile ? [frontFile] : []}
+                onRemove={() => { setFrontFile(null); setFrontPreview(null); }}
+                maxCount={1}
+                disabled={ocrLoading}
+                style={{ background: "#fafafa" }}
+              >
+                {frontPreview ? (
+                  <img src={frontPreview} alt="Ảnh mặt trước" style={{ width: 180, borderRadius: 8, objectFit: "cover" }} />
+                ) : (
+                  <>
+                    <p className="ant-upload-drag-icon"><InboxOutlined /></p>
+                    <p>Kéo thả hoặc bấm để chọn ảnh mặt trước</p>
+                  </>
+                )}
+              </Upload.Dragger>
+            </Col>
+            <Col span={12}>
+              <div style={{ marginBottom: 8, fontWeight: 500 }}>Ảnh mặt sau CCCD</div>
+              <Upload.Dragger
+                accept="image/*"
+                beforeUpload={handleBackChange}
+                fileList={backFile ? [backFile] : []}
+                onRemove={() => { setBackFile(null); setBackPreview(null); }}
+                maxCount={1}
+                disabled={ocrLoading}
+                style={{ background: "#fafafa" }}
+              >
+                {backPreview ? (
+                  <img src={backPreview} alt="Ảnh mặt sau" style={{ width: 180, borderRadius: 8, objectFit: "cover" }} />
+                ) : (
+                  <>
+                    <p className="ant-upload-drag-icon"><InboxOutlined /></p>
+                    <p>Kéo thả hoặc bấm để chọn ảnh mặt sau</p>
+                  </>
+                )}
+              </Upload.Dragger>
+            </Col>
+          </Row>
+          {/* Tên file sẽ tự động hiển thị dưới vùng upload */}
+          <div style={{ textAlign: "center", margin: "85px 0 0 0" }}>
+            <Button
+              type="primary"
+              loading={ocrLoading}
+              onClick={handleOcr}
+              disabled={!frontFile || !backFile}
+              style={{ minWidth: 180 }}
             >
-              <Button type="primary" loading={loading}>
-                {isCreate ? "Tạo mới" : "Cập nhật"}
-              </Button>
-            </Popconfirm>
+              Quét CCCD
+            </Button>
+          </div>
+          <Form.Item style={{ marginBottom: 0 }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <Button onClick={onClose}>Huỷ</Button>
+              <Popconfirm
+                title={isCreate ? "Xác nhận tạo mới" : "Xác nhận cập nhật"}
+                description={
+                  isCreate
+                    ? "Bạn có chắc chắn muốn tạo thông tin cá nhân này không?"
+                    : "Bạn có chắc chắn muốn cập nhật thông tin cá nhân này không?"
+                }
+                onConfirm={() => form.submit()}
+                okText="Đồng ý"
+                cancelText="Huỷ"
+              >
+                <Button type="primary" loading={loading}>
+                  {isCreate ? "Tạo mới" : "Cập nhật"}
+                </Button>
+              </Popconfirm>
+            </div>
           </Form.Item>
         </Form>
       )}

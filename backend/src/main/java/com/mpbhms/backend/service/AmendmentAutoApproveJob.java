@@ -34,7 +34,8 @@ public class AmendmentAutoApproveJob {
         for (ContractAmendment am : pending) {
             // Sử dụng getCreatedDate() theo chuẩn BaseEntity
             if (am.getCreatedDate() != null) {
-                Instant deadline = am.getCreatedDate().plus(expireDays, ChronoUnit.DAYS);
+                Instant deadline = am.getCreatedDate().plusSeconds(expireDays * 24 * 60 * 60L);
+                logger.info("[AutoApprove] Amendment #{} created at {}, deadline at {}", am.getId(), am.getCreatedDate(), deadline);
                 if (deadline.isBefore(now)) {
                     // Quá hạn, auto-approve
                     if (!Boolean.TRUE.equals(am.getApprovedByTenants())) {
@@ -75,7 +76,7 @@ public class AmendmentAutoApproveJob {
                             }
                         }
                     }
-                } else if (deadline.minus(1, ChronoUnit.DAYS).isBefore(now)) {
+                } else if (deadline.minusSeconds(24 * 60 * 60L).isBefore(now)) {
                     // Còn 1 ngày sẽ hết hạn, gửi notification nhắc nhở
                     // TODO: notificationService.createAndSendReminderNotification(am);
                 }

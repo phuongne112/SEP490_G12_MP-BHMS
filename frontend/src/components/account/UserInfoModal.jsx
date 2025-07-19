@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Modal, Descriptions, Spin, Alert, Button } from "antd";
+import { Modal, Descriptions, Spin, Alert, Button, Upload, message, Row, Col } from "antd";
 import { getPersonalInfo } from "../../services/userApi";
 import { getCurrentUser } from "../../services/authService";
 import BookingListModal from "./BookingListModal";
+import { InboxOutlined } from '@ant-design/icons';
+import { ocrCccd } from "../../services/userApi";
+import dayjs from "dayjs";
 
 export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
   const [loading, setLoading] = useState(true);
@@ -10,23 +13,24 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
   const [error, setError] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [frontFile, setFrontFile] = useState(null);
+  const [backFile, setBackFile] = useState(null);
+  const [frontPreview, setFrontPreview] = useState(null);
+  const [backPreview, setBackPreview] = useState(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-
     const fetchData = async () => {
       try {
         setLoading(true);
         setError("");
-
         const user = await getCurrentUser();
         setCurrentUser(user);
-
         const data = await getPersonalInfo();
         setInfo(data);
       } catch (err) {
         const status = err?.response?.status;
-
         if (status === 404 || status === 500) {
           setInfo(null);
         } else {
@@ -36,9 +40,36 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [open]);
+
+  const handleFrontChange = (file) => {
+    setFrontFile(file);
+    setFrontPreview(URL.createObjectURL(file));
+    return false;
+  };
+  const handleBackChange = (file) => {
+    setBackFile(file);
+    setBackPreview(URL.createObjectURL(file));
+    return false;
+  };
+  const handleOcr = async () => {
+    if (!frontFile || !backFile) {
+      message.error("Vui lòng chọn đủ 2 ảnh mặt trước và mặt sau CCCD!");
+      return;
+    }
+    setOcrLoading(true);
+    try {
+      const res = await ocrCccd(frontFile, backFile);
+      const data = res?.data || res; // fix nếu axiosClient trả về .data
+      setInfo((prev) => ({ ...prev, ...data }));
+      message.success("Nhận diện thành công! Đã tự động điền thông tin.");
+    } catch (e) {
+      console.error("Lỗi OCR CCCD:", e);
+      message.error("Nhận diện thất bại. Vui lòng thử lại!");
+    }
+    setOcrLoading(false);
+  };
 
   return (
     <Modal
@@ -46,7 +77,7 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
       open={open}
       onCancel={onClose}
       footer={null}
-      width={600}
+      width={650}
     >
       {loading ? (
         <Spin />
@@ -65,7 +96,7 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
         </div>
       ) : (
         <>
-          <Descriptions column={1} bordered size="small">
+          <Descriptions column={1} bordered size="small" style={{ marginBottom: 16 }}>
             <Descriptions.Item label="Họ và tên">
               {info?.fullName || "-"}
             </Descriptions.Item>
@@ -79,7 +110,20 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
               {info?.gender || "-"}
             </Descriptions.Item>
             <Descriptions.Item label="Ngày sinh">
-              {info?.birthDate ? (new Date(info.birthDate).toLocaleDateString("vi-VN")) : "-"}
+              {(() => {
+                if (!info?.birthDate) return "-";
+                let raw = info.birthDate.replace(" ", "T");
+                const tryFormats = ["DD/MM/YYYY", "DD-MM-YYYY", "YYYY-MM-DD", "YYYY-MM-DDTHH:mm:ss.SSSZ", "YYYY-MM-DDTHH:mm:ss.SSS"];
+                let d = null;
+                for (const fmt of tryFormats) {
+                  const tryDate = dayjs(raw, fmt, true);
+                  if (tryDate.isValid()) {
+                    d = tryDate;
+                    break;
+                  }
+                }
+                return d ? d.format("DD/MM/YYYY") : "-";
+              })()}
             </Descriptions.Item>
             <Descriptions.Item label="Nơi sinh">
               {info?.birthPlace || "-"}
@@ -97,7 +141,7 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
           <div
             style={{
               textAlign: "right",
-              marginTop: 16,
+              marginTop: 8,
               display: "flex",
               gap: 8,
               justifyContent: "flex-end",
