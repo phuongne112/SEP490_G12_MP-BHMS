@@ -2,7 +2,7 @@ import axiosClient from "./axiosClient";
 
 // Truyền params: { serviceId, startDate, endDate } nếu filter theo khoảng ngày
 export const getElectricReadings = (params) =>
-  axiosClient.get("/services/readings", { params });
+  axiosClient.get("/services/readings", { params }); 
 
 export const enableAutoScan = () => axiosClient.post("/ocr/auto-scan/on");
 export const disableAutoScan = () => axiosClient.post("/ocr/auto-scan/off");
