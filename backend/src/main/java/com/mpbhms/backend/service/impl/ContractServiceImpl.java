@@ -1118,16 +1118,23 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
     /**
      * Scheduled task: Tự động duyệt hợp đồng PENDING nếu quá thời gian chờ duyệt
      */
-    @Scheduled(cron = "0 0 2 * * ?") // Chạy lúc 2h sáng hàng ngày
+    @Scheduled(cron = "0 0/5 * * * ?") // Chạy mỗi 5 phút
     public void autoApprovePendingContracts() {
-        java.time.Instant now = java.time.Instant.now();
+        java.time.Instant now = java.time.Instant.now(); // UTC
         java.util.List<Contract> pendingContracts = contractRepository.findAll().stream()
             .filter(c -> c.getContractStatus() == com.mpbhms.backend.enums.ContractStatus.PENDING)
             .toList();
         for (Contract contract : pendingContracts) {
             if (contract.getCreatedDate() != null) {
-                java.time.Instant deadline = contract.getCreatedDate().plusSeconds(contractPendingExpireDays * 24 * 60 * 60L);
-                if (deadline.isBefore(now)) {
+                Instant created = contract.getCreatedDate();
+                Instant deadline = created.plusSeconds(contractPendingExpireDays * 24 * 60 * 60L);
+                logger.info("[AutoApprove] Contract #{} created at {} (epoch {}), deadline at {} (epoch {}), now {} (epoch {})",
+                    contract.getId(),
+                    created, created.getEpochSecond(),
+                    deadline, deadline.getEpochSecond(),
+                    now, now.getEpochSecond()
+                );
+                if (now.isAfter(deadline)) {
                     contract.setContractStatus(com.mpbhms.backend.enums.ContractStatus.ACTIVE);
                     contractRepository.save(contract);
                     // Gửi notification cho các bên
@@ -1152,6 +1159,51 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
                         }});
                     }
                 }
+            } else {
+                logger.warn("[AutoApprove] Contract #{} has null createdDate!", contract.getId());
+            }
+        }
+    }
+
+    @Scheduled(cron = "0 0/5 * * * ?") // Chạy mỗi 5 phút
+    public void autoApprovePendingAmendments() {
+        int amendmentPendingExpireDays = 2; // hoặc lấy từ config nếu cần
+        Instant now = Instant.now();
+        java.util.List<ContractAmendment> pendingAmendments = contractAmendmentRepository.findAll().stream()
+            .filter(a -> a.getStatus() == ContractAmendment.AmendmentStatus.PENDING)
+            .toList();
+        for (ContractAmendment amendment : pendingAmendments) {
+            if (amendment.getCreatedDate() != null) {
+                Instant created = amendment.getCreatedDate();
+                Instant deadline = created.plusSeconds(amendmentPendingExpireDays * 24 * 60 * 60L);
+                logger.info("[AutoApproveAmendment] Amendment #{} created at {} (epoch {}), deadline at {} (epoch {}), now {} (epoch {})",
+                    amendment.getId(),
+                    created, created.getEpochSecond(),
+                    deadline, deadline.getEpochSecond(),
+                    now, now.getEpochSecond()
+                );
+                if (now.isAfter(deadline)) {
+                    amendment.setStatus(ContractAmendment.AmendmentStatus.APPROVED);
+                    contractAmendmentRepository.save(amendment);
+                    // Nếu không phải TERMINATION thì áp dụng amendment vào hợp đồng
+                    if (amendment.getAmendmentType() != ContractAmendment.AmendmentType.TERMINATION) {
+                        try {
+                            applyAmendmentToContract(amendment);
+                        } catch (Exception e) {
+                            logger.error("[AutoApproveAmendment] Lỗi khi áp dụng amendment #{}: {}", amendment.getId(), e.getMessage());
+                        }
+                    } else {
+                        // Nếu là TERMINATION thì gọi terminateContract
+                        try {
+                            terminateContract(amendment.getContract().getId());
+                        } catch (Exception e) {
+                            logger.error("[AutoApproveAmendment] Lỗi khi terminate contract #{}: {}", amendment.getContract().getId(), e.getMessage());
+                        }
+                    }
+                    // Gửi notification nếu cần
+                }
+            } else {
+                logger.warn("[AutoApproveAmendment] Amendment #{} has null createdDate!", amendment.getId());
             }
         }
     }
