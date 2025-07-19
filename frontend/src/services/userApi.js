@@ -49,3 +49,13 @@ export const createPersonalInfo = async (data) => {
   const res = await axiosClient.post("users/me/info", data);
   return res.data;
 };
+
+export const ocrCccd = async (frontFile, backFile) => {
+  const formData = new FormData();
+  formData.append("front", frontFile);
+  formData.append("back", backFile);
+  const res = await axiosClient.post("/ocr/cccd", formData, {
+    headers: { "Content-Type": "multipart/form-data" }
+  });
+  return res;
+};
