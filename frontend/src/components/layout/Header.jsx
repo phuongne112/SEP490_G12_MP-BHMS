@@ -51,6 +51,7 @@ export default function Header() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedNoti, setSelectedNoti] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [ocrData, setOcrData] = useState(null);
 
   let dateStr = "N/A";
   if (selectedNoti?.createdDate && dayjs(selectedNoti.createdDate).isValid()) {
@@ -483,10 +484,11 @@ export default function Header() {
       <UserInfoModal
         open={isInfoModalOpen}
         onClose={() => setIsInfoModalOpen(false)}
-        onShowUpdateModal={(create = false) => {
+        onShowUpdateModal={(create = false, ocrData = null) => {
           setIsInfoModalOpen(false);
           setIsCreate(create); // ✅ set trạng thái tạo mới hay update
           setShowUpdateInfoModal(true);
+          setOcrData(ocrData);
         }}
       />
       <UpdateUserInfoModal
@@ -494,6 +496,7 @@ export default function Header() {
         isCreate={isCreate} // ✅ truyền prop này vào
         onClose={() => setShowUpdateInfoModal(false)}
         onBackToInfoModal={() => setIsInfoModalOpen(true)}
+        ocrData={ocrData}
       />
       <Modal
         open={modalOpen}

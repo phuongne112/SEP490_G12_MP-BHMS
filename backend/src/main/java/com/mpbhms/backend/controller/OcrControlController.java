@@ -3,6 +3,7 @@ package com.mpbhms.backend.controller;
 import com.mpbhms.backend.entity.ScanLog;
 import com.mpbhms.backend.service.AutoElectricMeterScanner;
 import com.mpbhms.backend.service.ScanLogService;
+import com.mpbhms.backend.service.OcrCccdService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -21,10 +22,12 @@ import java.util.HashMap;
 public class OcrControlController {
     private final AutoElectricMeterScanner scanner;
     private final ScanLogService scanLogService;
+    private final OcrCccdService ocrCccdService;
 
-    public OcrControlController(AutoElectricMeterScanner scanner, ScanLogService scanLogService) {
+    public OcrControlController(AutoElectricMeterScanner scanner, ScanLogService scanLogService, OcrCccdService ocrCccdService) {
         this.scanner = scanner;
         this.scanLogService = scanLogService;
+        this.ocrCccdService = ocrCccdService;
     }
 
     @PostMapping("/auto-scan/on")
@@ -81,14 +84,7 @@ public class OcrControlController {
 
     @PostMapping("/cccd")
     public Map<String, Object> ocrCccd(@RequestParam("front") MultipartFile front,
-                                       @RequestParam("back") MultipartFile back) {
-        // TODO: Gọi service OCR thực tế ở đây. Dưới đây là giả lập kết quả.
-        Map<String, Object> result = new HashMap<>();
-        result.put("fullName", "Nguyen Van A");
-        result.put("nationalID", "012345678901");
-        result.put("birthDate", "1990-01-01");
-        result.put("nationalIDIssuePlace", "CA TP HCM");
-        result.put("permanentAddress", "123 Đường ABC, Quận 1, TP HCM");
-        return result;
+                                       @RequestParam("back") MultipartFile back) throws Exception {
+        return ocrCccdService.ocrCccd(front, back);
     }
 } 

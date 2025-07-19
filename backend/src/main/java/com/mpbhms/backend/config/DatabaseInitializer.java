@@ -103,6 +103,15 @@ public class DatabaseInitializer implements CommandLineRunner {
             //OCR
             permissions.add(new Permission("OCR", "/mpbhms/ocr/detect-ocr", "POST", "Ocr"));
             permissions.add(new Permission("Save Reading", "/mpbhms/ocr/save-reading", "POST", "Ocr"));
+            permissions.add(new Permission("Enable Auto Scan", "/mpbhms/ocr/auto-scan/on", "POST", "Ocr"));
+            permissions.add(new Permission("Disable Auto Scan", "/mpbhms/ocr/auto-scan/off", "POST", "Ocr"));
+            permissions.add(new Permission("Get Auto Scan Status", "/mpbhms/ocr/auto-scan/status", "GET", "Ocr"));
+            permissions.add(new Permission("Get Scan Logs", "/mpbhms/ocr/scan-logs", "GET", "Ocr"));
+            permissions.add(new Permission("Get Scan Folder", "/mpbhms/ocr/scan-folder", "GET", "Ocr"));
+            permissions.add(new Permission("Set Scan Folder", "/mpbhms/ocr/scan-folder", "POST", "Ocr"));
+            permissions.add(new Permission("Get Scan Images", "/mpbhms/ocr/scan-images", "GET", "Ocr"));
+            permissions.add(new Permission("Get Current Scanning Image", "/mpbhms/ocr/current-scanning-image", "GET", "Ocr"));
+            permissions.add(new Permission("OCR CCCD", "/mpbhms/ocr/cccd", "POST", "Ocr"));
             //Bill
             permissions.add(new Permission("Generate first", "/mpbhms/bills/generate-first", "POST", "Bill"));
             permissions.add(new Permission("Generate", "/mpbhms/bills/generate", "POST", "Bill"));
@@ -234,6 +243,11 @@ public class DatabaseInitializer implements CommandLineRunner {
             //Payment
             Permission createVnpayUrl = permissionRepository.findByModuleAndApiPathAndMethod("Payment", "/mpbhms/payment/create-vnpay-url", "POST");
             if (createVnpayUrl != null) renterPermission.add(createVnpayUrl);
+            //Ocr
+            Permission ocrCccdPermission = permissionRepository.findByModuleAndApiPathAndMethod("Ocr", "/mpbhms/ocr/cccd", "POST");
+            if (ocrCccdPermission != null) {
+                renterPermission.add(ocrCccdPermission);
+            }
             // Room
             Permission viewRoom = permissionRepository.findByModuleAndApiPathAndMethod("Room", "/mpbhms/rooms", "GET");
             if (viewRoom != null) renterPermission.add(viewRoom);
