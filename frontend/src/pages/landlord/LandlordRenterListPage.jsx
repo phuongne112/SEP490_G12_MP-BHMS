@@ -100,6 +100,17 @@ export default function LandlordRenterListPage() {
       setAddModalOpen(false);
       setFilter({ ...filter }); // reload bảng
     } catch (err) {
+      // Nếu backend trả về lỗi dạng data object, set lỗi cho từng trường
+      const fieldErrors = err.response?.data?.data;
+      if (fieldErrors && typeof fieldErrors === "object") {
+        addForm.setFields(
+          Object.entries(fieldErrors).map(([field, message]) => ({
+            name: field,
+            errors: [message],
+          }))
+        );
+        return;
+      }
       if (err?.errorFields) return;
       message.error("Failed to add renter!");
     } finally {

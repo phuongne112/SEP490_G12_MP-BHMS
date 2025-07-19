@@ -23,9 +23,13 @@ public class CreateUserRequest {
     @Phone
     private String phone;
 
+    private String phoneNumber2;
+
     @Password
     private String password;
 
     private Boolean isActive;
+
+    private String citizenId;
 }
 

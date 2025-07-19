@@ -18,6 +18,12 @@ export default function AdminSidebar() {
 
   const adminMenu = [
     {
+      key: "/admin/dashboard",
+      icon: <SettingOutlined />,
+      label: "Thống kê",
+      path: "/admin/dashboard",
+    },
+    {
       key: "/admin/users",
       icon: <UserOutlined />,
       label: "Tài khoản",

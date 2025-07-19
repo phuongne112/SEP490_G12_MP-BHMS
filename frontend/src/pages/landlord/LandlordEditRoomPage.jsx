@@ -40,6 +40,7 @@ export default function LandlordEditRoomPage() {
       try {
         const res = await axiosClient.get(`/rooms/${id}`);
         const room = res.data;
+        console.log("Dữ liệu phòng từ API:", room); // Log dữ liệu phòng
         if (!room) throw new Error("Không tìm thấy phòng");
 
         const building = room.building || "";
@@ -56,7 +57,9 @@ export default function LandlordEditRoomPage() {
           description: room.description,
           maxOccupants: room.maxOccupants,
           isActive: room.isActive,
+          roomUsers: room.roomUsers || [], // THÊM DÒNG NÀY
         };
+        console.log("initialValues khi set:", initVals); // Log initialValues
         setInitialValues(initVals);
         form.setFieldsValue(initVals);
 
@@ -155,6 +158,9 @@ export default function LandlordEditRoomPage() {
     return <div style={{ textAlign: "center", padding: 60 }}>Loading...</div>;
   }
 
+  console.log("initialValues khi render:", initialValues); // Log initialValues khi render
+  const hasActiveUser = initialValues && initialValues.roomUsers && initialValues.roomUsers.filter(u => u.isActive).length > 0;
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Sider width={220}>
@@ -191,7 +197,7 @@ export default function LandlordEditRoomPage() {
         <Content style={{ padding: "24px" }}>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 120px)' }}>
             <div style={{ width: '100%', maxWidth: 1500, background: '#fff', padding: 32, borderRadius: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-              <Form layout="vertical" form={form} onFinish={handleFinish}>
+              <Form layout="vertical" form={form} onFinish={handleFinish} disabled={hasActiveUser}>
                 <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item
@@ -199,7 +205,10 @@ export default function LandlordEditRoomPage() {
                       label="Tòa"
                       rules={[{ required: true, message: "Vui lòng nhập tên tòa" }]}
                     >
-                      <Input placeholder="Ví dụ: A" />
+                      <Select placeholder="Chọn tòa">
+                        <Option value="A">A</Option>
+                        <Option value="B">B</Option>
+                      </Select>
                     </Form.Item>
                   </Col>
                   <Col span={12}>
@@ -237,9 +246,9 @@ export default function LandlordEditRoomPage() {
                     >
                       <Select>
                         <Option value="Available">Còn trống</Option>
-                        <Option value="Inactive">Ngừng hoạt động</Option>
+                        <Option value="Inactive" disabled={initialValues && initialValues.roomUsers && initialValues.roomUsers.filter(u => u.isActive).length > 0}>Ngừng hoạt động</Option>
                         <Option value="Occupied">Đã thuê</Option>
-                        <Option value="Maintenance">Bảo trì</Option>
+                        <Option value="Maintenance" disabled={initialValues && initialValues.roomUsers && initialValues.roomUsers.filter(u => u.isActive).length > 0}>Bảo trì</Option>
                       </Select>
                     </Form.Item>
                   </Col>
@@ -315,6 +324,11 @@ export default function LandlordEditRoomPage() {
                   </Button>
                 </Form.Item>
               </Form>
+              {hasActiveUser && (
+                <div style={{ color: 'red', marginTop: 16 }}>
+                  Không thể chỉnh sửa thông tin phòng khi vẫn còn người ở trong phòng!
+                </div>
+              )}
             </div>
           </div>
         </Content>

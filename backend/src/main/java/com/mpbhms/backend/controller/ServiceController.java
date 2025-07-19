@@ -51,40 +51,52 @@ public class ServiceController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CustomService> getServiceById(@PathVariable Long id) {
+    public ResponseEntity<ServiceDTO> getServiceById(@PathVariable Long id) {
         CustomService service = serviceService.getServiceById(id);
-        return ResponseEntity.ok(service);
+        ServiceDTO dto = mapToDTO(service);
+        return ResponseEntity.ok(dto);
     }
 
     @PostMapping
-    public ResponseEntity<CustomService> createService(@Valid @RequestBody CreateServiceRequest request) {
+    public ResponseEntity<ServiceDTO> createService(@Valid @RequestBody CreateServiceRequest request) {
         CustomService service = new CustomService();
         service.setServiceName(request.getServiceName());
         service.setUnit(request.getUnit());
         service.setUnitPrice(request.getUnitPrice());
         service.setServiceType(request.getServiceType());
-        
         CustomService createdService = serviceService.createService(service);
-        return ResponseEntity.ok(createdService);
+        ServiceDTO dto = mapToDTO(createdService);
+        return ResponseEntity.ok(dto);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CustomService> updateService(@PathVariable Long id, @Valid @RequestBody CreateServiceRequest request) {
+    public ResponseEntity<ServiceDTO> updateService(@PathVariable Long id, @Valid @RequestBody CreateServiceRequest request) {
         CustomService service = new CustomService();
         service.setId(id);
         service.setServiceName(request.getServiceName());
         service.setUnit(request.getUnit());
         service.setUnitPrice(request.getUnitPrice());
         service.setServiceType(request.getServiceType());
-        
         CustomService updatedService = serviceService.updateService(service);
-        return ResponseEntity.ok(updatedService);
+        ServiceDTO dto = mapToDTO(updatedService);
+        return ResponseEntity.ok(dto);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteService(@PathVariable Long id) {
         serviceService.deleteService(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private ServiceDTO mapToDTO(CustomService service) {
+        if (service == null) return null;
+        ServiceDTO dto = new ServiceDTO();
+        dto.setId(service.getId());
+        dto.setServiceName(service.getServiceName());
+        dto.setUnit(service.getUnit());
+        dto.setUnitPrice(service.getUnitPrice());
+        dto.setServiceType(service.getServiceType() != null ? service.getServiceType().name() : null);
+        return dto;
     }
 
     class ServiceReadingDTO {

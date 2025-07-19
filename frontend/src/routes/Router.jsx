@@ -44,6 +44,8 @@ import LandlordContractTemplateManager from "../pages/landlord/LandlordContractT
 import LandlordLayout from '../components/layout/LandlordLayout';
 import RenterVnPayReturnPage from '../pages/renter/RenterVnPayReturnPage';
 import PaymentSuccessPage from '../pages/PaymentSuccessPage';
+import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
+import LandlordDashboardPage from "../pages/landlord/LandlordDashboardPage";
 
 export default function AppRouter() {
   return (
@@ -71,6 +73,14 @@ export default function AppRouter() {
       <Route path="/layout/adminSidebar" element={<AdminSidebar />} />
 
       {/* Admin Routes */}
+      <Route
+        path="/admin/dashboard"
+        element={
+          <AdminRoute>
+            <AdminDashboardPage />
+          </AdminRoute>
+        }
+      />
       <Route
         path="/admin/users"
         element={
@@ -153,6 +163,7 @@ export default function AppRouter() {
           </LandlordRoute>
         }
       >
+        <Route path="dashboard" element={<LandlordDashboardPage />} />
         <Route path="renters" element={<LandlordRenterListPage />} />
         <Route path="rooms" element={<LandlordRoomListPage />} />
         <Route path="rooms/add" element={<LandlordAddRoomPage />} />
