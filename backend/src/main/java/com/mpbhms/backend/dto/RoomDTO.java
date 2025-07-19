@@ -25,5 +25,6 @@ public class RoomDTO {
     private List<AssetDTO> assets;
     private String building;
     private boolean hasActiveContract;
+    private List<RoomUserDTO> roomUsers;
 }
 

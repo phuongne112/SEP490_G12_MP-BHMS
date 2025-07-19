@@ -4,6 +4,7 @@ import SystemLogo from "../components/SystemLogo";
 import TextInput from "../components/common/TextInput";
 import ErrorMessage from "../components/common/ErrorMessage";
 import { register } from "../services/authService";
+import { getAllUsers } from "../services/userApi";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 
 export default function Register() {
@@ -16,6 +17,7 @@ export default function Register() {
     phone: "",
     password: "",
     confirmPassword: "",
+    citizenId: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -45,6 +47,7 @@ export default function Register() {
       email: form.email,
       phone: form.phone,
       password: form.password,
+      citizenId: form.citizenId,
     };
 
     try {

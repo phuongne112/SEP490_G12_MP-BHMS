@@ -90,3 +90,17 @@ export const getRoomsWithElectricReadings = async () => {
 export const deactivateServiceForRoom = async (roomId, serviceId) => {
   return axiosClient.patch(`/rooms/${roomId}/deactivate-service/${serviceId}`);
 };
+
+// Lấy tổng số phòng hiện tại
+export const getRoomStats = async () => {
+  // Lấy tất cả phòng với size lớn để đếm (hoặc backend nên có API riêng)
+  const res = await getAllRooms(0, 1000);
+  const rooms = res?.result || [];
+  return { total: rooms.length };
+};
+
+// Lấy chi tiết phòng theo id
+export const getRoomById = async (id) => {
+  const response = await axiosClient.get(`/rooms/${id}`);
+  return response.data;
+};

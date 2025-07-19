@@ -11,6 +11,7 @@ import com.mpbhms.backend.repository.RoleRepository;
 import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.repository.RoomUserRepository;
 import com.mpbhms.backend.repository.RoomRepository;
+import com.mpbhms.backend.repository.UserInfoRepository;
 import com.mpbhms.backend.service.RenterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -38,6 +39,7 @@ public class RenterServiceImpl implements RenterService {
     private final PasswordEncoder passwordEncoder;
     private final RoomUserRepository roomUserRepository;
     private final RoomRepository roomRepository;
+    private final UserInfoRepository userInfoRepository;
 
     @Override
     public ResultPaginationDTO getAllRenters(Specification<?> spec, Pageable pageable, String search, String checkInDateFrom, String checkInDateTo) {
@@ -107,6 +109,26 @@ public class RenterServiceImpl implements RenterService {
         if (userRepository.existsByUsername(dto.getUsername())) {
             errors.put("username", "Tên đăng nhập '" + dto.getUsername() + "' đã tồn tại");
         }
+        // Kiểm tra trùng số điện thoại chính
+        if (dto.getPhone() != null && userInfoRepository.existsByPhoneNumber(dto.getPhone())) {
+            errors.put("phoneNumber", "Số điện thoại đã tồn tại");
+        }
+        // Kiểm tra trùng số điện thoại phụ
+        if (dto.getPhoneNumber2() != null) {
+            if (userInfoRepository.existsByPhoneNumber(dto.getPhoneNumber2())) {
+                errors.put("phoneNumber2", "Số điện thoại phụ đã tồn tại (trùng số chính)");
+            }
+            if (userInfoRepository.existsByPhoneNumber2(dto.getPhoneNumber2())) {
+                errors.put("phoneNumber2", "Số điện thoại phụ đã tồn tại (trùng số phụ)");
+            }
+            if (dto.getPhone() != null && dto.getPhoneNumber2().equals(dto.getPhone())) {
+                errors.put("phoneNumber2", "Số điện thoại phụ không được trùng với số điện thoại chính");
+            }
+        }
+        // Kiểm tra trùng CCCD/CMND
+        if (dto.getCitizenId() != null && userInfoRepository.existsByNationalID(dto.getCitizenId())) {
+            errors.put("citizenId", "Số CCCD/CMND đã tồn tại");
+        }
         if (!errors.isEmpty()) {
             throw new BusinessException("Tạo người thuê thất bại", errors);
         }
@@ -124,6 +146,8 @@ public class RenterServiceImpl implements RenterService {
         UserInfo info = new UserInfo();
         info.setFullName(dto.getFullName());
         info.setPhoneNumber(dto.getPhone());
+        info.setPhoneNumber2(dto.getPhoneNumber2());
+        info.setNationalID(dto.getCitizenId());
         info.setUser(user);
 
         user.setUserInfo(info);

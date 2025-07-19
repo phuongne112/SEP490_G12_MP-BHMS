@@ -5,6 +5,7 @@ import com.mpbhms.backend.entity.*;
 import com.mpbhms.backend.enums.Gender;
 import com.mpbhms.backend.exception.BusinessException;
 import com.mpbhms.backend.repository.PasswordResetTokenRepository;
+import com.mpbhms.backend.repository.UserInfoRepository;
 import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.service.EmailService;
 import com.mpbhms.backend.service.RoleService;
@@ -43,6 +44,7 @@ public class UserServiceImpl implements UserService {
     private final EmailService emailService;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final NotificationService notificationService;
+    private final UserInfoRepository userInfoRepository;
     @Override
     public User getUserWithEmail(String email) {
     return this.userRepository.findByEmail(email);
@@ -131,6 +133,15 @@ public class UserServiceImpl implements UserService {
             errors.put("username", "Tên đăng nhập '" + dto.getUsername() + "' đã tồn tại");
         }
 
+        // 3. Kiểm tra số điện thoại đã tồn tại
+        if (dto.getPhone() != null && userInfoRepository.existsByPhoneNumber(dto.getPhone())) {
+            errors.put("phone", "Số điện thoại '" + dto.getPhone() + "' đã tồn tại");
+        }
+        // 4. Kiểm tra CCCD/CMND đã tồn tại
+        if (dto.getCitizenId() != null && userInfoRepository.existsByNationalID(dto.getCitizenId())) {
+            errors.put("citizenId", "Số CCCD/CMND '" + dto.getCitizenId() + "' đã tồn tại");
+        }
+
         if (!errors.isEmpty()) {
             throw new BusinessException("Tạo người dùng thất bại", errors);
         }
@@ -157,14 +168,23 @@ public class UserServiceImpl implements UserService {
         Map<String, String> errors = new HashMap<>();
         // 1. Kiểm tra email đã tồn tại
         if (isEmailExist(dto.getEmail())) {
-            throw new BusinessException("Email '" + dto.getEmail() + "' đã tồn tại, vui lòng sử dụng email khác");
+            errors.put("email", "Email '" + dto.getEmail() + "' đã tồn tại, vui lòng sử dụng email khác");
         }
-
         // 2. Kiểm tra username đã tồn tại
         if (isUsernameExist(dto.getUsername())) {
-            throw new BusinessException("Tên đăng nhập '" + dto.getUsername() + "' đã tồn tại, vui lòng chọn tên khác");
+            errors.put("username", "Tên đăng nhập '" + dto.getUsername() + "' đã tồn tại, vui lòng chọn tên khác");
         }
-
+        // 3. Kiểm tra số điện thoại đã tồn tại
+        if (dto.getPhone() != null && userInfoRepository.existsByPhoneNumber(dto.getPhone())) {
+            errors.put("phone", "Số điện thoại '" + dto.getPhone() + "' đã tồn tại");
+        }
+        // 4. Kiểm tra CCCD/CMND đã tồn tại
+        if (dto.getCitizenId() != null && userInfoRepository.existsByNationalID(dto.getCitizenId())) {
+            errors.put("citizenId", "Số CCCD/CMND '" + dto.getCitizenId() + "' đã tồn tại");
+        }
+        if (!errors.isEmpty()) {
+            throw new BusinessException("Đăng ký thất bại", errors);
+        }
         // 3. Tạo UserEntity
         User user = new User();
         user.setEmail(dto.getEmail());
@@ -436,6 +456,36 @@ public class UserServiceImpl implements UserService {
         if (info == null) {
             info = new UserInfo();
             info.setUser(user);
+        }
+
+        Map<String, String> errors = new HashMap<>();
+        // Kiểm tra trùng số điện thoại với user khác
+        if (request.getPhoneNumber() != null &&
+            userInfoRepository.existsByPhoneNumberAndUserIdNot(request.getPhoneNumber(), user.getId())) {
+            errors.put("phoneNumber", "Số điện thoại đã tồn tại ở tài khoản khác");
+        }
+        // Kiểm tra trùng CCCD/CMND với user khác
+        if (request.getNationalID() != null &&
+            userInfoRepository.existsByNationalIDAndUserIdNot(request.getNationalID(), user.getId())) {
+            errors.put("nationalID", "Số CCCD/CMND đã tồn tại ở tài khoản khác");
+        }
+        // Kiểm tra trùng số điện thoại phụ
+        if (request.getPhoneNumber2() != null) {
+            // Không trùng với số chính của bất kỳ user nào (trừ chính mình)
+            if (userInfoRepository.existsByPhoneNumberAndUserIdNot(request.getPhoneNumber2(), user.getId())) {
+                errors.put("phoneNumber2", "Số điện thoại phụ đã tồn tại ở tài khoản khác (trùng số chính)");
+            }
+            // Không trùng với số phụ của bất kỳ user nào (trừ chính mình)
+            if (userInfoRepository.existsByPhoneNumber2AndUserIdNot(request.getPhoneNumber2(), user.getId())) {
+                errors.put("phoneNumber2", "Số điện thoại phụ đã tồn tại ở tài khoản khác (trùng số phụ)");
+            }
+            // Không trùng với số chính của chính mình
+            if (request.getPhoneNumber() != null && request.getPhoneNumber2().equals(request.getPhoneNumber())) {
+                errors.put("phoneNumber2", "Số điện thoại phụ không được trùng với số điện thoại chính");
+            }
+        }
+        if (!errors.isEmpty()) {
+            throw new BusinessException("Cập nhật thông tin cá nhân thất bại", errors);
         }
 
         info.setFullName(request.getFullName());

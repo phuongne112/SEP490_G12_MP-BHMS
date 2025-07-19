@@ -123,7 +123,7 @@ export default function RoomDetailPage() {
       {/* Banner ảnh lớn */}
       {/* Xóa hoàn toàn phần hiển thị ảnh lớn (banner) ở đầu trang (nếu còn) */}
       <div style={{ flex: 1 }}>
-    <Layout style={{ minHeight: "100vh", background: "#f0f2f5" }}>
+    <Layout style={{ minHeight: "100vh", background: "#fff" }}>
       {/* Nút quay lại ra ngoài khối trắng */}
       <div style={{
         width: "100%", maxWidth: 1200, margin: "0 auto", position: "relative", paddingTop: 32
@@ -173,7 +173,7 @@ export default function RoomDetailPage() {
             <Col xs={24} md={13} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
               <div style={{
                 width: "100%",
-                background: "linear-gradient(135deg,#e0f7fa 0%,#fff 100%)",
+                background: "#fff",
                 borderRadius: 16,
                 boxShadow: "0 2px 12px rgba(24,144,255,0.08)",
                 padding: 18,
@@ -235,9 +235,9 @@ export default function RoomDetailPage() {
             {/* Room Info Section */}
             <Col xs={24} md={11}>
               <div style={{
-                background: "linear-gradient(135deg,#fff 60%,#e3f2fd 100%)",
+                background: "#fff",
                 borderRadius: 16,
-                    boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
                 padding: 28,
                 border: "1.5px solid #e0e0e0"
               }}>
