@@ -11,6 +11,7 @@ export default function Sidebar({
   avatar,
   menuItems = [],
   defaultKey = "1",
+  selectedKeys,
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -92,9 +93,8 @@ export default function Sidebar({
         <Menu
           theme="dark"
           mode="inline"
-          selectedKeys={[
-            menuItems.find((item) => location.pathname.startsWith(item.path))
-              ?.key,
+          selectedKeys={selectedKeys || [
+            menuItems.find((item) => location.pathname.startsWith(item.path))?.key,
           ]}
           onClick={handleClick}
         >

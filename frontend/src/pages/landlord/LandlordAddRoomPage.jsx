@@ -192,7 +192,10 @@ export default function LandlordAddRoomPage() {
                       label="Tòa"
                       rules={[{ required: true, message: "Vui lòng nhập tên tòa" }]}
                     >
-                      <Input placeholder="Ví dụ: A" />
+                      <Select placeholder="Chọn tòa">
+                        <Option value="A">A</Option>
+                        <Option value="B">B</Option>
+                      </Select>
                     </Form.Item>
                   </Col>
                   <Col span={12}>

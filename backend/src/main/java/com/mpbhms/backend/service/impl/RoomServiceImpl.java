@@ -247,6 +247,22 @@ public class RoomServiceImpl implements RoomService {
         boolean hasActiveContract = contractRepository.findActiveByRoomId(room.getId()).isPresent();
         dto.setHasActiveContract(hasActiveContract);
 
+        // ✅ Convert roomUsers (người đang ở trong phòng)
+        if (room.getRoomUsers() != null) {
+            List<RoomUserDTO> roomUserDTOs = room.getRoomUsers().stream()
+                .map(ru -> {
+                    RoomUserDTO rudto = new RoomUserDTO();
+                    rudto.setUserId(ru.getUser() != null ? ru.getUser().getId() : null);
+                    rudto.setFullName(ru.getUser() != null && ru.getUser().getUserInfo() != null ? ru.getUser().getUserInfo().getFullName() : null);
+                    rudto.setPhoneNumber(ru.getUser() != null && ru.getUser().getUserInfo() != null ? ru.getUser().getUserInfo().getPhoneNumber() : null);
+                    rudto.setJoinedAt(ru.getJoinedAt());
+                    rudto.setIsActive(ru.getIsActive());
+                    return rudto;
+                })
+                .toList();
+            dto.setRoomUsers(roomUserDTOs);
+        }
+
         return dto;
     }
 
@@ -365,6 +381,11 @@ public class RoomServiceImpl implements RoomService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng với id: " + id));
         try {
             RoomStatus newStatus = RoomStatus.valueOf(status);
+            // Chặn nếu phòng đang có người ở mà muốn chuyển sang Bảo trì hoặc Ngừng hoạt động
+            int userCount = roomUserRepository.countByRoomId(id);
+            if ((newStatus == RoomStatus.Maintenance || newStatus == RoomStatus.Inactive) && userCount > 0) {
+                throw new BusinessException("Không thể chuyển phòng sang trạng thái 'Bảo trì' hoặc 'Ngừng hoạt động' khi vẫn còn người ở trong phòng.");
+            }
             room.setRoomStatus(newStatus);
             roomRepository.save(room);
         } catch (IllegalArgumentException e) {

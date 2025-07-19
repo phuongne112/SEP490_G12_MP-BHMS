@@ -19,6 +19,12 @@ export default function LandlordSidebar() {
 
   const landlordMenu = [
     {
+      key: "/landlord/dashboard",
+      icon: <HomeOutlined />,
+      label: "Tổng quan",
+      path: "/landlord/dashboard",
+    },
+    {
       key: "/landlord/users",
       icon: <UserOutlined />,
       label: "Người dùng",
@@ -80,9 +86,11 @@ export default function LandlordSidebar() {
     },
   ];
 
-  const selectedKey = landlordMenu.find((item) =>
-    location.pathname.startsWith(item.path)
-  )?.key;
+  // Ưu tiên khớp chính xác path trước, nếu không thì mới dùng startsWith
+  let selectedKey = landlordMenu.find((item) => location.pathname === item.path)?.key;
+  if (!selectedKey) {
+    selectedKey = landlordMenu.find((item) => location.pathname.startsWith(item.path))?.key;
+  }
 
   return (
     <Sidebar

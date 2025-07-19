@@ -160,16 +160,16 @@ export default function LandlordBookingListPage() {
                   size="small"
                   style={{ marginRight: 8 }}
                 >
-                  Accept
+                  Chấp nhận
                 </Button>
               </Popconfirm>
               <Popconfirm
                 title="Bạn có chắc chắn muốn từ chối đặt phòng này?"
                 onConfirm={() => handleReject(record)}
-                okText="Reject"
+                okText="Từ chối"
                 cancelText="Không"
               >
-                <Button danger size="small" style={{ marginRight: 8 }}>Reject</Button>
+                <Button danger size="small" style={{ marginRight: 8 }}>Từ chối</Button>
               </Popconfirm>
             </>
           )}
