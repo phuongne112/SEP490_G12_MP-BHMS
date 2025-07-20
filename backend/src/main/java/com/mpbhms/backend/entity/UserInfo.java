@@ -36,8 +36,8 @@ public class UserInfo {
     @Enumerated(EnumType.STRING)
     private Gender gender;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss a", timezone = "GMT+7")
-    private Instant birthDate;
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+7")
+    private java.time.LocalDate birthDate;
 
     @Size(max = 200, message = "Nơi sinh phải không vượt quá 200 ký tự")
     private String birthPlace;

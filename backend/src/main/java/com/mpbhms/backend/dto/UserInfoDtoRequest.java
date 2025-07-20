@@ -21,7 +21,7 @@ public class UserInfoDtoRequest {
     private String gender;
 
     @Past(message = "Ngày sinh phải trước ngày hiện tại")
-    private Instant birthDate;
+    private java.time.LocalDate birthDate;
     private String birthPlace;
 
     @Pattern(regexp = "^\\d{9}|\\d{12}$", message = "Số CMND phải có 9 hoặc 12 chữ số")

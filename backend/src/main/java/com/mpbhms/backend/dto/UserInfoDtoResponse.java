@@ -11,8 +11,8 @@ public class UserInfoDtoResponse {
     private String phoneNumber;
     private String phoneNumber2;
     private String gender;
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss a",timezone = "GMT+7")
-    private Instant birthDate;
+    @JsonFormat(pattern = "yyyy-MM-dd",timezone = "GMT+7")
+    private java.time.LocalDate birthDate;
     private String birthPlace;
     private String nationalID;
     private String nationalIDIssuePlace;
