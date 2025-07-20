@@ -8,6 +8,7 @@ import { getElectricReadings } from "../../services/electricReadingApi";
 import { getRoomsWithElectricReadings } from "../../services/roomService";
 import { FilterOutlined } from "@ant-design/icons";
 import { enableAutoScan, disableAutoScan, getAutoScanStatus, getScanLogs, getScanFolder, setScanFolder, getScanImages, getCurrentScanningImage } from "../../services/electricReadingApi";
+import { FolderOpenOutlined } from "@ant-design/icons";
 
 const { Sider, Content } = Layout;
 const { Option } = Select;
@@ -43,6 +44,7 @@ export default function LandlordElectricListPage() {
   const [scanFolderLoading, setScanFolderLoading] = useState(false);
   const [scanImages, setScanImages] = useState([]);
   const [currentScanning, setCurrentScanning] = useState("");
+  const [localImages, setLocalImages] = useState([]);
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -264,6 +266,12 @@ export default function LandlordElectricListPage() {
     }
   }, [autoScanStatus]);
 
+  const handleImageInput = (event) => {
+    const files = Array.from(event.target.files);
+    setLocalImages(prev => [...prev, ...files]);
+    event.target.value = ''; // Clear the input value to allow selecting the same file again
+  };
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Sider width={220} style={{ background: "#001529" }}>
@@ -296,17 +304,52 @@ export default function LandlordElectricListPage() {
             <Col span={24} style={{ marginBottom: 8 }}>
               <Space>
                 <span>Thư mục quét hiện tại:</span>
-                <Input
-                  style={{ width: 400 }}
-                  value={scanFolderInput}
-                  onChange={e => setScanFolderInput(e.target.value)}
-                  disabled={scanFolderLoading}
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  id="imageInput"
+                  onChange={handleImageInput}
                 />
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    background: '#fff',
+                    border: '1px solid #d9d9d9',
+                    borderRadius: 8,
+                    padding: '0 16px',
+                    height: 48,
+                    minWidth: 340,
+                    fontSize: 16,
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                  }}
+                  onClick={() => document.getElementById('imageInput').click()}
+                >
+                  <FolderOpenOutlined style={{ fontSize: 22, color: '#1890ff', marginRight: 12 }} />
+                  <span style={{ color: localImages && localImages.length > 0 ? '#222' : '#aaa' }}>
+                    {localImages && localImages.length > 0 ? `${localImages.length} ảnh đã chọn` : 'Chọn ảnh...'}
+                  </span>
+                </div>
                 <Button type="primary" loading={scanFolderLoading} onClick={handleSaveScanFolder}>
                   Lưu
                 </Button>
               </Space>
             </Col>
+            {localImages && localImages.length > 0 && (
+              <Col span={24}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 16 }}>
+                  {localImages.map((file, idx) => (
+                    <div key={file.name + idx} style={{ border: '1px solid #eee', borderRadius: 8, padding: 8, width: 180, background: '#fff', position: 'relative' }}>
+                      <img src={URL.createObjectURL(file)} alt={file.name} style={{ width: 164, height: 120, objectFit: 'cover', borderRadius: 4 }} />
+                      <div style={{ fontSize: 13, marginTop: 4, fontWeight: 500 }}>{file.name}</div>
+                    </div>
+                  ))}
+                </div>
+              </Col>
+            )}
             <Col>
               <Popover
                 content={filterContent}

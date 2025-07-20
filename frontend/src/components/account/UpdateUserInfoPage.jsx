@@ -101,23 +101,26 @@ export default function UpdateUserInfoModal({
 
   const onFinish = async (values) => {
     let birthDateInstant = null;
+    console.log('Giá trị birthDate khi submit:', values.birthDate);
     if (values.birthDate) {
       let d = values.birthDate;
-      if (typeof d === "string") {
+      // Nếu là object dayjs
+      if (d && typeof d === 'object' && d.isValid && d.isValid()) {
+        birthDateInstant = d.toISOString();
+      } else if (typeof d === 'string') {
+        // Nếu là string, thử parse lại
         let raw = d.trim().replace(/[^0-9/\-]/g, "");
         const tryFormats = ["DD/MM/YYYY", "DD-MM-YYYY", "YYYY-MM-DD"];
         for (const fmt of tryFormats) {
           const parsed = dayjs(raw, fmt, true);
           if (parsed.isValid()) {
-            d = parsed;
+            birthDateInstant = parsed.toISOString();
             break;
           }
         }
       }
-      if (typeof d !== "string" && d.isValid && d.isValid()) {
-        birthDateInstant = d.toISOString();
-      }
     }
+    console.log('birthDateInstant gửi lên backend:', birthDateInstant);
     const payload = {
       ...values,
       birthDate: birthDateInstant,
@@ -174,6 +177,7 @@ export default function UpdateUserInfoModal({
     try {
       const res = await ocrCccd(frontFile, backFile);
       const data = res?.data || res;
+      console.log('Kết quả OCR:', data);
       let genderValue = "Other";
       const genderText = (data.gender || "").toLowerCase().trim().normalize("NFC");
       if (genderText === "nam") genderValue = "Male";
@@ -190,6 +194,7 @@ export default function UpdateUserInfoModal({
           }
         }
       }
+      console.log('birthDateValue sau OCR:', birthDateValue);
       form.setFieldsValue({
         fullName: data.fullName,
         nationalID: data.nationalID,
