@@ -95,9 +95,30 @@ public class AutoElectricMeterScanner {
                     MultipartFile multipartFile = new FileMultipartFile(nextFile, "image/jpeg");
                     result = detectionService.detectAndReadFromFile(multipartFile, roomId);
                     System.out.println("📸 Đã quét " + nextFile.getName() + " → " + result);
-                    boolean renamed = nextFile.renameTo(new File(roomFolder, "processed_" + nextFile.getName()));
+                    File processedFile = new File(roomFolder, "processed_" + nextFile.getName());
+                    System.out.println("Đổi tên từ: " + nextFile.getAbsolutePath() + " sang: " + processedFile.getAbsolutePath());
+                    boolean renamed = nextFile.renameTo(processedFile);
                     if (!renamed) {
-                        System.out.println("Không thể đổi tên file: " + nextFile.getName());
+                        System.out.println("Không thể đổi tên file: " + nextFile.getAbsolutePath() + " sang: " + processedFile.getAbsolutePath());
+                        // Thử copy rồi xóa file gốc (trường hợp khác phân vùng hoặc renameTo thất bại)
+                        try (java.io.InputStream in = new java.io.FileInputStream(nextFile);
+                             java.io.OutputStream out = new java.io.FileOutputStream(processedFile)) {
+                            in.transferTo(out);
+                            boolean deleted = nextFile.delete();
+                            if (!deleted) {
+                                System.out.println("Không thể xóa file gốc sau khi copy: " + nextFile.getAbsolutePath());
+                            }
+                        } catch (Exception ex) {
+                            System.out.println("Lỗi khi copy rồi xóa file: " + ex.getMessage());
+                        }
+                    } else {
+                        // Nếu file gốc vẫn còn (do lỗi move), xóa file gốc để tránh bị quét lại
+                        if (nextFile.exists()) {
+                            boolean deleted = nextFile.delete();
+                            if (!deleted) {
+                                System.out.println("Không thể xóa file gốc: " + nextFile.getAbsolutePath());
+                            }
+                        }
                     }
                 } catch (Exception e) {
                     error = e.getMessage();

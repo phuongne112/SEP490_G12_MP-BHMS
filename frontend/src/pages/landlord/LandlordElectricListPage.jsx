@@ -354,25 +354,7 @@ export default function LandlordElectricListPage() {
             </Button>
           </div>
           <Row gutter={16} style={{ marginBottom: 20 }}>
-            <Col span={24} style={{ marginBottom: 8 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, overflowX: "auto", padding: 8, background: "#fafafa", borderRadius: 8 }}>
-                {Array.isArray(scanImages) && scanImages.length === 0 ? (
-                  <span>Không có ảnh trong thư mục quét.</span>
-                ) : (
-                  Array.isArray(scanImages) && scanImages.map((img) => (
-                    <div key={img} style={{ border: currentScanning === img ? "2px solid #1890ff" : "1px solid #eee", borderRadius: 4, padding: 2, background: currentScanning === img ? "#e6f7ff" : "#fff" }}>
-                      <img
-                        src={scanFolder + "/" + img}
-                        alt={img}
-                        style={{ width: 80, height: 80, objectFit: "cover", display: "block" }}
-                      />
-                      <div style={{ fontSize: 12, textAlign: "center", maxWidth: 80, wordBreak: "break-all" }}>{img}</div>
-                      {currentScanning === img && <div style={{ color: "#1890ff", fontWeight: "bold", textAlign: "center" }}>Đang quét</div>}
-                    </div>
-                  ))
-                )}
-              </div>
-            </Col>
+        
             {/* Xóa toàn bộ phần UI chọn thư mục quét hiện tại (input chọn ảnh, nút Lưu) phía trên bảng */}
             <Col>
               <Popover
@@ -401,8 +383,6 @@ export default function LandlordElectricListPage() {
                 >
                   {autoScanStatus === "Auto scan ON" ? "Tắt" : "Bật"}
                 </Button>
-                <span style={{ minWidth: 90 }}>{autoScanStatus}</span>
-                <Button onClick={openLogModal}>Lịch sử quét</Button>
                 <Button onClick={() => openLogModal(null)} type="default">Xem tất cả lịch sử quét</Button>
               </div>
             </Col>
