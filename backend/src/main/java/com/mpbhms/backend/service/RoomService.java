@@ -49,5 +49,6 @@ public interface RoomService {
      * Ngừng sử dụng dịch vụ cho phòng (set isActive=false, endDate=now)
      */
     void deactivateServiceForRoom(Long roomId, Long serviceId);
+    void updateScanFolder(Long id, String scanFolder);
 }
 

@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificationExecutor<Room> {
     boolean existsByRoomNumberAndDeletedFalse(String roomNumber);
@@ -44,4 +46,7 @@ Page<Room> findAll(Specification<Room> spec, Pageable pageable);
     
     // Tìm phòng theo số phòng và chưa bị xóa mềm
     java.util.Optional<Room> findByRoomNumberAndDeletedFalse(String roomNumber);
+
+    java.util.List<Room> findAllByDeletedFalse();
+    java.util.List<Room> findByIdInAndDeletedFalse(java.util.List<Long> ids);
 }

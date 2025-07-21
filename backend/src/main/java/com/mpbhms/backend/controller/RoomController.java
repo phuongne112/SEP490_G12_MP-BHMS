@@ -200,6 +200,13 @@ public class RoomController {
         return ResponseEntity.ok("Đã ngừng sử dụng dịch vụ cho phòng này.");
     }
 
+    @PatchMapping("/{id}/scan-folder")
+    public ResponseEntity<?> updateScanFolder(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String folder = body.get("scanFolder");
+        roomService.updateScanFolder(id, folder);
+        return ResponseEntity.ok().build();
+    }
+
     // Xử lý lỗi validation toàn cục
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {

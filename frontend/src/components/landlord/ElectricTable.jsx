@@ -11,6 +11,8 @@ export default function ElectricTable({
   onPageChange = () => {},
   loading = false,
   onReload = () => {},
+  onShowLog,
+  onSaveScanFolder,
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
@@ -19,6 +21,7 @@ export default function ElectricTable({
   const [inputValue, setInputValue] = useState("");
   const [detecting, setDetecting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editFolder, setEditFolder] = useState({});
 
   const handleOcrClick = (record) => {
     setSelectedRoom(record);
@@ -76,6 +79,44 @@ export default function ElectricTable({
     { title: "Chỉ số cũ", dataIndex: "oldReading" },
     { title: "Chỉ số mới", dataIndex: "newReading" },
     {
+      title: "Thư mục quét",
+      dataIndex: "scanFolder",
+      render: (text, record) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            type="file"
+            webkitdirectory="true"
+            directory=""
+            style={{ display: 'none' }}
+            id={`folder-picker-${record.roomId}`}
+            onChange={e => {
+              const files = e.target.files;
+              if (files.length > 0) {
+                // Lấy tên folder cha của file đầu tiên
+                const folderName = files[0].webkitRelativePath.split('/')[0];
+                setEditFolder(f => ({ ...f, [record.roomId]: folderName }));
+              }
+            }}
+          />
+          <Button
+            size="small"
+            onClick={() => document.getElementById(`folder-picker-${record.roomId}`).click()}
+          >
+            Chọn folder
+          </Button>
+          <span>{editFolder[record.roomId] || record.scanFolder || "Chưa chọn"}</span>
+          <Button
+            size="small"
+            type="primary"
+            onClick={() => onSaveScanFolder && onSaveScanFolder(record.roomId, editFolder[record.roomId] ?? record.scanFolder)}
+            disabled={!editFolder[record.roomId]}
+          >
+            Lưu
+          </Button>
+        </div>
+      )
+    },
+    {
       title: "Ngày ghi",
       dataIndex: "createdDate",
       render: (value) => value ? dayjs(value).format("DD/MM/YYYY HH:mm") : ""
@@ -84,6 +125,14 @@ export default function ElectricTable({
       title: "Thao tác",
       render: (_, record) => (
         <Button onClick={() => handleOcrClick(record)}>Quét chỉ số</Button>
+      ),
+    },
+    {
+      title: 'Lịch sử quét',
+      key: 'scanLog',
+      render: (_, record) => (
+        // Nút này sẽ gọi đúng hàm onShowLog với roomId của phòng tương ứng
+        <Button onClick={() => onShowLog && onShowLog(record.roomId)} size="small">Lịch sử quét</Button>
       ),
     },
   ];

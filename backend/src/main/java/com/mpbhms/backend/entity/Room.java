@@ -38,6 +38,9 @@ public class Room extends BaseEntity {
 
     private Boolean isActive = true;
 
+    @Column(length = 255)
+    private String scanFolder;
+
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RoomUser> roomUsers = new ArrayList<>();
 
