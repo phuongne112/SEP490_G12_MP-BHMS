@@ -27,4 +27,8 @@ public class ScanLogService {
     public Page<ScanLog> getScanLogs(Pageable pageable) {
         return scanLogRepository.findAll(pageable);
     }
+
+    public Page<ScanLog> getScanLogsByRoomId(Long roomId, Pageable pageable) {
+        return scanLogRepository.findByRoomId(roomId, pageable);
+    }
 } 

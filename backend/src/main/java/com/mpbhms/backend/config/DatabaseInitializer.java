@@ -107,11 +107,12 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Disable Auto Scan", "/mpbhms/ocr/auto-scan/off", "POST", "Ocr"));
             permissions.add(new Permission("Get Auto Scan Status", "/mpbhms/ocr/auto-scan/status", "GET", "Ocr"));
             permissions.add(new Permission("Get Scan Logs", "/mpbhms/ocr/scan-logs", "GET", "Ocr"));
-            permissions.add(new Permission("Get Scan Folder", "/mpbhms/ocr/scan-folder", "GET", "Ocr"));
-            permissions.add(new Permission("Set Scan Folder", "/mpbhms/ocr/scan-folder", "POST", "Ocr"));
+            permissions.add(new Permission("Update Scan Folder", "/mpbhms/rooms/{id}/scan-folder", "PATCH", "Room"));
             permissions.add(new Permission("Get Scan Images", "/mpbhms/ocr/scan-images", "GET", "Ocr"));
             permissions.add(new Permission("Get Current Scanning Image", "/mpbhms/ocr/current-scanning-image", "GET", "Ocr"));
             permissions.add(new Permission("OCR CCCD", "/mpbhms/ocr/cccd", "POST", "Ocr"));
+            permissions.add(new Permission("Get Scan Interval", "/mpbhms/ocr/auto-scan/interval", "GET", "Ocr"));
+            permissions.add(new Permission("Set Scan Interval", "/mpbhms/ocr/auto-scan/interval", "POST", "Ocr"));
             //Bill
             permissions.add(new Permission("Generate first", "/mpbhms/bills/generate-first", "POST", "Bill"));
             permissions.add(new Permission("Generate", "/mpbhms/bills/generate", "POST", "Bill"));

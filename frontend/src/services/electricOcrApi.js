@@ -15,4 +15,8 @@ export const saveElectricReading = (roomId, value) => {
   return axiosClient.post("/ocr/save-reading", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+};
+
+export const getElectricScanInterval = () => {
+  return axiosClient.get("/ocr/auto-scan/interval");
 }; 

@@ -8,7 +8,5 @@ export const enableAutoScan = () => axiosClient.post("/ocr/auto-scan/on");
 export const disableAutoScan = () => axiosClient.post("/ocr/auto-scan/off");
 export const getAutoScanStatus = () => axiosClient.get("/ocr/auto-scan/status");
 export const getScanLogs = (params) => axiosClient.get("/ocr/scan-logs", { params });
-export const getScanFolder = () => axiosClient.get("/ocr/scan-folder");
-export const setScanFolder = (scanFolder) => axiosClient.post("/ocr/scan-folder", { scanFolder });
 export const getScanImages = () => axiosClient.get("/ocr/scan-images");
 export const getCurrentScanningImage = () => axiosClient.get("/ocr/current-scanning-image"); 

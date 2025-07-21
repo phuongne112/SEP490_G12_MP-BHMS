@@ -283,6 +283,11 @@ public class RoomServiceImpl implements RoomService {
         room.setMaxOccupants(request.getMaxOccupants());
         room.setBuilding(request.getBuilding());
 
+        // Nếu scanFolder null thì set = roomNumber
+        if (room.getScanFolder() == null || room.getScanFolder().isBlank()) {
+            room.setScanFolder(room.getRoomNumber());
+        }
+
         // Chỉ update ảnh nếu FE gửi keepImageIds (có thể là mảng rỗng) hoặc images
         boolean updateImages = keepImageIds != null || (images != null && images.length > 0);
         if (updateImages) {
@@ -449,8 +454,12 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public Room getRoomById(Long id) {
-        return roomRepository.findByIdAndDeletedFalse(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng với id: " + id));
+        Room room = roomRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new IdInvalidException("Không tìm thấy phòng với id: " + id));
+        if (room.getScanFolder() == null || room.getScanFolder().isBlank()) {
+            room.setScanFolder(room.getRoomNumber());
+        }
+        return room;
     }
 
     @Override
@@ -623,13 +632,31 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public List<Room> getAllRoomsNoPaging() {
-        return roomRepository.findAll().stream().filter(r -> r.getDeleted() == null || !r.getDeleted()).toList();
+        List<Room> rooms = roomRepository.findAllByDeletedFalse();
+        for (Room room : rooms) {
+            if (room.getScanFolder() == null || room.getScanFolder().isBlank()) {
+                room.setScanFolder(room.getRoomNumber());
+            }
+        }
+        return rooms;
     }
 
     @Override
     public List<Room> getRoomsByIds(List<Long> ids) {
-        if (ids == null || ids.isEmpty()) return new ArrayList<>();
-        return roomRepository.findAllById(ids).stream().filter(r -> r.getDeleted() == null || !r.getDeleted()).toList();
+        List<Room> rooms = roomRepository.findByIdInAndDeletedFalse(ids);
+        for (Room room : rooms) {
+            if (room.getScanFolder() == null || room.getScanFolder().isBlank()) {
+                room.setScanFolder(room.getRoomNumber());
+            }
+        }
+        return rooms;
     }
 
+    @Override
+    public void updateScanFolder(Long id, String scanFolder) {
+        Room room = roomRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng với id: " + id));
+        room.setScanFolder(scanFolder);
+        roomRepository.save(room);
+    }
 }

@@ -47,25 +47,30 @@ public class OcrControlController {
         return ResponseEntity.ok(scanner.isEnabled() ? "Auto scan ON" : "Auto scan OFF");
     }
 
+    @GetMapping("/auto-scan/interval")
+    public Map<String, Long> getScanInterval() {
+        return Map.of("intervalMs", scanner.getInterval());
+    }
+
+    @PostMapping("/auto-scan/interval")
+    public ResponseEntity<String> setScanInterval(@RequestBody Map<String, Long> body) {
+        Long interval = body.get("intervalMs");
+        if (interval == null || interval < 1000) {
+            return ResponseEntity.badRequest().body("Interval phải >= 1000 ms");
+        }
+        scanner.setInterval(interval);
+        return ResponseEntity.ok("Interval updated to " + interval + " ms");
+    }
+
     @GetMapping("/scan-logs")
     public Page<ScanLog> getScanLogs(@RequestParam(defaultValue = "0") int page,
-                                     @RequestParam(defaultValue = "10") int size) {
-        return scanLogService.getScanLogs(PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "scanTime")));
-    }
-
-    @GetMapping("/scan-folder")
-    public Map<String, String> getScanFolder() {
-        return Map.of("scanFolder", scanner.getScanFolder());
-    }
-
-    @PostMapping("/scan-folder")
-    public ResponseEntity<String> setScanFolder(@RequestBody Map<String, String> body) {
-        String folder = body.get("scanFolder");
-        if (folder == null || folder.isBlank()) {
-            return ResponseEntity.badRequest().body("Missing scanFolder");
+                                     @RequestParam(defaultValue = "10") int size,
+                                     @RequestParam(required = false) Long roomId) {
+        if (roomId != null) {
+            return scanLogService.getScanLogsByRoomId(roomId, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "scanTime")));
+        } else {
+            return scanLogService.getScanLogs(PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "scanTime")));
         }
-        scanner.setScanFolder(folder);
-        return ResponseEntity.ok("Scan folder updated");
     }
 
     @GetMapping("/scan-images")
