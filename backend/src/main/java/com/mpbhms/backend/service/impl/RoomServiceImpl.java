@@ -80,6 +80,9 @@ public class RoomServiceImpl implements RoomService {
     @Autowired
     private ServiceReadingRepository serviceReadingRepository;
 
+    @Value("${meter.scan.folder}")
+    private String scanRoot;
+
     @Override
     public Room addRoom(AddRoomDTO request, MultipartFile[] images) {
         // Kiểm tra phòng đã bị xóa mềm
@@ -503,6 +506,16 @@ public class RoomServiceImpl implements RoomService {
             reading.setNewReading(java.math.BigDecimal.ZERO);
             reading.setCreatedDate(java.time.Instant.now());
             serviceReadingRepository.save(reading);
+
+            // Tạo thư mục scanFolder cho phòng nếu chưa tồn tại (dùng đường dẫn tuyệt đối)
+            String roomFolder = scanRoot + File.separator + room.getRoomNumber();
+            File folder = new File(roomFolder);
+            if (!folder.exists()) {
+                boolean created = folder.mkdirs();
+                System.out.println("Tạo folder: " + folder.getAbsolutePath() + " - " + (created ? "Thành công" : "Thất bại"));
+            } else {
+                System.out.println("Folder đã tồn tại: " + folder.getAbsolutePath());
+            }
         }
         return true;
     }
@@ -548,6 +561,16 @@ public class RoomServiceImpl implements RoomService {
             reading.setNewReading(initialReading);
             reading.setCreatedDate(java.time.Instant.now());
             serviceReadingRepository.save(reading);
+
+            // Tạo thư mục scanFolder cho phòng nếu chưa tồn tại (dùng đường dẫn tuyệt đối)
+            String roomFolder = scanRoot + File.separator + room.getRoomNumber();
+            File folder = new File(roomFolder);
+            if (!folder.exists()) {
+                boolean created = folder.mkdirs();
+                System.out.println("Tạo folder: " + folder.getAbsolutePath() + " - " + (created ? "Thành công" : "Thất bại"));
+            } else {
+                System.out.println("Folder đã tồn tại: " + folder.getAbsolutePath());
+            }
         }
         return true;
     }
@@ -568,6 +591,15 @@ public class RoomServiceImpl implements RoomService {
         if (mapping.getService() != null && mapping.getService().getServiceType() == ServiceType.ELECTRICITY) {
             List<ServiceReading> readings = serviceReadingRepository.findByRoomAndService(mapping.getRoom(), mapping.getService());
             serviceReadingRepository.deleteAll(readings);
+
+            // Xóa folder ảnh OCR của phòng
+            String roomNumber = mapping.getRoom().getRoomNumber();
+            String roomFolder = scanRoot + File.separator + roomNumber;
+            File folder = new File(roomFolder);
+            if (folder.exists() && folder.isDirectory()) {
+                deleteDirectoryRecursively(folder);
+                System.out.println("Đã xóa folder OCR: " + folder.getAbsolutePath());
+            }
         }
         // Nếu mapping đã ngừng sử dụng (isActive=false), cho phép xóa luôn
         roomServiceMappingRepository.delete(mapping);
@@ -658,5 +690,18 @@ public class RoomServiceImpl implements RoomService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng với id: " + id));
         room.setScanFolder(scanFolder);
         roomRepository.save(room);
+    }
+
+    // Thêm hàm tiện ích xóa folder đệ quy
+    private void deleteDirectoryRecursively(File dir) {
+        if (dir.isDirectory()) {
+            File[] children = dir.listFiles();
+            if (children != null) {
+                for (File child : children) {
+                    deleteDirectoryRecursively(child);
+                }
+            }
+        }
+        dir.delete();
     }
 }
