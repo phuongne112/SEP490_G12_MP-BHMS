@@ -1,7 +1,10 @@
 import axiosClient from "./axiosClient";
 
-export const renewContract = (contractId, newEndDate) => {
-  return axiosClient.post(`/room-users/renew-contract/${contractId}`, { newEndDate });
+export const renewContract = (contractId, newEndDate, reason = "") => {
+  return axiosClient.post(`/room-users/renew-contract/${contractId}`, { 
+    newEndDate, 
+    reason 
+  });
 };
 
 export const terminateContract = (contractId) => {

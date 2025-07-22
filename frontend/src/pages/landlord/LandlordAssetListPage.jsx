@@ -56,7 +56,7 @@ export default function LandlordAssetListPage() {
       setAssets(res.data?.result || res.result || []);
       setTotal(res.meta?.total || res.data?.meta?.total || 0);
     } catch (err) {
-      message.error("Failed to load assets");
+      message.error("Không thể tải danh sách tài sản");
     }
     setLoading(false);
   };
@@ -107,7 +107,7 @@ export default function LandlordAssetListPage() {
       message.success("Xóa tài sản thành công!");
       fetchAssets(currentPage, filter, pageSize);
     } catch (err) {
-      message.error(err.response?.data?.message || "Failed to delete asset");
+      message.error(err.response?.data?.message || "Xóa tài sản thất bại");
     }
   };
 

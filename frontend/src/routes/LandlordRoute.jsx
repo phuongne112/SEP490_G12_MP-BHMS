@@ -20,7 +20,7 @@ export default function LandlordRoute({ children }) {
   const isLandlord = ["LANDLORD"].includes(roleName);
   
   if (!isLandlord) {
-    message.error("You do not have access to this page.");
+    message.error("Bạn không có quyền truy cập trang này.");
     return <Navigate to="/403" replace />;
   }
 

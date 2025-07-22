@@ -69,7 +69,7 @@ export default function LandlordAssignRenterPage() {
       console.log("Chi tiết phòng:", res); // Log dữ liệu phòng để debug
       setRoom(res);
     } catch (err) {
-      message.error("Failed to load room details");
+      message.error("Không thể tải chi tiết phòng");
     } finally {
       setRoomLoading(false);
     }
@@ -80,7 +80,7 @@ export default function LandlordAssignRenterPage() {
       const res = await getRentersForAssign(keyword);
       setRenters(res.data || []);
     } catch (err) {
-      message.error("Failed to load renters");
+      message.error("Không thể tải danh sách người thuê");
     }
   };
 

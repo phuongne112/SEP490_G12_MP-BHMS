@@ -369,11 +369,6 @@ export default function LandlordElectricListPage() {
               </Popover>
             </Col>
             <Col>
-              <Button type="primary" onClick={handleSaveBill}>
-                Lưu hóa đơn
-              </Button>
-            </Col>
-            <Col>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span>Auto Scan:</span>
                 <Button

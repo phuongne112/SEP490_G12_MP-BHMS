@@ -20,7 +20,7 @@ export default function PermissionFilterPopover({ onApply }) {
       <div style={{ marginBottom: 12 }}>
         <div style={{ fontSize: 13, marginBottom: 4 }}>Chức năng</div>
         <Select style={{ width: "100%" }} value={module} onChange={setModule}>
-        <Option value="All">All</Option>
+        <Option value="All">Tất cả</Option>
         <Option value="User">User</Option>
         <Option value="Role">Role</Option>
         <Option value="Notification">Notification</Option>

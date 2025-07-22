@@ -27,7 +27,7 @@ export default function LandlordBillDetailPage() {
       const res = await getBillDetail(id);
       setBill(res);
     } catch {
-      message.error("Failed to load bill detail");
+      message.error("Không thể tải chi tiết hóa đơn");
     }
     setLoading(false);
   };
@@ -43,7 +43,7 @@ export default function LandlordBillDetailPage() {
       link.click();
       link.remove();
     } catch (err) {
-      message.error("Export failed");
+      message.error("Xuất hóa đơn thất bại");
     }
   };
 

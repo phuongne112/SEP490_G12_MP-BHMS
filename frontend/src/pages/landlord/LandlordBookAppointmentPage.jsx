@@ -114,11 +114,11 @@ export default function LandlordBookAppointmentPage(props) {
         note: values.note,
       });
 
-      message.success("Appointment booked successfully!");
+      message.success("Đặt lịch hẹn thành công!");
       if (onSuccess) onSuccess();
       else navigate(-1);
     } catch (err) {
-      message.error("Failed to book appointment");
+      message.error("Đặt lịch hẹn thất bại");
       console.error("[DEBUG] booking error:", err);
     } finally {
       setSubmitting(false);

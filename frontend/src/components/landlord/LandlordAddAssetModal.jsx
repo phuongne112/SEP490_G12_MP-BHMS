@@ -62,7 +62,7 @@ export default function LandlordAddAssetModal({ open, onClose, onSuccess, asset,
       onClose();
     } catch (err) {
       console.error("[AssetModal] Error:", err);
-      message.error(err.response?.data?.message || "Failed to save asset");
+      message.error(err.response?.data?.message || "Lưu tài sản thất bại");
     }
     setLoading(false);
   };

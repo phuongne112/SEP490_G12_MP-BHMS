@@ -849,7 +849,7 @@ const user = useSelector((state) => state.account.user);
                                                     message.success('Xóa phòng thành công');
                                                     if (onRoomsUpdate) onRoomsUpdate();
                                                 } catch (e) {
-                                                    const backendMsg = e?.response?.data?.message || e?.response?.data?.error || 'Failed to delete room';
+                                                    const backendMsg = e?.response?.data?.message || e?.response?.data?.error || 'Xóa phòng thất bại';
                                                     message.error(backendMsg);
                                                 }
                                             }
