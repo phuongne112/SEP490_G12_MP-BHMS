@@ -61,6 +61,8 @@ public class RoomAssetServiceImpl implements RoomAssetService {
         dto.setQuantity(ra.getQuantity());
         dto.setStatus(ra.getStatus());
         dto.setNote(ra.getNote());
+        // Trả về assetImage
+        dto.setAssetImage(ra.getAsset().getAssetImage());
         return dto;
     }
 } 

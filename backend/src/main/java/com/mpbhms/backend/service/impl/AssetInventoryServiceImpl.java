@@ -23,6 +23,10 @@ public class AssetInventoryServiceImpl implements AssetInventoryService {
         String username = CurrentUserUtil.getCurrentUserLogin().orElse(null);
         User user = userRepository.findByUsername(username);
         for (AssetInventoryRequest req : requestList) {
+            // Chặn checkin/checkout nhiều lần cho cùng asset + contract + type
+            if (assetInventoryRepository.existsByAssetIdAndContractIdAndType(req.getAssetId(), req.getContractId(), req.getType())) {
+                throw new RuntimeException("Tài sản đã được kiểm kê " + req.getType().toLowerCase() + " cho hợp đồng này!");
+            }
             AssetInventory entity = new AssetInventory();
             entity.setAssetId(req.getAssetId());
             entity.setRoomNumber(req.getRoomNumber());

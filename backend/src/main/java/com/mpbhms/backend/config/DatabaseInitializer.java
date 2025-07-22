@@ -177,6 +177,12 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Delete Contract Template", "/mpbhms/contract-templates/{id}", "DELETE", "ContractTemplate"));
             permissions.add(new Permission("Set Default Contract Template", "/mpbhms/contract-templates/{id}/set-default", "POST", "ContractTemplate"));
             permissions.add(new Permission("View Rooms With Electric Readings", "/mpbhms/rooms/with-electric-readings", "GET", "Room"));
+            // Room Asset
+            permissions.add(new Permission("Add Room Asset to Room", "/mpbhms/room-assets", "POST", "RoomAsset"));
+            permissions.add(new Permission("Get Assets by Room", "/mpbhms/room-assets/by-room", "GET", "RoomAsset"));
+            permissions.add(new Permission("Get Assets by Room Number", "/mpbhms/room-assets/by-room-number", "GET", "RoomAsset"));
+            permissions.add(new Permission("Update Room Asset", "/mpbhms/room-assets/{id}", "PUT", "RoomAsset"));
+            permissions.add(new Permission("Delete Room Asset", "/mpbhms/room-assets/{id}", "DELETE", "RoomAsset"));
 
             permissions = permissionRepository.saveAll(permissions);
         }

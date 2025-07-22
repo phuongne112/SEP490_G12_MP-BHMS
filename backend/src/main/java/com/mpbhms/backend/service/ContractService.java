@@ -65,5 +65,7 @@ public interface ContractService {
     List<ContractDTO> getContractsByRoomId(Long roomId);
 
     void requestTerminateContract(Long contractId, String reason);
+
+    void requestRenewalAmendment(Long contractId, java.time.Instant newEndDate, String reason, Long userId);
 }
 

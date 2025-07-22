@@ -28,9 +28,6 @@ public class Asset extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String conditionNote;
 
-    @Enumerated(EnumType.STRING)
-    private AssetStatus assetStatus;
-
     private String assetImage;
 
 

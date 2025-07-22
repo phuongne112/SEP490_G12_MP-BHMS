@@ -16,7 +16,6 @@ export default function LandlordAddAssetModal({ open, onClose, onSuccess, asset,
       form.setFieldsValue({
         assetName: asset.assetName,
         quantity: asset.quantity,
-        assetStatus: asset.assetStatus,
         conditionNote: asset.conditionNote,
       });
       if (asset.assetImage) {
@@ -111,18 +110,6 @@ export default function LandlordAddAssetModal({ open, onClose, onSuccess, asset,
           rules={[{ required: true, message: "Vui lòng nhập số lượng" }]}
         >
           <InputNumber min={1} style={{ width: "100%" }} />
-        </Form.Item>
-        <Form.Item
-          name="assetStatus"
-          label="Trạng thái"
-          rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
-        >
-          <Select>
-            <Option value="Good">Tốt</Option>
-            <Option value="Damaged">Hư hỏng</Option>
-            <Option value="Lost">Mất</Option>
-            <Option value="Maintenance">Bảo trì</Option>
-          </Select>
         </Form.Item>
         <Form.Item name="conditionNote" label="Ghi chú tình trạng">
           <Input.TextArea />

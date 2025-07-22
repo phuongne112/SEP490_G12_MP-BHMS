@@ -91,6 +91,13 @@ export const deactivateServiceForRoom = async (roomId, serviceId) => {
   return axiosClient.patch(`/rooms/${roomId}/deactivate-service/${serviceId}`);
 };
 
+/**
+ * Sử dụng lại dịch vụ đã ngừng cho phòng
+ */
+export const reactivateServiceForRoom = async (roomId, serviceId) => {
+  return axiosClient.patch(`/rooms/${roomId}/reactivate-service/${serviceId}`);
+};
+
 // Lấy tổng số phòng hiện tại
 export const getRoomStats = async () => {
   // Lấy tất cả phòng với size lớn để đếm (hoặc backend nên có API riêng)
