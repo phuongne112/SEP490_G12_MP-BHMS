@@ -16,7 +16,8 @@ import {
   getContractAmendments,
   processExpiredContracts,
   approveAmendment,
-  requestTerminateContract
+  requestTerminateContract,
+  rejectAmendment
 } from "../../services/roomUserApi";
 import { getAllRooms } from "../../services/roomService";
 import { FilterOutlined } from "@ant-design/icons";
@@ -85,6 +86,10 @@ export default function LandlordContractListPage() {
   const [terminateContractId, setTerminateContractId] = useState(null);
   const [amendmentsPage, setAmendmentsPage] = useState(1);
   const amendmentsPageSize = 5;
+  const [rejectingId, setRejectingId] = useState(null);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectLoading, setRejectLoading] = useState(false);
 
   const user = useSelector((state) => state.account.user);
 
@@ -346,6 +351,40 @@ export default function LandlordContractListPage() {
     }
   };
 
+  const handleRejectAmendment = (amendmentId) => {
+    setRejectingId(amendmentId);
+    setRejectReason("");
+    setRejectModalOpen(true);
+  };
+
+  const doRejectAmendment = async () => {
+    if (!rejectReason) {
+      message.error("Vui lòng nhập lý do từ chối!");
+      return;
+    }
+    setRejectLoading(true);
+    try {
+      await rejectAmendment(rejectingId, rejectReason);
+      message.success("Đã từ chối yêu cầu thay đổi!");
+      setRejectModalOpen(false);
+      setRejectingId(null);
+      setRejectReason("");
+      // Cập nhật lại danh sách amendment
+      if (updateContract) {
+        handleViewAmendments(updateContract.id);
+      } else if (selectedContract) {
+        handleViewAmendments(selectedContract.id);
+      } else {
+        // fallback: reload modal
+        setAmendments(prev => prev.map(item => item.id === rejectingId ? { ...item, status: 'REJECTED' } : item));
+      }
+    } catch {
+      message.error("Từ chối thất bại!");
+    } finally {
+      setRejectLoading(false);
+    }
+  };
+
   // Debug dữ liệu
   console.log('allRenters:', allRenters);
   console.log('roomUsers:', updateContract?.roomUsers);
@@ -415,6 +454,47 @@ export default function LandlordContractListPage() {
     // Uncomment để test
     // testFilter();
   }, []);
+
+  // Hàm map loại amendment sang tiếng Việt
+  const getAmendmentTypeText = (type) => {
+    switch (type) {
+      case 'OTHER': return 'Khác';
+      case 'TERMINATION': return 'Chấm dứt';
+      case 'DURATION_EXTENSION': return 'Gia hạn';
+      default: return type;
+    }
+  };
+  // Hàm map trạng thái sang tiếng Việt
+  const getAmendmentStatusText = (status) => {
+    switch (status) {
+      case 'REJECTED': return 'Đã từ chối';
+      case 'PENDING': return 'Chờ duyệt';
+      case 'APPROVED': return 'Đã duyệt';
+      default: return status;
+    }
+  };
+
+  // Polling cập nhật động trạng thái phê duyệt khi modal mở
+  useEffect(() => {
+    if (amendmentsModalOpen && updateContract) {
+      const interval = setInterval(() => {
+        getContractAmendments(updateContract.id).then(res => setAmendments(res.data));
+      }, 3000); // 3 giây cập nhật 1 lần
+      return () => clearInterval(interval);
+    }
+  }, [amendmentsModalOpen, updateContract]);
+
+  // Map userId sang tên
+  const userIdToName = {};
+  (updateContract?.roomUsers || []).forEach(u => {
+    userIdToName[u.userId || u.id] = u.fullName || u.username || u.email || `Người thuê ${u.userId || u.id}`;
+  });
+  (allRenters || []).forEach(u => {
+    userIdToName[u.id] = u.fullName || u.username || u.email || `Người thuê ${u.id}`;
+  });
+
+  // Lấy userId hiện tại
+  const currentUserId = user?.id;
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -596,17 +676,53 @@ export default function LandlordContractListPage() {
                   actions={[]}
                 >
                   <div style={{ width: '100%' }}>
-                    <div style={{ fontWeight: 600, color: '#222', marginBottom: 4 }}>
-                      Lý do thay đổi:
+                    {/* Giao diện gộp gọn, dễ nhìn */}
+                    <div style={{ marginBottom: 8 }}>
+                      <b>Lý do thay đổi:</b> {item.reason || <span style={{ color: '#888' }}>Không có lý do</span>}
                     </div>
-                    <div style={{ marginBottom: 8, color: '#222' }}>{item.reason || <span style={{ color: '#888' }}>Không có lý do</span>}</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 8 }}>
-                      <div><b>Loại:</b> {item.amendmentType}</div>
-                      <div><b>Trạng thái:</b> {item.status}</div>
+                      <div><b>Loại:</b> {getAmendmentTypeText(item.amendmentType)}</div>
+                      <div><b>Trạng thái:</b> {getAmendmentStatusText(item.status)}</div>
                       <div><b>Ngày tạo:</b> {item.createdDate ? new Date(item.createdDate).toLocaleDateString("vi-VN") : 'Không có'}</div>
                     </div>
-                    {/* Hiện nút Duyệt/Từ chối cho mọi amendment chưa được duyệt (trừ APPROVED) */}
-                    {item.status !== 'APPROVED' && !item.approvedByLandlord && (
+                    {item.status === 'REJECTED' && (
+                      <div style={{ color: '#d4380d', marginBottom: 8 }}>
+                        <b>Yêu cầu đã bị từ chối.</b>
+                        {item.reason && (
+                          <div>Lý do từ chối: <i>{item.reason}</i></div>
+                        )}
+                      </div>
+                    )}
+                    <div style={{ marginBottom: 8 }}>
+                      <b>Trạng thái phê duyệt:</b>
+                      <span style={{ marginLeft: 8 }}>
+                        <b>Chủ nhà:</b>
+                        {item.approvedByLandlord
+                          ? <span style={{ color: '#389e0d', marginLeft: 4 }}>✔️ Đã đồng ý</span>
+                          : (item.status === "REJECTED" && !item.approvedByLandlord
+                              ? <span style={{ color: '#d4380d', marginLeft: 4 }}>❌ Đã từ chối</span>
+                              : <span style={{ color: '#faad14', marginLeft: 4 }}>⏳ Chưa phản hồi</span>
+                            )
+                        }
+                      </span>
+                      {item.pendingApprovals && [...item.pendingApprovals].sort((a, b) => a - b).map(uid => {
+                        const isApproved = item.approvedBy && item.approvedBy.includes(uid);
+                        return (
+                          <span key={uid} style={{ marginLeft: 16 }}>
+                            <b>{userIdToName[uid] || `Người thuê ${uid}`}:</b>
+                            {isApproved
+                              ? <span style={{ color: '#389e0d', marginLeft: 4 }}>✔️ Đã đồng ý</span>
+                              : (item.status === "REJECTED" && !isApproved
+                                  ? <span style={{ color: '#d4380d', marginLeft: 4 }}>❌ Đã từ chối</span>
+                                  : <span style={{ color: '#faad14', marginLeft: 4 }}>⏳ Chưa phản hồi</span>
+                                )
+                            }
+                          </span>
+                        );
+                      })}
+                    </div>
+                    {/* Thay đổi điều kiện hiển thị nút Duyệt/Từ chối */}
+                    {item.status === 'PENDING' && !item.approvedByLandlord && (
                       <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                         <Button
                           type="primary"
@@ -616,7 +732,7 @@ export default function LandlordContractListPage() {
                         </Button>
                         <Button
                           danger
-                          onClick={() => message.info('Chức năng từ chối chưa hỗ trợ')}
+                          onClick={() => handleRejectAmendment(item.id)}
                         >
                           Từ chối
                         </Button>
@@ -668,6 +784,22 @@ export default function LandlordContractListPage() {
               value={terminateReason}
               onChange={e => setTerminateReason(e.target.value)}
               rows={3}
+            />
+          </Modal>
+          <Modal
+            open={rejectModalOpen}
+            onCancel={() => { setRejectModalOpen(false); setRejectingId(null); setRejectReason(""); }}
+            onOk={doRejectAmendment}
+            okText="Xác nhận từ chối"
+            title="Lý do từ chối thay đổi hợp đồng"
+            confirmLoading={rejectLoading}
+          >
+            <div>Vui lòng nhập lý do từ chối:</div>
+            <Input.TextArea
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              rows={3}
+              style={{ width: '100%', marginTop: 8 }}
             />
           </Modal>
         </Content>

@@ -173,6 +173,7 @@ public class RoomUserController {
                 dto.setCreatedDate(am.getCreatedDate());
                 dto.setPendingApprovals(am.getPendingApprovals());
                 dto.setApprovedBy(am.getApprovedBy());
+                dto.setRejectedBy(am.getRejectedBy()); // Bổ sung rejectedBy
                 return dto;
             }).toList();
             return ResponseEntity.ok(dtos);

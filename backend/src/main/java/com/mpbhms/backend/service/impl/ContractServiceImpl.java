@@ -909,9 +909,33 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
     public void rejectAmendment(Long amendmentId, String reason) {
         ContractAmendment amendment = contractAmendmentRepository.findById(amendmentId)
             .orElseThrow(() -> new RuntimeException("Không tìm thấy yêu cầu sửa đổi hợp đồng"));
-        
-        amendment.setStatus(ContractAmendment.AmendmentStatus.REJECTED);
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        java.util.List<Long> rejectedBy = amendment.getRejectedBy() != null ? amendment.getRejectedBy() : new java.util.ArrayList<>();
+        if (!rejectedBy.contains(currentUserId)) {
+            rejectedBy.add(currentUserId);
+        }
+        amendment.setRejectedBy(rejectedBy);
         amendment.setReason(reason);
+
+        // Tổng số người cần duyệt: landlord + renters
+        int total = 1 + (amendment.getPendingApprovals() != null ? amendment.getPendingApprovals().size() : 0);
+        int approved = (amendment.getApprovedByLandlord() != null && amendment.getApprovedByLandlord() ? 1 : 0)
+            + (amendment.getApprovedBy() != null ? amendment.getApprovedBy().size() : 0);
+        int rejected = rejectedBy.size();
+        if (approved + rejected >= total) {
+            if (rejected > 0) {
+                amendment.setStatus(ContractAmendment.AmendmentStatus.REJECTED);
+            } else {
+                amendment.setStatus(ContractAmendment.AmendmentStatus.APPROVED);
+                if (amendment.getAmendmentType() == ContractAmendment.AmendmentType.TERMINATION) {
+                    terminateContract(amendment.getContract().getId());
+                } else {
+                    applyAmendmentToContract(amendment);
+                }
+            }
+        } else {
+            amendment.setStatus(ContractAmendment.AmendmentStatus.PENDING);
+        }
         contractAmendmentRepository.save(amendment);
     }
     
