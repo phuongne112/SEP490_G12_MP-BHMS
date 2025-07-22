@@ -47,7 +47,7 @@ export default function Login() {
         setError(response.data);
       } else {
         setError({
-          general: response?.message || err.message || "Login failed",
+          general: response?.message || err.message || "Đăng nhập thất bại",
         });
       }
     }

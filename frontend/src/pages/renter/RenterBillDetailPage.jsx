@@ -133,7 +133,7 @@ export default function RenterBillDetailPage() {
       window.open(paymentUrl, "_blank");
       setCurrentStep(1);
     } catch (error) {
-      message.error("Cannot create payment link");
+      message.error("Không thể tạo liên kết thanh toán");
     }
     setPaymentLoading(false);
   };
@@ -159,7 +159,7 @@ export default function RenterBillDetailPage() {
       setCurrentStep(2);
     } else {
       message.error(
-        "Payment not successful. Please try again or wait a moment."
+        "Thanh toán không thành công. Vui lòng thử lại hoặc chờ một chút."
       );
     }
   };
@@ -296,7 +296,7 @@ export default function RenterBillDetailPage() {
     if (bill && !bill.status) {
       setPaymentModalVisible(true);
     } else {
-      message.info("This bill has already been paid.");
+      message.info("Hóa đơn này đã được thanh toán.");
     }
   };
 

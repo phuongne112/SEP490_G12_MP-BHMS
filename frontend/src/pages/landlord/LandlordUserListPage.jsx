@@ -60,7 +60,7 @@ export default function LandlordUserListPage() {
       setUsers(res.result || []);
       setTotal(res.meta?.total || 0);
     } catch (err) {
-      message.error("Failed to load users");
+      message.error("Không thể tải danh sách người dùng");
     }
     setLoading(false);
   };
@@ -105,13 +105,13 @@ export default function LandlordUserListPage() {
       } catch (err) {}
       setAddLoading(true);
       await createUser(values);
-      message.success("Add user successfully!");
+      message.success("Thêm người dùng thành công!");
       addForm.resetFields();
       setAddModalOpen(false);
       fetchUsers();
     } catch (err) {
       if (err?.errorFields) return;
-      message.error("Failed to add user!");
+      message.error("Thêm người dùng thất bại!");
     } finally {
       setAddLoading(false);
     }
@@ -128,7 +128,7 @@ export default function LandlordUserListPage() {
       message.success("Chuyển thành người thuê thành công!");
       fetchUsers();
     } catch (err) {
-      message.error(err?.response?.data?.message || "Failed to change role");
+      message.error(err?.response?.data?.message || "Chuyển đổi vai trò thất bại");
     }
   };
 
@@ -222,7 +222,7 @@ export default function LandlordUserListPage() {
             }}
             onOk={handleAddUser}
             confirmLoading={addLoading}
-            okText="Add"
+            okText="Thêm"
           >
             <Form form={addForm} layout="vertical">
               <Form.Item

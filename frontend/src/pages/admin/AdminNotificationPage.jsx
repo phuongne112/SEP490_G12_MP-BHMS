@@ -250,14 +250,14 @@ export default function AdminNotificationPage() {
                     await Promise.all(promises);
                   }
 
-                  message.success("Notification(s) sent successfully!");
+                  message.success("Thông báo đã được gửi thành công!");
                   setIsCreateModalOpen(false);
                   createForm.resetFields();
                   setSendMode("role");
                   setRefreshKey((prev) => prev + 1);
                 } catch (err) {
                   console.error("Send notification failed:", err);
-                  message.error("Failed to send notification");
+                  message.error("Gửi thông báo thất bại");
                 }
               }}
             >
@@ -287,7 +287,7 @@ export default function AdminNotificationPage() {
                       label="Gửi đến người dùng"
                       rules={[{ required: true }]}
                     >
-                      <Select placeholder="Select a user">
+                      <Select placeholder="Chọn người dùng">
                         {userList.map((user) => (
                           <Option key={user.id} value={user.id}>
                             {user.fullName || user.email}
@@ -309,8 +309,8 @@ export default function AdminNotificationPage() {
                       <Option value="MAINTENANCE">Maintenance</Option>
                       <Option value="BOOKING_STATUS">Trạng thái đặt phòng</Option>
                       <Option value="ANNOUNCEMENT">Thông báo chung</Option>
-                      <Option value="PAYMENT_SUCCESS">Payment Success</Option>
-                      <Option value="PAYMENT_FAILED">Payment Failed</Option>
+                      <Option value="PAYMENT_SUCCESS">Thanh toán thành công</Option>
+                      <Option value="PAYMENT_FAILED">Thanh toán thất bại</Option>
                       <Option value="CUSTOM">Tùy chỉnh</Option>
                     </Select>
                   </Form.Item>
@@ -388,19 +388,19 @@ export default function AdminNotificationPage() {
             onOk={async () => {
               try {
                 await deleteNotification(selectedNotification.id);
-                message.success("Notification deleted successfully!");
+                message.success("Xóa thông báo thành công!");
                 setRefreshKey((prev) => prev + 1);
               } catch (error) {
                 console.error("Delete failed:", error);
-                message.error("Failed to delete notification!");
+                message.error("Xóa thông báo thất bại!");
               } finally {
                 setIsDeleteModalOpen(false);
                 setSelectedNotification(null);
               }
             }}
             onCancel={() => setIsDeleteModalOpen(false)}
-            okText="Yes"
-            cancelText="Cancel"
+            okText="Có"
+            cancelText="Hủy"
           />
         </Content>
       </Layout>

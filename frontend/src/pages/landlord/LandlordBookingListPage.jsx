@@ -18,8 +18,8 @@ const { Sider, Content } = Layout;
 const pageSizeOptions = [5, 10, 20, 50];
 
 const statusOptions = [
-  { value: "", label: "All" },
-  { value: "PENDING", label: "Pending" },
+  { value: "", label: "Tất cả" },
+  { value: "PENDING", label: "Chờ xử lý" },
   { value: "CONFIRMED", label: "Đã xác nhận" },
   { value: "COMPLETED", label: "Hoàn thành" },
   { value: "CANCELLED", label: "Đã hủy" },
@@ -78,10 +78,10 @@ export default function LandlordBookingListPage() {
           type: "SCHEDULE"
         });
       }
-      message.success("Booking accepted!");
+      message.success("Đã chấp nhận đặt phòng!");
       fetchData();
     } catch (e) {
-      message.error("Failed to accept booking!");
+      message.error("Chấp nhận đặt phòng thất bại!");
     }
   };
 
@@ -97,10 +97,10 @@ export default function LandlordBookingListPage() {
           type: "SCHEDULE"
         });
       }
-      message.success("Booking rejected!");
+      message.success("Đã từ chối đặt phòng!");
       fetchData();
     } catch (e) {
-      message.error("Failed to reject booking!");
+      message.error("Từ chối đặt phòng thất bại!");
     }
   };
 
@@ -110,7 +110,7 @@ export default function LandlordBookingListPage() {
       message.success("Đã xóa đặt phòng!");
       fetchData();
     } catch (e) {
-      message.error("Failed to delete booking!");
+      message.error("Xóa đặt phòng thất bại!");
     }
   };
 

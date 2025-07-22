@@ -66,7 +66,7 @@ export default function LandlordServiceListPage() {
       }
     } catch (error) {
       console.error("Error fetching services:", error);
-      message.error("Failed to load services");
+      message.error("Không thể tải danh sách dịch vụ");
     } finally {
       setLoading(false);
     }

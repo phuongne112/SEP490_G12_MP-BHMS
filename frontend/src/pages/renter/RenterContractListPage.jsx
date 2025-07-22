@@ -138,7 +138,7 @@ export default function RenterContractListPage() {
               renderItem={item => {
                 const total = item.pendingApprovals?.length || 0;
                 const approved = item.approvedBy?.length || 0;
-                const isMyTurn = user && item.status === 'PENDING' && item.pendingApprovals?.includes(user.id) && !item.approvedBy?.includes(user.id);
+                const isMyTurn = user && item.status === 'PENDING' && item.pendingApprovals?.includes(user.id) && !item.approvedBy?.includes(user.id) && !(item.rejectedBy || []).includes(user.id);
                 return (
                   <List.Item
                     actions={[

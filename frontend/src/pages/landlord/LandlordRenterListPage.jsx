@@ -69,7 +69,7 @@ export default function LandlordRenterListPage() {
       setRenters(res.result || res.data || []);
       setTotal(res.meta?.total ?? res.total ?? (res.result?.length ?? res.data?.length ?? 0));
     } catch (err) {
-      message.error("Failed to load renters");
+      message.error("Không thể tải danh sách người thuê");
     }
     setLoading(false);
   };
@@ -95,7 +95,7 @@ export default function LandlordRenterListPage() {
       const values = await addForm.validateFields();
       setAddLoading(true);
       await createRenter(values);
-      message.success("Add renter successfully!");
+      message.success("Thêm người thuê thành công!");
       addForm.resetFields();
       setAddModalOpen(false);
       setFilter({ ...filter }); // reload bảng
@@ -112,7 +112,7 @@ export default function LandlordRenterListPage() {
         return;
       }
       if (err?.errorFields) return;
-      message.error("Failed to add renter!");
+      message.error("Thêm người thuê thất bại!");
     } finally {
       setAddLoading(false);
     }

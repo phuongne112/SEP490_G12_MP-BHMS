@@ -90,7 +90,7 @@ public class RoomUserController {
         }
 
         try {
-            Instant newEndDate = Instant.parse(newEndDateStr); // Đảm bảo định dạng ISO-8601 (ex: 2025-12-31T17:00:00Z)
+            Instant newEndDate = Instant.parse(newEndDateStr);
             // Lấy userId từ username hiện tại
             Long userId = null;
             String username = com.mpbhms.backend.util.CurrentUserUtil.getCurrentUserLogin().orElse(null);
@@ -102,6 +102,8 @@ public class RoomUserController {
             return ResponseEntity.ok(new ApiResponse<>(200, null, "Đã gửi yêu cầu gia hạn hợp đồng, chờ duyệt.", null));
         } catch (DateTimeParseException e) {
             throw new BusinessException("Định dạng ngày không hợp lệ", HttpStatus.BAD_REQUEST, "INVALID_DATE_FORMAT");
+        } catch (RuntimeException e) {
+            throw new BusinessException(e.getMessage(), HttpStatus.BAD_REQUEST, "RENEWAL_ERROR");
         }
     }
 

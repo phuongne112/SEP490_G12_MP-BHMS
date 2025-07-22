@@ -20,7 +20,7 @@ export default function AdminRoute({ children }) {
   const roleName = user?.role?.roleName?.toUpperCase?.();
   const isAdmin = ["ADMIN", "SUBADMIN"].includes(roleName);
   if (!isAdmin) {
-    message.error("You do not have access to this page.");
+    message.error("Bạn không có quyền truy cập trang này.");
     return <Navigate to="/403" replace />;
   }
 

@@ -111,7 +111,7 @@ export default function LandlordBillListPage() {
       setBills(res.content || []);
       setTotal(res.totalElements || 0);
     } catch (err) {
-      message.error("Failed to load bills");
+      message.error("Không thể tải danh sách hóa đơn");
     } finally {
       setLoading(false);
     }
@@ -142,16 +142,16 @@ export default function LandlordBillListPage() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      message.success("Bill exported successfully");
+      message.success("Xuất hóa đơn thành công");
     } catch (err) {
-      message.error("Export failed");
+      message.error("Xuất hóa đơn thất bại");
     }
   };
 
   const handleSend = async (id) => {
     try {
       await sendBillToRenter(id);
-      message.success("Bill sent to renter successfully");
+      message.success("Gửi hóa đơn cho người thuê thành công");
     } catch (err) {
       message.error("Gửi thất bại");
     }

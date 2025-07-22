@@ -4,11 +4,13 @@ import com.mpbhms.backend.entity.CustomService;
 import com.mpbhms.backend.entity.Permission;
 import com.mpbhms.backend.entity.Role;
 import com.mpbhms.backend.entity.User;
+import com.mpbhms.backend.entity.ContractTemplate;
 import com.mpbhms.backend.enums.ServiceType;
 import com.mpbhms.backend.repository.PermissionRepository;
 import com.mpbhms.backend.repository.RoleRepository;
 import com.mpbhms.backend.repository.ServiceRepository;
 import com.mpbhms.backend.repository.UserRepository;
+import com.mpbhms.backend.repository.ContractTemplateRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +28,7 @@ public class DatabaseInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final ServiceRepository serviceRepository;
+    private final ContractTemplateRepository contractTemplateRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -36,6 +39,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         long countRoles = roleRepository.count();
         long countUsers = userRepository.count();
         long countServices = serviceRepository.count();
+        long countContractTemplates = contractTemplateRepository.count();
 
         // --- Init Permissions ---
         if (countPermissions == 0) {
@@ -446,10 +450,351 @@ public class DatabaseInitializer implements CommandLineRunner {
             serviceRepository.saveAll(services);
         }
 
-        if (countPermissions > 0 && countRoles > 0 && countUsers > 0 && countServices > 0) {
+        // --- Init Default Contract Templates ---
+        if (countContractTemplates == 0) {
+            initializeDefaultContractTemplates();
+        }
+
+        if (countPermissions > 0 && countRoles > 0 && countUsers > 0 && countServices > 0 && countContractTemplates > 0) {
             System.out.println(">>> SKIP INIT DATABASE <<<");
         }
         System.out.println(">>> INIT DONE <<<");
     }
 
+    private void initializeDefaultContractTemplates() {
+        // Lấy tất cả landlords để tạo template cho từng người
+        List<User> landlords = userRepository.findAll().stream()
+                .filter(user -> user.getRole() != null && "LANDLORD".equals(user.getRole().getRoleName()))
+                .toList();
+
+        String professionalTemplate = createProfessionalContractTemplate();
+
+        for (User landlord : landlords) {
+            ContractTemplate template = new ContractTemplate();
+            template.setLandlordId(landlord.getId());
+            template.setName("Mẫu hợp đồng chuyên nghiệp");
+            template.setContent(professionalTemplate);
+            template.setIsDefault(true);
+            contractTemplateRepository.save(template);
+        }
+
+        // Tạo template mặc định cho landlords sẽ tạo sau này (landlordId = null)
+        ContractTemplate defaultTemplate = new ContractTemplate();
+        defaultTemplate.setLandlordId(null);
+        defaultTemplate.setName("Mẫu hợp đồng mặc định");
+        defaultTemplate.setContent(professionalTemplate);
+        defaultTemplate.setIsDefault(true);
+        contractTemplateRepository.save(defaultTemplate);
+
+        System.out.println(">>> INITIALIZED CONTRACT TEMPLATES <<<");
+    }
+
+    private String createProfessionalContractTemplate() {
+        return """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            line-height: 1.6; 
+            margin: 40px;
+            color: #333;
+        }
+        .header { 
+            text-align: center; 
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+        .title { 
+            font-size: 24px; 
+            font-weight: bold; 
+            color: #d32f2f;
+            margin: 20px 0;
+        }
+        .section { 
+            margin: 20px 0; 
+        }
+        .section-title { 
+            font-size: 16px; 
+            font-weight: bold; 
+            color: #1976d2;
+            margin: 15px 0 10px 0;
+            border-left: 4px solid #1976d2;
+            padding-left: 10px;
+        }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        .info-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+        .info-table .label {
+            background-color: #f5f5f5;
+            font-weight: bold;
+            width: 30%;
+        }
+        .signature-section {
+            margin-top: 50px;
+        }
+        .signature-box {
+            width: 45%;
+            text-align: center;
+            border: 1px solid #ddd;
+            padding: 20px;
+            min-height: 100px;
+            display: inline-block;
+            vertical-align: top;
+        }
+        .legal-note {
+            background-color: #f9f9f9;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin: 20px 0;
+            font-style: italic;
+        }
+        ul {
+            margin: 10px 0;
+            padding-left: 25px;
+        }
+        li {
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div style="font-weight: bold; font-size: 16px;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+        <div style="font-weight: bold; font-size: 16px;">Độc lập - Tự do - Hạnh phúc</div>
+        <div style="margin: 15px 0;">═══════════════════════════════════════════</div>
+    </div>
+
+    <div class="title" style="text-align: center;">HỢP ĐỒNG THUÊ PHÒNG TRỌ</div>
+    
+    <div style="text-align: center; margin-bottom: 20px;">
+        <strong>Số hợp đồng: {{contract.contractNumber}}</strong><br />
+        <em>Ký {{startDate}}</em>
+    </div>
+
+    <div class="legal-note">
+        <strong>Căn cứ pháp lý:</strong><br />
+        - Bộ luật Dân sự năm 2015;<br />
+        - Luật Nhà ở năm 2014;<br />
+        - Nghị định số 99/2015/NĐ-CP ngày 20/10/2015 của Chính phủ;<br />
+        - Các quy định pháp luật có liên quan và thỏa thuận của các bên.
+    </div>
+
+    <p>Hôm nay, <strong>{{startDate}}</strong>, tại <strong>{{room.roomNumber}}</strong>, chúng tôi gồm các bên:</p>
+
+    <div class="section">
+        <div class="section-title">BÊN CHO THUÊ (BÊN A)</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">Họ và tên:</td>
+                <td>{{landlord.userInfo.fullName}}</td>
+            </tr>
+            <tr>
+                <td class="label">Số điện thoại:</td>
+                <td>{{landlord.userInfo.phoneNumber}}</td>
+            </tr>
+            <tr>
+                <td class="label">CCCD/CMND:</td>
+                <td>{{landlord.userInfo.nationalID}}</td>
+            </tr>
+            <tr>
+                <td class="label">Địa chỉ thường trú:</td>
+                <td>{{landlord.userInfo.permanentAddress}}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">BÊN THUÊ PHÒNG (BÊN B)</div>
+        {{#each renters}}
+        <table class="info-table" style="margin-bottom: 15px;">
+            <tr>
+                <td class="label">Họ và tên:</td>
+                <td>{{fullName}}</td>
+            </tr>
+            <tr>
+                <td class="label">Số điện thoại:</td>
+                <td>{{phoneNumber}}</td>
+            </tr>
+            <tr>
+                <td class="label">CCCD/CMND:</td>
+                <td>{{identityNumber}}</td>
+            </tr>
+            <tr>
+                <td class="label">Địa chỉ thường trú:</td>
+                <td>{{address}}</td>
+            </tr>
+        </table>
+        {{/each}}
+    </div>
+
+    <p><strong>Sau khi bàn bạc thỏa thuận, hai bên cùng nhau ký kết hợp đồng thuê phòng trọ với những nội dung sau:</strong></p>
+
+    <div class="section">
+        <div class="section-title">Điều 1: ĐỐI TƯỢNG CỦA HỢP ĐỒNG</div>
+        <p>Bên A đồng ý cho Bên B thuê phòng trọ với các thông tin như sau:</p>
+        <table class="info-table">
+            <tr>
+                <td class="label">Số phòng:</td>
+                <td>{{room.roomNumber}}</td>
+            </tr>
+            <tr>
+                <td class="label">Địa chỉ:</td>
+                <td>Địa chỉ nhà trọ</td>
+            </tr>
+            <tr>
+                <td class="label">Diện tích:</td>
+                <td>Theo thực tế bàn giao</td>
+            </tr>
+            <tr>
+                <td class="label">Mục đích sử dụng:</td>
+                <td>Để ở</td>
+            </tr>
+            <tr>
+                <td class="label">Tình trạng phòng:</td>
+                <td>Bàn giao theo hiện trạng</td>
+            </tr>
+            <tr>
+                <td class="label">Trang thiết bị:</td>
+                <td>Theo biên bản bàn giao tài sản</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Điều 2: THỜI HẠN THUÊ</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">Thời hạn thuê:</td>
+                <td>Từ ngày {{startDate}} đến ngày {{endDate}}</td>
+            </tr>
+            <tr>
+                <td class="label">Hiệu lực:</td>
+                <td>Hợp đồng có hiệu lực kể từ ngày ký</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Điều 3: GIÁ THUÊ VÀ PHƯƠNG THỨC THANH TOÁN</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">Giá thuê phòng:</td>
+                <td>{{contract.rentAmount}} VNĐ/tháng</td>
+            </tr>
+            <tr>
+                <td class="label">Tiền đặt cọc:</td>
+                <td>{{contract.depositAmount}} VNĐ (hoàn trả khi kết thúc hợp đồng, không vi phạm)</td>
+            </tr>
+            <tr>
+                <td class="label">Chu kỳ thanh toán:</td>
+                <td>{{contract.paymentCycle}}</td>
+            </tr>
+            <tr>
+                <td class="label">Hạn thanh toán:</td>
+                <td>Trước ngày 05 của chu kỳ thanh toán</td>
+            </tr>
+            <tr>
+                <td class="label">Phương thức:</td>
+                <td>Tiền mặt hoặc chuyển khoản</td>
+            </tr>
+            <tr>
+                <td class="label">Các khoản phí khác:</td>
+                <td>Điện, nước, internet, rác... (theo thực tế sử dụng)</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Điều 4: QUYỀN VÀ NGHĨA VỤ CỦA BÊN CHO THUÊ</div>
+        <p><strong>4.1. Quyền của Bên A:</strong></p>
+        <ul>
+            <li>Yêu cầu Bên B thanh toán đầy đủ, đúng hạn các khoản tiền theo hợp đồng</li>
+            <li>Yêu cầu Bên B bồi thường thiệt hại do vi phạm hợp đồng gây ra</li>
+            <li>Đơn phương chấm dứt hợp đồng nếu Bên B vi phạm nghiêm trọng</li>
+            <li>Kiểm tra tình hình sử dụng phòng trọ (báo trước 24 giờ)</li>
+        </ul>
+        <p><strong>4.2. Nghĩa vụ của Bên A:</strong></p>
+        <ul>
+            <li>Bàn giao phòng trọ đúng tình trạng thỏa thuận</li>
+            <li>Bảo đảm quyền sử dụng ổn định của Bên B trong thời hạn hợp đồng</li>
+            <li>Bảo trì, sửa chữa phòng trọ theo thỏa thuận</li>
+            <li>Hoàn trả tiền đặt cọc khi kết thúc hợp đồng (trừ các khoản vi phạm)</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Điều 5: QUYỀN VÀ NGHĨA VỤ CỦA BÊN THUÊ</div>
+        <p><strong>5.1. Quyền của Bên B:</strong></p>
+        <ul>
+            <li>Được sử dụng phòng trọ đúng mục đích đã thỏa thuận</li>
+            <li>Yêu cầu Bên A sửa chữa những hỏng hóc không do lỗi của mình</li>
+            <li>Được gia hạn hợp đồng nếu hai bên đồng ý</li>
+        </ul>
+        <p><strong>5.2. Nghĩa vụ của Bên B:</strong></p>
+        <ul>
+            <li>Thanh toán đầy đủ, đúng hạn các khoản tiền theo hợp đồng</li>
+            <li>Sử dụng phòng trọ đúng mục đích, giữ gìn vệ sinh chung</li>
+            <li>Tuân thủ quy định về phòng cháy chữa cháy, an ninh trật tự</li>
+            <li>Bồi thường thiệt hại do mình gây ra</li>
+            <li>Trả lại phòng trọ khi kết thúc hợp đồng</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Điều 6: CAM KẾT CHUNG</div>
+        <ul>
+            <li>Hai bên cam kết thực hiện đúng và đầy đủ các điều khoản đã thỏa thuận</li>
+            <li>Trường hợp có tranh chấp, hai bên cùng bàn bạc giải quyết trên tinh thần thiện chí</li>
+            <li>Nếu không thỏa thuận được, tranh chấp sẽ được giải quyết tại Tòa án có thẩm quyền</li>
+            <li>Hợp đồng có thể được sửa đổi, bổ sung bằng văn bản khi hai bên đồng ý</li>
+        </ul>
+    </div>
+
+    {{#if terms}}
+    <div class="section">
+        <div class="section-title">ĐIỀU KHOẢN BỔ SUNG</div>
+        <ol>
+            {{#each terms}}
+            <li>{{this}}</li>
+            {{/each}}
+        </ol>
+    </div>
+    {{/if}}
+
+    <div class="legal-note">
+        <strong>Điều cuối:</strong> Hợp đồng này được lập thành 02 (hai) bản có giá trị pháp lý như nhau, mỗi bên giữ 01 bản. 
+        Hợp đồng có hiệu lực kể từ ngày ký và chấm dứt theo đúng thỏa thuận.
+    </div>
+
+    <div class="signature-section">
+        <div class="signature-box" style="margin-right: 10%;">
+            <div style="font-weight: bold; margin-bottom: 10px;">BÊN CHO THUÊ (BÊN A)</div>
+            <div style="font-style: italic; margin-bottom: 60px;">(Ký và ghi rõ họ tên)</div>
+            <div style="font-weight: bold;">{{landlord.userInfo.fullName}}</div>
+        </div>
+        <div class="signature-box">
+            <div style="font-weight: bold; margin-bottom: 10px;">BÊN THUÊ PHÒNG (BÊN B)</div>
+            <div style="font-style: italic; margin-bottom: 60px;">(Ký và ghi rõ họ tên)</div>
+            <div style="font-weight: bold;">
+                {{#each renters}}
+                {{fullName}}{{#unless @last}}<br />{{/unless}}
+                {{/each}}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+                """;
+    }
 }

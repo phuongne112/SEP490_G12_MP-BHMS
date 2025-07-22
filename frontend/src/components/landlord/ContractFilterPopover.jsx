@@ -5,11 +5,11 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 const CONTRACT_STATUS = [
-  { value: "ALL", label: "All" },
-  { value: "PENDING", label: "Pending" },
-  { value: "ACTIVE", label: "Active" },
-  { value: "TERMINATED", label: "Terminated" },
-  { value: "EXPIRED", label: "Expired" },
+  { value: "ALL", label: "Tất cả" },
+  { value: "PENDING", label: "Chờ phê duyệt" },
+  { value: "ACTIVE", label: "Đang hiệu lực" },
+  { value: "TERMINATED", label: "Đã chấm dứt" },
+  { value: "EXPIRED", label: "Hết hạn" },
 ];
 const PAYMENT_CYCLES = [
   { value: "ALL", label: "Tất cả" },
