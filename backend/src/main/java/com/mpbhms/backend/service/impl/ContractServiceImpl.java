@@ -724,21 +724,21 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
     public void renewContract(Long contractId, java.time.Instant newEndDate) {
         Contract contract = contractRepository.findById(contractId)
             .orElseThrow(() -> new RuntimeException("Không tìm thấy hợp đồng"));
-        
-        if (contract.getContractStatus() != com.mpbhms.backend.enums.ContractStatus.EXPIRED) {
-            throw new RuntimeException("Chỉ có thể gia hạn hợp đồng đã hết hạn");
+        java.time.Instant now = java.time.Instant.now();
+        java.time.Duration duration = java.time.Duration.between(now, contract.getContractEndDate());
+        boolean isWithin30Days = !contract.getContractEndDate().isBefore(now) && duration.toDays() <= 30;
+        if (!(contract.getContractStatus() == com.mpbhms.backend.enums.ContractStatus.EXPIRED ||
+              (contract.getContractStatus() == com.mpbhms.backend.enums.ContractStatus.ACTIVE && isWithin30Days))) {
+            throw new RuntimeException("Chỉ có thể gia hạn hợp đồng đã hết hạn hoặc còn dưới 30 ngày đến ngày kết thúc");
         }
-        
         // Gia hạn hợp đồng
         contract.setContractEndDate(newEndDate);
         contract.setContractStatus(com.mpbhms.backend.enums.ContractStatus.ACTIVE);
         contractRepository.save(contract);
-        
         // Cập nhật trạng thái phòng
         Room room = contract.getRoom();
         room.setRoomStatus(com.mpbhms.backend.enums.RoomStatus.Occupied);
         // Lưu room ở đây nếu cần
-        
         // Gửi thông báo gia hạn
         sendRenewalNotifications(contract);
     }
@@ -1050,10 +1050,23 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
     @Override
     public java.util.List<com.mpbhms.backend.dto.ContractDTO> getContractsByRenterId(Long renterId) {
         java.util.List<com.mpbhms.backend.entity.RoomUser> roomUsers = roomUserRepository.findByUserIdAndIsActiveTrue(renterId);
-        java.util.Set<com.mpbhms.backend.entity.Contract> contracts = new java.util.HashSet<>();
+        java.util.Set<Long> roomIds = new java.util.HashSet<>();
         for (com.mpbhms.backend.entity.RoomUser ru : roomUsers) {
-            if (ru.getContract() != null) {
-                contracts.add(ru.getContract());
+            if (ru.getRoom() != null) {
+                roomIds.add(ru.getRoom().getId());
+            }
+        }
+        java.util.List<com.mpbhms.backend.entity.Contract> contracts = new java.util.ArrayList<>();
+        for (Long roomId : roomIds) {
+            com.mpbhms.backend.entity.Contract active = contractRepository.findActiveByRoomId(roomId).orElse(null);
+            if (active != null) {
+                contracts.add(active);
+            } else {
+                java.util.List<com.mpbhms.backend.entity.Contract> all = contractRepository.findByRoomId(roomId);
+                if (!all.isEmpty()) {
+                    com.mpbhms.backend.entity.Contract latest = all.stream().max(java.util.Comparator.comparing(com.mpbhms.backend.entity.Contract::getContractEndDate)).orElse(null);
+                    if (latest != null) contracts.add(latest);
+                }
             }
         }
         return contracts.stream().map(this::toDTO).toList();
@@ -1079,8 +1092,7 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
                         history.setPermanentAddress(ru.getUser().getUserInfo().getPermanentAddress());
                     }
                     contractRenterInfoRepository.save(history);
-                    ru.setIsActive(false);
-                    roomUserRepository.save(ru);
+                    roomUserRepository.delete(ru); // XÓA HẲN khỏi DB
                 }
             }
         }
@@ -1112,6 +1124,45 @@ Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá
         amendment.setApprovedBy(new java.util.ArrayList<>());
         amendment.setStatus(ContractAmendment.AmendmentStatus.PENDING);
         amendment.setApprovedByLandlord(false);
+        contractAmendmentRepository.save(amendment);
+    }
+
+    @Override
+    public void requestRenewalAmendment(Long contractId, java.time.Instant newEndDate, String reason, Long userId) {
+        Contract contract = contractRepository.findById(contractId)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy hợp đồng"));
+        if (contract.getContractStatus() == com.mpbhms.backend.enums.ContractStatus.TERMINATED) {
+            throw new RuntimeException("Hợp đồng đã bị chấm dứt, không thể gia hạn.");
+        }
+        // Kiểm tra ngày kết thúc mới phải đúng chu kỳ
+        java.time.LocalDate oldEnd = contract.getContractEndDate().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+        java.time.LocalDate newEnd = newEndDate.atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+        long monthsBetween = java.time.temporal.ChronoUnit.MONTHS.between(oldEnd, newEnd);
+        switch (contract.getPaymentCycle()) {
+            case MONTHLY:
+                if (monthsBetween < 1 || monthsBetween % 1 != 0) throw new RuntimeException("Ngày kết thúc mới phải là bội số của tháng kể từ ngày kết thúc cũ.");
+                break;
+            case QUARTERLY:
+                if (monthsBetween < 3 || monthsBetween % 3 != 0) throw new RuntimeException("Ngày kết thúc mới phải là bội số của quý (3 tháng) kể từ ngày kết thúc cũ.");
+                break;
+            case YEARLY:
+                if (monthsBetween < 12 || monthsBetween % 12 != 0) throw new RuntimeException("Ngày kết thúc mới phải là bội số của năm (12 tháng) kể từ ngày kết thúc cũ.");
+                break;
+        }
+        // Kiểm tra đã có amendment duration_extension pending chưa
+        boolean existsPending = contractAmendmentRepository.findByContractIdAndAmendmentType(contractId, ContractAmendment.AmendmentType.DURATION_EXTENSION)
+            .stream().anyMatch(a -> a.getStatus() == ContractAmendment.AmendmentStatus.PENDING);
+        if (existsPending) {
+            throw new RuntimeException("Đã có yêu cầu gia hạn đang chờ duyệt cho hợp đồng này");
+        }
+        ContractAmendment amendment = new ContractAmendment();
+        amendment.setContract(contract);
+        amendment.setAmendmentType(ContractAmendment.AmendmentType.DURATION_EXTENSION);
+        amendment.setStatus(ContractAmendment.AmendmentStatus.PENDING);
+        amendment.setNewEndDate(newEndDate);
+        amendment.setReason(reason);
+        amendment.setCreatedBy(userId != null ? userId.toString() : null);
+        amendment.setCreatedDate(java.time.Instant.now());
         contractAmendmentRepository.save(amendment);
     }
 

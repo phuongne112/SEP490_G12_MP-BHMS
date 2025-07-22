@@ -1,15 +1,16 @@
 import React, { useState } from "react";
-import { Card, Row, Col, Button, Badge, Skeleton, Tag, Dropdown, Menu, message, Modal, Select, Input, Upload, Tooltip, Table, Tabs } from "antd";
-import { updateRoomStatus, toggleRoomActiveStatus, deleteRoom, addServiceToRoom, deactivateServiceForRoom } from "../../services/roomService";
+import { Card, Row, Col, Button, Badge, Skeleton, Tag, Dropdown, Menu, message, Modal, Select, Input, Upload, Tooltip, Table, Tabs, Image } from "antd";
+import { updateRoomStatus, toggleRoomActiveStatus, deleteRoom, addServiceToRoom, deactivateServiceForRoom, reactivateServiceForRoom } from "../../services/roomService";
 import { getAllServicesList } from "../../services/serviceApi";
 import { detectElectricOcr } from "../../services/electricOcrApi";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { UserOutlined, ClockCircleOutlined, ExclamationCircleOutlined, CheckCircleFilled } from "@ant-design/icons";
-import { getAllAssets, getAssetInventoryByRoom, getAssetInventoryByRoomAndContract, getAssetsByRoom, addAssetToRoom } from "../../services/assetApi";
+import { getAllAssets, getAssetInventoryByRoom, getAssetInventoryByRoomAndContract, getAssetsByRoom, addAssetToRoom, deleteRoomAsset, updateRoomAsset } from "../../services/assetApi";
 import axiosClient from "../../services/axiosClient";
 import image1 from '../../assets/RoomImage/image1.png';
-import { Modal as AntdModal } from "antd";
+import { Modal as AntdModal, Popconfirm } from "antd";
+import { getContractHistoryByRoom } from '../../services/contractApi';
 
 const { Meta } = Card;
 const { Option } = Select;
@@ -118,6 +119,10 @@ const [centerToast, setCenterToast] = useState({ visible: false, message: "" });
 // Trong state, thêm allServices để lưu tất cả dịch vụ
 const [allServices, setAllServices] = useState([]);
 
+const [editAssetModalOpen, setEditAssetModalOpen] = useState(false);
+const [editingAsset, setEditingAsset] = useState(null);
+const [editAssetForm, setEditAssetForm] = useState({ quantity: 1, status: '', note: '' });
+
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
 
@@ -178,7 +183,7 @@ const user = useSelector((state) => state.account.user);
 
     const handleAddService = async () => {
         if (!selectedServices.length) {
-            message.error("Please select at least one service!");
+            message.error('Vui lòng chọn ít nhất một dịch vụ!');
             return;
         }
 
@@ -193,7 +198,14 @@ const user = useSelector((state) => state.account.user);
             setServiceModalOpen(false);
         } else {
             // Nếu không có dịch vụ điện, thêm dịch vụ ngay
-            await addServicesToRoom(selectedServices);
+            try {
+                await addServicesToRoom(selectedServices);
+                message.success('Thêm dịch vụ thành công!');
+                setServiceModalOpen(false);
+                if (onRoomsUpdate) onRoomsUpdate();
+            } catch (err) {
+                message.error(err.response?.data?.message || 'Thêm dịch vụ thất bại!');
+            }
         }
     };
 
@@ -434,11 +446,18 @@ const user = useSelector((state) => state.account.user);
         setAssetListGocLoading(false);
     };
 
-    // Sửa openViewAssetModal để gọi fetchRoomAssets chuẩn
+    // Sửa openViewAssetModal để gọi fetchRoomAssets chuẩn và fetch contractList
     const openViewAssetModal = async (room) => {
         setViewAssetRoomId(room.id);
         setViewAssetModalOpen(true);
         fetchRoomAssets(room.id);
+        // Fetch danh sách hợp đồng của phòng
+        try {
+            const contracts = await getContractHistoryByRoom(room.id);
+            setContractList(contracts || []);
+        } catch {
+            setContractList([]);
+        }
     };
 
     // Sửa handleConfirmAddAssetInventory để dùng addAssetToRoom
@@ -552,6 +571,30 @@ const user = useSelector((state) => state.account.user);
         });
     };
 
+    // Thêm hàm xử lý sử dụng lại dịch vụ
+    const handleReactivateService = async (serviceId) => {
+        if (!selectedRoom) return;
+        const service = selectedRoom.services?.find(s => s.id === serviceId);
+        if (!service) return;
+        Modal.confirm({
+            title: `Xác nhận sử dụng lại dịch vụ`,
+            content: `Bạn có chắc chắn muốn sử dụng lại dịch vụ "${service.serviceName}" cho phòng này?`,
+            okText: "Sử dụng lại",
+            cancelText: "Hủy",
+            okType: "primary",
+            onOk: async () => {
+                try {
+                    await reactivateServiceForRoom(selectedRoom.id, serviceId);
+                    message.success("Đã sử dụng lại dịch vụ cho phòng!");
+                    if (onRoomsUpdate) onRoomsUpdate();
+                } catch (err) {
+                    const backendMsg = err.response?.data?.message || err.response?.data || err.message;
+                    message.error("Không thể sử dụng lại dịch vụ: " + backendMsg);
+                }
+            }
+        });
+    };
+
     const statusMenu = (room) => (
         <Menu
             onClick={({ key }) => {
@@ -617,6 +660,42 @@ const user = useSelector((state) => state.account.user);
         if (!url) return image1;
         if (url.startsWith("http")) return url;
         return BACKEND_URL + url;
+    };
+
+    // Thêm hàm xóa asset khỏi phòng
+    const handleDeleteRoomAsset = async (roomAssetId) => {
+        try {
+            await deleteRoomAsset(roomAssetId);
+            fetchRoomAssets(viewAssetRoomId); // reload lại danh sách
+        } catch (err) {
+            message.error("Xóa tài sản khỏi phòng thất bại!");
+        }
+    };
+
+    const handleEditAsset = (asset) => {
+      setEditingAsset(asset);
+      setEditAssetForm({
+        quantity: asset.quantity,
+        status: asset.status,
+        note: asset.note || '',
+      });
+      setEditAssetModalOpen(true);
+    };
+    const handleSaveEditAsset = async () => {
+      try {
+        await updateRoomAsset({
+          id: editingAsset.id,
+          quantity: editAssetForm.quantity,
+          status: editAssetForm.status,
+          note: editAssetForm.note,
+        });
+        message.success('Cập nhật tài sản thành công!');
+        setEditAssetModalOpen(false);
+        setEditingAsset(null);
+        fetchRoomAssets(viewAssetRoomId);
+      } catch (err) {
+        message.error('Cập nhật tài sản thất bại!');
+      }
     };
 
     return (
@@ -818,7 +897,6 @@ const user = useSelector((state) => state.account.user);
                     placeholder="Chọn dịch vụ"
                     value={selectedServices}
                     onChange={setSelectedServices}
-                    disabled={allServices.length === 0}
                 >
                     {allServices.map((s) => {
                         const isActive = (selectedRoom?.services || []).some(rs => rs.id === s.id && rs.isActive !== false && !rs.endDate);
@@ -847,9 +925,13 @@ const user = useSelector((state) => state.account.user);
                                         <Button danger size="small" onClick={() => handleRemoveService(s.id)} style={{ marginLeft: 8 }}>
                                             Xóa
                                         </Button>
-                                        {isActive && (
+                                        {isActive ? (
                                             <Button type="default" size="small" onClick={() => handleDeactivateService(s.id)} style={{ marginLeft: 8 }}>
                                                 Ngừng sử dụng
+                                            </Button>
+                                        ) : (
+                                            <Button type="primary" size="small" onClick={() => handleReactivateService(s.id)} style={{ marginLeft: 8 }}>
+                                                Sử dụng lại
                                             </Button>
                                         )}
                                     </li>
@@ -953,7 +1035,6 @@ const user = useSelector((state) => state.account.user);
                     columns={[
                         { title: "Tên tài sản", dataIndex: "assetName", key: "assetName" },
                         { title: "Số lượng", dataIndex: "quantity", key: "quantity" },
-                        { title: "Trạng thái", dataIndex: "assetStatus", key: "assetStatus" },
                         { title: "Ghi chú", dataIndex: "conditionNote", key: "conditionNote" },
                     ]}
                 />
@@ -982,8 +1063,53 @@ const user = useSelector((state) => state.account.user);
                             columns={[
                                 { title: "Tên tài sản", dataIndex: "assetName", key: "assetName" },
                                 { title: "Số lượng", dataIndex: "quantity", key: "quantity" },
-                                { title: "Trạng thái", dataIndex: "assetStatus", key: "assetStatus" },
-                                { title: "Ghi chú", dataIndex: "conditionNote", key: "conditionNote" },
+                                {
+                                    title: "Tình trạng",
+                                    dataIndex: "status",
+                                    key: "status",
+                                    render: (text, record) => record.status || "-"
+                                },
+                                {
+                                    title: "Ghi chú", dataIndex: "conditionNote", key: "conditionNote",
+                                    render: (val, record) => record.conditionNote || record.note || "-",
+                                },
+                                {
+                                    title: "Hình ảnh",
+                                    dataIndex: "assetImage",
+                                    key: "assetImage",
+                                    render: (url) =>
+                                        url ? (
+                                            <Image
+                                                src={
+                                                    url.startsWith("http")
+                                                        ? url
+                                                        : `${BACKEND_URL}${url.startsWith("/") ? "" : "/"}${url}`
+                                                }
+                                                width={60}
+                                                height={40}
+                                                style={{ objectFit: "cover" }}
+                                            />
+                                        ) : (
+                                            <span style={{ color: "#aaa" }}>Không có ảnh</span>
+                                        ),
+                                },
+                                {
+                                    title: "",
+                                    key: "action",
+                                    render: (_, record) => (
+                                        <>
+                                          <Button size="small" onClick={() => handleEditAsset(record)} style={{ marginRight: 8 }}>Sửa</Button>
+                                          <Popconfirm
+                                            title="Bạn có chắc muốn xóa tài sản này khỏi phòng?"
+                                            okText="Xóa"
+                                            cancelText="Hủy"
+                                            onConfirm={() => handleDeleteRoomAsset(record.id)}
+                                          >
+                                            <Button danger size="small">Xóa</Button>
+                                          </Popconfirm>
+                                        </>
+                                    ),
+                                },
                             ]}
                             pagination={false}
                         />
@@ -1026,6 +1152,7 @@ const user = useSelector((state) => state.account.user);
                 onCancel={() => setAddAssetInventoryModalOpen(false)}
                 onOk={handleConfirmAddAssetInventory}
                 okText="Thêm vào phòng"
+                okButtonProps={{ disabled: !addAssetInventoryForm.status }}
                 width={400}
             >
                 <div><b>Tài sản:</b> {assetToAdd?.assetName}</div>
@@ -1038,12 +1165,17 @@ const user = useSelector((state) => state.account.user);
                         placeholder="Số lượng"
                         style={{ marginBottom: 8 }}
                     />
-                    <Input
+                    <Select
                         value={addAssetInventoryForm.status}
-                        onChange={e => setAddAssetInventoryForm(f => ({ ...f, status: e.target.value }))}
-                        placeholder="Tình trạng"
-                        style={{ marginBottom: 8 }}
-                    />
+                        onChange={val => setAddAssetInventoryForm(f => ({ ...f, status: val }))}
+                        placeholder="Chọn tình trạng"
+                        style={{ marginBottom: 8, width: '100%' }}
+                    >
+                        <Select.Option value="Tốt">Tốt</Select.Option>
+                        <Select.Option value="Hư hỏng">Hư hỏng</Select.Option>
+                        <Select.Option value="Mất">Mất</Select.Option>
+                        <Select.Option value="Bảo trì">Bảo trì</Select.Option>
+                    </Select>
                     <Input.TextArea
                         value={addAssetInventoryForm.note}
                         onChange={e => setAddAssetInventoryForm(f => ({ ...f, note: e.target.value }))}
@@ -1051,6 +1183,44 @@ const user = useSelector((state) => state.account.user);
                         autoSize
                     />
                 </div>
+            </Modal>
+            {/* Modal chỉnh sửa asset */}
+            <Modal
+              open={editAssetModalOpen}
+              title="Chỉnh sửa tài sản trong phòng"
+              onCancel={() => setEditAssetModalOpen(false)}
+              onOk={handleSaveEditAsset}
+              okText="Lưu"
+              width={400}
+            >
+              <div><b>Tài sản:</b> {editingAsset?.assetName}</div>
+              <div style={{ margin: '12px 0' }}>
+                <Input
+                  type="number"
+                  min={1}
+                  value={editAssetForm.quantity}
+                  onChange={e => setEditAssetForm(f => ({ ...f, quantity: e.target.value }))}
+                  placeholder="Số lượng"
+                  style={{ marginBottom: 8 }}
+                />
+                <Select
+                  value={editAssetForm.status}
+                  onChange={val => setEditAssetForm(f => ({ ...f, status: val }))}
+                  placeholder="Chọn tình trạng"
+                  style={{ marginBottom: 8, width: '100%' }}
+                >
+                  <Select.Option value="Tốt">Tốt</Select.Option>
+                  <Select.Option value="Hư hỏng">Hư hỏng</Select.Option>
+                  <Select.Option value="Mất">Mất</Select.Option>
+                  <Select.Option value="Bảo trì">Bảo trì</Select.Option>
+                </Select>
+                <Input.TextArea
+                  value={editAssetForm.note}
+                  onChange={e => setEditAssetForm(f => ({ ...f, note: e.target.value }))}
+                  placeholder="Ghi chú (nếu có)"
+                  autoSize
+                />
+              </div>
             </Modal>
         </>
     );

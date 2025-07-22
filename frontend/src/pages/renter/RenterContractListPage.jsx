@@ -4,7 +4,7 @@ import PageHeader from "../../components/common/PageHeader";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import dayjs from "dayjs";
 import { getRenterContracts } from "../../services/contractApi";
-import { getContractAmendments, approveAmendment } from "../../services/roomUserApi";
+import { getContractAmendments, approveAmendment, renewContract } from "../../services/roomUserApi";
 import { useSelector } from "react-redux";
 
 const { Sider, Content } = Layout;
@@ -14,6 +14,11 @@ export default function RenterContractListPage() {
   const [amendmentsModalOpen, setAmendmentsModalOpen] = useState(false);
   const [amendments, setAmendments] = useState([]);
   const [selectedContract, setSelectedContract] = useState(null);
+  const [renewModalOpen, setRenewModalOpen] = useState(false);
+  const [renewReason, setRenewReason] = useState("");
+  const [renewEndDate, setRenewEndDate] = useState(null);
+  const [renewingContract, setRenewingContract] = useState(false);
+  const [selectedRenewContract, setSelectedRenewContract] = useState(null);
   const user = useSelector((state) => state.account.user);
 
   useEffect(() => {
@@ -23,7 +28,14 @@ export default function RenterContractListPage() {
   const fetchContracts = async () => {
     try {
       const res = await getRenterContracts();
-      setContracts(res.data || []);
+      const all = res.data || [];
+      // Lấy hợp đồng ACTIVE nếu có, nếu không lấy hợp đồng có contractEndDate lớn nhất
+      const active = all.find(c => c.contractStatus === 'ACTIVE');
+      let latest = null;
+      if (!active && all.length > 0) {
+        latest = all.reduce((max, curr) => new Date(curr.contractEndDate) > new Date(max.contractEndDate) ? curr : max, all[0]);
+      }
+      setContracts(active ? [active] : latest ? [latest] : []);
     } catch {
       setContracts([]);
     }
@@ -54,6 +66,30 @@ export default function RenterContractListPage() {
     }
   };
 
+  const openRenewModal = (contract) => {
+    setSelectedRenewContract(contract);
+    setRenewModalOpen(true);
+    setRenewReason("");
+    setRenewEndDate(null);
+  };
+  const handleSendRenewRequest = async () => {
+    if (!renewEndDate) {
+      message.error('Vui lòng chọn ngày kết thúc mới!');
+      return;
+    }
+    setRenewingContract(true);
+    try {
+      await renewContract(selectedRenewContract.id, renewEndDate);
+      message.success('Đã gửi yêu cầu gia hạn, chờ chủ nhà duyệt!');
+      setRenewModalOpen(false);
+      fetchContracts();
+    } catch (e) {
+      message.error('Gửi yêu cầu gia hạn thất bại!');
+    } finally {
+      setRenewingContract(false);
+    }
+  };
+
   const columns = [
     { title: "Contract ID", dataIndex: "id", key: "id" },
     { title: "Room", dataIndex: "roomNumber", key: "roomNumber" },
@@ -63,7 +99,14 @@ export default function RenterContractListPage() {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
-        <Button onClick={() => handleViewAmendments(record)}>Lịch sử thay đổi</Button>
+        <>
+          <Button onClick={() => handleViewAmendments(record)} style={{ marginRight: 8 }}>Lịch sử thay đổi</Button>
+          {(record.status === 'ACTIVE' || dayjs(record.contractEndDate).diff(dayjs(), 'day') < 30) && (
+            <Button type="primary" onClick={() => openRenewModal(record)}>
+              Yêu cầu gia hạn
+            </Button>
+          )}
+        </>
       )
     }
   ];
@@ -124,6 +167,36 @@ export default function RenterContractListPage() {
               }}
               locale={{ emptyText: "Không có thay đổi nào" }}
             />
+          </Modal>
+
+          {/* Modal yêu cầu gia hạn */}
+          <Modal
+            open={renewModalOpen}
+            onCancel={() => setRenewModalOpen(false)}
+            onOk={handleSendRenewRequest}
+            okText="Gửi yêu cầu"
+            confirmLoading={renewingContract}
+            title="Yêu cầu gia hạn hợp đồng"
+          >
+            <div style={{ marginBottom: 12 }}>
+              <b>Ngày kết thúc mới:</b>
+              <input
+                type="date"
+                value={renewEndDate || ''}
+                onChange={e => setRenewEndDate(e.target.value)}
+                style={{ marginLeft: 8 }}
+              />
+            </div>
+            <div>
+              <b>Lý do gia hạn:</b>
+              <textarea
+                value={renewReason}
+                onChange={e => setRenewReason(e.target.value)}
+                rows={3}
+                style={{ width: '100%', marginTop: 4 }}
+                placeholder="Nhập lý do hoặc mong muốn gia hạn (không bắt buộc)"
+              />
+            </div>
           </Modal>
         </Content>
       </Layout>

@@ -9,7 +9,6 @@ public class AssetResponseDTO {
     private String assetName;
     private BigDecimal quantity;
     private String conditionNote;
-    private String assetStatus;
     private String assetImage;
     private Long roomId;
 } 
