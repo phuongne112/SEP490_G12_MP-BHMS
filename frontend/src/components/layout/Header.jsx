@@ -388,7 +388,7 @@ export default function Header() {
                   style={{ backgroundColor: "#6d28d9" }}
                 />
                 <span
-                  style={{ color: "#e2e8f0", fontSize: 15, fontWeight: 500 }}
+                  style={{ color: "#e2e8f0", fontSize: 15, fontWeight: 400 }}
                 >
                   {user?.email ||
                     user?.name ||
