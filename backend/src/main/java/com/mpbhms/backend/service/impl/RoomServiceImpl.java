@@ -83,6 +83,16 @@ public class RoomServiceImpl implements RoomService {
     @Value("${meter.scan.folder}")
     private String scanRoot;
 
+    private boolean isFirstDayOfMonth() {
+        return java.time.LocalDate.now().getDayOfMonth() == 1;
+    }
+
+    private boolean isRoomNew(Room room) {
+        if (room.getCreatedDate() == null) return false;
+        java.time.Instant created = room.getCreatedDate();
+        java.time.Instant now = java.time.Instant.now();
+        return java.time.Duration.between(created, now).toHours() < 24;
+    }
     @Override
     public Room addRoom(AddRoomDTO request, MultipartFile[] images) {
         // Kiểm tra phòng đã bị xóa mềm
@@ -240,7 +250,6 @@ public class RoomServiceImpl implements RoomService {
             a.setAssetName(asset.getAssetName());
             a.setQuantity(asset.getQuantity());
             a.setConditionNote(asset.getConditionNote());
-            a.setAssetStatus(asset.getAssetStatus().name());
             a.setAssetImage(asset.getAssetImage());
             return a;
         }).toList();
@@ -469,8 +478,19 @@ public class RoomServiceImpl implements RoomService {
     public boolean addServiceToRoom(Long roomId, Long serviceId) {
         Room room = roomRepository.findByIdAndDeletedFalse(roomId)
             .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng với id: " + roomId));
+        boolean isFirstDay = isFirstDayOfMonth();
+        boolean isNewRoom = isRoomNew(room);
+        if (!isFirstDay && !isNewRoom) {
+            throw new BusinessException("Chỉ được phép thêm dịch vụ vào đầu tháng hoặc trong 24h sau khi tạo phòng.");
+        }
         com.mpbhms.backend.entity.CustomService service = serviceRepository.findById(serviceId)
             .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy dịch vụ với id: " + serviceId));
+
+        // Kiểm tra nghiệp vụ: chỉ cho phép thêm dịch vụ vào đầu tháng hoặc khi phòng chưa có dịch vụ nào
+        boolean hasAnyService = room.getServiceMappings().stream().anyMatch(mapping -> Boolean.TRUE.equals(mapping.getIsActive()));
+        if (!isFirstDay && hasAnyService) {
+            throw new BusinessException("Chỉ được phép thêm dịch vụ vào đầu tháng hoặc khi phòng chưa có dịch vụ nào.");
+        }
 
         // Nếu là dịch vụ điện, kiểm tra phòng đã có dịch vụ điện active chưa
         if (service.getServiceType() == ServiceType.ELECTRICITY) {
@@ -577,6 +597,13 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public boolean removeServiceFromRoom(Long roomId, Long serviceId) {
+        Room room = roomRepository.findByIdAndDeletedFalse(roomId)
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng với id: " + roomId));
+        boolean isFirstDay = isFirstDayOfMonth();
+        boolean isNewRoom = isRoomNew(room);
+        if (!isFirstDay && !isNewRoom) {
+            throw new BusinessException("Chỉ được phép xóa dịch vụ vào đầu tháng hoặc trong 24h sau khi tạo phòng.");
+        }
         // Tìm mapping (RoomServiceMapping)
         RoomServiceMapping mapping = roomServiceMappingRepository.findByRoomIdAndServiceId(roomId, serviceId)
             .orElseThrow(() -> new BusinessException("Không tìm thấy mapping dịch vụ trong phòng"));
@@ -608,14 +635,20 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public void deactivateServiceForRoom(Long roomId, Long serviceId) {
+        Room room = roomRepository.findByIdAndDeletedFalse(roomId)
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng với id: " + roomId));
+        boolean isFirstDay = isFirstDayOfMonth();
+        boolean isNewRoom = isRoomNew(room);
+        if (!isFirstDay && !isNewRoom) {
+            throw new BusinessException("Chỉ được phép ngừng sử dụng dịch vụ vào ngày 1 hàng tháng hoặc trong 24h đầu sau khi tạo phòng. Nếu phòng đã tạo quá 24h, vui lòng chờ đến ngày 1 tháng sau để ngừng dịch vụ.");
+        }
         RoomServiceMapping mapping = roomServiceMappingRepository.findByRoomIdAndServiceId(roomId, serviceId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy dịch vụ trong phòng này"));
-        
-        // Kiểm tra thời điểm ngừng dịch vụ có phù hợp không
-        validateDeactivationTiming(roomId);
-        
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy dịch vụ này trong phòng."));
+        if (Boolean.FALSE.equals(mapping.getIsActive())) {
+            throw new BusinessException("Dịch vụ này đã được ngừng sử dụng trước đó.");
+        }
         mapping.setIsActive(false);
-        mapping.setEndDate(LocalDate.now());
+        mapping.setEndDate(java.time.LocalDate.now());
         roomServiceMappingRepository.save(mapping);
     }
     
@@ -660,6 +693,24 @@ public class RoomServiceImpl implements RoomService {
                 "Vui lòng thanh toán hết hóa đơn trước khi ngừng dịch vụ."
             );
         }
+    }
+
+    @Override
+    public void reactivateServiceForRoom(Long roomId, Long serviceId) {
+        Room room = roomRepository.findByIdAndDeletedFalse(roomId)
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng với id: " + roomId));
+        boolean isFirstDay = isFirstDayOfMonth();
+        boolean isNewRoom = isRoomNew(room);
+        if (!isFirstDay && !isNewRoom) {
+            throw new BusinessException("Chỉ được phép sử dụng lại dịch vụ vào đầu tháng hoặc trong 24h sau khi tạo phòng.");
+        }
+        RoomServiceMapping mapping = roomServiceMappingRepository.findByRoomIdAndServiceId(roomId, serviceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy dịch vụ này trong phòng."));
+        if (Boolean.TRUE.equals(mapping.getIsActive())) {
+            throw new BusinessException("Dịch vụ này đang được sử dụng.");
+        }
+        mapping.setIsActive(true);
+        roomServiceMappingRepository.save(mapping);
     }
 
     @Override

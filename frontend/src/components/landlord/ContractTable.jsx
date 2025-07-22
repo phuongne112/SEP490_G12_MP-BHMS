@@ -267,16 +267,6 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
               Sửa
             </Button>
             <Button
-              type="default"
-              icon={<ReloadOutlined />}
-              onClick={() => onRenew && onRenew(record)}
-              size="small"
-              style={{ color: "#52c41a", borderColor: "#52c41a" }}
-              disabled={isTerminatedOrExpired}
-            >
-              Gia hạn
-            </Button>
-            <Button
               type="dashed"
               icon={<HistoryOutlined />}
               onClick={() => onViewAmendments && onViewAmendments(record.id)}

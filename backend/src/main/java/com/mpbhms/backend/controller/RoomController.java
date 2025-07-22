@@ -200,6 +200,15 @@ public class RoomController {
         return ResponseEntity.ok("Đã ngừng sử dụng dịch vụ cho phòng này.");
     }
 
+    @PatchMapping("/{roomId}/reactivate-service/{serviceId}")
+    public ResponseEntity<?> reactivateService(
+        @PathVariable Long roomId,
+        @PathVariable Long serviceId
+    ) {
+        roomService.reactivateServiceForRoom(roomId, serviceId);
+        return ResponseEntity.ok("Đã sử dụng lại dịch vụ cho phòng này.");
+    }
+
     @PatchMapping("/{id}/scan-folder")
     public ResponseEntity<?> updateScanFolder(@PathVariable Long id, @RequestBody Map<String, String> body) {
         String folder = body.get("scanFolder");

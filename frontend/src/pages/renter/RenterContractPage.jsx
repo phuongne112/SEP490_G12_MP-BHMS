@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Card, Descriptions, Tag, Spin, Typography, Button, message, Row, Col, Modal, List } from "antd";
+import { Card, Descriptions, Tag, Spin, Typography, Button, message, Row, Col, Modal, List, DatePicker } from "antd";
 import { FileTextOutlined } from "@ant-design/icons";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import dayjs from "dayjs";
 import { getRenterContracts, exportContractPdf } from "../../services/contractApi";
 import { getPersonalInfo } from "../../services/userApi";
-import { getContractAmendments, approveAmendment, rejectAmendment } from "../../services/roomUserApi";
+import { getContractAmendments, approveAmendment, rejectAmendment, renewContract } from "../../services/roomUserApi";
 import { useSelector } from "react-redux";
 
 const { Title, Text } = Typography;
@@ -23,6 +23,10 @@ export default function RenterContractPage() {
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectLoading, setRejectLoading] = useState(false);
+  const [renewModalOpen, setRenewModalOpen] = useState(false);
+  const [renewReason, setRenewReason] = useState("");
+  const [renewEndDate, setRenewEndDate] = useState(null);
+  const [renewingContract, setRenewingContract] = useState(false);
   const user = useSelector((state) => state.account.user);
 
   useEffect(() => {
@@ -147,6 +151,31 @@ export default function RenterContractPage() {
     }
   };
 
+  const openRenewModal = () => {
+    setRenewModalOpen(true);
+    setRenewReason("");
+    setRenewEndDate(null);
+  };
+  const handleSendRenewRequest = async () => {
+    if (!renewEndDate) {
+      message.error('Vui lòng chọn ngày kết thúc mới!');
+      return;
+    }
+    setRenewingContract(true);
+    try {
+      // Đảm bảo renewEndDate là ISO 8601
+      const formattedDate = dayjs(renewEndDate).toISOString();
+      await renewContract(contract.id, formattedDate);
+      message.success('Đã gửi yêu cầu gia hạn, chờ chủ nhà duyệt!');
+      setRenewModalOpen(false);
+      fetchData();
+    } catch (e) {
+      message.error('Gửi yêu cầu gia hạn thất bại!');
+    } finally {
+      setRenewingContract(false);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ display: "flex", minHeight: "100vh" }}>
@@ -252,6 +281,14 @@ export default function RenterContractPage() {
                       </Tag>
                     </Descriptions.Item>
                   </Descriptions>
+                  {((contract.contractStatus === 'ACTIVE' && dayjs(contract.contractEndDate).diff(dayjs(), 'day') <= 30 && dayjs(contract.contractEndDate).diff(dayjs(), 'day') >= 0)
+                    || contract.contractStatus === 'EXPIRED') && (
+                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+                      <Button type="primary" size="large" shape="round" onClick={openRenewModal}>
+                        Yêu cầu gia hạn
+                      </Button>
+                    </div>
+                  )}
                 </Card>
                 <Card title="Thông tin người thuê">
                   <Descriptions bordered column={1} size={isMobile ? "small" : "default"}>
@@ -292,6 +329,37 @@ export default function RenterContractPage() {
                 Xem lịch sử thay đổi hợp đồng
               </Button>
             </div>
+            {/* Modal yêu cầu gia hạn */}
+            <Modal
+              open={renewModalOpen}
+              onCancel={() => setRenewModalOpen(false)}
+              onOk={handleSendRenewRequest}
+              okText="Gửi yêu cầu"
+              confirmLoading={renewingContract}
+              title="Yêu cầu gia hạn hợp đồng"
+            >
+              <div style={{ marginBottom: 12 }}>
+                <b>Ngày kết thúc mới:</b>
+                <DatePicker
+                  style={{ marginLeft: 8, width: 200 }}
+                  value={renewEndDate ? dayjs(renewEndDate) : null}
+                  onChange={d => setRenewEndDate(d ? d.toISOString() : null)}
+                  format="DD/MM/YYYY"
+                  placeholder="Chọn ngày kết thúc mới"
+                  disabledDate={current => current && contract.contractEndDate && current <= dayjs(contract.contractEndDate)}
+                />
+              </div>
+              <div>
+                <b>Lý do gia hạn:</b>
+                <textarea
+                  value={renewReason}
+                  onChange={e => setRenewReason(e.target.value)}
+                  rows={3}
+                  style={{ width: '100%', marginTop: 4 }}
+                  placeholder="Nhập lý do hoặc mong muốn gia hạn (không bắt buộc)"
+                />
+              </div>
+            </Modal>
           </Card>
         </div>
         <Modal

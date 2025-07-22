@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Layout, message, Button, Popover, Select, Modal, Input, DatePicker, List } from "antd";
+import { Layout, message, Button, Popover, Select, Modal, Input, DatePicker, List, Pagination } from "antd";
 import PageHeader from "../../components/common/PageHeader";
 import { getAllContracts, deleteContract, exportContractPdf, buildContractFilterString } from "../../services/contractApi";
 import { useSelector } from "react-redux";
@@ -83,6 +83,8 @@ export default function LandlordContractListPage() {
   const [terminateReason, setTerminateReason] = useState("");
   const [terminateModalOpen, setTerminateModalOpen] = useState(false);
   const [terminateContractId, setTerminateContractId] = useState(null);
+  const [amendmentsPage, setAmendmentsPage] = useState(1);
+  const amendmentsPageSize = 5;
 
   const user = useSelector((state) => state.account.user);
 
@@ -315,6 +317,7 @@ export default function LandlordContractListPage() {
   const handleViewAmendments = async (contractId) => {
     setAmendments([]);
     setAmendmentsModalOpen(true);
+    setAmendmentsPage(1); // Reset page when opening amendments modal
     try {
       const res = await getContractAmendments(contractId);
       setAmendments(res.data);
@@ -581,12 +584,12 @@ export default function LandlordContractListPage() {
               * Số lượng người thuê tối đa: {maxCount}
             </div>
           </Modal>
-          <Modal open={amendmentsModalOpen} onCancel={() => setAmendmentsModalOpen(false)} footer={null} title="Yêu cầu thay đổi hợp đồng">
+          <Modal open={amendmentsModalOpen} onCancel={() => { setAmendmentsModalOpen(false); setAmendmentsPage(1); }} footer={null} title="Yêu cầu thay đổi hợp đồng">
             <div style={{ fontWeight: 600, color: '#d46b08', marginBottom: 4 }}>
               Lý do thay đổi:
             </div>
             <List
-              dataSource={amendments}
+              dataSource={amendments.slice((amendmentsPage-1)*amendmentsPageSize, amendmentsPage*amendmentsPageSize)}
               renderItem={item => (
                 <List.Item
                   style={{ flexDirection: 'column', alignItems: 'flex-start', padding: 16, borderBottom: '1px solid #f0f0f0' }}
@@ -602,8 +605,8 @@ export default function LandlordContractListPage() {
                       <div><b>Trạng thái:</b> {item.status}</div>
                       <div><b>Ngày tạo:</b> {item.createdDate ? new Date(item.createdDate).toLocaleDateString("vi-VN") : 'Không có'}</div>
                     </div>
-      
-                    {item.status === 'PENDING' && !item.approvedByLandlord && (
+                    {/* Hiện nút Duyệt/Từ chối cho mọi amendment chưa được duyệt (trừ APPROVED) */}
+                    {item.status !== 'APPROVED' && !item.approvedByLandlord && (
                       <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                         <Button
                           type="primary"
@@ -624,6 +627,17 @@ export default function LandlordContractListPage() {
               )}
               locale={{ emptyText: "Không có yêu cầu thay đổi" }}
             />
+            {amendments.length > amendmentsPageSize && (
+              <div style={{ textAlign: 'center', marginTop: 16 }}>
+                <Pagination
+                  current={amendmentsPage}
+                  pageSize={amendmentsPageSize}
+                  total={amendments.length}
+                  onChange={setAmendmentsPage}
+                  showSizeChanger={false}
+                />
+              </div>
+            )}
           </Modal>
           <Modal open={detailModalOpen} onCancel={() => setDetailModalOpen(false)} footer={null} title="Chi tiết hợp đồng">
             {detailContract ? (

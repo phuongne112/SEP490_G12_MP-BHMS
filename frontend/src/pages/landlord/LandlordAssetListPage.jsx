@@ -27,24 +27,9 @@ import AssetFilterPopover from '../../components/landlord/AssetFilterPopover';
 
 const { Sider, Content } = Layout;
 
-const assetStatusColor = {
-  Good: "green",
-  Damaged: "red",
-  Lost: "orange",
-  Maintenance: "blue",
-};
-
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
 
 const pageSizeOptions = [5, 10, 20, 50];
-
-const assetStatusOptions = [
-  { value: '', label: 'All Statuses' },
-  { value: 'Good', label: 'Good' },
-  { value: 'Damaged', label: 'Damaged' },
-  { value: 'Lost', label: 'Lost' },
-  { value: 'Maintenance', label: 'Maintenance' },
-];
 
 export default function LandlordAssetListPage() {
   const [search, setSearch] = useState("");
@@ -126,11 +111,6 @@ export default function LandlordAssetListPage() {
     }
   };
 
-  const handleStatusFilter = (value) => {
-    setFilter((prev) => ({ ...prev, assetStatus: value }));
-    setCurrentPage(1);
-  };
-
   const handleFilterApply = (filterValues) => {
     // Convert min/max quantity về undefined nếu là chuỗi rỗng
     const cleaned = { ...filterValues };
@@ -152,14 +132,6 @@ export default function LandlordAssetListPage() {
       dataIndex: "quantity",
       key: "quantity",
       render: (val) => val ?? "-",
-    },
-    {
-      title: "Trạng thái",
-      dataIndex: "assetStatus",
-      key: "assetStatus",
-      render: (status) => (
-        <Tag color={assetStatusColor[status] || "default"}>{status}</Tag>
-      ),
     },
     {
       title: "Ghi chú tình trạng",
