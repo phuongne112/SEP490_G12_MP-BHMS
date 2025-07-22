@@ -373,38 +373,41 @@ export default function RenterContractPage() {
           ) : (
             <List
               dataSource={amendments}
-              renderItem={item => (
-                <List.Item
-                  actions={[
-                    item.status === 'PENDING' && !(item.approvedBy || []).includes(user?.id) && (
-                      <>
-                        <Button
-                          type="primary"
-                          loading={approvingId === item.id}
-                          onClick={() => handleApproveAmendment(item.id)}
-                        >
-                          Duyệt
-                        </Button>
-                        <Button
-                          danger
-                          loading={rejectingId === item.id && rejectModalOpen}
-                          onClick={() => handleRejectAmendment(item.id)}
-                          style={{ marginLeft: 8 }}
-                        >
-                          Từ chối
-                        </Button>
-                      </>
-                    )
-                  ]}
-                >
-                  <div>
-                    <div style={{ color: '#222', fontSize: 15, fontWeight: 500, margin: '6px 0' }}>{item.reason}</div>
-                    <div style={{ color: '#222', fontSize: 13, marginTop: 2 }}>
-                      Ngày tạo: {item.createdDate ? dayjs(item.createdDate).format("DD/MM/YYYY") : 'Không có'}
+              renderItem={item => {
+                const isMyTurn = user && item.status === 'PENDING' && item.pendingApprovals?.includes(user.id) && !(item.approvedBy || []).includes(user.id);
+                return (
+                  <List.Item
+                    actions={[
+                      isMyTurn && (
+                        <>
+                          <Button
+                            type="primary"
+                            loading={approvingId === item.id}
+                            onClick={() => handleApproveAmendment(item.id)}
+                          >
+                            Duyệt
+                          </Button>
+                          <Button
+                            danger
+                            loading={rejectingId === item.id && rejectModalOpen}
+                            onClick={() => handleRejectAmendment(item.id)}
+                            style={{ marginLeft: 8 }}
+                          >
+                            Từ chối
+                          </Button>
+                        </>
+                      )
+                    ]}
+                  >
+                    <div>
+                      <div style={{ color: '#222', fontSize: 15, fontWeight: 500, margin: '6px 0' }}>{item.reason}</div>
+                      <div style={{ color: '#222', fontSize: 13, marginTop: 2 }}>
+                        Ngày tạo: {item.createdDate ? dayjs(item.createdDate).format("DD/MM/YYYY") : 'Không có'}
+                      </div>
                     </div>
-                  </div>
-                </List.Item>
-              )}
+                  </List.Item>
+                );
+              }}
               locale={{ emptyText: "Không có thay đổi nào" }}
             />
           )}
