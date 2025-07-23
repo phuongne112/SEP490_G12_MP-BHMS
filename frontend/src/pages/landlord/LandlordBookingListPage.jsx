@@ -187,106 +187,133 @@ export default function LandlordBookingListPage() {
   ];
 
   return (
-    <div style={{ display: "flex" }}>
-      <Sider width={220} style={{ background: "#001529" }}>
+    <Layout style={{ minHeight: "100vh" }}>
+      <Sider width={220}>
         <LandlordSidebar />
       </Sider>
-      <div style={{ flex: 1, padding: 32 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <PageHeader title="Danh sách đặt lịch xem phòng" style={{ margin: 0 }} />
-          <div style={{ display: "flex", gap: 8 }}>
-            <Input.Search
-              placeholder="Tìm đặt phòng..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setCurrentPage(1);
-              }}
-              style={{ width: 220 }}
-              allowClear
-            />
-            <Popover
-              content={
-                <Form layout="vertical">
-                  <Form.Item label="Trạng thái">
-                    <Select
-                      value={pendingFilterStatus}
-                      onChange={setPendingFilterStatus}
-                      options={statusOptions}
-                      style={{ width: 160 }}
-                    />
-                  </Form.Item>
-                  <Form.Item label="Date Range">
-                    <DatePicker.RangePicker
-                      value={pendingFilterDate}
-                      onChange={setPendingFilterDate}
-                      style={{ width: 220 }}
-                    />
-                  </Form.Item>
-                  <Button
-                    type="primary"
-                    block
-                    onClick={() => {
-                      setFilterStatus(pendingFilterStatus);
-                      setFilterDate(pendingFilterDate);
-                      setCurrentPage(1);
-                      setFilterOpen(false);
-                    }}
-                  >
-                    Apply
-                  </Button>
-                </Form>
-              }
-              title={null}
-              trigger="click"
-              open={filterOpen}
-              onOpenChange={(open) => {
-                setFilterOpen(open);
-                if (open) {
-                  setPendingFilterStatus(filterStatus);
-                  setPendingFilterDate(filterDate);
-                }
-              }}
-              placement="bottomRight"
-            >
-              <Button icon={<FilterOutlined />}>Bộ lọc</Button>
-            </Popover>
-          </div>
-        </div>
-        <Card>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <div>
-              Hiển thị
-              <Select
-                value={pageSize}
-                onChange={(value) => {
-                  setPageSize(value);
-                  setCurrentPage(1);
-                }}
-                style={{ width: 70, margin: "0 8px" }}
-                options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
-              />
-              / trang
+      <Layout>
+        <Content style={{ padding: 24, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+          {/* Header Section */}
+          <div style={{ 
+            background: 'white', 
+            padding: 20, 
+            borderRadius: 8, 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            marginBottom: 20
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <PageHeader title="Danh sách đặt lịch xem phòng" style={{ margin: 0, padding: 0 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Input.Search
+                  placeholder="Tìm đặt phòng..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  style={{ width: 220 }}
+                  allowClear
+                />
+                <Popover
+                  content={
+                    <Form layout="vertical">
+                      <Form.Item label="Trạng thái">
+                        <Select
+                          value={pendingFilterStatus}
+                          onChange={setPendingFilterStatus}
+                          options={statusOptions}
+                          style={{ width: 160 }}
+                        />
+                      </Form.Item>
+                      <Form.Item label="Date Range">
+                        <DatePicker.RangePicker
+                          value={pendingFilterDate}
+                          onChange={setPendingFilterDate}
+                          style={{ width: 220 }}
+                        />
+                      </Form.Item>
+                      <Button
+                        type="primary"
+                        block
+                        onClick={() => {
+                          setFilterStatus(pendingFilterStatus);
+                          setFilterDate(pendingFilterDate);
+                          setCurrentPage(1);
+                          setFilterOpen(false);
+                        }}
+                      >
+                        Áp dụng
+                      </Button>
+                    </Form>
+                  }
+                  title={null}
+                  trigger="click"
+                  open={filterOpen}
+                  onOpenChange={(open) => {
+                    setFilterOpen(open);
+                    if (open) {
+                      setPendingFilterStatus(filterStatus);
+                      setPendingFilterDate(filterDate);
+                    }
+                  }}
+                  placement="bottomRight"
+                >
+                  <Button icon={<FilterOutlined />} type="default">Bộ lọc</Button>
+                </Popover>
+              </div>
             </div>
-            <span style={{ marginRight: 0, fontWeight: 500 }}>
-              Tổng: {total} đặt phòng
-            </span>
+            
+            {/* Status bar */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              borderTop: '1px solid #f0f0f0',
+              paddingTop: 12,
+              fontSize: 14
+            }}>
+              <div style={{ color: '#666' }}>
+                Hiển thị
+                <Select
+                  value={pageSize}
+                  onChange={(value) => {
+                    setPageSize(value);
+                    setCurrentPage(1);
+                  }}
+                  style={{ width: 70, margin: "0 8px" }}
+                  options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
+                />
+                mục
+              </div>
+              <div style={{ fontWeight: 500, color: "#1890ff" }}>
+                Tổng: {total} đặt phòng
+              </div>
+            </div>
           </div>
-          <Table
-            columns={columns}
-            dataSource={data}
-            rowKey="id"
-            loading={loading}
-            pagination={{
-              current: currentPage,
-              pageSize: pageSize,
-              total: total,
-              showSizeChanger: false,
-              onChange: (page) => setCurrentPage(page),
-            }}
-          />
-        </Card>
-      </div>
-    </div>
+          
+          {/* Main Table Section */}
+          <div style={{ 
+            background: 'white', 
+            borderRadius: 8, 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            overflow: 'hidden'
+          }}>
+            <Table
+              columns={columns}
+              dataSource={data}
+              rowKey="id"
+              loading={loading}
+              pagination={{
+                current: currentPage,
+                pageSize: pageSize,
+                total: total,
+                showSizeChanger: false,
+                onChange: (page) => setCurrentPage(page),
+              }}
+            />
+          </div>
+        </Content>
+      </Layout>
+    </Layout>
   );
 }

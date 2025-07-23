@@ -27,6 +27,7 @@ export default function RoleTable({
   refreshKey,
   filters,
   deleteError,
+  onTotalChange,
 }) {
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ current: 1, total: 0 });
@@ -56,6 +57,7 @@ export default function RoleTable({
         }))
       );
       setPagination({ current: page, total });
+      if (onTotalChange) onTotalChange(total);
     } catch (err) {
       message.error("Không thể tải danh sách vai trò.");
       console.error("Lỗi khi lấy vai trò:", err);

@@ -384,33 +384,32 @@ export default function RenterContractPage() {
         }}
       >
         <div style={{ width: "100%", maxWidth: 1100, margin: "0 auto", padding: isMobile ? 8 : 0 }}>
-          {/* Header with refresh controls */}
-          <div style={{ 
-            background: "#fff", 
-            borderRadius: "8px 8px 0 0", 
-            padding: 16, 
-            borderBottom: "1px solid #f0f0f0",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 12
-          }}>
-            <div>
-              <Title level={2} style={{ margin: 0, color: "#1890ff", fontSize: isMobile ? 20 : 28 }}>
+          <Card style={{ borderRadius: "16px", boxShadow: "0 2px 12px rgba(0,0,0,0.08)", margin: "0 auto", background: "#fff" }}>
+            {/* Header với thông tin chính */}
+            <div style={{ 
+              padding: "24px 24px 16px 24px",
+              borderBottom: "1px solid #f0f0f0",
+              marginBottom: 24
+            }}>
+              <Title level={2} style={{ margin: 0, color: "#1890ff", fontSize: isMobile ? 20 : 28, textAlign: "center" }}>
                 <FileTextOutlined style={{ marginRight: 8 }} />
                 Hợp đồng thuê nhà
                 {hasNewChanges && <Badge count="Mới" style={{ marginLeft: 8 }} />}
               </Title>
-              {lastUpdated && (
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  Cập nhật lần cuối: {lastUpdated.toLocaleTimeString('vi-VN')}
+              <div style={{ marginTop: 8, textAlign: "center" }}>
+                <Text type="secondary" style={{ fontSize: isMobile ? 14 : 16 }}>
+                  Thông tin chi tiết về hợp đồng thuê nhà của bạn
                 </Text>
+              </div>
+              {lastUpdated && (
+                <div style={{ textAlign: "center", marginTop: 8 }}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Cập nhật lần cuối: {lastUpdated.toLocaleTimeString('vi-VN')}
+                  </Text>
+                </div>
               )}
             </div>
-          </div>
 
-          <Card style={{ borderRadius: "0 0 16px 16px", boxShadow: "0 2px 12px rgba(0,0,0,0.08)", margin: "0 auto", background: "#fff" }}>
             {hasNewChanges && (
               <Alert
                 message="Có thay đổi mới trong hợp đồng!"
@@ -419,15 +418,9 @@ export default function RenterContractPage() {
                 showIcon
                 closable
                 onClose={() => setHasNewChanges(false)}
-                style={{ marginBottom: 16 }}
+                style={{ marginBottom: 24 }}
               />
             )}
-
-            <div style={{ marginBottom: isMobile ? 16 : 24, textAlign: "center" }}>
-              <Text type="secondary" style={{ display: "block", fontSize: isMobile ? 14 : 16 }}>
-                Thông tin chi tiết về hợp đồng thuê nhà của bạn
-              </Text>
-            </div>
             
             <div
               style={{
@@ -440,17 +433,20 @@ export default function RenterContractPage() {
             >
               {/* Main contract info */}
               <div style={{ flex: 1, minWidth: isMobile ? "100%" : 340, maxWidth: isMobile ? "100%" : 600 }}>
-                <Card title={
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>Thông tin hợp đồng</span>
-                    <Tag 
-                      color={getStatusColor(contract.contractStatus || contract.status)}
-                      style={{ fontSize: "12px", fontWeight: "bold" }}
-                    >
-                      {getStatusText(contract.contractStatus || contract.status)}
-                    </Tag>
-                  </div>
-                } style={{ marginBottom: 24 }}>
+                <Card 
+                  title={
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>Thông tin hợp đồng</span>
+                      <Tag 
+                        color={getStatusColor(contract.contractStatus || contract.status)}
+                        style={{ fontSize: "12px", fontWeight: "bold" }}
+                      >
+                        {getStatusText(contract.contractStatus || contract.status)}
+                      </Tag>
+                    </div>
+                  } 
+                  style={{ marginBottom: 24 }}
+                >
                   <Descriptions bordered column={2} size={isMobile ? "small" : "default"}>
                     <Descriptions.Item label="Mã hợp đồng">
                       <Text strong style={{ color: "#1890ff" }}>
@@ -702,6 +698,18 @@ export default function RenterContractPage() {
                            item.status === 'PENDING' ? 'Chờ duyệt' : item.status}
                         </Tag>
                       </div>
+                      {/* Hiển thị lý do từ chối khi có */}
+                      {item.status === 'REJECTED' && item.reason && (
+                        <div style={{ marginTop: 12, padding: 12, backgroundColor: '#fff2f0', border: '1px solid #ffccc7', borderRadius: 6 }}>
+                          <div style={{ fontWeight: 600, color: '#cf1322', marginBottom: 4 }}>
+                            🚫 Lý do từ chối:
+                          </div>
+                          <div style={{ color: '#8c8c8c', fontStyle: 'italic', lineHeight: 1.4 }}>
+                            "{item.reason}"
+                          </div>
+                        </div>
+                      )}
+                      
                       {isMyTurn && (
                         <Alert
                           message="Cần phê duyệt của bạn"
@@ -825,4 +833,4 @@ export default function RenterContractPage() {
       </div>
     </div>
   );
-} 
+}

@@ -366,89 +366,91 @@ export default function LandlordBillListPage() {
         <LandlordSidebar />
       </Sider>
       <Layout>
-        <Content
-          style={{
-            padding: "24px",
-            paddingTop: "32px",
-            background: "#fff",
-            borderRadius: 8,
-          }}
-        >
-          <div
-            style={{
-              marginBottom: 16,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <PageHeader title="Danh sách hóa đơn" />
-            <Space>
-              <Input
-                placeholder="Tìm hóa đơn..."
-                allowClear
-                prefix={<SearchOutlined />}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onPressEnter={() => setCurrentPage(1)}
-                style={{ width: 300 }}
-              />
-              <Popover
-                open={filterOpen}
-                onOpenChange={setFilterOpen}
-                content={<BillFilterPopover onFilter={handleFilter} />}
-                trigger="click"
-                placement="bottomRight"
-              >
-                <Button icon={<FilterOutlined />}>Bộ lọc</Button>
-              </Popover>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => navigate("/landlord/bills/create")}
-              >
-                Thêm hóa đơn
-              </Button>
-              <Button
-                type="default"
-                style={{ 
-                  background: '#52c41a', 
-                  borderColor: '#52c41a', 
-                  color: '#fff',
-                  fontWeight: 'bold'
-                }}
-                loading={bulkLoading}
-                onClick={handleBulkGenerate}
-              >
-                🚀 Tạo Hóa Đơn Tự Động
-              </Button>
-            </Space>
-          </div>
-          
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 8,
-            }}
-          >
-            <div>
-              Hiển thị
-              <Select
-                style={{ width: 80, margin: "0 8px" }}
-                value={pageSize}
-                onChange={handlePageSizeChange}
-                options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
-              />
-              mục
+        <Content style={{ padding: 24, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+          {/* Header Section */}
+          <div style={{ 
+            background: 'white', 
+            padding: 20, 
+            borderRadius: 8, 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            marginBottom: 20
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <PageHeader title="Danh sách hóa đơn" style={{ margin: 0, padding: 0 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Input
+                  placeholder="Tìm hóa đơn..."
+                  allowClear
+                  prefix={<SearchOutlined />}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onPressEnter={() => setCurrentPage(1)}
+                  style={{ width: 300 }}
+                />
+                <Popover
+                  open={filterOpen}
+                  onOpenChange={setFilterOpen}
+                  content={<BillFilterPopover onFilter={handleFilter} />}
+                  trigger="click"
+                  placement="bottomRight"
+                >
+                  <Button icon={<FilterOutlined />} type="default">Bộ lọc</Button>
+                </Popover>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => navigate("/landlord/bills/create")}
+                >
+                  Thêm hóa đơn
+                </Button>
+                <Button
+                  type="default"
+                  style={{ 
+                    background: '#52c41a', 
+                    borderColor: '#52c41a', 
+                    color: '#fff',
+                    fontWeight: 'bold'
+                  }}
+                  loading={bulkLoading}
+                  onClick={handleBulkGenerate}
+                >
+                  🚀 Tạo Hóa Đơn Tự Động
+                </Button>
+              </div>
             </div>
-            <div style={{ fontWeight: 400, color: "#888" }}>
-              Tổng: {total} hóa đơn
+            
+            {/* Status bar */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              borderTop: '1px solid #f0f0f0',
+              paddingTop: 12,
+              fontSize: 14
+            }}>
+              <div style={{ color: '#666' }}>
+                Hiển thị
+                <Select
+                  style={{ width: 80, margin: "0 8px" }}
+                  value={pageSize}
+                  onChange={handlePageSizeChange}
+                  options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
+                />
+                mục
+              </div>
+              <div style={{ fontWeight: 500, color: "#1890ff" }}>
+                Tổng: {total} hóa đơn
+              </div>
             </div>
           </div>
           
-          <Card>
+          {/* Main Table Section */}
+          <div style={{ 
+            background: 'white', 
+            borderRadius: 8, 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            overflow: 'hidden'
+          }}>
             <Table
               columns={columns}
               dataSource={bills}
@@ -457,29 +459,30 @@ export default function LandlordBillListPage() {
               pagination={false}
               scroll={{ x: 1200 }}
             />
-          </Card>
-          
-          <div
-            style={{
-              marginTop: 24,
-              width: "100%",
-              display: "flex",
-              justifyContent: "flex-end",
-            }}
-          >
-            <Pagination
-              current={currentPage}
-              pageSize={pageSize}
-              total={total}
-              onChange={(page, size) => {
-                setCurrentPage(page);
-                setPageSize(size);
-                fetchBills(page, size);
+            
+            <div
+              style={{
+                padding: 16,
+                width: "100%",
+                display: "flex",
+                justifyContent: "flex-end",
+                borderTop: '1px solid #f0f0f0'
               }}
-              showSizeChanger={false}
-              showQuickJumper
-              showTotal={(total, range) => `${range[0]}-${range[1]} trên tổng số ${total} hóa đơn`}
-            />
+            >
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={total}
+                onChange={(page, size) => {
+                  setCurrentPage(page);
+                  setPageSize(size);
+                  fetchBills(page, size);
+                }}
+                showSizeChanger={false}
+                showQuickJumper
+                showTotal={(total, range) => `${range[0]}-${range[1]} trên tổng số ${total} hóa đơn`}
+              />
+            </div>
           </div>
         </Content>
       </Layout>

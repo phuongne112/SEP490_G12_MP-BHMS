@@ -119,84 +119,90 @@ export default function LandlordRenterListPage() {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh", flexDirection: "row" }}>
-      <Sider width={220} style={{ background: "#001529" }}>
+    <Layout style={{ minHeight: "100vh" }}>
+      <Sider width={220}>
         <LandlordSidebar />
       </Sider>
-      <Layout style={{ padding: 24 }}>
-        <Content
-          style={{
-            background: "#fff",
-            padding: 24,
-            borderRadius: 8,
-            minHeight: "100%",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 24,
-              paddingTop: 4,
-            }}
-          >
-            <PageHeader title="Danh sách người thuê" />
-            <Space>
-              <Input
-                placeholder="Tìm tên người thuê hoặc phòng"
-                style={{ width: 250 }}
-                prefix={<SearchOutlined />}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                onPressEnter={() => {}}
-              />
-              <Popover
-                content={
-                  <RenterFilterPopover
-                    onFilter={handleFilter}
-                    roomOptions={roomOptions}
-                  />
-                }
-                trigger="click"
-                placement="bottomRight"
-              >
-                <Button icon={<FilterOutlined />}>Bộ lọc</Button>
-              </Popover>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => navigate("/landlord/renters/add")}
-              >
-                Thêm người thuê
-              </Button>
-            </Space>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 8,
-            }}
-          >
-            <div>
-              Hiển thị
-              <Select
-                style={{ width: 80, margin: "0 8px" }}
-                value={pageSize}
-                onChange={handlePageSizeChange}
-                options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
-              />
-              mục
+      <Layout>
+        <Content style={{ padding: 24, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+          {/* Header Section */}
+          <div style={{ 
+            background: 'white', 
+            padding: 20, 
+            borderRadius: 8, 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            marginBottom: 20
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <PageHeader title="Danh sách người thuê" style={{ margin: 0, padding: 0 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Input
+                  placeholder="Tìm tên người thuê hoặc phòng"
+                  style={{ width: 250 }}
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  onPressEnter={() => {}}
+                />
+                <Popover
+                  content={
+                    <RenterFilterPopover
+                      onFilter={handleFilter}
+                      roomOptions={roomOptions}
+                    />
+                  }
+                  trigger="click"
+                  placement="bottomRight"
+                >
+                  <Button icon={<FilterOutlined />} type="default">Bộ lọc</Button>
+                </Popover>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => navigate("/landlord/renters/add")}
+                >
+                  Thêm người thuê
+                </Button>
+              </div>
             </div>
-            <div style={{ fontWeight: 400, color: "#888" }}>
-              Tổng: {total} người thuê
+            
+            {/* Status bar */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              borderTop: '1px solid #f0f0f0',
+              paddingTop: 12,
+              fontSize: 14
+            }}>
+              <div style={{ color: '#666' }}>
+                Hiển thị
+                <Select
+                  style={{ width: 120, margin: "0 8px" }}
+                  value={pageSize}
+                  onChange={handlePageSizeChange}
+                  options={pageSizeOptions.map((v) => ({ value: v, label: `${v} / trang` }))}
+                />
+                mục
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <span style={{ fontWeight: 500, color: "#1890ff" }}>
+                  Tổng: {total} người thuê
+                </span>
+              </div>
             </div>
           </div>
+          
+          {/* Main Table Section */}
+          <div style={{ 
+            background: 'white', 
+            borderRadius: 8, 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            overflow: 'hidden'
+          }}>
+            <RenterTable search={searchText} filter={filter} />
+          </div>
 
-          <RenterTable search={searchText} filter={filter} />
           <Modal
             open={addModalOpen}
             title="Thêm người thuê mới"

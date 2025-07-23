@@ -39,6 +39,7 @@ export default function NotificationTable({
   onDelete,
   refreshKey,
   userList,
+  onTotalChange,
 }) {
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ current: 1, total: 0 });
@@ -74,6 +75,7 @@ export default function NotificationTable({
       );
 
       setPagination({ current: page, total });
+      if (onTotalChange) onTotalChange(total);
     } catch (err) {
       console.error("Notification fetch error:", err);
       setErrorMsg("❌ Không thể tải dữ liệu thông báo. Vui lòng thử lại.");
