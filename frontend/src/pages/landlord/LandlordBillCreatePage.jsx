@@ -12,7 +12,8 @@ import {
   DatePicker,
   Space,
   Divider,
-  Radio
+  Radio,
+  Alert
 } from "antd";
 import { createBill, generateBill, generateFirstBill, createCustomBill } from "../../services/billApi";
 import { getAllRooms } from "../../services/roomService";
@@ -78,6 +79,58 @@ function calculateEndDate(startDate, paymentCycle, contractEndDate) {
   return endDate;
 }
 
+// Hàm validation khoảng ngày tùy chọn theo chu kỳ thanh toán
+function validateCustomPeriod(fromDate, toDate, paymentCycle) {
+  if (!fromDate || !toDate || !paymentCycle) {
+    return { isValid: false, message: "Thiếu thông tin để kiểm tra" };
+  }
+
+  // Tính số tháng giữa hai ngày
+  const monthsDiff = toDate.diff(fromDate, 'month', true);
+  
+  // Lấy số tháng tiêu chuẩn theo chu kỳ thanh toán
+  let expectedMonths;
+  let cycleName;
+  switch (paymentCycle) {
+    case 'MONTHLY':
+      expectedMonths = 1;
+      cycleName = "hàng tháng";
+      break;
+    case 'QUARTERLY':
+      expectedMonths = 3;
+      cycleName = "hàng quý";
+      break;
+    case 'YEARLY':
+      expectedMonths = 12;
+      cycleName = "hàng năm";
+      break;
+    default:
+      return { isValid: false, message: "Chu kỳ thanh toán không hợp lệ" };
+  }
+
+  // Kiểm tra độ chênh lệch - Frontend chỉ cảnh báo, để Backend quyết định chặn
+  const diffFromExpected = Math.abs(monthsDiff - expectedMonths);
+  
+  if (diffFromExpected <= 0.2) { // Sai số nhỏ - OK
+    return { 
+      isValid: true, 
+      message: `Khoảng ngày phù hợp với chu kỳ thanh toán ${cycleName}` 
+    };
+  } else if (diffFromExpected <= 1.0) { // Sai lệch trung bình - Cảnh báo
+    return { 
+      isValid: true, 
+      isWarning: true,
+      message: `Cảnh báo: Khoảng ngày sai lệch với chu kỳ thanh toán ${cycleName} (dự kiến ${expectedMonths} tháng, thực tế ${monthsDiff.toFixed(1)} tháng). Backend sẽ kiểm tra và quyết định.` 
+    };
+  } else { // Sai lệch lớn - Cảnh báo mạnh nhưng vẫn cho phép
+    return { 
+      isValid: true,
+      isWarning: true, 
+      message: `Cảnh báo nghiêm trọng: Khoảng ngày sai lệch lớn với chu kỳ thanh toán ${cycleName} (dự kiến ${expectedMonths} tháng, thực tế ${monthsDiff.toFixed(1)} tháng). Hệ thống có thể từ chối tạo hóa đơn.` 
+    };
+  }
+}
+
 export default function LandlordBillCreatePage() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -92,6 +145,7 @@ export default function LandlordBillCreatePage() {
   const [selectedBillPeriod, setSelectedBillPeriod] = useState(null);
   const [existingBills, setExistingBills] = useState([]);
   const [availablePeriodOptions, setAvailablePeriodOptions] = useState([]);
+  const [customPeriodValidation, setCustomPeriodValidation] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -173,9 +227,52 @@ export default function LandlordBillCreatePage() {
           month: month,
           year: year
         });
+        message.success("Tạo hóa đơn dịch vụ thành công");
+        navigate("/landlord/bills");
+        setLoading(false);
+        return;
       } else if (billType === "CONTRACT_TOTAL" || billType === "CONTRACT_ROOM_RENT") {
+        console.log("🎯 FRONTEND: Processing CONTRACT bill type:", billType);
+        console.log("🎯 FRONTEND: periodType =", periodType);
+        console.log("🎯 FRONTEND: selectedBillPeriod =", selectedBillPeriod);
+        
         let periods = [];
-        if (selectedContract && billPeriods.length > 0 && selectedBillPeriod) {
+        // 🔧 FIX: Ưu tiên custom period trước selectedBillPeriod
+        if (selectedContract && periodType === 'custom' && values.dateRange && values.dateRange.length === 2) {
+          console.log("🎯 FRONTEND: Using CUSTOM date range");
+          const [from, to] = values.dateRange;
+          console.log("🎯 FRONTEND: Custom dates:", from.format('YYYY-MM-DD'), "to", to.format('YYYY-MM-DD'));
+          console.log("🎯 FRONTEND: Contract cycle:", selectedContract.paymentCycle);
+          
+          const contractStart = dayjs(selectedContract.contractStartDate);
+          const contractEnd = dayjs(selectedContract.contractEndDate);
+          if (from.isBefore(contractStart) || to.isAfter(contractEnd)) {
+            message.error("Kỳ hóa đơn phải nằm trong phạm vi hợp đồng!");
+            setLoading(false);
+            return;
+          }
+          if (from.isAfter(to)) {
+            message.error("Ngày bắt đầu phải trước hoặc bằng ngày kết thúc!");
+            setLoading(false);
+            return;
+          }
+          
+          // Kiểm tra tính phù hợp với chu kỳ thanh toán - Chỉ cảnh báo, không chặn
+          const validationResult = validateCustomPeriod(from, to, selectedContract.paymentCycle);
+          console.log("🎯 FRONTEND: Validation result:", validationResult);
+          if (validationResult.isWarning) {
+            message.warning(validationResult.message);
+          } else if (validationResult.isValid) {
+            message.success(validationResult.message);
+          }
+          // Không chặn, để backend xử lý validation cuối cùng
+          
+          periods = [{
+            fromDate: from.format('YYYY-MM-DD'),
+            toDate: to.format('YYYY-MM-DD')
+          }];
+        } else if (selectedContract && billPeriods.length > 0 && selectedBillPeriod) {
+          console.log("🎯 FRONTEND: Using STANDARD bill period");
           const period = billPeriods.find(p => p.fromDate.format('YYYY-MM-DD') === selectedBillPeriod);
           if (period) {
             // Kiểm tra lại kỳ hóa đơn có hợp lệ không
@@ -191,26 +288,22 @@ export default function LandlordBillCreatePage() {
               toDate: period.toDate.format('YYYY-MM-DD')
             }];
           }
-        } else if (selectedContract && periodType === 'custom' && values.dateRange && values.dateRange.length === 2) {
-          const [from, to] = values.dateRange;
-          const contractStart = dayjs(selectedContract.contractStartDate);
-          const contractEnd = dayjs(selectedContract.contractEndDate);
-          if (from.isBefore(contractStart) || to.isAfter(contractEnd)) {
-            message.error("Kỳ hóa đơn phải nằm trong phạm vi hợp đồng!");
-            setLoading(false);
-            return;
-          }
-          if (from.isAfter(to)) {
-            message.error("Ngày bắt đầu phải trước hoặc bằng ngày kết thúc!");
-            setLoading(false);
-            return;
-          }
-          periods = [{
-            fromDate: from.format('YYYY-MM-DD'),
-            toDate: to.format('YYYY-MM-DD')
-          }];
         }
+        if (periods.length === 0) {
+          message.error("Vui lòng chọn kỳ hóa đơn hoặc khoảng ngày!");
+          setLoading(false);
+          return;
+        }
+        
+        console.log("🎯 FRONTEND: Total periods to process:", periods.length);
         for (const period of periods) {
+          console.log("🎯 FRONTEND: Calling generateBill with:", {
+            contractId: values.contractId,
+            fromDate: period.fromDate,
+            toDate: period.toDate,
+            billType: billType
+          });
+          
           await generateBill(
             values.contractId,
             period.fromDate,
@@ -243,6 +336,7 @@ export default function LandlordBillCreatePage() {
   const handleContractChange = (contractId) => {
     const contract = contracts.find(c => c.id === contractId);
     setSelectedContract(contract);
+    setCustomPeriodValidation(null);
     fetchBillsForContract(contractId);
     if (contract) {
       const periodOptions = getPeriodOptions(contract.paymentCycle);
@@ -292,9 +386,26 @@ export default function LandlordBillCreatePage() {
   };
 
   const handlePeriodTypeChange = (e) => {
-    setPeriodType(e.target.value);
+    const newPeriodType = e.target.value;
+    setPeriodType(newPeriodType);
     form.setFieldsValue({ months: undefined, dateRange: undefined });
     setSelectedMonths([]);
+    setCustomPeriodValidation(null);
+    
+    // 🔧 FIX: Reset selectedBillPeriod khi chọn "custom"
+    if (newPeriodType === 'custom') {
+      setSelectedBillPeriod(null);
+      console.log("🎯 FRONTEND: Reset selectedBillPeriod for custom period");
+    }
+  };
+
+  const handleCustomDateRangeChange = (dates) => {
+    setCustomPeriodValidation(null);
+    if (dates && dates.length === 2 && selectedContract) {
+      const [from, to] = dates;
+      const validationResult = validateCustomPeriod(from, to, selectedContract.paymentCycle);
+      setCustomPeriodValidation(validationResult);
+    }
   };
 
   const handleMonthChange = (date) => {
@@ -453,16 +564,40 @@ export default function LandlordBillCreatePage() {
                   </Radio.Group>
                 </Form.Item>
                 {periodType === "custom" && (
-                  <Form.Item 
-                    name="dateRange" 
-                    label="Khoảng ngày (Tùy chọn)"
-                    rules={[{ required: true, message: 'Chọn khoảng ngày' }]}
-                  >
-                    <RangePicker 
-                      style={{ width: '100%' }}
-                      placeholder={['Ngày bắt đầu', 'Ngày kết thúc']}
-                    />
-                  </Form.Item>
+                  <>
+                    {selectedContract && (
+                      <Alert
+                        message={`Chu kỳ thanh toán hợp đồng: ${
+                          selectedContract.paymentCycle === 'MONTHLY' ? 'Hàng tháng (1 tháng)' :
+                          selectedContract.paymentCycle === 'QUARTERLY' ? 'Hàng quý (3 tháng)' :
+                          selectedContract.paymentCycle === 'YEARLY' ? 'Hàng năm (12 tháng)' : 'Không xác định'
+                        }`}
+                        description="Khoảng ngày tùy chọn nên phù hợp với chu kỳ thanh toán để đảm bảo tính nhất quán"
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 16 }}
+                      />
+                    )}
+                    <Form.Item 
+                      name="dateRange" 
+                      label="Khoảng ngày (Tùy chọn)"
+                      rules={[{ required: true, message: 'Chọn khoảng ngày' }]}
+                    >
+                      <RangePicker 
+                        style={{ width: '100%' }}
+                        placeholder={['Ngày bắt đầu', 'Ngày kết thúc']}
+                        onChange={handleCustomDateRangeChange}
+                      />
+                    </Form.Item>
+                    {customPeriodValidation && (
+                      <Alert
+                        message={customPeriodValidation.message}
+                        type={customPeriodValidation.isValid ? (customPeriodValidation.isWarning ? "warning" : "success") : "error"}
+                        showIcon
+                        style={{ marginBottom: 16 }}
+                      />
+                    )}
+                  </>
                 )}
                 {(billType !== "CUSTOM" && periodType !== "custom" && selectedContract && billPeriods.length > 0) && (
                   <Form.Item label="Chọn kỳ hóa đơn" required>

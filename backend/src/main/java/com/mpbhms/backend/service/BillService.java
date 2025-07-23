@@ -35,4 +35,7 @@ public interface BillService {
     byte[] generateBillPdf(Long billId);
 
     Page<Bill> getBillsByUserId(Long userId, Pageable pageable);
+
+    // Tạo hóa đơn tự động hàng loạt cho tất cả phòng
+    List<BillResponse> bulkGenerateBills();
 }
