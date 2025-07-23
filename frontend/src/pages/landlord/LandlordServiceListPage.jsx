@@ -187,22 +187,29 @@ export default function LandlordServiceListPage() {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh", flexDirection: "row" }}>
-      <Sider width={220} style={{ background: "#001529" }}>
+    <Layout style={{ minHeight: "100vh" }}>
+      <Sider width={220}>
         <LandlordSidebar />
       </Sider>
-
-      <Layout style={{ padding: 24 }}>
-        <Content style={{ background: "#fff", padding: 24, borderRadius: 8, minHeight: "100%" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: 'center', marginBottom: 24 }}>
-            <PageHeader title="Danh sách dịch vụ" />
-            <Space>
+      <Layout>
+        <Content style={{ padding: 24, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+          {/* Header Section */}
+          <div style={{ 
+            background: 'white', 
+            padding: 20, 
+            borderRadius: 8, 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            marginBottom: 20
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <PageHeader title="Danh sách dịch vụ" style={{ margin: 0, padding: 0 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <Input
-                    placeholder="Tìm tên dịch vụ"
-                    prefix={<SearchOutlined />}
-                    value={searchInput}
-                    onChange={handleSearchInputChange}
-                    style={{ width: 250 }}
+                  placeholder="Tìm tên dịch vụ"
+                  prefix={<SearchOutlined />}
+                  value={searchInput}
+                  onChange={handleSearchInputChange}
+                  style={{ width: 250 }}
                 />
                 <Popover
                   content={<ServiceFilterPopover onFilter={handleAdvancedFilterApply} onClose={() => setIsFilterOpen(false)} onReset={handleResetFilter} />}
@@ -211,43 +218,53 @@ export default function LandlordServiceListPage() {
                   open={isFilterOpen}
                   onOpenChange={setIsFilterOpen}
                 >
-                  <Button icon={<FilterOutlined />}>Bộ lọc</Button>
+                  <Button icon={<FilterOutlined />} type="default">Bộ lọc</Button>
                 </Popover>
                 <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)}>
                   Thêm dịch vụ
                 </Button>
-            </Space>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 8,
-            }}
-          >
-            <div>
-              Hiển thị
-              <Select
-                style={{ width: 80, margin: "0 8px" }}
-                value={pagination.pageSize}
-                onChange={handlePageSizeChange}
-                options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
-              />
-              mục
+              </div>
             </div>
-            <div style={{ fontWeight: 400, color: "#888" }}>
-              Tổng số: {pagination.total} dịch vụ
+            
+            {/* Status bar */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              borderTop: '1px solid #f0f0f0',
+              paddingTop: 12,
+              fontSize: 14
+            }}>
+              <div style={{ color: '#666' }}>
+                Hiển thị
+                <Select
+                  style={{ width: 80, margin: "0 8px" }}
+                  value={pagination.pageSize}
+                  onChange={handlePageSizeChange}
+                  options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
+                />
+                mục
+              </div>
+              <div style={{ fontWeight: 500, color: "#1890ff" }}>
+                Tổng: {pagination.total} dịch vụ
+              </div>
             </div>
           </div>
-          <div style={{ marginTop: 24 }}>
+          
+          {/* Main Table Section */}
+          <div style={{ 
+            background: 'white', 
+            borderRadius: 8, 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            overflow: 'hidden'
+          }}>
             <ServiceTable
-                services={services}
-                pagination={pagination}
-                loading={loading}
-                onEdit={handleEdit}
-                onDelete={handleDeleteService}
-                onTableChange={handleTableChange}
+              services={services}
+              pagination={pagination}
+              loading={loading}
+              onEdit={handleEdit}
+              onDelete={handleDeleteService}
+              onTableChange={handleTableChange}
             />
           </div>
 

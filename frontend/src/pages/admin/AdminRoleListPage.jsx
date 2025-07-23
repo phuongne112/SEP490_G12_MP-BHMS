@@ -14,6 +14,7 @@ import {
   Popover,
   message,
   Popconfirm,
+  Select,
 } from "antd";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import PageHeader from "../../components/common/PageHeader";
@@ -49,6 +50,7 @@ export default function AdminRoleListPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [form] = Form.useForm();
   const [formError, setFormError] = useState(null);
+  const [total, setTotal] = useState(0);
   const dispatch = useDispatch();
   const [, forceUpdate] = useState({});
 
@@ -176,83 +178,107 @@ export default function AdminRoleListPage() {
     <Layout>
       <AdminSidebar />
       <Layout style={{ marginLeft: 220 }}>
-        <Content
-          style={{
-            padding: 32,
-            backgroundColor: "#f5f5f5",
-            minHeight: "100vh",
-          }}
-        >
-          <div
-            style={{
+        <Content style={{ padding: "24px", backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
+          {/* Header Section */}
+          <div style={{ 
+            background: "white", 
+            padding: "20px", 
+            borderRadius: "8px", 
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)", 
+            marginBottom: "20px" 
+          }}>
+            <div style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: 24,
-            }}
-          >
-            <PageHeader title="Danh sách vai trò" />
-            <Access requiredPermissions={["Create Role"]}>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={openAddModal}
-              >
-                Thêm vai trò
-              </Button>
-            </Access>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 24,
-              flexWrap: "wrap",
-            }}
-          >
-            <EntrySelect value={pageSize} onChange={setPageSize} />
-            <Space style={{ gap: 100 }}>
-              <SearchBox
-                onSearch={setSearchTerm}
-                placeholder="Tìm vai trò..."
-              />
-              <Popover
-                open={isFilterOpen}
-                onOpenChange={setIsFilterOpen}
-                content={
-                  <RoleFilterPopover
-                    onApply={(values) => {
-                      setFilters(values);
-                      setIsFilterOpen(false);
-                    }}
-                  />
-                }
-                trigger="click"
-                placement="bottomRight"
-              >
-                <Button
-                  icon={<FilterOutlined />}
-                  style={{ backgroundColor: "#40a9ff", color: "white" }}
+              marginBottom: "12px"
+            }}>
+              <PageHeader title="Danh sách vai trò" style={{ margin: 0, padding: 0 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <SearchBox
+                  onSearch={setSearchTerm}
+                  placeholder="Tìm vai trò..."
+                />
+                <Popover
+                  open={isFilterOpen}
+                  onOpenChange={setIsFilterOpen}
+                  content={
+                    <RoleFilterPopover
+                      onApply={(values) => {
+                        setFilters(values);
+                        setIsFilterOpen(false);
+                      }}
+                    />
+                  }
+                  trigger="click"
+                  placement="bottomRight"
                 >
-                  Bộ lọc
-                </Button>
-              </Popover>
-            </Space>
+                  <Button
+                    icon={<FilterOutlined />}
+                    type="default"
+                  >
+                    Bộ lọc
+                  </Button>
+                </Popover>
+                <Access requiredPermissions={["Create Role"]}>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={openAddModal}
+                  >
+                    Thêm vai trò
+                  </Button>
+                </Access>
+              </div>
+            </div>
+            
+            {/* Status bar */}
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "space-between", 
+              alignItems: "center",
+              borderTop: "1px solid #f0f0f0",
+              paddingTop: "12px",
+              fontSize: "14px"
+            }}>
+              <div style={{ color: "#666" }}>
+                Hiển thị
+                <Select
+                  style={{ width: 120, margin: "0 8px" }}
+                  value={pageSize}
+                  onChange={(value) => setPageSize(value)}
+                  options={[5, 10, 20, 50].map((v) => ({ value: v, label: `${v} / trang` }))}
+                />
+                mục
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                <span style={{ fontWeight: 500, color: "#1890ff" }}>
+                  Tổng: {total} vai trò
+                </span>
+              </div>
+            </div>
           </div>
 
-          <RoleTable
-            pageSize={pageSize}
-            searchTerm={searchTerm}
-            filters={filters}
-            refreshKey={refreshKey}
-            onEditRole={handleEditRole}
-            onDeleteRole={(role) => {
-              setSelectedRole(role);
-              setIsDeleteModalOpen(true);
-            }}
-          />
+          {/* Main Table Section */}
+          <div style={{ 
+            background: "white", 
+            borderRadius: "8px", 
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            overflow: "hidden"
+          }}>
+            <RoleTable
+              pageSize={pageSize}
+              searchTerm={searchTerm}
+              filters={filters}
+              refreshKey={refreshKey}
+              onEditRole={handleEditRole}
+              onDeleteRole={(role) => {
+                setSelectedRole(role);
+                setIsDeleteModalOpen(true);
+              }}
+              onTotalChange={setTotal}
+            />
+          </div>
 
           <Modal
             title={editingRole ? "Chỉnh sửa vai trò" : "Thêm vai trò mới"}

@@ -26,6 +26,7 @@ import {
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { getCurrentUser } from "../../services/authService";
+import { getAccountInfo } from "../../services/userApi";
 import BookingListModal from "../account/BookingListModal";
 dayjs.extend(relativeTime);
 
@@ -123,6 +124,25 @@ export default function Header() {
     };
   }, []);
 
+  // Lấy fullName khi component mount
+  useEffect(() => {
+    const fetchUserFullName = async () => {
+      if (token && user) {
+        try {
+          const accountRes = await getAccountInfo();
+          if (accountRes?.fullName) {
+            const updatedUser = { ...user, fullName: accountRes.fullName };
+            setUser(updatedUser);
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+          }
+        } catch (e) {
+          // Không cần xử lý lỗi
+        }
+      }
+    };
+    fetchUserFullName();
+  }, [token, user?.id]); // Chỉ chạy khi có token và user id
+
   const fetchNotifications = async () => {
     setLoadingNoti(true);
     try {
@@ -151,7 +171,22 @@ export default function Header() {
       try {
         const res = await getCurrentUser();
         if (res && res.role) {
-          setUser((prev) => ({ ...prev, ...res, role: res.role }));
+          // Lấy thêm fullName từ account API
+          try {
+            const accountRes = await getAccountInfo();
+            const updatedUser = { 
+              ...user, 
+              ...res, 
+              fullName: accountRes?.fullName,
+              role: res.role 
+            };
+            setUser(updatedUser);
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+          } catch (e) {
+            const updatedUser = { ...user, ...res, role: res.role };
+            setUser(updatedUser);
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+          }
         }
       } catch (e) {}
     }, 30000); // đổi thành 30s
@@ -390,10 +425,10 @@ export default function Header() {
                 <span
                   style={{ color: "#e2e8f0", fontSize: 15, fontWeight: 400 }}
                 >
-                  {user?.email ||
+                  {user?.fullName ||
                     user?.name ||
-                    user?.fullName ||
                     user?.username ||
+                    user?.email ||
                     "Người dùng"}
                 </span>
               </div>

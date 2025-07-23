@@ -12,6 +12,7 @@ import {
   Col,
   Switch,
   Modal,
+  Card,
 } from "antd";
 import { PlusOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
@@ -137,21 +138,18 @@ export default function LandlordAddRoomPage() {
           <LandlordSidebar />
         )}
       </Sider>
-      <Layout style={{ marginTop: 20, marginLeft: 15 }}>
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <div style={{
-            width: '100%',
-            maxWidth: 1500,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            margin: '24px 0 16px 0',
-            padding: '0 16px'
-          }}>
+      <Layout>
+        <Content
+          style={{
+            padding: "24px",
+            paddingTop: "32px",
+            background: "#fff",
+            borderRadius: 8,
+          }}
+        >
+          <div style={{ marginBottom: 24 }}>
             <Button
-              type="link"
               icon={<ArrowLeftOutlined />}
-              style={{ fontSize: 16 }}
               onClick={() => {
                 if (
                   user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
@@ -162,29 +160,30 @@ export default function LandlordAddRoomPage() {
                   navigate("/landlord/rooms");
                 }
               }}
+              style={{ marginBottom: 16 }}
             >
               Quay lại danh sách phòng
             </Button>
-            <h2 style={{ margin: 0, fontWeight: 600, fontSize: 26 }}>Thêm phòng</h2>
-            <div style={{ width: 180 }} />
+            <PageHeader title="Thêm phòng" />
           </div>
-        </div>
-        <Content style={{ padding: "24px" }}>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 120px)' }}>
-            <div style={{ width: '100%', maxWidth: 1500, background: '#fff', padding: 32, borderRadius: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-              <Form
-                layout="vertical"
-                form={form}
-                onFinish={handleFinish}
-                initialValues={{
-                  area: 20,
-                  price: 1000000,
-                  numberOfBedrooms: 1,
-                  numberOfBathrooms: 1,
-                  roomStatus: "Available",
-                  isActive: true,
-                }}
-              >
+          
+          <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+            <div style={{ display: "flex", gap: 24, flexWrap: 'wrap', alignItems: 'stretch', justifyContent: 'center' }}>
+                            <Card title="Thông tin phòng" style={{ flex: 1, minWidth: '500px', textAlign: 'left', minHeight: '450px' }}>
+                <div style={{ padding: '8px 0' }}>
+                  <Form
+                    layout="vertical"
+                    form={form}
+                    onFinish={handleFinish}
+                    initialValues={{
+                      area: 20,
+                      price: 1000000,
+                      numberOfBedrooms: 1,
+                      numberOfBathrooms: 1,
+                      roomStatus: "Available",
+                      isActive: true,
+                    }}
+                  >
                 <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item
@@ -283,39 +282,68 @@ export default function LandlordAddRoomPage() {
                       <Switch checkedChildren="Đang hoạt động" unCheckedChildren="Ngừng hoạt động" />
                     </Form.Item>
                   </Col>
-                  <Col span={24}>
-                    <Form.Item name="description" label="Mô tả">
-                      <TextArea rows={2} placeholder="Nhập mô tả..." />
-                    </Form.Item>
-                  </Col>
-                  <Col span={24}>
-                    <Form.Item label="Hình ảnh">
-                      <Upload
-                        listType="picture-card"
-                        fileList={fileList}
-                        onChange={handleUploadChange}
-                        beforeUpload={() => false}
-                        multiple
-                        maxCount={8}
-                        accept="image/*"
-                      >
-                        {fileList.length < 8 && (
-                          <div>
-                            <PlusOutlined />
-                            <div style={{ marginTop: 8 }}>Tải lên</div>
-                          </div>
-                        )}
-                      </Upload>
-                    </Form.Item>
-                  </Col>
-                </Row>
-                <Form.Item>
-                  <Button type="primary" htmlType="submit" loading={loading}>
-                    Thêm phòng
-                  </Button>
+                                </Row>
+                  </Form>
+                </div>
+              </Card>
+
+            <Card title="Mô tả & Hình ảnh" style={{ flex: 1, minWidth: '400px', textAlign: 'left', minHeight: '450px' }}>
+              <div style={{ padding: '8px 0' }}>
+                <Form.Item name="description" label="Mô tả phòng">
+                  <TextArea rows={3} placeholder="Nhập mô tả chi tiết về phòng..." />
                 </Form.Item>
-              </Form>
-            </div>
+                
+                <div style={{ marginTop: 16 }}>
+                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                    Hình ảnh phòng (tối đa 8 ảnh):
+                  </label>
+                  <Upload
+                    listType="picture-card"
+                    fileList={fileList}
+                    onChange={handleUploadChange}
+                    beforeUpload={() => false}
+                    multiple
+                    maxCount={8}
+                    accept="image/*"
+                  >
+                    {fileList.length < 8 && (
+                      <div>
+                        <PlusOutlined />
+                        <div style={{ marginTop: 8 }}>Tải lên</div>
+                      </div>
+                    )}
+                  </Upload>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          <Card style={{ marginTop: 24, textAlign: 'center' }}>
+            <Button 
+              type="primary" 
+              loading={loading} 
+              size="large"
+              style={{ marginRight: 16 }}
+              onClick={() => form.submit()}
+            >
+              Thêm phòng
+            </Button>
+            <Button 
+              size="large"
+              onClick={() => {
+                if (
+                  user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
+                  user?.role?.roleName?.toUpperCase?.() === "SUBADMIN"
+                ) {
+                  navigate("/admin/rooms");
+                } else {
+                  navigate("/landlord/rooms");
+                }
+              }}
+            >
+              Hủy bỏ
+            </Button>
+          </Card>
           </div>
         </Content>
       </Layout>

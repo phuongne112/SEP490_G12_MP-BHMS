@@ -36,6 +36,7 @@ export default function PermissionTable({
   onEditPermission,
   onDeletePermission,
   refreshKey,
+  onTotalChange,
 }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -61,6 +62,7 @@ export default function PermissionTable({
 
       setData(result);
       setPagination({ current: page, total, pageSize });
+      if (onTotalChange) onTotalChange(total);
       if (onPageChange) onPageChange(page);
     } catch (err) {
       console.error("Lỗi khi tải danh sách quyền:", err);

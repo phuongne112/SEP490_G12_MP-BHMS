@@ -40,6 +40,7 @@ export default function UserTable({
   filters,
   onEdit,
   refreshKey,
+  onTotalChange,
 }) {
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ current: 1, total: 0 });
@@ -79,6 +80,7 @@ export default function UserTable({
       );
 
       setPagination({ current: page, total });
+      if (onTotalChange) onTotalChange(total);
     } catch (err) {
       message.error("Không thể tải danh sách người dùng");
     } finally {

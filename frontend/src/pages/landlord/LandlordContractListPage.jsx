@@ -636,78 +636,128 @@ export default function LandlordContractListPage() {
         <LandlordSidebar />
       </Sider>
       <Layout>
-        <Content style={{ padding: 24 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <PageHeader title="Danh sách hợp đồng" />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Popover
-                content={<ContractFilterPopover onApply={handleFilterApply} rooms={roomContracts} tenants={allRenters} />}
-                title="Bộ lọc hợp đồng"
-                trigger="click"
-                open={filterVisible}
-                onOpenChange={setFilterVisible}
-                placement="bottomRight"
-              >
-                <Button icon={<FilterOutlined />}>Bộ lọc</Button>
-              </Popover>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {lastUpdated && (
-                  <span style={{ fontSize: '12px', color: '#666' }}>
-                    Cập nhật: {lastUpdated.toLocaleTimeString('vi-VN')}
-                  </span>
-                )}
+        <Content style={{ padding: 24, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+          {/* Header Section */}
+          <div style={{ 
+            background: 'white', 
+            padding: 20, 
+            borderRadius: 8, 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            marginBottom: 20
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <PageHeader title="Danh sách hợp đồng" style={{ margin: 0, padding: 0 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Popover
+                  content={<ContractFilterPopover onApply={handleFilterApply} rooms={roomContracts} tenants={allRenters} />}
+                  title="Bộ lọc hợp đồng"
+                  trigger="click"
+                  open={filterVisible}
+                  onOpenChange={setFilterVisible}
+                  placement="bottomRight"
+                >
+                  <Button icon={<FilterOutlined />} type="default">Bộ lọc</Button>
+                </Popover>
+                <Button onClick={() => { setFilter({}); setFilterVisible(false); setCurrentPage(1); }} type="default">
+                  Xóa lọc
+                </Button>
                 <Button
-                  size="small"
                   onClick={refreshData}
                   loading={loading}
                   icon={<ReloadOutlined />}
                   title="Làm mới dữ liệu"
+                  type="primary"
+                  size="default"
+                >
+                  Làm mới
+                </Button>
+              </div>
+            </div>
+            
+            {/* Status bar */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              borderTop: '1px solid #f0f0f0',
+              paddingTop: 12,
+              fontSize: 14
+            }}>
+              <div style={{ color: '#666' }}>
+                Hiển thị
+                <Select
+                  style={{ width: 120, margin: "0 8px" }}
+                  value={pageSize}
+                  onChange={value => {
+                    setPageSize(value);
+                    setCurrentPage(1);
+                    fetchRoomsAndLatestContracts(1, value);
+                  }}
+                  options={pageSizeOptions.map((v) => ({ value: v, label: `${v} / trang` }))}
                 />
-                <Button onClick={() => { setFilter({}); setFilterVisible(false); setCurrentPage(1); }}>Xóa lọc</Button>
+                mục
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                {lastUpdated && (
+                  <span style={{ fontSize: '12px', color: '#999' }}>
+                    Cập nhật: {lastUpdated.toLocaleTimeString('vi-VN')}
+                  </span>
+                )}
+                <span style={{ fontWeight: 500, color: "#1890ff" }}>
+                  Tổng: {total} hợp đồng
+                </span>
               </div>
             </div>
           </div>
-          <div style={{ height: 16 }} />
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <div>
-              Hiển thị
-              <Select
-                style={{ width: 120, margin: "0 8px" }}
-                value={pageSize}
-                onChange={value => {
-                  setPageSize(value);
-                  setCurrentPage(1);
-                  fetchRoomsAndLatestContracts(1, value);
-                }}
-                options={pageSizeOptions.map((v) => ({ value: v, label: `${v} / trang` }))}
-              />
-              mục
-            </div>
-            <div style={{ fontWeight: 400, color: "#888" }}>
-              Tổng: {total} hợp đồng
-            </div>
+          
+          {/* Main Table Section */}
+          <div style={{ 
+            background: 'white', 
+            borderRadius: 8, 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            overflow: 'hidden'
+          }}>
+            <ContractTable
+              rooms={roomContracts}
+              onExport={handleExport}
+              onDelete={handleDelete}
+              onUpdate={handleUpdateContract}
+              onRenew={handleRenewContract}
+              onViewAmendments={handleViewAmendments}
+              onTerminate={handleTerminateContract}
+              onViewDetail={contract => { setDetailContract(contract); setDetailModalOpen(true); }}
+              loading={loading || updating}
+              pageSize={pageSize}
+              currentPage={currentPage}
+              total={total}
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                fetchRoomsAndLatestContracts(page, pageSize);
+              }}
+            />
           </div>
-          <ContractTable
-            rooms={roomContracts}
-            onExport={handleExport}
-            onDelete={handleDelete}
-            onUpdate={handleUpdateContract}
-            onRenew={handleRenewContract}
-            onViewAmendments={handleViewAmendments}
-            onTerminate={handleTerminateContract}
-            onViewDetail={contract => { setDetailContract(contract); setDetailModalOpen(true); }}
-            loading={loading || updating}
-            pageSize={pageSize}
-            currentPage={currentPage}
-            total={total}
-            onPageChange={(page) => {
-              setCurrentPage(page);
-              fetchRoomsAndLatestContracts(page, pageSize);
-            }}
-          />
-          <Modal open={renewModalOpen} onCancel={() => setRenewModalOpen(false)} onOk={doRenewContract} okText="Gia hạn hợp đồng" confirmLoading={updating} title="Gia hạn hợp đồng">
-            <div>Chọn ngày kết thúc mới:</div>
-            <DatePicker value={renewDate} onChange={setRenewDate} style={{ width: '100%', marginTop: 8 }} format="DD/MM/YYYY" placeholder="Chọn ngày" />
+          <Modal 
+            open={renewModalOpen} 
+            onCancel={() => setRenewModalOpen(false)} 
+            onOk={doRenewContract} 
+            okText="Gia hạn hợp đồng" 
+            confirmLoading={updating} 
+            title="Gia hạn hợp đồng"
+            width={500}
+          >
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 8, color: '#262626' }}>
+                📅 Chọn ngày kết thúc mới:
+              </div>
+              <DatePicker 
+                value={renewDate} 
+                onChange={setRenewDate} 
+                style={{ width: '100%' }} 
+                format="DD/MM/YYYY" 
+                placeholder="Chọn ngày kết thúc mới" 
+                size="large"
+              />
+            </div>
           </Modal>
           <Modal open={updateModalOpen} onCancel={() => setUpdateModalOpen(false)} onOk={doUpdateContract} okText="Cập nhật hợp đồng" confirmLoading={updating} title="Cập nhật hợp đồng">
             <div style={{ marginBottom: 8 }}>Lý do cập nhật:</div>
@@ -928,6 +978,18 @@ export default function LandlordContractListPage() {
                         <Tag color="red">Có người từ chối</Tag>
                       )}
                     </div>
+                    
+                    {/* Hiển thị lý do từ chối khi có */}
+                    {item.status === 'REJECTED' && item.reason && (
+                      <div style={{ marginTop: 12, padding: 12, backgroundColor: '#fff2f0', border: '1px solid #ffccc7', borderRadius: 6 }}>
+                        <div style={{ fontWeight: 600, color: '#cf1322', marginBottom: 4 }}>
+                          🚫 Lý do từ chối:
+                        </div>
+                        <div style={{ color: '#8c8c8c', fontStyle: 'italic', lineHeight: 1.4 }}>
+                          "{item.reason}"
+                        </div>
+                      </div>
+                    )}
                     {/* Chỉ hiển thị nút duyệt/từ chối khi: PENDING + landlord chưa duyệt + chưa ai từ chối */}
                     {item.status === 'PENDING' && !item.approvedByLandlord && (!item.rejectedBy || item.rejectedBy.length === 0) && (
                       <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
@@ -998,16 +1060,39 @@ export default function LandlordContractListPage() {
             onCancel={() => { setRejectModalOpen(false); setRejectingId(null); setRejectReason(""); }}
             onOk={doRejectAmendment}
             okText="Xác nhận từ chối"
+            okType="danger"
             title="Lý do từ chối thay đổi hợp đồng"
             confirmLoading={rejectLoading}
+            width={600}
           >
-            <div>Vui lòng nhập lý do từ chối:</div>
-            <Input.TextArea
-              value={rejectReason}
-              onChange={e => setRejectReason(e.target.value)}
-              rows={3}
-              style={{ width: '100%', marginTop: 8 }}
-            />
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ 
+                padding: 12, 
+                backgroundColor: '#fff7e6', 
+                border: '1px solid #ffd591', 
+                borderRadius: 6,
+                marginBottom: 16,
+                borderLeft: '4px solid #fa8c16'
+              }}>
+                <div style={{ fontSize: 14, color: '#d46b08', marginBottom: 4, fontWeight: 500 }}>
+                  ⚠️ Lưu ý:
+                </div>
+                <div style={{ fontSize: 13, color: '#8c8c8c' }}>
+                  Vui lòng nhập lý do cụ thể để bên kia hiểu và có thể điều chỉnh đề xuất phù hợp.
+                </div>
+              </div>
+              
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 8, color: '#262626' }}>
+                📝 Lý do từ chối:
+              </div>
+              <Input.TextArea
+                value={rejectReason}
+                onChange={e => setRejectReason(e.target.value)}
+                rows={4}
+                placeholder="VD: Thời gian không phù hợp, mức giá chưa hợp lý, điều khoản cần điều chỉnh..."
+                style={{ fontSize: 14 }}
+              />
+            </div>
           </Modal>
         </Content>
       </Layout>

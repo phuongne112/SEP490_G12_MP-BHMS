@@ -161,6 +161,18 @@ export default function RenterContractListPage() {
                       <div style={{ color: '#0a0', fontSize: 13, fontWeight: 500 }}>
                         Đã duyệt: {approved} / {total}
                       </div>
+                      
+                      {/* Hiển thị lý do từ chối khi có */}
+                      {item.status === 'REJECTED' && item.reason && (
+                        <div style={{ marginTop: 8, padding: 8, backgroundColor: '#fff2f0', border: '1px solid #ffccc7', borderRadius: 4 }}>
+                          <div style={{ fontWeight: 600, color: '#cf1322', marginBottom: 4, fontSize: 12 }}>
+                            🚫 Lý do từ chối:
+                          </div>
+                          <div style={{ color: '#8c8c8c', fontStyle: 'italic', fontSize: 11 }}>
+                            "{item.reason}"
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </List.Item>
                 );
