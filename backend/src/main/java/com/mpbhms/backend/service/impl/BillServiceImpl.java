@@ -820,6 +820,39 @@ public class BillServiceImpl implements BillService {
         return billRepository.findDistinctByContract_RoomUsers_User_Id(userId, pageable);
     }
 
+    @Override
+    public long countUnpaid() {
+        return billRepository.countByStatusFalse();
+    }
+    @Override
+    public long countPaid() {
+        return billRepository.countByStatusTrue();
+    }
+    @Override
+    public long countOverdue() {
+        return billRepository.countOverdue(Instant.now());
+    }
+
+    @Override
+    public BigDecimal getTotalRevenue() {
+        return billRepository.getTotalRevenue();
+    }
+    @Override
+    public java.util.List<com.mpbhms.backend.dto.RevenueMonthDTO> getRevenueByMonth(int months) {
+        java.time.Instant from = java.time.LocalDate.now().minusMonths(months-1).withDayOfMonth(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+        java.util.List<Object[]> raw = billRepository.getRevenueByMonth(from);
+        java.util.List<com.mpbhms.backend.dto.RevenueMonthDTO> result = new java.util.ArrayList<>();
+        for (Object[] row : raw) {
+            result.add(new com.mpbhms.backend.dto.RevenueMonthDTO((String)row[0], (java.math.BigDecimal)row[1]));
+        }
+        return result;
+    }
+
+    @Override
+    public BigDecimal getMonthRevenue(String month) {
+        return billRepository.getMonthRevenue(month);
+    }
+
     // Gửi notification cho từng user trong phòng ứng với hợp đồng khi gửi bill
     private void sendBillNotificationToAllUsers(Bill bill) {
         Contract contract = bill.getContract();

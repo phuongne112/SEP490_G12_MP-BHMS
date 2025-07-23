@@ -161,4 +161,23 @@ public class BillController {
             return ResponseEntity.status(500).body("Không gửi được email cho người thuê nào!");
         }
     }
+
+    @GetMapping("/dashboard-stats")
+    public Map<String, Object> getBillDashboardStats() {
+        long unpaid = billService.countUnpaid();
+        long paid = billService.countPaid();
+        long overdue = billService.countOverdue();
+        BigDecimal revenue = billService.getTotalRevenue();
+        var revenueByMonth = billService.getRevenueByMonth(6);
+        String thisMonth = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM"));
+        BigDecimal monthRevenue = billService.getMonthRevenue(thisMonth);
+        return Map.of(
+            "unpaid", unpaid,
+            "paid", paid,
+            "overdue", overdue,
+            "revenue", revenue,
+            "revenueByMonth", revenueByMonth,
+            "monthRevenue", monthRevenue
+        );
+    }
 }

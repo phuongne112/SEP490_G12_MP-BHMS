@@ -3,6 +3,7 @@ import {
   HomeOutlined,
   FileTextOutlined,
   DollarOutlined,
+  DashboardOutlined,
 } from "@ant-design/icons";
 import Sidebar from "./Sidebar";
 import { useSelector } from "react-redux";
@@ -13,6 +14,12 @@ export default function RenterSidebar() {
   const location = useLocation();
 
   const renterMenu = [
+    {
+      key: "/renter/dashboard",
+      icon: <DashboardOutlined />,
+      label: "Tổng quan",
+      path: "/renter/dashboard",
+    },
     {
       key: "/renter/room",
       icon: <HomeOutlined />,

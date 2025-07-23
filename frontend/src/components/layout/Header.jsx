@@ -334,6 +334,9 @@ export default function Header() {
                   }, 400);
                 }
               }
+              if (label === "Giới thiệu") {
+                navigate("/about");
+              }
             }}
           >
             {label}

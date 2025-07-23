@@ -9,6 +9,7 @@ import com.mpbhms.backend.dto.BillDetailResponse;
 import java.time.LocalDate;
 import java.util.List;
 import java.math.BigDecimal;
+import com.mpbhms.backend.dto.RevenueMonthDTO;
 
 public interface BillService {
     // Tạo bill bất kỳ theo fromDate/toDate
@@ -35,4 +36,11 @@ public interface BillService {
     byte[] generateBillPdf(Long billId);
 
     Page<Bill> getBillsByUserId(Long userId, Pageable pageable);
+
+    long countUnpaid();
+    long countPaid();
+    long countOverdue();
+    java.math.BigDecimal getTotalRevenue();
+    java.util.List<com.mpbhms.backend.dto.RevenueMonthDTO> getRevenueByMonth(int months);
+    java.math.BigDecimal getMonthRevenue(String month);
 }
