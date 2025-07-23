@@ -29,6 +29,7 @@ import {
   deleteBill,
   exportBillPdf,
   sendBillToRenter,
+  bulkGenerateBills,
 } from "../../services/billApi";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
@@ -96,6 +97,7 @@ export default function LandlordBillListPage() {
   const [pageSize, setPageSize] = useState(5);
   const pageSizeOptions = [5, 10, 20, 50];
   const [filterOpen, setFilterOpen] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
   const navigate = useNavigate();
 
   const fetchBills = async (page = currentPage, size = pageSize) => {
@@ -170,6 +172,24 @@ export default function LandlordBillListPage() {
     setFilter(newFilter);
     setCurrentPage(1);
     setFilterOpen(false);
+  };
+
+  const handleBulkGenerate = async () => {
+    setBulkLoading(true);
+    try {
+      const result = await bulkGenerateBills();
+      if (result.success) {
+        message.success(`🎉 ${result.message}! Đã tạo ${result.count} hóa đơn mới.`);
+        fetchBills(); // Refresh danh sách
+      } else {
+        message.error(result.message || "Có lỗi xảy ra");
+      }
+    } catch (err) {
+      console.error("Bulk generate error:", err);
+      message.error("Lỗi khi tạo hóa đơn tự động: " + (err.response?.data?.message || err.message));
+    } finally {
+      setBulkLoading(false);
+    }
   };
 
   const formatCurrency = (amount) => {
@@ -388,6 +408,19 @@ export default function LandlordBillListPage() {
                 onClick={() => navigate("/landlord/bills/create")}
               >
                 Thêm hóa đơn
+              </Button>
+              <Button
+                type="default"
+                style={{ 
+                  background: '#52c41a', 
+                  borderColor: '#52c41a', 
+                  color: '#fff',
+                  fontWeight: 'bold'
+                }}
+                loading={bulkLoading}
+                onClick={handleBulkGenerate}
+              >
+                🚀 Tạo Hóa Đơn Tự Động
               </Button>
             </Space>
           </div>

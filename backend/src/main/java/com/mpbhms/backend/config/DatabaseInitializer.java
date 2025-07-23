@@ -129,6 +129,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Generate", "/mpbhms/bills/service-bill", "POST", "Bill"));
             permissions.add(new Permission("Export Bill", "/mpbhms/bills/{id}/export", "GET", "Bill"));
             permissions.add(new Permission("Send bill to Email", "/mpbhms/bills/send-email/{billId}", "POST", "Bill"));
+            permissions.add(new Permission("Bulk Generate Bills", "/mpbhms/bills/bulk-generate", "POST", "Bill"));
             //Renter
             permissions.add(new Permission("Get Renter List", "/mpbhms/renters", "GET", "Renter"));
             permissions.add(new Permission("Create new Renter", "/mpbhms/renters", "POST", "Renter"));

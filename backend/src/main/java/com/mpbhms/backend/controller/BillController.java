@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import com.mpbhms.backend.service.EmailService;
@@ -125,6 +126,28 @@ public class BillController {
 
         // Tạo Bill và BillDetail qua service (service đã xử lý đúng thứ tự và cascade)
         return billService.createCustomBill(roomId, name, description, amount, fromDate, toDate);
+    }
+
+    @PostMapping("/bulk-generate")
+    public ResponseEntity<?> bulkGenerateBills() {
+        try {
+            List<BillResponse> generatedBills = billService.bulkGenerateBills();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Đã tạo " + generatedBills.size() + " hóa đơn mới");
+            response.put("generatedBills", generatedBills);
+            response.put("count", generatedBills.size());
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Lỗi khi tạo hóa đơn: " + e.getMessage());
+            errorResponse.put("count", 0);
+            
+            return ResponseEntity.status(500).body(errorResponse);
+        }
     }
 
     @PostMapping("/send-email/{billId}")
