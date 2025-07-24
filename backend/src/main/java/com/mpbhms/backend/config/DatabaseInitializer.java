@@ -129,6 +129,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Generate", "/mpbhms/bills/service-bill", "POST", "Bill"));
             permissions.add(new Permission("Export Bill", "/mpbhms/bills/{id}/export", "GET", "Bill"));
             permissions.add(new Permission("Send bill to Email", "/mpbhms/bills/send-email/{billId}", "POST", "Bill"));
+            permissions.add(new Permission("Dashboard Bill Stats", "/mpbhms/bills/dashboard-stats", "GET", "Bill"));
             permissions.add(new Permission("Bulk Generate Bills", "/mpbhms/bills/bulk-generate", "POST", "Bill"));
             //Renter
             permissions.add(new Permission("Get Renter List", "/mpbhms/renters", "GET", "Renter"));
@@ -228,6 +229,12 @@ public class DatabaseInitializer implements CommandLineRunner {
             Permission getMyContracts = permissionRepository.findByModuleAndApiPathAndMethod("Contract", "/mpbhms/contracts/my-contracts", "GET");
             if (getMyContracts != null) renterPermission.add(getMyContracts);
 
+            // Get My Room permission
+            Permission getMyRoom = permissionRepository.findByModuleAndApiPathAndMethod("RoomUser", "/mpbhms/room-users/my-room", "GET");
+            if (getMyRoom != null && !renterPermission.contains(getMyRoom)) {
+                renterPermission.add(getMyRoom);
+            }
+
             Permission approveAmendment = permissionRepository.findByModuleAndApiPathAndMethod("RoomUser", "/mpbhms/room-users/approve-amendment/{amendmentId}", "POST");
             if (approveAmendment != null) renterPermission.add(approveAmendment);
 
@@ -252,6 +259,12 @@ public class DatabaseInitializer implements CommandLineRunner {
             if (getBillById != null) renterPermission.add(getBillById);
             Permission getMyBills = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/my", "GET");
             if (getMyBills != null && !renterPermission.contains(getMyBills)) renterPermission.add(getMyBills);
+
+            // Dashboard Bill Stats permission
+            Permission dashboardBillStats = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/dashboard-stats", "GET");
+            if (dashboardBillStats != null && !renterPermission.contains(dashboardBillStats)) {
+                renterPermission.add(dashboardBillStats);
+            }
             //Payment
             Permission createVnpayUrl = permissionRepository.findByModuleAndApiPathAndMethod("Payment", "/mpbhms/payment/create-vnpay-url", "POST");
             if (createVnpayUrl != null) renterPermission.add(createVnpayUrl);
@@ -328,6 +341,11 @@ public class DatabaseInitializer implements CommandLineRunner {
             Permission sendNotification = permissionRepository.findByModuleAndApiPathAndMethod("Notification", "/mpbhms/notifications/send", "POST");
             if (sendNotification != null && !landlordPermission.contains(sendNotification)) {
                 landlordPermission.add(sendNotification);
+            }
+            // Đảm bảo LANDLORD có quyền xem dashboard-stats
+            Permission dashboardStats = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/dashboard-stats", "GET");
+            if (dashboardStats != null && !landlordPermission.contains(dashboardStats)) {
+                landlordPermission.add(dashboardStats);
             }
             landlordRole.setPermissionEntities(landlordPermission);
             roleRepository.save(landlordRole);
