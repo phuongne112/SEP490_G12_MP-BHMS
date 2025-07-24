@@ -60,10 +60,13 @@ public class AuthController {
 
             // Gán thông tin vào DTO response
             LoginDTOResponse loginDTOResponse = new LoginDTOResponse();
+            String fullName = currentUserDB.getUserInfo() != null ? 
+                            currentUserDB.getUserInfo().getFullName() : null;
             LoginDTOResponse.UserLogin userLogin = new LoginDTOResponse.UserLogin(
                     currentUserDB.getId(),
                     currentUserDB.getEmail(),
                     currentUserDB.getUsername(),
+                    fullName,
                     currentUserDB.getRole()
             );
             loginDTOResponse.setUser(userLogin);
@@ -112,6 +115,8 @@ public class AuthController {
                 userLogin.setId(currentUserDB.getId());
                 userLogin.setEmail(currentUserDB.getEmail());
                 userLogin.setName(currentUserDB.getUsername());
+                userLogin.setFullName(currentUserDB.getUserInfo() != null ? 
+                                    currentUserDB.getUserInfo().getFullName() : null);
                 userLogin.setRole(currentUserDB.getRole());
                 userGetAccount.setUser(userLogin);
             }
@@ -141,10 +146,13 @@ public class AuthController {
             LoginDTOResponse loginDTOResponse = new LoginDTOResponse();
 
             // Bổ sung thông tin user
+            String fullName = currentUser.getUserInfo() != null ? 
+                            currentUser.getUserInfo().getFullName() : null;
             LoginDTOResponse.UserLogin userLogin = new LoginDTOResponse.UserLogin(
                     currentUser.getId(),
                     currentUser.getEmail(),
                     currentUser.getUsername(),
+                    fullName,
                     currentUser.getRole());
             loginDTOResponse.setUser(userLogin);
 

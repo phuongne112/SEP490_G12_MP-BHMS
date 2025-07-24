@@ -80,7 +80,7 @@ function App() {
         dispatch(
           setUser({
             id: user.id,
-            fullName: user.name,
+            fullName: user.fullName || user.name,
             email: user.email,
             role: user.role,
             permissions:

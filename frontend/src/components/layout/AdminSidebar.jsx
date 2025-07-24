@@ -83,7 +83,7 @@ export default function AdminSidebar() {
 
   return (
     <Sidebar
-      name={user?.fullName || "User"}
+      name={user?.fullName || user?.name || user?.email || "User"}
       avatar="https://i.pravatar.cc/40?img=1"
       menuItems={menuItems}
       defaultKey="/admin/users"
