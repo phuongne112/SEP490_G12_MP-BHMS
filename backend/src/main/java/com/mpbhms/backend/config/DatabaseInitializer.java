@@ -234,6 +234,9 @@ public class DatabaseInitializer implements CommandLineRunner {
             Permission rejectAmendment = permissionRepository.findByModuleAndApiPathAndMethod("RoomUser", "/mpbhms/room-users/reject-amendment/{amendmentId}", "POST");
             if (rejectAmendment != null) renterPermission.add(rejectAmendment);
 
+            Permission myRoomPermission = permissionRepository.findByModuleAndApiPathAndMethod("RoomUser", "/mpbhms/room-users/my-room", "GET");
+            if (myRoomPermission != null) renterPermission.add(myRoomPermission);
+
             Permission getContractAmendments = permissionRepository.findByModuleAndApiPathAndMethod("RoomUser", "/mpbhms/room-users/contract-amendments/{contractId}", "GET");
             if (getContractAmendments != null) renterPermission.add(getContractAmendments);
             // Asset
@@ -252,6 +255,9 @@ public class DatabaseInitializer implements CommandLineRunner {
             if (getBillById != null) renterPermission.add(getBillById);
             Permission getMyBills = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/my", "GET");
             if (getMyBills != null && !renterPermission.contains(getMyBills)) renterPermission.add(getMyBills);
+            Permission exportBill = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/{id}/export", "GET");
+            if (exportBill != null) renterPermission.add(exportBill);
+
             //Payment
             Permission createVnpayUrl = permissionRepository.findByModuleAndApiPathAndMethod("Payment", "/mpbhms/payment/create-vnpay-url", "POST");
             if (createVnpayUrl != null) renterPermission.add(createVnpayUrl);
