@@ -53,34 +53,46 @@ export default function RenterCheckinAssetPage() {
   const [notes, setNotes] = useState({});
   const [actualStatusState, setActualStatusState] = useState({});
   const [enoughState, setEnoughState] = useState({});
+  const [checkedAssets, setCheckedAssets] = useState({}); // assetId: true nếu đã checkin
   const location = useLocation();
 
   useEffect(() => {
     const roomId = location.state?.roomId;
     const roomNumber = location.state?.roomNumber;
+    const contractId = Number(location.state?.contractId) || null;
     if (roomId) {
       setLoading(true);
-      import('../../services/assetApi').then(({ getAssetsByRoom }) => {
-        getAssetsByRoom(roomId).then(res => {
-          const assets = res.data || [];
-          setAssets(assets);
-          setLoading(false);
-        }).catch(() => {
-          setAssets([]);
-          setLoading(false);
-        });
+      import('../../services/assetApi').then(async ({ getAssetsByRoom }) => {
+        const res = await getAssetsByRoom(roomId);
+        const assets = res.data || [];
+        setAssets(assets);
+        // Fetch lịch sử kiểm kê
+        if (contractId && roomNumber) {
+          const historyRes = await getAssetInventoryByRoomAndContract(roomNumber, contractId);
+          const checked = {};
+          (historyRes.data || []).forEach(item => {
+            if (item.type === 'CHECKIN') checked[item.assetId] = true;
+          });
+          setCheckedAssets(checked);
+        }
+        setLoading(false);
       });
     } else if (roomNumber) {
       setLoading(true);
-      import('../../services/assetApi').then(({ getAssetsByRoomNumber }) => {
-        getAssetsByRoomNumber(roomNumber).then(res => {
-          const assets = res.data || [];
-          setAssets(assets);
-          setLoading(false);
-        }).catch(() => {
-          setAssets([]);
-          setLoading(false);
-        });
+      import('../../services/assetApi').then(async ({ getAssetsByRoomNumber }) => {
+        const res = await getAssetsByRoomNumber(roomNumber);
+        const assets = res.data || [];
+        setAssets(assets);
+        // Fetch lịch sử kiểm kê
+        if (contractId && roomNumber) {
+          const historyRes = await getAssetInventoryByRoomAndContract(roomNumber, contractId);
+          const checked = {};
+          (historyRes.data || []).forEach(item => {
+            if (item.type === 'CHECKIN') checked[item.assetId] = true;
+          });
+          setCheckedAssets(checked);
+        }
+        setLoading(false);
       });
     } else {
       setAssets([]);
@@ -89,11 +101,10 @@ export default function RenterCheckinAssetPage() {
   }, [location.state]);
 
   const statusOptions = [
-    { label: "Tốt", value: "Good" },
-    { label: "Hỏng", value: "Broken" },
-    { label: "Thiếu", value: "Missing" },
-    { label: "Đủ", value: "Enough" },
-    { label: "Khác", value: "Other" },
+    { label: "Tốt", value: "Tốt" },
+    { label: "Hư hỏng", value: "Hư hỏng" },
+    { label: "Mất", value: "Mất" },
+    { label: "Bảo trì", value: "Bảo trì" },
   ];
 
   const handleActualStatusChange = (id, value) => {
@@ -111,20 +122,36 @@ export default function RenterCheckinAssetPage() {
     setConfirming(true);
     const contractId = Number(location.state?.contractId) || null;
     const roomId = location.state?.roomId || null;
-    const result = assets.map(asset => ({
+    const roomNumber = location.state?.roomNumber || null;
+    // Chỉ gửi asset chưa checkin
+    const result = assets.filter(asset => !checkedAssets[asset.assetId || asset.id]).map(asset => ({
       assetId: asset.assetId || asset.id,
       contractId,
       roomId,
+      roomNumber,
       status: actualStatusState[asset.assetId || asset.id] || asset.status,
       isEnough: enoughState[asset.assetId || asset.id] !== undefined ? enoughState[asset.assetId || asset.id] : true,
       note: notes[asset.assetId || asset.id] !== undefined ? notes[asset.assetId || asset.id] : asset.note || "",
       type: "CHECKIN"
     }));
+    if (result.length === 0) {
+      message.info("Tất cả tài sản đã được kiểm kê!");
+      setConfirming(false);
+      return;
+    }
     try {
       await axiosClient.post('/asset-inventory/checkin', result);
       message.success("Đã lưu kiểm kê tài sản thành công!");
+      // Cập nhật lại checkedAssets
+      const newChecked = { ...checkedAssets };
+      result.forEach(a => { newChecked[a.assetId] = true; });
+      setCheckedAssets(newChecked);
     } catch (err) {
-      message.error("Lỗi khi lưu kiểm kê tài sản!");
+      if (err.response?.data?.message?.includes('đã được kiểm kê')) {
+        message.error("Có tài sản đã được kiểm kê, vui lòng tải lại trang!");
+      } else {
+        message.error("Lỗi khi lưu kiểm kê tài sản!");
+      }
     }
     setConfirming(false);
   };
@@ -144,23 +171,15 @@ export default function RenterCheckinAssetPage() {
     },
     {
       title: "Tình trạng",
-      dataIndex: "assetStatus",
-      key: "assetStatus",
-      align: "center",
-      render: (cond) => (
-        <Tag color={cond === "Good" ? "green" : "orange"}>{cond === "Good" ? "Tốt" : "Khác"}</Tag>
-      ),
-    },
-    {
-      title: "Trạng thái thực tế",
-      dataIndex: "actualStatus",
-      key: "actualStatus",
+      dataIndex: "status",
+      key: "status",
       render: (_, record) => (
         <Select
-          value={actualStatusState[record.id] || record.assetStatus}
+          value={actualStatusState[record.id] || record.status}
           options={statusOptions}
           onChange={val => handleActualStatusChange(record.id, val)}
           style={{ width: 120 }}
+          disabled={checkedAssets[record.assetId || record.id]}
         />
       ),
     },
@@ -173,6 +192,7 @@ export default function RenterCheckinAssetPage() {
         <Checkbox
           checked={enoughState[record.id] !== undefined ? enoughState[record.id] : true}
           onChange={e => handleEnoughChange(record.id, e.target.checked)}
+          disabled={checkedAssets[record.assetId || record.id]}
         >
           Đủ
         </Checkbox>
@@ -188,9 +208,15 @@ export default function RenterCheckinAssetPage() {
           onChange={(e) => handleNoteChange(record.id, e.target.value)}
           placeholder="Nhập ghi chú (nếu có)"
           autoSize
+          disabled={checkedAssets[record.assetId || record.id]}
         />
       ),
     },
+    {
+      title: "Trạng thái kiểm kê",
+      key: "checked",
+      render: (_, record) => checkedAssets[record.assetId || record.id] ? <Tag color="green">Đã kiểm kê</Tag> : <Tag color="red">Chưa kiểm kê</Tag>
+    }
   ];
 
   return (

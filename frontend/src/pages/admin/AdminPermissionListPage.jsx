@@ -38,6 +38,7 @@ export default function AdminPermissionListPage() {
   const [filters, setFilters] = useState({ module: "All", method: "All" });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [total, setTotal] = useState(0);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPermission, setEditingPermission] = useState(null);
@@ -152,71 +153,45 @@ export default function AdminPermissionListPage() {
     <Layout style={{ minHeight: "100vh" }}>
       <AdminSidebar />
       <Layout style={{ marginLeft: 220 }}>
-        <Content style={{ padding: "32px" }}>
-          <div
-            style={{
+        <Content style={{ padding: "24px", backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
+          {/* Header Section */}
+          <div style={{ 
+            background: "white", 
+            padding: "20px", 
+            borderRadius: "8px", 
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)", 
+            marginBottom: "20px" 
+          }}>
+            <div style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: 24,
-            }}
-          >
-            <PageHeader title="Danh sách quyền" />
-            {hasCreatePermission && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => {
-                  form.resetFields();
-                  setEditingPermission(null);
-                  setFormError(null);
-                  setIsModalOpen(true);
-                }}
-              >
-                Thêm quyền
-              </Button>
-            )}
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              marginBottom: 24,
-              marginTop: 30,
-            }}
-          >
-            <EntrySelect
-              value={pageSize}
-              onChange={(val) => {
-                setPageSize(val);
-                setCurrentPage(1);
-              }}
-            />
-            <Space align="start" size={30}>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <label style={{ fontSize: 13, marginBottom: 4 }}>Tên</label>
-                <SearchBox
-                  placeholder="Tìm quyền..."
-                  onSearch={(val) => {
-                    setSearch((prev) => ({ ...prev, name: val }));
-                    setCurrentPage(1);
-                  }}
-                />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <label style={{ fontSize: 13, marginBottom: 4 }}>API</label>
-                <SearchBox
-                  placeholder="Nhập API..."
-                  onSearch={(val) => {
-                    setSearch((prev) => ({ ...prev, api: val }));
-                    setCurrentPage(1);
-                  }}
-                />
-              </div>
-              <div style={{ marginTop: 22 }}>
+              marginBottom: "12px"
+            }}>
+              <PageHeader title="Danh sách quyền" style={{ margin: 0, padding: 0 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <label style={{ fontSize: "12px", marginBottom: "2px", color: "#666" }}>Tên</label>
+                    <SearchBox
+                      placeholder="Tìm quyền..."
+                      onSearch={(val) => {
+                        setSearch((prev) => ({ ...prev, name: val }));
+                        setCurrentPage(1);
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <label style={{ fontSize: "12px", marginBottom: "2px", color: "#666" }}>API</label>
+                    <SearchBox
+                      placeholder="Nhập API..."
+                      onSearch={(val) => {
+                        setSearch((prev) => ({ ...prev, api: val }));
+                        setCurrentPage(1);
+                      }}
+                    />
+                  </div>
+                </div>
                 <Popover
                   open={isFilterOpen}
                   onOpenChange={setIsFilterOpen}
@@ -233,13 +208,56 @@ export default function AdminPermissionListPage() {
                 >
                   <Button
                     icon={<FilterOutlined />}
-                    style={{ backgroundColor: "#40a9ff", color: "white" }}
+                    type="default"
                   >
                     Bộ lọc
                   </Button>
                 </Popover>
+                {hasCreatePermission && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => {
+                      form.resetFields();
+                      setEditingPermission(null);
+                      setFormError(null);
+                      setIsModalOpen(true);
+                    }}
+                  >
+                    Thêm quyền
+                  </Button>
+                )}
               </div>
-            </Space>
+            </div>
+            
+            {/* Status bar */}
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "space-between", 
+              alignItems: "center",
+              borderTop: "1px solid #f0f0f0",
+              paddingTop: "12px",
+              fontSize: "14px"
+            }}>
+              <div style={{ color: "#666" }}>
+                Hiển thị
+                <Select
+                  style={{ width: 120, margin: "0 8px" }}
+                  value={pageSize}
+                  onChange={(val) => {
+                    setPageSize(val);
+                    setCurrentPage(1);
+                  }}
+                  options={[5, 10, 20, 50].map((v) => ({ value: v, label: `${v} / trang` }))}
+                />
+                mục
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                <span style={{ fontWeight: 500, color: "#1890ff" }}>
+                  Tổng: {total} quyền
+                </span>
+              </div>
+            </div>
           </div>
 
           {deleteMessage && (
@@ -253,16 +271,25 @@ export default function AdminPermissionListPage() {
             />
           )}
 
-          <PermissionTable
-            pageSize={pageSize}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            search={search}
-            filters={filters}
-            onEditPermission={handleEditPermission}
-            onDeletePermission={handleDeletePermission}
-            refreshKey={refreshKey}
-          />
+          {/* Main Table Section */}
+          <div style={{ 
+            background: "white", 
+            borderRadius: "8px", 
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            overflow: "hidden"
+          }}>
+            <PermissionTable
+              pageSize={pageSize}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+              search={search}
+              filters={filters}
+              onEditPermission={handleEditPermission}
+              onDeletePermission={handleDeletePermission}
+              refreshKey={refreshKey}
+              onTotalChange={setTotal}
+            />
+          </div>
 
           <Modal
             title={editingPermission ? "Cập nhật quyền" : "Tạo quyền mới"}

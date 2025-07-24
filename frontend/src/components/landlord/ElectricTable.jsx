@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Table, Button, Modal, Upload, message, Input } from "antd";
 import { detectElectricOcr, saveElectricReading } from "../../services/electricOcrApi";
 import dayjs from "dayjs";
+import CameraCapture from "../common/CameraCapture";
 
 export default function ElectricTable({
   dataSource = [],
@@ -12,7 +13,6 @@ export default function ElectricTable({
   loading = false,
   onReload = () => {},
   onShowLog,
-  onSaveScanFolder,
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
@@ -21,7 +21,6 @@ export default function ElectricTable({
   const [inputValue, setInputValue] = useState("");
   const [detecting, setDetecting] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [editFolder, setEditFolder] = useState({});
 
   const handleOcrClick = (record) => {
     setSelectedRoom(record);
@@ -29,6 +28,29 @@ export default function ElectricTable({
     setFile(null);
     setOcrResult("");
     setInputValue("");
+  };
+
+  const handleCameraCapture = async (roomId, capturedFile) => {
+    try {
+      // Tự động chạy OCR trên ảnh đã chụp
+      setDetecting(true);
+      const res = await detectElectricOcr(capturedFile);
+      const detectedValue = res.data.data;
+      
+      // Tự động lưu kết quả OCR
+      if (detectedValue) {
+        const valueToSave = detectedValue.split(".")[0];
+        await saveElectricReading(roomId, valueToSave);
+        message.success(`📷 Đã chụp và ghi nhận chỉ số điện: ${detectedValue}`);
+        if (onReload) onReload();
+      } else {
+        message.warning("Không thể đọc được chỉ số từ ảnh, vui lòng thử lại!");
+      }
+    } catch (err) {
+      message.error("Lỗi khi xử lý ảnh chụp: " + (err.response?.data?.message || err.message));
+    } finally {
+      setDetecting(false);
+    }
   };
 
   // Only detect, do not save
@@ -79,40 +101,20 @@ export default function ElectricTable({
     { title: "Chỉ số cũ", dataIndex: "oldReading" },
     { title: "Chỉ số mới", dataIndex: "newReading" },
     {
-      title: "Thư mục quét",
-      dataIndex: "scanFolder",
+      title: "Camera tự động",
+      dataIndex: "autoCapture",
       render: (text, record) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <input
-            type="file"
-            webkitdirectory="true"
-            directory=""
-            style={{ display: 'none' }}
-            id={`folder-picker-${record.roomId}`}
-            onChange={e => {
-              const files = e.target.files;
-              if (files.length > 0) {
-                // Lấy tên folder cha của file đầu tiên
-                const folderName = files[0].webkitRelativePath.split('/')[0];
-                setEditFolder(f => ({ ...f, [record.roomId]: folderName }));
-              }
-            }}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+          <CameraCapture
+            onCapture={(file) => handleCameraCapture(record.roomId, file)}
+            buttonText="📷 Chụp công tơ"
           />
-          <Button
-            size="small"
-            onClick={() => document.getElementById(`folder-picker-${record.roomId}`).click()}
-          >
-            Chọn folder
-          </Button>
-          <span>{editFolder[record.roomId] || record.scanFolder || "Chưa chọn"}</span>
-          <Button
-            size="small"
-            type="primary"
-            onClick={() => onSaveScanFolder && onSaveScanFolder(record.roomId, editFolder[record.roomId] ?? record.scanFolder)}
-            disabled={!editFolder[record.roomId]}
-          >
-            Lưu
-          </Button>
+          <div style={{ fontSize: 11, color: '#999', textAlign: 'center' }}>
+            {record.lastCaptureTime ? 
+              `Lần cuối: ${dayjs(record.lastCaptureTime).format("DD/MM HH:mm")}` : 
+              "Chưa từng chụp"
+            }
+          </div>
         </div>
       )
     },

@@ -31,7 +31,7 @@ public class AssetServiceImpl implements AssetService {
         List<Asset> assets = assetRepository.findAll();
         logger.info("[AssetServiceImpl] getAllAssets - Số lượng asset: {}", assets.size());
         for (Asset asset : assets) {
-            logger.info("Asset: id={}, name={}, status={}", asset.getId(), asset.getAssetName(), asset.getAssetStatus());
+            logger.info("Asset: id={}, name={}", asset.getId(), asset.getAssetName());
         }
         return assets.stream().map(this::toDTO).collect(Collectors.toList());
     }
@@ -60,8 +60,6 @@ public class AssetServiceImpl implements AssetService {
         asset.setAssetName(assetDTO.getAssetName());
         asset.setQuantity(assetDTO.getQuantity());
         asset.setConditionNote(assetDTO.getConditionNote());
-        asset.setAssetStatus(AssetStatus.valueOf(assetDTO.getAssetStatus()));
-        asset.setAssetImage(assetDTO.getAssetImage());
         if (assetDTO.getRoomId() != null) {
             Room room = roomRepository.findById(assetDTO.getRoomId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng"));
@@ -84,11 +82,10 @@ public class AssetServiceImpl implements AssetService {
 
     @Override
     public ResultPaginationDTO searchAssets(String assetName, String assetStatus, Integer minQuantity, Integer maxQuantity, Pageable pageable) {
-        String normalizedStatus = normalizeAssetStatus(assetStatus);
+        // Không còn filter theo assetStatus
         List<Asset> all = assetRepository.findAll();
         List<Asset> filtered = all.stream()
             .filter(a -> (assetName == null || assetName.isEmpty() || a.getAssetName().toLowerCase().contains(assetName.toLowerCase())))
-            .filter(a -> (normalizedStatus == null || normalizedStatus.isEmpty() || (a.getAssetStatus() != null && a.getAssetStatus().name().equalsIgnoreCase(normalizedStatus))))
             .filter(a -> (minQuantity == null || (a.getQuantity() != null && a.getQuantity().intValue() >= minQuantity)))
             .filter(a -> (maxQuantity == null || (a.getQuantity() != null && a.getQuantity().intValue() <= maxQuantity)))
             .toList();
@@ -125,7 +122,6 @@ public class AssetServiceImpl implements AssetService {
         dto.setAssetName(asset.getAssetName());
         dto.setQuantity(asset.getQuantity());
         dto.setConditionNote(asset.getConditionNote());
-        dto.setAssetStatus(asset.getAssetStatus() != null ? asset.getAssetStatus().name() : null);
         dto.setAssetImage(asset.getAssetImage());
         dto.setRoomId(asset.getRoom() != null ? asset.getRoom().getId() : null);
         return dto;
@@ -136,9 +132,6 @@ public class AssetServiceImpl implements AssetService {
         asset.setAssetName(dto.getAssetName());
         asset.setQuantity(dto.getQuantity());
         asset.setConditionNote(dto.getConditionNote());
-        if (dto.getAssetStatus() != null) {
-            asset.setAssetStatus(AssetStatus.valueOf(dto.getAssetStatus()));
-        }
         asset.setAssetImage(dto.getAssetImage());
         // Không set id ở đây (id sẽ được set = null khi tạo mới)
         // Room sẽ được set ở createAsset nếu có roomId

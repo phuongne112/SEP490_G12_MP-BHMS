@@ -21,6 +21,8 @@ import { useSelector } from "react-redux";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import LandlordBookAppointmentPage from "./landlord/LandlordBookAppointmentPage";
+import Image360Viewer from "../components/Image360Viewer";
+import { SyncOutlined } from "@ant-design/icons";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -56,6 +58,8 @@ export default function RoomDetailPage() {
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [bookingForm] = Form.useForm();
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [viewer360Open, setViewer360Open] = useState(false);
+  const [images360, setImages360] = useState([]);
 
   useEffect(() => {
     const hasLandlordInfo = room?.landlordName && room?.landlordPhone;
@@ -67,7 +71,70 @@ export default function RoomDetailPage() {
       if (room.images?.[0]) setSelectedImage(getImageUrl(room.images[0]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [roomNumber]);
+
+  // Generate 360 images when room data is available
+  useEffect(() => {
+    if (room) {
+      // Generate 360 degree images for room
+      const generateImages = () => {
+        // Use actual room images if available, otherwise create demo
+        let baseImages = [];
+        
+        if (room?.images && room.images.length > 0) {
+          // Use actual room images
+          baseImages = room.images.map(img => getImageUrl(img)).filter(Boolean);
+        }
+        
+        // If no room images or they don't load, create placeholder demo
+        if (baseImages.length === 0) {
+          // Use placeholder images with different backgrounds
+          const placeholderImages = [];
+          for (let i = 0; i < 8; i++) {
+            // Create data URLs for simple colored backgrounds as demo
+            const canvas = document.createElement('canvas');
+            canvas.width = 400;
+            canvas.height = 300;
+            const ctx = canvas.getContext('2d');
+            
+            // Create gradient backgrounds
+            const gradient = ctx.createLinearGradient(0, 0, 400, 300);
+            const hue = (i * 45) % 360; // Different colors
+            gradient.addColorStop(0, `hsl(${hue}, 70%, 60%)`);
+            gradient.addColorStop(1, `hsl(${hue + 30}, 70%, 40%)`);
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 400, 300);
+            
+            // Add room indication
+            ctx.fillStyle = 'white';
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Phòng ${room.roomNumber}`, 200, 150);
+            ctx.font = '16px Arial';
+            ctx.fillText(`Góc ${i + 1}`, 200, 180);
+            
+            placeholderImages.push(canvas.toDataURL());
+          }
+          baseImages = placeholderImages;
+        }
+        
+        // Create smooth 360 rotation
+        const images360 = [];
+        const totalFrames = 36; // 36 frames for good performance
+        
+        for (let i = 0; i < totalFrames; i++) {
+          // Calculate which base image to use
+          const imageIndex = Math.floor((i / totalFrames) * baseImages.length) % baseImages.length;
+          images360.push(baseImages[imageIndex]);
+        }
+        
+        return images360;
+      };
+
+      setImages360(generateImages());
+    }
+  }, [room]);
 
   const fetchRoomFromAPI = async () => {
     try {
@@ -118,322 +185,450 @@ export default function RoomDetailPage() {
   }
 
   return (
-    <div style={{ background: "#fff", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <Layout style={{ minHeight: "100vh", background: "#f8f9fa" }}>
       <Header />
-      {/* Banner ảnh lớn */}
-      {/* Xóa hoàn toàn phần hiển thị ảnh lớn (banner) ở đầu trang (nếu còn) */}
-      <div style={{ flex: 1 }}>
-    <Layout style={{ minHeight: "100vh", background: "#fff" }}>
-      {/* Nút quay lại ra ngoài khối trắng */}
-      <div style={{
-        width: "100%", maxWidth: 1200, margin: "0 auto", position: "relative", paddingTop: 32
-      }}>
-        <button
-          style={{
-            position: "absolute",
-            top: 18,
-            left: 0,
-            background: "#fff",
-            border: "1.5px solid #e0e0e0",
-            borderRadius: 10,
-            padding: "7px 22px",
-            fontWeight: 600,
-            fontSize: 17,
-            cursor: "pointer",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-            color: "#1890ff",
-            transition: "background 0.2s, color 0.2s",
-            zIndex: 10,
-          }}
-          onClick={() => window.history.back()}
-        >
-          ← Quay lại
-        </button>
-      </div>
-      <Content
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          padding: "24px 0 48px 0",
-        }}
-      >
-        <div
-          style={{
-            width: "100%",
-            maxWidth: 1200,
-            background: "#fff",
-            padding: 36,
-            borderRadius: 22,
-            boxShadow: "0 6px 32px rgba(0,0,0,0.10)",
-            marginTop: 16,
-          }}
-        >
-          <Row gutter={[40, 32]} align="top">
-            {/* Image Section */}
-            <Col xs={24} md={13} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div style={{
-                width: "100%",
-                background: "#fff",
-                borderRadius: 16,
-                boxShadow: "0 2px 12px rgba(24,144,255,0.08)",
-                padding: 18,
-                marginBottom: 18,
-                border: "1.5px solid #e0e0e0"
-              }}>
-                <img
-                  src={getImageUrl(selectedImage)}
-                  alt="Room Main"
+      
+      <Content style={{ padding: "20px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          {/* Back Button */}
+          <Button
+            onClick={() => window.history.back()}
+            style={{
+              marginBottom: 20,
+              background: "#fff",
+              border: "1px solid #e8e8e8",
+              borderRadius: 6,
+              padding: "8px 16px",
+              height: "auto",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              boxShadow: "0 1px 4px rgba(0,0,0,0.1)"
+            }}
+          >
+            ← Quay lại
+          </Button>
+
+          {/* Room Header */}
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 12,
+              padding: "24px",
+              marginBottom: 20,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              border: "1px solid #f0f0f0"
+            }}
+          >
+            <Row align="middle" justify="space-between">
+              <Col>
+                <Title level={2} style={{ margin: 0, marginBottom: 4, fontWeight: 600 }}>
+                  Phòng {room.roomNumber}
+                </Title>
+                <Text style={{ fontSize: 16, color: "#666" }}>
+                  {room.pricePerMonth?.toLocaleString()} VND/tháng • {room.area} m²
+                </Text>
+              </Col>
+              <Col>
+                <Tag
+                  color={
+                    room.roomStatus === "Available" ? "green" :
+                    room.roomStatus === "Occupied" ? "red" :
+                    room.roomStatus === "Maintenance" ? "orange" : "default"
+                  }
+                  style={{ 
+                    fontSize: 14, 
+                    padding: "4px 12px", 
+                    borderRadius: 6,
+                    fontWeight: 400
+                  }}
+                >
+                  {room.roomStatus === "Available" ? "Có sẵn" :
+                   room.roomStatus === "Occupied" ? "Đã thuê" :
+                   room.roomStatus === "Maintenance" ? "Bảo trì" :
+                   room.roomStatus === "Inactive" ? "Không hoạt động" :
+                   room.roomStatus || "Không xác định"}
+                </Tag>
+              </Col>
+            </Row>
+          </div>
+
+          <Row gutter={[20, 20]}>
+            {/* Left Column - Images */}
+            <Col xs={24} lg={14}>
+              {/* Main Image */}
+              <div
+                style={{
+                  background: "#fff",
+                  borderRadius: 12,
+                  padding: 16,
+                  marginBottom: 16,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  border: "1px solid #f0f0f0"
+                }}
+              >
+                <div style={{
+                  borderRadius: 8,
+                  overflow: "hidden",
+                  marginBottom: 12,
+                  position: "relative"
+                }}>
+                  <img
+                    src={getImageUrl(selectedImage)}
+                    alt="Room Main"
+                    style={{
+                      width: "100%",
+                      height: 400,
+                      objectFit: "cover",
+                      display: "block"
+                    }}
+                  />
+                  <div style={{
+                    position: "absolute",
+                    top: 12,
+                    right: 12,
+                    background: "rgba(0,0,0,0.7)",
+                    color: "#fff",
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    fontSize: 13,
+                    fontWeight: 400
+                  }}>
+                    {room.images?.length || 0} ảnh
+                  </div>
+                </div>
+
+                {/* Thumbnail Grid */}
+                <Row gutter={[8, 8]}>
+                  {room.images?.length > 0 ? (
+                    room.images.slice(0, 6).map((image, index) => (
+                      <Col key={index} span={4}>
+                        <div
+                          onClick={() => setSelectedImage(image)}
+                          style={{
+                            borderRadius: 6,
+                            overflow: "hidden",
+                            cursor: "pointer",
+                            border: getImageUrl(selectedImage) === getImageUrl(image)
+                              ? "2px solid #1890ff"
+                              : "1px solid #e8e8e8",
+                            transition: "all 0.2s ease"
+                          }}
+                        >
+                          <img
+                            src={getImageUrl(image)}
+                            alt={`Thumbnail ${index}`}
+                            style={{
+                              width: "100%",
+                              height: 70,
+                              objectFit: "cover",
+                              display: "block"
+                            }}
+                          />
+                        </div>
+                      </Col>
+                    ))
+                  ) : (
+                    <Col span={24}>
+                      <div style={{ 
+                        textAlign: "center", 
+                        padding: 30, 
+                        background: "#f5f5f5", 
+                        borderRadius: 8,
+                        border: "1px dashed #d9d9d9"
+                      }}>
+                        <Text type="secondary">Chưa có hình ảnh</Text>
+                      </div>
+                    </Col>
+                  )}
+                </Row>
+
+                {/* 360 Button */}
+                <Button
+                  type="primary"
+                  icon={<SyncOutlined />}
+                  onClick={() => setViewer360Open(true)}
+                  size="large"
                   style={{
                     width: "100%",
-                    maxWidth: 480,
-                    height: 320,
-                    objectFit: "cover",
-                    borderRadius: 14,
-                        boxShadow: "0 4px 24px rgba(0,0,0,0.13)",
-                        border: "2.5px solid #e0e0e0",
-                        background: "#fff",
-                    display: "block",
-                    margin: "0 auto"
+                    height: 48,
+                    borderRadius: 8,
+                    fontSize: 15,
+                    fontWeight: 500,
+                    marginTop: 16
                   }}
-                />
-              </div>
-              <Row gutter={[10, 10]} style={{ width: "100%", maxWidth: 480 }}>
-                {room.images?.length > 0 ? (
-                  room.images.map((image, index) => (
-                    <Col key={index} span={6}>
-                      <img
-                        src={getImageUrl(image)}
-                        alt={`Thumb ${index}`}
-                        onClick={() => setSelectedImage(image)}
-                        style={{
-                          width: "100%",
-                          height: 60,
-                          objectFit: "cover",
-                          border:
-                            getImageUrl(selectedImage) === getImageUrl(image)
-                                  ? "2.5px solid #e0e0e0"
-                              : "1.5px solid #e0e0e0",
-                          borderRadius: 8,
-                          cursor: "pointer",
-                          boxShadow:
-                            getImageUrl(selectedImage) === getImageUrl(image)
-                                  ? "0 0 0 2px #e0e0e0"
-                              : "0 1px 6px rgba(0,0,0,0.07)",
-                          transition: "all 0.3s",
-                              background: "#fff"
-                        }}
-                        onMouseOver={e => (e.currentTarget.style.border = "2.5px solid #91d5ff")}
-                        onMouseOut={e => (e.currentTarget.style.border = getImageUrl(selectedImage) === getImageUrl(image) ? "2.5px solid #1890ff" : "1.5px solid #e0e0e0")}
-                      />
-                    </Col>
-                  ))
-                ) : (
-                  <Text>Không có hình ảnh.</Text>
-                )}
-              </Row>
-            </Col>
-            {/* Room Info Section */}
-            <Col xs={24} md={11}>
-              <div style={{
-                background: "#fff",
-                borderRadius: 16,
-                boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
-                padding: 28,
-                border: "1.5px solid #e0e0e0"
-              }}>
-                <Space
-                  direction="vertical"
-                  size="middle"
-                  style={{ width: "100%" }}
                 >
+                  Xem phòng 360°
+                </Button>
+              </div>
+            </Col>
+
+            {/* Right Column - Info */}
+            <Col xs={24} lg={10}>
+              <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+                {/* Room Details */}
+                <div
+                  style={{
+                    background: "#fff",
+                    borderRadius: 12,
+                    padding: 20,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                    border: "1px solid #f0f0f0"
+                  }}
+                >
+                  <Title level={4} style={{ marginBottom: 16, fontWeight: 500 }}>
+                    Chi tiết phòng
+                  </Title>
+
+                  <Space direction="vertical" size="small" style={{ width: "100%" }}>
+                    <div style={{ 
+                      display: "flex", 
+                      justifyContent: "space-between", 
+                      padding: "8px 0",
+                      borderBottom: "1px solid #f5f5f5"
+                    }}>
+                      <Text style={{ fontWeight: 400 }}>Giá thuê:</Text>
+                      <Text style={{ color: "#52c41a", fontWeight: 500 }}>
+                        {room.pricePerMonth?.toLocaleString()} VND
+                      </Text>
+                    </div>
+
+                    <div style={{ 
+                      display: "flex", 
+                      justifyContent: "space-between", 
+                      padding: "8px 0",
+                      borderBottom: "1px solid #f5f5f5"
+                    }}>
+                      <Text style={{ fontWeight: 400 }}>Diện tích:</Text>
+                      <Text style={{ fontWeight: 400 }}>{room.area} m²</Text>
+                    </div>
+
+                    <div style={{ 
+                      display: "flex", 
+                      justifyContent: "space-between", 
+                      padding: "8px 0",
+                      borderBottom: "1px solid #f5f5f5"
+                    }}>
+                      <Text style={{ fontWeight: 400 }}>Phòng ngủ:</Text>
+                      <Text style={{ fontWeight: 400 }}>{room.numberOfBedrooms}</Text>
+                    </div>
+
+                    <div style={{ 
+                      display: "flex", 
+                      justifyContent: "space-between", 
+                      padding: "8px 0"
+                    }}>
+                      <Text style={{ fontWeight: 400 }}>Phòng tắm:</Text>
+                      <Text style={{ fontWeight: 400 }}>{room.numberOfBathrooms}</Text>
+                    </div>
+                  </Space>
+                </div>
+
+                {/* Description */}
+                {room.description && (
                   <div
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      marginBottom: 8,
+                      background: "#fff",
+                      borderRadius: 12,
+                      padding: 20,
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                      border: "1px solid #f0f0f0"
                     }}
                   >
-                        <Title level={3} style={{ margin: 0 }}>
-                      Phòng {room.roomNumber}
+                    <Title level={4} style={{ marginBottom: 12, fontWeight: 500 }}>
+                      Mô tả
                     </Title>
-                    {(() => {
-                      if (!user) return true;
-                      const roleName = user?.role?.roleName || user?.role || "";
-                      const normalizedRole = (roleName || "").toUpperCase().trim();
-                      if (["ADMIN", "SUBADMIN", "LANDLORD"].includes(normalizedRole)) return false;
-                      return true;
-                    })() && (
-                      <>
-                            {/* Modal đăng nhập giữ nguyên */}
-                        <Modal
-                          open={loginModalOpen}
-                          onCancel={() => setLoginModalOpen(false)}
-                          onOk={() => {
-                            setLoginModalOpen(false);
-                            navigate("/login");
-                          }}
-                          okText="Đăng nhập"
-                          cancelText="Hủy"
-                          closable={false}
-                          maskClosable={false}
-                          centered
-                          bodyStyle={{ padding: 32, textAlign: "center" }}
-                        >
-                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                            <span style={{ fontSize: 40, color: "#1890ff", marginBottom: 12 }}>🔒</span>
-                            <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>
-                              Bạn cần đăng nhập để đặt lịch hẹn.
-                            </div>
-                            <div style={{ fontSize: 15, color: "#555" }}>
-                              Vui lòng đăng nhập để tiếp tục.
-                            </div>
-                          </div>
-                        </Modal>
-                      </>
+                    <Text style={{ fontSize: 14, lineHeight: 1.6, color: "#666", fontWeight: 400 }}>
+                      {room.description}
+                    </Text>
+                  </div>
+                )}
+
+                {/* Contact */}
+                <div
+                  style={{
+                    background: "#fff",
+                    borderRadius: 12,
+                    padding: 20,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                    border: "1px solid #f0f0f0"
+                  }}
+                >
+                  <Title level={4} style={{ marginBottom: 16, fontWeight: 500 }}>
+                    Thông tin liên hệ
+                  </Title>
+
+                  <Space direction="vertical" size="small" style={{ width: "100%" }}>
+                    <div style={{ 
+                      display: "flex", 
+                      justifyContent: "space-between",
+                      padding: "8px 0",
+                      borderBottom: "1px solid #f5f5f5"
+                    }}>
+                      <Text style={{ fontWeight: 400 }}>Chủ nhà:</Text>
+                      <Text style={{ fontWeight: 400 }}>{room.landlordName || "Chưa cập nhật"}</Text>
+                    </div>
+                    <div style={{ 
+                      display: "flex", 
+                      justifyContent: "space-between",
+                      padding: "8px 0"
+                    }}>
+                      <Text style={{ fontWeight: 400 }}>Điện thoại:</Text>
+                      <Text style={{ fontWeight: 400, color: "#1890ff" }}>
+                        {room.landlordPhone || "Chưa cập nhật"}
+                      </Text>
+                    </div>
+                  </Space>
+                </div>
+
+                {/* Assets & Services */}
+                {(room.assets?.length > 0 || room.services?.length > 0) && (
+                  <div
+                    style={{
+                      background: "#fff",
+                      borderRadius: 12,
+                      padding: 20,
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                      border: "1px solid #f0f0f0"
+                    }}
+                  >
+                    {room.assets?.length > 0 && (
+                      <div style={{ marginBottom: room.services?.length > 0 ? 16 : 0 }}>
+                        <Title level={4} style={{ marginBottom: 12, fontWeight: 500 }}>
+                          Nội thất
+                        </Title>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {room.assets.map((asset, index) => (
+                            <Tag
+                              key={index}
+                              style={{
+                                margin: 0,
+                                padding: "4px 8px",
+                                borderRadius: 4,
+                                fontSize: 12,
+                                fontWeight: 400,
+                                background: "#f0f2f5",
+                                color: "#333",
+                                border: "1px solid #d9d9d9"
+                              }}
+                            >
+                              {asset.assetName}
+                            </Tag>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {room.services?.length > 0 && (
+                      <div>
+                        <Title level={4} style={{ marginBottom: 12, fontWeight: 500 }}>
+                          Dịch vụ
+                        </Title>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {room.services.map((service, index) => (
+                            <Tag
+                              key={index}
+                              color="blue"
+                              style={{
+                                margin: 0,
+                                padding: "4px 8px",
+                                borderRadius: 4,
+                                fontSize: 12,
+                                fontWeight: 400
+                              }}
+                            >
+                              {service.serviceName}
+                            </Tag>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
-                  <Text>
-                        <strong>Diện tích:</strong> <span>{room.area} m²</span>
-                  </Text>
-                  <Text>
-                        <strong>Giá:</strong> <span>{room.pricePerMonth?.toLocaleString()} VND/tháng</span>
-                  </Text>
-                  <Text>
-                        <strong>Số phòng ngủ:</strong> <span>{room.numberOfBedrooms}</span>
-                  </Text>
-                  <Text>
-                        <strong>Số phòng tắm:</strong> <span>{room.numberOfBathrooms}</span>
-                  </Text>
-                  <Text>
-                    <strong>Trạng thái:</strong>{" "}
-                    <Tag
-                      color={
-                        room.roomStatus === "Available"
-                          ? "green"
-                          : room.roomStatus === "Occupied"
-                          ? "red"
-                          : room.roomStatus === "Maintenance"
-                          ? "orange"
-                          : "default"
+                )}
+
+                {/* Booking Button */}
+                {(() => {
+                  if (!user) return true;
+                  const roleName = user?.role?.roleName || user?.role || "";
+                  const normalizedRole = (roleName || "").toUpperCase().trim();
+                  if (["ADMIN", "SUBADMIN", "LANDLORD"].includes(normalizedRole)) return false;
+                  return true;
+                })() && (
+                  <Button
+                    type="primary"
+                    size="large"
+                    onClick={() => {
+                      if (!user) {
+                        setLoginModalOpen(true);
+                      } else {
+                        setBookingModalOpen(true);
                       }
-                      style={{ fontWeight: 600, fontSize: 15 }}
-                    >
-                      {room.roomStatus === "Available"
-                        ? "Có sẵn"
-                        : room.roomStatus === "Occupied"
-                        ? "Đã thuê"
-                        : room.roomStatus === "Maintenance"
-                        ? "Bảo trì"
-                        : room.roomStatus === "Inactive"
-                        ? "Không hoạt động"
-                        : room.roomStatus || "Không xác định"}
-                    </Tag>
-                  </Text>
-                  <Text>
-                        <strong>Mô tả:</strong> <span>{room.description || "—"}</span>
-                  </Text>
-                  <Text>
-                        <strong>Hoạt động:</strong> <span>{room.isActive ? "Có" : "Không"}</span>
-                  </Text>
-                  <Text>
-                        <strong>Chủ nhà:</strong> <span>{room.landlordName || "Không có"}</span> | <span>{room.landlordPhone || "Không có số điện thoại"}</span>
-                  </Text>
-                </Space>
-                {/* Assets Section */}
-                {room.assets?.length > 0 && (
-                  <>
-                    <Divider />
-                        <Title level={5}>Tài sản</Title>
-                    <ul style={{ marginLeft: 18 }}>
-                      {room.assets.map((a, i) => (
-                        <li key={i} style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-                          {a.assetImage ? (
-                            <img
-                              src={getImageUrl(a.assetImage)}
-                              alt={a.assetName}
-                              style={{ width: 40, height: 28, objectFit: 'cover', borderRadius: 4, marginRight: 10, border: '1px solid #e0e0e0', background: '#fafafa' }}
-                            />
-                          ) : null}
-                          <span>{a.assetName}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
+                    }}
+                    style={{
+                      width: "100%",
+                      height: 48,
+                      borderRadius: 8,
+                      fontSize: 15,
+                      fontWeight: 500
+                    }}
+                  >
+                    Đặt lịch hẹn xem phòng
+                  </Button>
                 )}
-                {/* Services Section */}
-                {room.services?.length > 0 && (
-                  <>
-                    <Divider />
-                        <Title level={5}>Dịch vụ</Title>
-                    <ul style={{ marginLeft: 18 }}>
-                      {room.services.map((s, i) => (
-                        <li key={i}>{s.serviceName}</li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-                    {/* Nút đặt lịch hẹn chuyển xuống dưới cùng */}
-                    {(() => {
-                      if (!user) return true;
-                      const roleName = user?.role?.roleName || user?.role || "";
-                      const normalizedRole = (roleName || "").toUpperCase().trim();
-                      if (["ADMIN", "SUBADMIN", "LANDLORD"].includes(normalizedRole)) return false;
-                      return true;
-                    })() && (
-                      <>
-                        <button
-                          style={{
-                            background: "#1890ff",
-                            color: "#fff",
-                            border: "none",
-                            borderRadius: 6,
-                            padding: "8px 20px",
-                            fontWeight: 500,
-                            fontSize: 16,
-                            cursor: "pointer",
-                            marginTop: 24,
-                            boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-                            transition: "background 0.2s",
-                            width: '100%'
-                          }}
-                          onClick={() => {
-                            if (!user) {
-                              setLoginModalOpen(true);
-                            } else {
-                              setBookingModalOpen(true);
-                            }
-                          }}
-                        >
-                          Đặt lịch hẹn
-                        </button>
-                        <Modal
-                          open={bookingModalOpen}
-                          onCancel={() => setBookingModalOpen(false)}
-                          footer={null}
-                          width={1000}
-                          centered
-                          destroyOnClose
-                          bodyStyle={{ padding: 0 }}
-                        >
-                          <LandlordBookAppointmentPage
-                            room={room}
-                            user={user}
-                            onSuccess={() => setBookingModalOpen(false)}
-                            onCancel={() => setBookingModalOpen(false)}
-                            isPopup
-                          />
-                        </Modal>
-                      </>
-                    )}
-              </div>
+              </Space>
             </Col>
           </Row>
         </div>
       </Content>
-    </Layout>
-      </div>
+
+      {/* Modals */}
+      <Modal
+        open={loginModalOpen}
+        onCancel={() => setLoginModalOpen(false)}
+        onOk={() => {
+          setLoginModalOpen(false);
+          navigate("/login");
+        }}
+        okText="Đăng nhập"
+        cancelText="Hủy"
+        closable={false}
+        maskClosable={false}
+        centered
+      >
+        <div style={{ textAlign: "center", padding: "20px 0" }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
+          <Title level={4} style={{ fontWeight: 500 }}>Bạn cần đăng nhập</Title>
+          <Text type="secondary" style={{ fontWeight: 400 }}>
+            Vui lòng đăng nhập để đặt lịch hẹn xem phòng
+          </Text>
+        </div>
+      </Modal>
+
+      <Modal
+        open={bookingModalOpen}
+        onCancel={() => setBookingModalOpen(false)}
+        footer={null}
+        width={1000}
+        centered
+        destroyOnClose
+      >
+        <LandlordBookAppointmentPage
+          room={room}
+          user={user}
+          onSuccess={() => setBookingModalOpen(false)}
+          onCancel={() => setBookingModalOpen(false)}
+          isPopup
+        />
+      </Modal>
+
+      <Image360Viewer
+        images={images360}
+        visible={viewer360Open}
+        onClose={() => setViewer360Open(false)}
+        roomNumber={room?.roomNumber}
+      />
+
       <Footer />
-    </div>
+    </Layout>
   );
 }

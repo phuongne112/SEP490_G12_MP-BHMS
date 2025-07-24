@@ -54,13 +54,13 @@ export default function AdminNotificationPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [sendMode, setSendMode] = useState("role");
   const [userList, setUserList] = useState([]);
+  const [total, setTotal] = useState(0);
   const user = useSelector((state) => state.account.user);
   let currentUserId = Number(localStorage.getItem("userId"));
   if (!currentUserId || isNaN(currentUserId)) {
     currentUserId = user?.id;
   }
   const dispatch = useDispatch();
-  // Thêm biến state để chờ khi load xong userList
   const [userListLoaded, setUserListLoaded] = useState(false);
 
   useEffect(() => {
@@ -91,11 +91,11 @@ export default function AdminNotificationPage() {
         const allUsers = res.result || [];
         const filtered = allUsers.filter((u) => Number(u.id) !== Number(currentUserId));
         setUserList(filtered);
-        setUserListLoaded(true); // ✅ đánh dấu đã load xong
+        setUserListLoaded(true);
       } catch (err) {
         console.error("Failed to fetch users:", err);
         setUserList([]);
-        setUserListLoaded(true); // vẫn đánh dấu để tránh kẹt loading
+        setUserListLoaded(true);
       }
     };
 
@@ -124,82 +124,110 @@ export default function AdminNotificationPage() {
     <Layout style={{ minHeight: "100vh" }}>
       <AdminSidebar key={user?.permissions?.join(",")} />
       <Layout style={{ marginLeft: 220 }}>
-        <Content style={{ padding: "32px" }}>
-          <div
-            style={{
+        <Content style={{ padding: "24px", backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
+          {/* Header Section */}
+          <div style={{ 
+            background: "white", 
+            padding: "20px", 
+            borderRadius: "8px", 
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)", 
+            marginBottom: "20px" 
+          }}>
+            <div style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: 24,
-            }}
-          >
-            <PageHeader title="Danh sách thông báo" />
-            <Space style={{ gap: 20 }}>
-              <Badge count={3} offset={[-2, 2]} size="small">
-                <FaBell
-                  size={20}
-                  style={{ color: "#555", cursor: "pointer" }}
-                  title="New notifications"
-                />
-              </Badge>
-              <Access requiredPermissions={["Create Notification Send"]}>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => setIsCreateModalOpen(true)}
+              marginBottom: "12px"
+            }}>
+              <PageHeader title="Danh sách thông báo" style={{ margin: 0, padding: 0 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <SearchBox onSearch={setSearchTerm} placeholder="Tìm thông báo..." />
+                <Popover
+                  open={isFilterOpen}
+                  onOpenChange={setIsFilterOpen}
+                  content={
+                    <NotificationFilterPopover
+                      onApply={(values) => {
+                        handleApplyFilter(values);
+                        setIsFilterOpen(false);
+                      }}
+                    />
+                  }
+                  trigger="click"
+                  placement="bottomRight"
                 >
-                  Thêm thông báo
-                </Button>
-              </Access>
-            </Space>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              marginBottom: 24,
-            }}
-          >
-            <EntrySelect value={pageSize} onChange={setPageSize} />
-            <Space style={{ gap: 100 }}>
-              <SearchBox onSearch={setSearchTerm} placeholder="Tìm thông báo..." />
-              <Popover
-                open={isFilterOpen}
-                onOpenChange={setIsFilterOpen}
-                content={
-                  <NotificationFilterPopover
-                    onApply={(values) => {
-                      handleApplyFilter(values);
-                      setIsFilterOpen(false);
-                    }}
+                  <Button
+                    icon={<FilterOutlined />}
+                    type="default"
+                  >
+                    Bộ lọc
+                  </Button>
+                </Popover>
+                <Badge count={3} offset={[-2, 2]} size="small">
+                  <FaBell
+                    size={20}
+                    style={{ color: "#555", cursor: "pointer" }}
+                    title="New notifications"
                   />
-                }
-                trigger="click"
-                placement="bottomRight"
-              >
-                <Button
-                  icon={<FilterOutlined />}
-                  style={{ backgroundColor: "#40a9ff", color: "white" }}
-                >
-                  Bộ lọc
-                </Button>
-              </Popover>
-            </Space>
+                </Badge>
+                <Access requiredPermissions={["Create Notification Send"]}>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => setIsCreateModalOpen(true)}
+                  >
+                    Thêm thông báo
+                  </Button>
+                </Access>
+              </div>
+            </div>
+            
+            {/* Status bar */}
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "space-between", 
+              alignItems: "center",
+              borderTop: "1px solid #f0f0f0",
+              paddingTop: "12px",
+              fontSize: "14px"
+            }}>
+              <div style={{ color: "#666" }}>
+                Hiển thị
+                <Select
+                  style={{ width: 120, margin: "0 8px" }}
+                  value={pageSize}
+                  onChange={(value) => setPageSize(value)}
+                  options={[5, 10, 20, 50].map((v) => ({ value: v, label: `${v} / trang` }))}
+                />
+                mục
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                <span style={{ fontWeight: 500, color: "#1890ff" }}>
+                  Tổng: {total} thông báo
+                </span>
+              </div>
+            </div>
           </div>
 
+          {/* Main Table Section */}
           {userListLoaded && (
-            <NotificationTable
-              pageSize={pageSize}
-              searchTerm={searchTerm}
-              filters={filters}
-              onView={handleView}
-              onDelete={handleDelete}
-              refreshKey={refreshKey}
-              userList={userList}
-            />
+            <div style={{ 
+              background: "white", 
+              borderRadius: "8px", 
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              overflow: "hidden"
+            }}>
+              <NotificationTable
+                pageSize={pageSize}
+                searchTerm={searchTerm}
+                filters={filters}
+                onView={handleView}
+                onDelete={handleDelete}
+                refreshKey={refreshKey}
+                userList={userList}
+                onTotalChange={setTotal}
+              />
+            </div>
           )}
 
           {/* Create Notification Modal */}
@@ -250,14 +278,14 @@ export default function AdminNotificationPage() {
                     await Promise.all(promises);
                   }
 
-                  message.success("Notification(s) sent successfully!");
+                  message.success("Thông báo đã được gửi thành công!");
                   setIsCreateModalOpen(false);
                   createForm.resetFields();
                   setSendMode("role");
                   setRefreshKey((prev) => prev + 1);
                 } catch (err) {
                   console.error("Send notification failed:", err);
-                  message.error("Failed to send notification");
+                  message.error("Gửi thông báo thất bại");
                 }
               }}
             >
@@ -287,7 +315,7 @@ export default function AdminNotificationPage() {
                       label="Gửi đến người dùng"
                       rules={[{ required: true }]}
                     >
-                      <Select placeholder="Select a user">
+                      <Select placeholder="Chọn người dùng">
                         {userList.map((user) => (
                           <Option key={user.id} value={user.id}>
                             {user.fullName || user.email}
@@ -309,8 +337,8 @@ export default function AdminNotificationPage() {
                       <Option value="MAINTENANCE">Maintenance</Option>
                       <Option value="BOOKING_STATUS">Trạng thái đặt phòng</Option>
                       <Option value="ANNOUNCEMENT">Thông báo chung</Option>
-                      <Option value="PAYMENT_SUCCESS">Payment Success</Option>
-                      <Option value="PAYMENT_FAILED">Payment Failed</Option>
+                      <Option value="PAYMENT_SUCCESS">Thanh toán thành công</Option>
+                      <Option value="PAYMENT_FAILED">Thanh toán thất bại</Option>
                       <Option value="CUSTOM">Tùy chỉnh</Option>
                     </Select>
                   </Form.Item>
@@ -388,19 +416,19 @@ export default function AdminNotificationPage() {
             onOk={async () => {
               try {
                 await deleteNotification(selectedNotification.id);
-                message.success("Notification deleted successfully!");
+                message.success("Xóa thông báo thành công!");
                 setRefreshKey((prev) => prev + 1);
               } catch (error) {
                 console.error("Delete failed:", error);
-                message.error("Failed to delete notification!");
+                message.error("Xóa thông báo thất bại!");
               } finally {
                 setIsDeleteModalOpen(false);
                 setSelectedNotification(null);
               }
             }}
             onCancel={() => setIsDeleteModalOpen(false)}
-            okText="Yes"
-            cancelText="Cancel"
+            okText="Có"
+            cancelText="Hủy"
           />
         </Content>
       </Layout>

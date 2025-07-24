@@ -112,7 +112,7 @@ export default function LandlordRoomListPage() {
       setRooms(res.result || []);
       setTotal(res.meta?.total || 0);
     } catch (err) {
-      message.error("Failed to load rooms");
+      message.error("Không thể tải danh sách phòng");
     }
     setLoading(false);
   };

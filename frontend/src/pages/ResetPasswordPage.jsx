@@ -53,7 +53,7 @@ export default function ResetPasswordPage() {
         setError(res.data);
       } else {
         const fallbackMsg =
-          res?.message || err.message || "Password reset failed";
+          res?.message || err.message || "Đặt lại mật khẩu thất bại";
         setError({ general: fallbackMsg });
       }
     }

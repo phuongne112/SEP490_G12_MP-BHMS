@@ -251,7 +251,14 @@ public class RoomUserServiceImpl implements RoomUserService {
         if (roomUser == null || !Boolean.TRUE.equals(roomUser.getIsActive())) return null;
         Room room = roomUser.getRoom();
         if (room == null) return null;
-        Contract contract = roomUser.getContract();
+        // Lấy hợp đồng ACTIVE mới nhất của phòng, nếu không có thì lấy hợp đồng có contractEndDate lớn nhất
+        Contract contract = contractRepository.findActiveByRoomId(room.getId()).orElse(null);
+        if (contract == null) {
+            java.util.List<Contract> allContracts = contractRepository.findByRoomId(room.getId());
+            if (!allContracts.isEmpty()) {
+                contract = allContracts.stream().max(java.util.Comparator.comparing(Contract::getContractEndDate)).orElse(null);
+            }
+        }
         User landlord = room.getLandlord();
         com.mpbhms.backend.entity.UserInfo landlordInfo = landlord != null ? landlord.getUserInfo() : null;
         java.util.List<RoomUser> roommates = room.getRoomUsers() != null ?
@@ -293,7 +300,6 @@ public class RoomUserServiceImpl implements RoomUserService {
             java.util.Map<String, Object> m = new java.util.HashMap<>();
             m.put("assetName", a.getAssetName());
             m.put("quantity", a.getQuantity());
-            m.put("status", a.getAssetStatus() != null ? a.getAssetStatus().name() : null);
             m.put("assetImage", a.getAssetImage());
             return m;
         }).toList();

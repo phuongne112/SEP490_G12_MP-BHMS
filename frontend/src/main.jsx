@@ -6,6 +6,15 @@ import { Provider } from "react-redux";
 import store from "./store"; // 🔸 store bạn tạo ở store/index.js
 import { setUser } from "./store/accountSlice"; // 🔸 action để set user
 import "antd/dist/reset.css";
+import { message } from 'antd'
+
+// Configure global message settings
+message.config({
+  top: 100,
+  duration: 3,
+  maxCount: 3,
+  rtl: false,
+});
 
 // 🔹 Nếu user đã login trước đó → load từ localStorage
 const storedAccount = localStorage.getItem("account");

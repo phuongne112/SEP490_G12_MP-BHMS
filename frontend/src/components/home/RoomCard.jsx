@@ -8,7 +8,6 @@ import {
 } from "@ant-design/icons";
 import image1 from "../../assets/RoomImage/image1.png";
 import image2 from "../../assets/RoomImage/image2.png";
-import { Link } from "react-router-dom";
 
 const { Text, Title } = Typography;
 
@@ -61,6 +60,8 @@ export default function RoomCard({ room, onClick }) {
 
   const img0 = getImageUrl(room.images?.[0]) || image1;
   const img1 = getImageUrl(room.images?.[1]) || image2;
+  
+  // Simple asset logic: if room has assets, then it has furniture
   const hasAssets = room.assets && room.assets.length > 0;
 
   return (
@@ -106,27 +107,25 @@ export default function RoomCard({ room, onClick }) {
           </Title>
           {room.building && (
             <div style={{ color: '#888', fontSize: 15, marginBottom: 4 }}>
-              <span role="img" aria-label="building">🏢</span> Tòa: <b>{room.building}</b>
+              🏢 Tòa: <b>{room.building}</b>
             </div>
           )}
 
           <Text type="secondary" style={{ display: "block", marginBottom: 12 }}>
-            <span role="img" aria-label="area">📏</span> {room.area} m²
+            📏 {room.area} m²
           </Text>
 
           <div style={{ fontWeight: 700, color: '#d4380d', fontSize: 20, marginBottom: 8 }}>
-            <span role="img" aria-label="money">💰</span> {room.pricePerMonth?.toLocaleString("vi-VN")} <span style={{ fontWeight: 400, fontSize: 15 }}>VND/tháng</span>
+            💰 {room.pricePerMonth?.toLocaleString("vi-VN")} <span style={{ fontWeight: 400, fontSize: 15 }}>VND/tháng</span>
           </div>
 
           <Space direction="vertical" style={{ width: "100%", marginTop: 16 }}>
             <Space size="large">
               <Text type="secondary">🛏️ {room.numberOfBedrooms} Phòng ngủ</Text>
-              <Text type="secondary">
-                🛁 {room.numberOfBathrooms} Phòng tắm
-              </Text>
+              <Text type="secondary">🛁 {room.numberOfBathrooms} Phòng tắm</Text>
             </Space>
             <Text type="secondary">
-              🛋️ Nội thất:{" "}
+              🛋️ Nội thất: {" "}
               <Text strong style={{ color: hasAssets ? "#52c41a" : "#bfbfbf" }}>
                 {hasAssets ? "Có" : "Không"}
               </Text>

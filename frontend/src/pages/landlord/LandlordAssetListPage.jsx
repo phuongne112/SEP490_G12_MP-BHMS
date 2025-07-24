@@ -27,24 +27,9 @@ import AssetFilterPopover from '../../components/landlord/AssetFilterPopover';
 
 const { Sider, Content } = Layout;
 
-const assetStatusColor = {
-  Good: "green",
-  Damaged: "red",
-  Lost: "orange",
-  Maintenance: "blue",
-};
-
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
 
 const pageSizeOptions = [5, 10, 20, 50];
-
-const assetStatusOptions = [
-  { value: '', label: 'All Statuses' },
-  { value: 'Good', label: 'Good' },
-  { value: 'Damaged', label: 'Damaged' },
-  { value: 'Lost', label: 'Lost' },
-  { value: 'Maintenance', label: 'Maintenance' },
-];
 
 export default function LandlordAssetListPage() {
   const [search, setSearch] = useState("");
@@ -71,7 +56,7 @@ export default function LandlordAssetListPage() {
       setAssets(res.data?.result || res.result || []);
       setTotal(res.meta?.total || res.data?.meta?.total || 0);
     } catch (err) {
-      message.error("Failed to load assets");
+      message.error("Không thể tải danh sách tài sản");
     }
     setLoading(false);
   };
@@ -122,13 +107,8 @@ export default function LandlordAssetListPage() {
       message.success("Xóa tài sản thành công!");
       fetchAssets(currentPage, filter, pageSize);
     } catch (err) {
-      message.error(err.response?.data?.message || "Failed to delete asset");
+      message.error(err.response?.data?.message || "Xóa tài sản thất bại");
     }
-  };
-
-  const handleStatusFilter = (value) => {
-    setFilter((prev) => ({ ...prev, assetStatus: value }));
-    setCurrentPage(1);
   };
 
   const handleFilterApply = (filterValues) => {
@@ -152,14 +132,6 @@ export default function LandlordAssetListPage() {
       dataIndex: "quantity",
       key: "quantity",
       render: (val) => val ?? "-",
-    },
-    {
-      title: "Trạng thái",
-      dataIndex: "assetStatus",
-      key: "assetStatus",
-      render: (status) => (
-        <Tag color={assetStatusColor[status] || "default"}>{status}</Tag>
-      ),
     },
     {
       title: "Ghi chú tình trạng",
@@ -211,95 +183,99 @@ export default function LandlordAssetListPage() {
   ];
 
   return (
-    <Layout style={{ minHeight: "100vh", flexDirection: "row" }}>
-      <Sider width={220} style={{ background: "#001529" }}>
+    <Layout style={{ minHeight: "100vh" }}>
+      <Sider width={220}>
         <LandlordSidebar />
       </Sider>
-      <Layout style={{ padding: 24 }}>
-        <Content
-          style={{
-            background: "#fff",
-            padding: 24,
-            borderRadius: 8,
-            minHeight: "100%",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 24,
-              paddingTop: 4,
-            }}
-          >
-            <PageHeader title="Danh sách tài sản" />
-            <Space>
-              <Input
-                placeholder="Tìm tài sản..."
-                style={{ width: 220 }}
-                prefix={<SearchOutlined />}
-                value={search}
-                onChange={handleSearch}
-              />
-              <Popover
-                content={<AssetFilterPopover onFilter={handleFilterApply} onClose={() => setFilterPopoverOpen(false)} />}
-                trigger="click"
-                open={filterPopoverOpen}
-                onOpenChange={setFilterPopoverOpen}
-                placement="bottomLeft"
-              >
-                <Button icon={<FilterOutlined />}>Bộ lọc</Button>
-              </Popover>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleAddAsset}
-              >
-                Thêm tài sản
-              </Button>
-            </Space>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 8,
-            }}
-          >
-            <div>
-              Hiển thị
-              <Select
-                style={{ width: 80, margin: "0 8px" }}
-                value={pageSize}
-                onChange={handlePageSizeChange}
-                options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
-              />
-              mục
+      <Layout>
+        <Content style={{ padding: 24, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+          {/* Header Section */}
+          <div style={{ 
+            background: 'white', 
+            padding: 20, 
+            borderRadius: 8, 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            marginBottom: 20
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <PageHeader title="Danh sách tài sản" style={{ margin: 0, padding: 0 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Input
+                  placeholder="Tìm tài sản..."
+                  style={{ width: 220 }}
+                  prefix={<SearchOutlined />}
+                  value={search}
+                  onChange={handleSearch}
+                />
+                <Popover
+                  content={<AssetFilterPopover onFilter={handleFilterApply} onClose={() => setFilterPopoverOpen(false)} />}
+                  trigger="click"
+                  open={filterPopoverOpen}
+                  onOpenChange={setFilterPopoverOpen}
+                  placement="bottomLeft"
+                >
+                  <Button icon={<FilterOutlined />} type="default">Bộ lọc</Button>
+                </Popover>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={handleAddAsset}
+                >
+                  Thêm tài sản
+                </Button>
+              </div>
             </div>
-            <div style={{ fontWeight: 400, color: "#888" }}>
-              Tổng: {total} tài sản
+            
+            {/* Status bar */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              borderTop: '1px solid #f0f0f0',
+              paddingTop: 12,
+              fontSize: 14
+            }}>
+              <div style={{ color: '#666' }}>
+                Hiển thị
+                <Select
+                  style={{ width: 80, margin: "0 8px" }}
+                  value={pageSize}
+                  onChange={handlePageSizeChange}
+                  options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
+                />
+                mục
+              </div>
+              <div style={{ fontWeight: 500, color: "#1890ff" }}>
+                Tổng: {total} tài sản
+              </div>
             </div>
           </div>
-
-          <Table
-            columns={columns}
-            dataSource={assets}
-            loading={loading}
-            rowKey="id"
-            pagination={{
-              current: currentPage,
-              pageSize,
-              total,
-              onChange: (page, size) => {
-                setCurrentPage(page);
-                setPageSize(size);
-                fetchAssets(page, filter, size);
-              },
-              showSizeChanger: false,
-            }}
-          />
+          
+          {/* Main Table Section */}
+          <div style={{ 
+            background: 'white', 
+            borderRadius: 8, 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            overflow: 'hidden'
+          }}>
+            <Table
+              columns={columns}
+              dataSource={assets}
+              loading={loading}
+              rowKey="id"
+              pagination={{
+                current: currentPage,
+                pageSize,
+                total,
+                onChange: (page, size) => {
+                  setCurrentPage(page);
+                  setPageSize(size);
+                  fetchAssets(page, filter, size);
+                },
+                showSizeChanger: false,
+              }}
+            />
+          </div>
         </Content>
       </Layout>
       <LandlordAddAssetModal

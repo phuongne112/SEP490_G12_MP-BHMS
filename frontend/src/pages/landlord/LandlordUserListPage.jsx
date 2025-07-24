@@ -60,7 +60,7 @@ export default function LandlordUserListPage() {
       setUsers(res.result || []);
       setTotal(res.meta?.total || 0);
     } catch (err) {
-      message.error("Failed to load users");
+      message.error("Không thể tải danh sách người dùng");
     }
     setLoading(false);
   };
@@ -105,13 +105,13 @@ export default function LandlordUserListPage() {
       } catch (err) {}
       setAddLoading(true);
       await createUser(values);
-      message.success("Add user successfully!");
+      message.success("Thêm người dùng thành công!");
       addForm.resetFields();
       setAddModalOpen(false);
       fetchUsers();
     } catch (err) {
       if (err?.errorFields) return;
-      message.error("Failed to add user!");
+      message.error("Thêm người dùng thất bại!");
     } finally {
       setAddLoading(false);
     }
@@ -128,7 +128,7 @@ export default function LandlordUserListPage() {
       message.success("Chuyển thành người thuê thành công!");
       fetchUsers();
     } catch (err) {
-      message.error(err?.response?.data?.message || "Failed to change role");
+      message.error(err?.response?.data?.message || "Chuyển đổi vai trò thất bại");
     }
   };
 
@@ -139,80 +139,86 @@ export default function LandlordUserListPage() {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh", flexDirection: "row" }}>
-      <Sider width={220} style={{ background: "#001529" }}>
+    <Layout style={{ minHeight: "100vh" }}>
+      <Sider width={220}>
         <LandlordSidebar />
       </Sider>
-      <Layout style={{ padding: 24 }}>
-        <Content
-          style={{
-            background: "#fff",
-            padding: 24,
-            borderRadius: 8,
-            minHeight: "100%",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 24,
-              paddingTop: 4,
-            }}
-          >
-            <PageHeader title="Danh sách người dùng" />
-            <Space>
-              <Input
-                placeholder="Tìm theo tên đăng nhập hoặc email"
-                style={{ width: 250 }}
-                prefix={<SearchOutlined />}
-                value={searchText}
-                onChange={handleSearch}
-                onPressEnter={handleSearchEnter}
-              />
-            </Space>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 8,
-            }}
-          >
-            <div>
-              Hiển thị
-              <Select
-                style={{ width: 80, margin: "0 8px" }}
-                value={pageSize}
-                onChange={handlePageSizeChange}
-                options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
-              />
-              mục
+      <Layout>
+        <Content style={{ padding: 24, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+          {/* Header Section */}
+          <div style={{ 
+            background: 'white', 
+            padding: 20, 
+            borderRadius: 8, 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            marginBottom: 20
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <PageHeader title="Danh sách người dùng" style={{ margin: 0, padding: 0 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Input
+                  placeholder="Tìm theo tên đăng nhập hoặc email"
+                  style={{ width: 250 }}
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={handleSearch}
+                  onPressEnter={handleSearchEnter}
+                />
+              </div>
             </div>
-            <div style={{ fontWeight: 400, color: "#888" }}>
-              Tổng: {total} người dùng
+            
+            {/* Status bar */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              borderTop: '1px solid #f0f0f0',
+              paddingTop: 12,
+              fontSize: 14
+            }}>
+              <div style={{ color: '#666' }}>
+                Hiển thị
+                <Select
+                  style={{ width: 120, margin: "0 8px" }}
+                  value={pageSize}
+                  onChange={handlePageSizeChange}
+                  options={pageSizeOptions.map((v) => ({ value: v, label: `${v} / trang` }))}
+                />
+                mục
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <span style={{ fontWeight: 500, color: "#1890ff" }}>
+                  Tổng: {total} người dùng
+                </span>
+              </div>
             </div>
           </div>
+          
+          {/* Main Table Section */}
+          <div style={{ 
+            background: 'white', 
+            borderRadius: 8, 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            overflow: 'hidden'
+          }}>
+            <UserTable
+              users={users}
+              loading={loading}
+              pagination={{
+                current: currentPage,
+                pageSize,
+                total,
+                onChange: (page, size) => {
+                  setCurrentPage(page);
+                  setPageSize(size);
+                  fetchUsers(page, size);
+                },
+                showSizeChanger: false,
+              }}
+              onChangeRenter={handleChangeRenter}
+            />
+          </div>
 
-          <UserTable
-            users={users}
-            loading={loading}
-            pagination={{
-              current: currentPage,
-              pageSize,
-              total,
-              onChange: (page, size) => {
-                setCurrentPage(page);
-                setPageSize(size);
-                fetchUsers(page, size);
-              },
-              showSizeChanger: false,
-            }}
-            onChangeRenter={handleChangeRenter}
-          />
           <Modal
             open={addModalOpen}
             title="Add New User"
@@ -222,7 +228,7 @@ export default function LandlordUserListPage() {
             }}
             onOk={handleAddUser}
             confirmLoading={addLoading}
-            okText="Add"
+            okText="Thêm"
           >
             <Form form={addForm} layout="vertical">
               <Form.Item

@@ -29,7 +29,7 @@ export default function AddRenterModal({ open, onCancel, onSuccess }) {
       onCancel={() => { form.resetFields(); onCancel(); }}
       onOk={handleOk}
       confirmLoading={loading}
-      okText="Add"
+      okText="Thêm"
     >
       <Form form={form} layout="vertical">
         <Form.Item name="fullName" label="Họ và tên" rules={[{ required: true }]}> <Input /> </Form.Item>

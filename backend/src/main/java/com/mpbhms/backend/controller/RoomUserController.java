@@ -27,6 +27,8 @@ import com.mpbhms.backend.enums.RoomStatus;
 import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.repository.RoomUserRepository;
 import com.mpbhms.backend.service.AmendmentAutoApproveJob;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.mpbhms.backend.entity.User;
 
 @RestController
 @RequestMapping("/mpbhms/room-users")
@@ -81,17 +83,27 @@ public class RoomUserController {
             @RequestBody Map<String, String> request) {
 
         String newEndDateStr = request.get("newEndDate");
+        String reason = request.getOrDefault("reason", "");
 
         if (newEndDateStr == null || newEndDateStr.isEmpty()) {
             throw new BusinessException("Thiếu ngày kết thúc mới", HttpStatus.BAD_REQUEST, "MISSING_END_DATE");
         }
 
         try {
-            Instant newEndDate = Instant.parse(newEndDateStr); // Đảm bảo định dạng ISO-8601 (ex: 2025-12-31T17:00:00Z)
-            contractService.renewContract(contractId, newEndDate);
-            return ResponseEntity.ok(new ApiResponse<>(200, null, "Đã gia hạn hợp đồng thành công.", null));
+            Instant newEndDate = Instant.parse(newEndDateStr);
+            // Lấy userId từ username hiện tại
+            Long userId = null;
+            String username = com.mpbhms.backend.util.CurrentUserUtil.getCurrentUserLogin().orElse(null);
+            if (username != null) {
+                com.mpbhms.backend.entity.User user = userRepository.findByUsername(username);
+                if (user != null) userId = user.getId();
+            }
+            contractService.requestRenewalAmendment(contractId, newEndDate, reason, userId);
+            return ResponseEntity.ok(new ApiResponse<>(200, null, "Đã gửi yêu cầu gia hạn hợp đồng, chờ duyệt.", null));
         } catch (DateTimeParseException e) {
             throw new BusinessException("Định dạng ngày không hợp lệ", HttpStatus.BAD_REQUEST, "INVALID_DATE_FORMAT");
+        } catch (RuntimeException e) {
+            throw new BusinessException(e.getMessage(), HttpStatus.BAD_REQUEST, "RENEWAL_ERROR");
         }
     }
 
@@ -163,6 +175,7 @@ public class RoomUserController {
                 dto.setCreatedDate(am.getCreatedDate());
                 dto.setPendingApprovals(am.getPendingApprovals());
                 dto.setApprovedBy(am.getApprovedBy());
+                dto.setRejectedBy(am.getRejectedBy()); // Bổ sung rejectedBy
                 return dto;
             }).toList();
             return ResponseEntity.ok(dtos);

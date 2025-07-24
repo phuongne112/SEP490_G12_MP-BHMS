@@ -33,6 +33,7 @@ export default function AdminUserListPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [updateUserId, setUpdateUserId] = useState(null);
   const [updateEmail, setUpdateEmail] = useState("");
+  const [total, setTotal] = useState(0);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
@@ -57,68 +58,99 @@ export default function AdminUserListPage() {
     <Layout style={{ minHeight: "100vh" }}>
       <AdminSidebar />
       <Layout style={{ marginLeft: 220 }}>
-        <Content style={{ padding: "32px" }}>
-          <div
-            style={{
+        <Content style={{ padding: "24px", backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
+          {/* Header Section */}
+          <div style={{ 
+            background: "white", 
+            padding: "20px", 
+            borderRadius: "8px", 
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)", 
+            marginBottom: "20px" 
+          }}>
+            <div style={{
               display: "flex",
               justifyContent: "space-between",
-              marginBottom: 24,
-            }}
-          >
-            <PageHeader title="Danh sách người dùng" />
-            <Access requiredPermissions={["Create User"]}>
-              <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
-                Thêm người dùng
-              </Button>
-            </Access>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: 24,
-              flexWrap: "wrap",
-              marginTop: 30,
-            }}
-          >
-            <EntrySelect value={pageSize} onChange={setPageSize} />
-            <Space style={{ gap: 100 }}>
-              <SearchBox
-                onSearch={setSearchTerm}
-                placeholder="Tìm người dùng..."
-              />
-              <Popover
-                open={isFilterOpen}
-                onOpenChange={setIsFilterOpen}
-                content={
-                  <UserFilterPopover
-                    onApply={(values) => {
-                      handleApplyFilter(values);
-                      setIsFilterOpen(false);
-                    }}
-                  />
-                }
-                trigger="click"
-                placement="bottomRight"
-              >
-                <Button
-                  icon={<FilterOutlined />}
-                  style={{ backgroundColor: "#40a9ff", color: "white" }}
+              alignItems: "center",
+              marginBottom: "12px"
+            }}>
+              <PageHeader title="Danh sách người dùng" style={{ margin: 0, padding: 0 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <SearchBox
+                  onSearch={setSearchTerm}
+                  placeholder="Tìm người dùng..."
+                />
+                <Popover
+                  open={isFilterOpen}
+                  onOpenChange={setIsFilterOpen}
+                  content={
+                    <UserFilterPopover
+                      onApply={(values) => {
+                        handleApplyFilter(values);
+                        setIsFilterOpen(false);
+                      }}
+                    />
+                  }
+                  trigger="click"
+                  placement="bottomRight"
                 >
-                  Bộ lọc
-                </Button>
-              </Popover>
-            </Space>
+                  <Button
+                    icon={<FilterOutlined />}
+                    type="default"
+                  >
+                    Bộ lọc
+                  </Button>
+                </Popover>
+                <Access requiredPermissions={["Create User"]}>
+                  <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
+                    Thêm người dùng
+                  </Button>
+                </Access>
+              </div>
+            </div>
+            
+            {/* Status bar */}
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "space-between", 
+              alignItems: "center",
+              borderTop: "1px solid #f0f0f0",
+              paddingTop: "12px",
+              fontSize: "14px"
+            }}>
+              <div style={{ color: "#666" }}>
+                Hiển thị
+                <Select
+                  style={{ width: 120, margin: "0 8px" }}
+                  value={pageSize}
+                  onChange={(value) => setPageSize(value)}
+                  options={[5, 10, 20, 50].map((v) => ({ value: v, label: `${v} / trang` }))}
+                />
+                mục
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                <span style={{ fontWeight: 500, color: "#1890ff" }}>
+                  Tổng: {total} người dùng
+                </span>
+              </div>
+            </div>
           </div>
 
-          <UserTable
-            pageSize={pageSize}
-            searchTerm={searchTerm}
-            filters={filters}
-            onEdit={handleEditUser}
-            refreshKey={refreshKey}
-          />
+          {/* Main Table Section */}
+          <div style={{ 
+            background: "white", 
+            borderRadius: "8px", 
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            overflow: "hidden"
+          }}>
+            <UserTable
+              pageSize={pageSize}
+              searchTerm={searchTerm}
+              filters={filters}
+              onEdit={handleEditUser}
+              refreshKey={refreshKey}
+              onTotalChange={setTotal}
+            />
+          </div>
 
           {/* Modal Tạo người dùng */}
           <Modal

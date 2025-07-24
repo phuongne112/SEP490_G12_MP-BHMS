@@ -43,4 +43,8 @@ public interface BillService {
     java.math.BigDecimal getTotalRevenue();
     java.util.List<com.mpbhms.backend.dto.RevenueMonthDTO> getRevenueByMonth(int months);
     java.math.BigDecimal getMonthRevenue(String month);
+  
+    // Tạo hóa đơn tự động hàng loạt cho tất cả phòng
+    List<BillResponse> bulkGenerateBills();
+
 }

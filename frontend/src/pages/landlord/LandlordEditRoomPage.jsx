@@ -11,6 +11,7 @@ import {
   Row,
   Col,
   Switch,
+  Card,
 } from "antd";
 import { PlusOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
@@ -62,6 +63,11 @@ export default function LandlordEditRoomPage() {
         console.log("initialValues khi set:", initVals); // Log initialValues
         setInitialValues(initVals);
         form.setFieldsValue(initVals);
+        
+        // Đảm bảo description được set đúng
+        setTimeout(() => {
+          form.setFieldsValue({ description: room.description || "" });
+        }, 100);
 
         setFileList(
           (room.images || []).map((img) => {
@@ -104,7 +110,7 @@ export default function LandlordEditRoomPage() {
         roomStatus: values.roomStatus,
         numberOfBedrooms: values.numberOfBedrooms,
         numberOfBathrooms: values.numberOfBathrooms,
-        description: values.description || "",
+        description: form.getFieldValue('description') || values.description || "",
         maxOccupants: values.maxOccupants,
         isActive: values.isActive,
         building: values.building,
@@ -171,13 +177,18 @@ export default function LandlordEditRoomPage() {
           <LandlordSidebar />
         )}
       </Sider>
-      <Layout style={{ marginTop: 20, marginLeft: 15 }}>
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <div style={{ width: '100%', maxWidth: 1500, display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '24px 0 16px 0', padding: '0 16px' }}>
+      <Layout>
+        <Content
+          style={{
+            padding: "24px",
+            paddingTop: "32px",
+            background: "#fff",
+            borderRadius: 8,
+          }}
+        >
+          <div style={{ marginBottom: 24 }}>
             <Button
-              type="link"
               icon={<ArrowLeftOutlined />}
-              style={{ fontSize: 16 }}
               onClick={() => {
                 if (
                   user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
@@ -188,17 +199,28 @@ export default function LandlordEditRoomPage() {
                   navigate("/landlord/rooms");
                 }
               }}
+              style={{ marginBottom: 16 }}
             >
               Quay lại danh sách phòng
             </Button>
-            <h2 style={{ margin: 0, fontWeight: 600, fontSize: 26 }}>Chỉnh sửa phòng</h2>
+            <PageHeader title="Chỉnh sửa phòng" />
           </div>
-        </div>
-        <Content style={{ padding: "24px" }}>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 120px)' }}>
-            <div style={{ width: '100%', maxWidth: 1500, background: '#fff', padding: 32, borderRadius: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-              <Form layout="vertical" form={form} onFinish={handleFinish} disabled={hasActiveUser}>
-                <Row gutter={16}>
+          
+          <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+                         <div style={{ display: "flex", gap: 24, flexWrap: 'wrap', alignItems: 'stretch', justifyContent: 'center' }}>
+                <Card 
+                  title="Thông tin phòng" 
+                  style={{ 
+                    flex: 1, 
+                    minWidth: '500px', 
+                    textAlign: 'left', 
+                    minHeight: '450px',
+                    opacity: hasActiveUser ? 0.7 : 1
+                  }}
+                >
+                  <div style={{ padding: '8px 0' }}>
+                    <Form layout="vertical" form={form} onFinish={handleFinish} disabled={hasActiveUser}>
+                      <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item
                       name="building"
@@ -288,13 +310,39 @@ export default function LandlordEditRoomPage() {
                       <Switch checkedChildren="Đang hoạt động" unCheckedChildren="Ngừng hoạt động" />
                     </Form.Item>
                   </Col>
-                  <Col span={24}>
-                    <Form.Item name="description" label="Mô tả">
-                      <TextArea rows={2} placeholder="Nhập mô tả..." />
-                    </Form.Item>
-                  </Col>
-                  <Col span={24}>
-                    <Form.Item label="Hình ảnh">
+                        </Row>
+                    </Form>
+                  </div>
+                </Card>
+
+                <Card 
+                  title="Mô tả & Hình ảnh" 
+                  style={{ 
+                    flex: 1, 
+                    minWidth: '400px', 
+                    textAlign: 'left', 
+                    minHeight: '450px',
+                    opacity: hasActiveUser ? 0.7 : 1
+                  }}
+                >
+                  <div style={{ padding: '8px 0' }}>
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                        Mô tả phòng:
+                      </label>
+                      <TextArea 
+                        rows={3} 
+                        placeholder="Nhập mô tả chi tiết về phòng..." 
+                        value={form.getFieldValue('description')}
+                        onChange={(e) => form.setFieldsValue({ description: e.target.value })}
+                        disabled={hasActiveUser}
+                      />
+                    </div>
+                    
+                    <div style={{ marginTop: 16 }}>
+                      <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                        Hình ảnh phòng (tối đa 8 ảnh):
+                      </label>
                       <Upload
                         listType="picture-card"
                         fileList={fileList}
@@ -303,6 +351,7 @@ export default function LandlordEditRoomPage() {
                         multiple
                         maxCount={8}
                         accept="image/*"
+                        disabled={hasActiveUser}
                         onRemove={(file) => {
                           // Logic xóa ảnh đã được xử lý trong handleUploadChange
                           // Không cần làm gì thêm ở đây
@@ -315,21 +364,52 @@ export default function LandlordEditRoomPage() {
                           </div>
                         )}
                       </Upload>
-                    </Form.Item>
-                  </Col>
-                </Row>
-                <Form.Item>
-                  <Button type="primary" htmlType="submit" loading={loading}>
-                    Cập nhật phòng
-                  </Button>
-                </Form.Item>
-              </Form>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              <Card style={{ marginTop: 24, textAlign: 'center' }}>
+                <Button 
+                  type="primary" 
+                  loading={loading} 
+                  size="large"
+                  style={{ marginRight: 16 }}
+                  disabled={hasActiveUser}
+                  onClick={() => {
+                    form.validateFields().then((values) => {
+                      handleFinish(values);
+                    }).catch((error) => {
+                      console.log('Validation failed:', error);
+                    });
+                  }}
+                >
+                  Cập nhật phòng
+                </Button>
+                <Button 
+                  size="large"
+                  onClick={() => {
+                    if (
+                      user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
+                      user?.role?.roleName?.toUpperCase?.() === "SUBADMIN"
+                    ) {
+                      navigate("/admin/rooms");
+                    } else {
+                      navigate("/landlord/rooms");
+                    }
+                  }}
+                >
+                  Hủy bỏ
+                </Button>
+              </Card>
+              
               {hasActiveUser && (
-                <div style={{ color: 'red', marginTop: 16 }}>
-                  Không thể chỉnh sửa thông tin phòng khi vẫn còn người ở trong phòng!
-                </div>
+                <Card style={{ marginTop: 16, borderColor: '#ff4d4f' }}>
+                  <div style={{ color: '#ff4d4f', textAlign: 'center', fontWeight: 500 }}>
+                    ⚠️ Không thể chỉnh sửa thông tin phòng khi vẫn còn người ở trong phòng!
+                  </div>
+                </Card>
               )}
-            </div>
           </div>
         </Content>
       </Layout>

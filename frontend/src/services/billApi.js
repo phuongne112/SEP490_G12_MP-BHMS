@@ -72,4 +72,10 @@ export const createVnPayUrl = async ({ billId, amount, orderInfo }) => {
 export const getBillStats = async () => {
   const response = await axiosClient.get("/bills/dashboard-stats");
   return response.data;
+};
+
+// Tạo hóa đơn tự động hàng loạt cho tất cả phòng
+export const bulkGenerateBills = async () => {
+  const response = await axiosClient.post("/bills/bulk-generate");
+  return response.data;
 }; 

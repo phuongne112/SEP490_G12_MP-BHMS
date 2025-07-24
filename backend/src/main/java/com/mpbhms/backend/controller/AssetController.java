@@ -43,14 +43,12 @@ public class AssetController {
     public ResponseEntity<AssetDTO> createAsset(
         @RequestParam String assetName,
         @RequestParam java.math.BigDecimal quantity,
-        @RequestParam String assetStatus,
         @RequestParam(required = false) String conditionNote,
         @RequestParam(value = "assetImage", required = false) MultipartFile assetImage
     ) {
         AssetDTO assetDTO = new AssetDTO();
         assetDTO.setAssetName(assetName);
         assetDTO.setQuantity(quantity);
-        assetDTO.setAssetStatus(assetStatus);
         assetDTO.setConditionNote(conditionNote);
         if (assetImage != null && !assetImage.isEmpty()) {
             String fileName = System.currentTimeMillis() + "_" + assetImage.getOriginalFilename();
@@ -72,14 +70,12 @@ public class AssetController {
         @PathVariable Long id,
         @RequestParam String assetName,
         @RequestParam java.math.BigDecimal quantity,
-        @RequestParam String assetStatus,
         @RequestParam(required = false) String conditionNote,
         @RequestParam(value = "assetImage", required = false) MultipartFile assetImage
     ) {
         AssetDTO assetDTO = new AssetDTO();
         assetDTO.setAssetName(assetName);
         assetDTO.setQuantity(quantity);
-        assetDTO.setAssetStatus(assetStatus);
         assetDTO.setConditionNote(conditionNote);
         if (assetImage != null && !assetImage.isEmpty()) {
             String fileName = System.currentTimeMillis() + "_" + assetImage.getOriginalFilename();

@@ -11,4 +11,6 @@ public class RoomAssetDTO {
     private Integer quantity;
     private String status;
     private String note;
+    // Thêm trường assetImage
+    private String assetImage;
 } 

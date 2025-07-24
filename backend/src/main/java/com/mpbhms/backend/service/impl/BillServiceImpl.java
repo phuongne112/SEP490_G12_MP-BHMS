@@ -5,6 +5,7 @@ import com.mpbhms.backend.dto.BillResponse;
 import com.mpbhms.backend.entity.*;
 import com.mpbhms.backend.enums.BillItemType;
 import com.mpbhms.backend.enums.BillType;
+import com.mpbhms.backend.enums.ContractStatus;
 import com.mpbhms.backend.enums.PaymentCycle;
 import com.mpbhms.backend.enums.ServiceType;
 import com.mpbhms.backend.exception.BusinessException;
@@ -27,6 +28,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import com.lowagie.text.*;
@@ -204,6 +206,16 @@ public class BillServiceImpl implements BillService {
 
     @Override
     public Bill generateBill(Long contractId, LocalDate fromDate, LocalDate toDate, BillType billType) {
+        System.out.println(String.format(
+            "\n🏁 GENERATE BILL REQUEST:\n" +
+            "Contract ID: %d\n" +
+            "From Date: %s\n" +
+            "To Date: %s\n" +
+            "Bill Type: %s\n" +
+            "================================",
+            contractId, fromDate, toDate, billType
+        ));
+        
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy hợp đồng"));
         Room room = contract.getRoom();
@@ -224,6 +236,7 @@ public class BillServiceImpl implements BillService {
         if (fromDate.isAfter(toDate)) {
             throw new BusinessException("Ngày bắt đầu phải trước hoặc bằng ngày kết thúc!");
         }
+        
         int expectedMonths;
         switch (cycle) {
             case MONTHLY:
@@ -238,19 +251,30 @@ public class BillServiceImpl implements BillService {
             default:
                 throw new IllegalArgumentException("Chu kỳ thanh toán không hợp lệ: " + cycle);
         }
-        // Kiểm tra fromDate phải là ngày bắt đầu hợp đồng hoặc là ngày đầu kỳ tiếp theo
-        if (!fromDate.equals(contractStart)) {
-            // Tính số tháng giữa contractStart và fromDate
-            int monthsBetween = (fromDate.getYear() - contractStart.getYear()) * 12 + (fromDate.getMonthValue() - contractStart.getMonthValue());
-            int cycleMonths = expectedMonths;
-            if (monthsBetween % cycleMonths != 0 || fromDate.isBefore(contractStart)) {
-                throw new BusinessException("Ngày bắt đầu hóa đơn phải là ngày bắt đầu hợp đồng hoặc ngày đầu tiên của một chu kỳ hợp lệ sau ngày bắt đầu hợp đồng. fromDate không hợp lệ: " + fromDate);
+
+        // Phân biệt validation giữa chu kỳ chuẩn và tùy chọn
+        boolean isCustomPeriod = isCustomDateRange(fromDate, toDate, contractStart, expectedMonths);
+        System.out.println("🔍 DETECTION RESULT: isCustomPeriod = " + isCustomPeriod);
+        
+        if (!isCustomPeriod) {
+            // Logic cứng cho chu kỳ chuẩn - giữ nguyên để đảm bảo tính nhất quán
+            // Kiểm tra fromDate phải là ngày bắt đầu hợp đồng hoặc là ngày đầu kỳ tiếp theo
+            if (!fromDate.equals(contractStart)) {
+                // Tính số tháng giữa contractStart và fromDate
+                int monthsBetween = (fromDate.getYear() - contractStart.getYear()) * 12 + (fromDate.getMonthValue() - contractStart.getMonthValue());
+                int cycleMonths = expectedMonths;
+                if (monthsBetween % cycleMonths != 0 || fromDate.isBefore(contractStart)) {
+                    throw new BusinessException("Ngày bắt đầu hóa đơn phải là ngày bắt đầu hợp đồng hoặc ngày đầu tiên của một chu kỳ hợp lệ sau ngày bắt đầu hợp đồng. fromDate không hợp lệ: " + fromDate);
+                }
             }
-        }
-        // Kiểm tra fromDate/toDate hợp lệ với paymentCycle
-        LocalDate expectedToDate = fromDate.plusMonths(expectedMonths).minusDays(1);
-        if (!toDate.equals(expectedToDate)) {
-            throw new BusinessException("Chu kỳ hóa đơn không hợp lệ với hợp đồng! Chu kỳ trong hợp đồng là " + cycle + ". Kỳ đúng phải từ " + fromDate + " đến " + expectedToDate);
+            // Kiểm tra fromDate/toDate hợp lệ với paymentCycle
+            LocalDate expectedToDate = fromDate.plusMonths(expectedMonths).minusDays(1);
+            if (!toDate.equals(expectedToDate)) {
+                throw new BusinessException("Chu kỳ hóa đơn không hợp lệ với hợp đồng! Chu kỳ trong hợp đồng là " + cycle + ". Kỳ đúng phải từ " + fromDate + " đến " + expectedToDate);
+            }
+        } else {
+            // Logic linh hoạt cho khoảng ngày tùy chọn
+            validateCustomDateRange(fromDate, toDate, cycle);
         }
         // Kiểm tra chu kỳ truyền vào có khớp với hợp đồng không
         if (billType == BillType.CONTRACT_TOTAL && contract.getPaymentCycle() != cycle) {
@@ -260,7 +284,25 @@ public class BillServiceImpl implements BillService {
         List<BillDetail> details = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
 
-        int months = countMonths(cycle);
+        // Tính số tháng dựa trên khoảng ngày thực tế thay vì chu kỳ hợp đồng
+        int months;
+        if (isCustomPeriod) {
+            // Với khoảng ngày tùy chọn, tính dựa trên khoảng ngày thực tế
+            long daysBetween = ChronoUnit.DAYS.between(fromDate, toDate) + 1;
+            months = Math.max(1, (int) Math.round(daysBetween / 30.0)); // Ít nhất 1 tháng
+            System.out.println(String.format(
+                "✅ CUSTOM BILLING: %s to %s (%d days) -> %d months (Price: %,.0f × %d = %,.0f VND)",
+                fromDate, toDate, daysBetween, months, 
+                room.getPricePerMonth(), months, room.getPricePerMonth() * months
+            ));
+        } else {
+            // Với chu kỳ chuẩn, dùng logic cũ
+            months = countMonths(cycle);
+            System.out.println(String.format(
+                "✅ STANDARD BILLING: %s cycle -> %d months (Price: %,.0f × %d = %,.0f VND)", 
+                cycle, months, room.getPricePerMonth(), months, room.getPricePerMonth() * months
+            ));
+        }
         BigDecimal rent = BigDecimal.valueOf(room.getPricePerMonth()).multiply(BigDecimal.valueOf(months));
 
         if (billType == BillType.CONTRACT_ROOM_RENT) {
@@ -326,10 +368,24 @@ public class BillServiceImpl implements BillService {
                     fixedDetail.setDescription("Dịch vụ cố định: " + service.getServiceName() + " từ " + fromDate + " đến " + toDate);
                     fixedDetail.setService(service);
                     fixedDetail.setUnitPriceAtBill(service.getUnitPrice());
-                    fixedDetail.setItemAmount(service.getUnitPrice());
+                    
+                    // Tính toán tiền dịch vụ cố định theo tỷ lệ thời gian
+                    BigDecimal serviceAmount;
+                    if (isCustomPeriod) {
+                        // Với khoảng ngày tùy chọn, tính theo tỷ lệ
+                        long daysBetween = ChronoUnit.DAYS.between(fromDate, toDate) + 1;
+                        double ratio = daysBetween / 30.0; // Tỷ lệ so với 1 tháng
+                        serviceAmount = service.getUnitPrice().multiply(BigDecimal.valueOf(ratio));
+                    } else {
+                        // Với chu kỳ chuẩn, tính theo số tháng chu kỳ
+                        int cycleMonths = countMonths(cycle);
+                        serviceAmount = service.getUnitPrice().multiply(BigDecimal.valueOf(cycleMonths));
+                    }
+                    
+                    fixedDetail.setItemAmount(serviceAmount);
                     fixedDetail.setCreatedDate(Instant.now());
                     details.add(fixedDetail);
-                    totalAmount = totalAmount.add(service.getUnitPrice());
+                    totalAmount = totalAmount.add(serviceAmount);
                 }
             }
         } else {
@@ -388,7 +444,94 @@ public class BillServiceImpl implements BillService {
             default:
                 throw new IllegalArgumentException("Chu kỳ thanh toán không hợp lệ: " + cycle);
         }
+    }
 
+    /**
+     * Kiểm tra xem khoảng ngày có phải là tùy chọn (không theo chu kỳ chuẩn) không
+     */
+    private boolean isCustomDateRange(LocalDate fromDate, LocalDate toDate, LocalDate contractStart, int expectedMonths) {
+        System.out.println(String.format(
+            "=== isCustomDateRange Debug ===\n" +
+            "fromDate: %s\n" +
+            "toDate: %s\n" +
+            "contractStart: %s\n" +
+            "expectedMonths: %d",
+            fromDate, toDate, contractStart, expectedMonths
+        ));
+        
+        // Nếu fromDate không phải là ngày bắt đầu hợp đồng
+        if (!fromDate.equals(contractStart)) {
+            System.out.println("fromDate != contractStart, checking months...");
+            // Tính số tháng giữa contractStart và fromDate
+            int monthsBetween = (fromDate.getYear() - contractStart.getYear()) * 12 + (fromDate.getMonthValue() - contractStart.getMonthValue());
+            System.out.println("monthsBetween: " + monthsBetween);
+            // Nếu không chia hết cho chu kỳ, xem như là tùy chọn
+            if (monthsBetween % expectedMonths != 0) {
+                System.out.println("monthsBetween % expectedMonths != 0 -> CUSTOM PERIOD");
+                return true;
+            }
+        }
+
+        // Kiểm tra toDate có khớp với logic chuẩn không
+        LocalDate expectedToDate = fromDate.plusMonths(expectedMonths).minusDays(1);
+        boolean isCustom = !toDate.equals(expectedToDate);
+        System.out.println(String.format(
+            "expectedToDate: %s, actual toDate: %s -> isCustom: %s",
+            expectedToDate, toDate, isCustom
+        ));
+        
+        return isCustom;
+    }
+
+    /**
+     * Validation linh hoạt cho khoảng ngày tùy chọn
+     */
+    private void validateCustomDateRange(LocalDate fromDate, LocalDate toDate, PaymentCycle cycle) {
+        // Tính số tháng giữa hai ngày
+        long daysBetween = ChronoUnit.DAYS.between(fromDate, toDate) + 1;
+        double monthsBetween = daysBetween / 30.0; // Ước tính
+
+        // Lấy số tháng tiêu chuẩn theo chu kỳ
+        int expectedMonths;
+        String cycleName;
+        switch (cycle) {
+            case MONTHLY:
+                expectedMonths = 1;
+                cycleName = "hàng tháng";
+                break;
+            case QUARTERLY:
+                expectedMonths = 3;
+                cycleName = "hàng quý";
+                break;
+            case YEARLY:
+                expectedMonths = 12;
+                cycleName = "hàng năm";
+                break;
+            default:
+                throw new IllegalArgumentException("Chu kỳ thanh toán không hợp lệ: " + cycle);
+        }
+
+        // Kiểm tra độ chênh lệch - cho phép sai số hợp lý
+        double diffFromExpected = Math.abs(monthsBetween - expectedMonths);
+        
+        // Chỉ từ chối nếu sai lệch quá lớn (hơn 75% chu kỳ) để linh hoạt hơn
+        if (diffFromExpected > expectedMonths * 0.75) {
+            throw new BusinessException(
+                String.format("Khoảng ngày tùy chọn không phù hợp với chu kỳ thanh toán %s. " +
+                "Dự kiến: %d tháng, thực tế: %.1f tháng. " +
+                "Chênh lệch quá lớn (%.1f tháng), vui lòng chọn khoảng ngày phù hợp hơn.",
+                cycleName, expectedMonths, monthsBetween, diffFromExpected)
+            );
+        }
+        
+        // Cảnh báo log nếu có sai lệch nhỏ nhưng vẫn cho phép
+        if (diffFromExpected > 0.2) {
+            System.out.println(String.format(
+                "Cảnh báo: Khoảng ngày tùy chọn có sai lệch với chu kỳ %s. " +
+                "Dự kiến: %d tháng, thực tế: %.1f tháng",
+                cycleName, expectedMonths, monthsBetween
+            ));
+        }
     }
 
     @Override
@@ -641,6 +784,120 @@ public class BillServiceImpl implements BillService {
         billRepository.save(bill);
         sendBillNotificationToAllUsers(bill);
         return toResponse(bill);
+    }
+
+    @Override
+    public List<BillResponse> bulkGenerateBills() {
+        System.out.println("\n🚀 BULK BILL GENERATION STARTED");
+        List<BillResponse> generatedBills = new ArrayList<>();
+        
+        // Lấy tất cả hợp đồng ACTIVE
+        List<Contract> activeContracts = contractRepository.findAll().stream()
+            .filter(contract -> contract.getContractStatus() == ContractStatus.ACTIVE)
+            .toList();
+        
+        System.out.println("📋 Found " + activeContracts.size() + " active contracts");
+        
+        LocalDate today = LocalDate.now();
+        
+        for (Contract contract : activeContracts) {
+            try {
+                System.out.println("\n--- Processing Contract #" + contract.getId() + " ---");
+                System.out.println("Room: " + contract.getRoom().getRoomNumber());
+                System.out.println("Payment Cycle: " + contract.getPaymentCycle());
+                
+                // Tính toán chu kỳ tiếp theo cần tạo bill
+                LocalDate contractStart = contract.getContractStartDate().atZone(ZoneId.systemDefault()).toLocalDate();
+                LocalDate contractEnd = contract.getContractEndDate().atZone(ZoneId.systemDefault()).toLocalDate();
+                
+                if (today.isAfter(contractEnd)) {
+                    System.out.println("⏭️ Contract expired, skipping");
+                    continue;
+                }
+                
+                PaymentCycle cycle = contract.getPaymentCycle();
+                LocalDate nextPeriodStart = calculateNextPeriodStart(contractStart, cycle, today);
+                LocalDate nextPeriodEnd = calculatePeriodEnd(nextPeriodStart, cycle);
+                
+                // Đảm bảo không vượt quá ngày kết thúc hợp đồng
+                if (nextPeriodEnd.isAfter(contractEnd)) {
+                    nextPeriodEnd = contractEnd;
+                }
+                
+                System.out.println("📅 Next period: " + nextPeriodStart + " to " + nextPeriodEnd);
+                
+                // Kiểm tra đã có bill cho chu kỳ này chưa
+                boolean billExists = checkBillExists(contract.getId(), nextPeriodStart, nextPeriodEnd);
+                
+                if (billExists) {
+                    System.out.println("✅ Bill already exists for this period, skipping");
+                    continue;
+                }
+                
+                // Tạo bill mới
+                Bill newBill = generateBill(contract.getId(), nextPeriodStart, nextPeriodEnd, BillType.CONTRACT_TOTAL);
+                generatedBills.add(toResponse(newBill));
+                
+                System.out.println("✅ Generated bill #" + newBill.getId() + " - Amount: " + newBill.getTotalAmount() + " VND");
+                
+            } catch (Exception e) {
+                System.out.println("❌ Error processing contract #" + contract.getId() + ": " + e.getMessage());
+                // Tiếp tục với contracts khác
+            }
+        }
+        
+        System.out.println("\n🏁 BULK GENERATION COMPLETED");
+        System.out.println("📊 Generated " + generatedBills.size() + " new bills");
+        
+        return generatedBills;
+    }
+
+    /**
+     * Tính toán ngày bắt đầu chu kỳ tiếp theo
+     */
+    private LocalDate calculateNextPeriodStart(LocalDate contractStart, PaymentCycle cycle, LocalDate today) {
+        int cycleMonths = countMonths(cycle);
+        
+        // Tìm chu kỳ hiện tại hoặc tiếp theo
+        LocalDate periodStart = contractStart;
+        
+        while (periodStart.isBefore(today) || periodStart.equals(today)) {
+            LocalDate periodEnd = calculatePeriodEnd(periodStart, cycle);
+            
+            // Nếu hôm nay nằm trong chu kỳ này, trả về chu kỳ này
+            if (!today.isAfter(periodEnd)) {
+                return periodStart;
+            }
+            
+            // Chuyển sang chu kỳ tiếp theo
+            periodStart = periodStart.plusMonths(cycleMonths);
+        }
+        
+        return periodStart;
+    }
+
+    /**
+     * Tính toán ngày kết thúc chu kỳ
+     */
+    private LocalDate calculatePeriodEnd(LocalDate periodStart, PaymentCycle cycle) {
+        int cycleMonths = countMonths(cycle);
+        return periodStart.plusMonths(cycleMonths).minusDays(1);
+    }
+
+    /**
+     * Kiểm tra đã có bill cho chu kỳ này chưa
+     */
+    private boolean checkBillExists(Long contractId, LocalDate fromDate, LocalDate toDate) {
+        ZoneId vnZone = ZoneId.of("Asia/Ho_Chi_Minh");
+        Instant fromInstant = fromDate.atStartOfDay(vnZone).toInstant();
+        Instant toInstant = toDate.atTime(23, 59).atZone(vnZone).toInstant();
+        
+        return billRepository.findAll().stream()
+            .anyMatch(bill -> 
+                bill.getContract().getId().equals(contractId) &&
+                bill.getFromDate().equals(fromInstant) &&
+                bill.getToDate().equals(toInstant)
+            );
     }
 
     @Override

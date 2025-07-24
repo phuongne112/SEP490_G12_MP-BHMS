@@ -133,7 +133,7 @@ export default function RenterBillDetailPage() {
       window.open(paymentUrl, "_blank");
       setCurrentStep(1);
     } catch (error) {
-      message.error("Cannot create payment link");
+      message.error("Không thể tạo liên kết thanh toán");
     }
     setPaymentLoading(false);
   };
@@ -159,7 +159,7 @@ export default function RenterBillDetailPage() {
       setCurrentStep(2);
     } else {
       message.error(
-        "Payment not successful. Please try again or wait a moment."
+        "Thanh toán không thành công. Vui lòng thử lại hoặc chờ một chút."
       );
     }
   };
@@ -296,7 +296,7 @@ export default function RenterBillDetailPage() {
     if (bill && !bill.status) {
       setPaymentModalVisible(true);
     } else {
-      message.info("This bill has already been paid.");
+      message.info("Hóa đơn này đã được thanh toán.");
     }
   };
 
@@ -412,24 +412,24 @@ export default function RenterBillDetailPage() {
               <Col span={16}>
                 <Card title="Thông tin hóa đơn" style={{ marginBottom: 24 }}>
                   <Descriptions bordered column={2}>
-                    <Descriptions.Item label="Bill ID">
+                    <Descriptions.Item label="Mã hóa đơn">
                       <Text strong style={{ color: "#1890ff" }}>
                         #{bill.id}
                       </Text>
                     </Descriptions.Item>
-                    <Descriptions.Item label="Room">
+                    <Descriptions.Item label="Phòng">
                       <Tag color="blue" style={{ fontWeight: "bold" }}>
                         {bill.roomNumber}
                       </Tag>
                     </Descriptions.Item>
-                    <Descriptions.Item label="Contract ID">
+                    <Descriptions.Item label="Mã hợp đồng">
                       {bill.contractId ? (
                         <Text strong>#{bill.contractId}</Text>
                       ) : (
-                        <Text type="secondary">N/A</Text>
+                        <Text type="secondary">Không có</Text>
                       )}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Bill Type">
+                    <Descriptions.Item label="Loại hóa đơn">
                       <Tag color={getBillTypeColor(bill.billType)}>
                         {getBillTypeText(bill.billType)}
                       </Tag>
@@ -453,7 +453,7 @@ export default function RenterBillDetailPage() {
                         </span>
                       )}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Total" span={2}>
+                    <Descriptions.Item label="Tổng tiền" span={2}>
                       <Text
                         strong
                         style={{ color: "#52c41a", fontSize: "18px" }}
@@ -461,7 +461,7 @@ export default function RenterBillDetailPage() {
                         {bill.totalAmount?.toLocaleString()} ₫
                       </Text>
                     </Descriptions.Item>
-                    <Descriptions.Item label="Status" span={2}>
+                    <Descriptions.Item label="Trạng thái" span={2}>
                       <Tag
                         color={getStatusColor(bill.status)}
                         icon={getStatusIcon(bill.status)}

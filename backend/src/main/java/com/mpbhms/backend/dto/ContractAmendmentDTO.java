@@ -17,4 +17,5 @@ public class ContractAmendmentDTO {
     private Instant createdDate;
     private List<Long> pendingApprovals;
     private List<Long> approvedBy;
+    private List<Long> rejectedBy;
 } 
