@@ -22,6 +22,7 @@ public class LoginDTOResponse {
         private long id;
         private String email;
         private String name;
+        private String fullName;
         private Role role;
     }
 

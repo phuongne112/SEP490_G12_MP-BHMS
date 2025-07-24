@@ -46,7 +46,7 @@ export default function RenterSidebar() {
 
   return (
     <Sidebar
-      name={user?.fullName || "Người thuê"}
+      name={user?.fullName || user?.name || user?.email || "Người thuê"}
       avatar="https://i.pravatar.cc/40?img=4"
       menuItems={renterMenu}
       selectedKeys={[selectedKey]}

@@ -94,7 +94,7 @@ export default function LandlordSidebar() {
 
   return (
     <Sidebar
-      name={user?.fullName || "Landlord"}
+      name={user?.fullName || user?.name || user?.email || "Landlord"}
       avatar="https://i.pravatar.cc/40?img=2"
       menuItems={landlordMenu}
       selectedKeys={[selectedKey]}
