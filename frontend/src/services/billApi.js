@@ -70,7 +70,7 @@ export const createVnPayUrl = async ({ billId, amount, orderInfo }) => {
 
 // Thống kê hóa đơn cho dashboard
 export const getBillStats = async () => {
-  const response = await axiosClient.get("/bills/stats");
+  const response = await axiosClient.get("/bills/dashboard-stats");
   return response.data;
 };
 

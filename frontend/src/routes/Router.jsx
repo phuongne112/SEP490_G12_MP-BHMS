@@ -12,6 +12,7 @@ import AdminRoleListPage from "../pages/admin/AdminRoleListPage";
 import AdminPermissionListPage from "../pages/admin/AdminPermissionListPage";
 import RoomSection from "../components/home/RoomSection";
 import Error403 from "../pages/Error403";
+import Error404 from "../pages/Error404";
 import AdminRoute from "./AdminRoute";
 import LandlordRoute from "./LandlordRoute";
 import RenterRoute from "./RenterRoute";
@@ -46,6 +47,8 @@ import RenterVnPayReturnPage from '../pages/renter/RenterVnPayReturnPage';
 import PaymentSuccessPage from '../pages/PaymentSuccessPage';
 import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
 import LandlordDashboardPage from "../pages/landlord/LandlordDashboardPage";
+import RenterDashboardPage from "../pages/renter/RenterDashboardPage";
+import AboutPage from "../pages/AboutPage";
 
 export default function AppRouter() {
   return (
@@ -67,6 +70,7 @@ export default function AppRouter() {
         }
       />
       <Route path="/home" element={<HomePage />} />
+      <Route path="/about" element={<AboutPage />} />
       <Route path="/rooms/:roomNumber" element={<RoomDetailPage />} />
       <Route path="/forgotPassword" element={<ForgotPasswordPage />} />
       <Route path="/resetPassword" element={<ResetPasswordPage />} />
@@ -235,13 +239,22 @@ export default function AppRouter() {
           </RenterRoute>
         }
       />
+      <Route
+        path="/renter/dashboard"
+        element={
+          <RenterRoute>
+            <RenterDashboardPage />
+          </RenterRoute>
+        }
+      />
 
       {/* Common Routes */}
-      <Route path="*" element={<Error403 />} />
       <Route path="/room" element={<RoomSection />} />
       <Route path="/403" element={<Error403 />} />
+      <Route path="/404" element={<Error404 />} />
       <Route path="/" element={<Navigate to="/home" replace />} />
       <Route path="/payment-success" element={<PaymentSuccessPage />} />
+      <Route path="*" element={<Error404 />} />
     </Routes>
   );
 }
