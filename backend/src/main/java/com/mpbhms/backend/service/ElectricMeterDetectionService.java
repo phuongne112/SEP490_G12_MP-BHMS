@@ -20,10 +20,16 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
 @Service
@@ -41,6 +47,10 @@ public class ElectricMeterDetectionService {
     @Value("${azure.ocr.key}")
     private String ocrKey;
 
+    // Base path for saving images - can be configured via application.properties
+    @Value("${app.image.storage.path:C:/Users/yugio/OneDrive/Desktop/New folder (2)/SEP490_G12_MP-BHMS/frontend/public/img/ocr}")
+    private String imageStoragePath;
+
     @Autowired
     private ServiceRepository serviceRepository;
 
@@ -53,12 +63,61 @@ public class ElectricMeterDetectionService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    // New method that combines OCR detection and image saving
+    public String detectReadAndSaveImage(MultipartFile file, Long roomId) throws IOException, InterruptedException {
+        String result = detectAndReadFromFile(file);
+        
+        // Save the image to filesystem regardless of OCR result
+        if (roomId != null) {
+            saveImageToFileSystem(file, roomId);
+        }
+        
+        // If OCR was successful, save the reading to database
+        if (result.matches("\\d{5}(\\.\\d)?")) {
+            saveElectricReading(result, roomId);
+        }
+        
+        return result;
+    }
+
     public String detectAndReadFromFile(MultipartFile file, Long roomId) throws IOException, InterruptedException {
         String result = detectAndReadFromFile(file);
         if (result.matches("\\d{5}(\\.\\d)?")) {
             saveElectricReading(result, roomId);
         }
         return result;
+    }
+
+    /**
+     * Save the captured image to the filesystem with proper folder structure
+     */
+    private void saveImageToFileSystem(MultipartFile file, Long roomId) throws IOException {
+        // Get room information
+        Room room = roomRepository.findById(roomId)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng với ID: " + roomId));
+        
+        // Create directory path: /img/ocr/{roomNumber}
+        String roomNumber = room.getRoomNumber();
+        Path roomDirectory = Paths.get(imageStoragePath, roomNumber);
+        
+        // Create directories if they don't exist
+        Files.createDirectories(roomDirectory);
+        
+        // Generate filename with timestamp
+        LocalDateTime now = LocalDateTime.now();
+        String timestamp = now.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String originalFilename = file.getOriginalFilename();
+        String extension = originalFilename != null && originalFilename.contains(".") 
+            ? originalFilename.substring(originalFilename.lastIndexOf("."))
+            : ".jpg";
+        
+        String filename = String.format("electric_meter_%s_%s%s", roomNumber, timestamp, extension);
+        Path filePath = roomDirectory.resolve(filename);
+        
+        // Save the file
+        Files.write(filePath, file.getBytes());
+        
+        System.out.println("Image saved successfully: " + filePath.toString());
     }
 
     public String detectAndReadFromFile(MultipartFile file) throws IOException, InterruptedException {
