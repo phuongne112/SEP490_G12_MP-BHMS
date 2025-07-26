@@ -5,10 +5,12 @@ import com.mpbhms.backend.entity.Permission;
 import com.mpbhms.backend.entity.Role;
 import com.mpbhms.backend.entity.User;
 import com.mpbhms.backend.entity.ContractTemplate;
+import com.mpbhms.backend.entity.ServicePriceHistory;
 import com.mpbhms.backend.enums.ServiceType;
 import com.mpbhms.backend.repository.PermissionRepository;
 import com.mpbhms.backend.repository.RoleRepository;
 import com.mpbhms.backend.repository.ServiceRepository;
+import com.mpbhms.backend.repository.ServicePriceHistoryRepository;
 import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.repository.ContractTemplateRepository;
 import lombok.AllArgsConstructor;
@@ -17,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +31,7 @@ public class DatabaseInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final ServiceRepository serviceRepository;
+    private final ServicePriceHistoryRepository servicePriceHistoryRepository;
     private final ContractTemplateRepository contractTemplateRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -145,6 +149,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("View All Services", "/mpbhms/services/all", "GET", "Service"));
             permissions.add(new Permission("Get Service by ID", "/mpbhms/services/{id}", "GET", "Service"));
             permissions.add(new Permission("Get reading service", "/mpbhms/services/readings", "GET", "Service"));
+            permissions.add(new Permission("Update Service Price", "/mpbhms/services/{id}/price", "PUT", "Service"));
+            permissions.add(new Permission("Get Service Price History", "/mpbhms/services/{id}/price-history", "GET", "Service"));
+            permissions.add(new Permission("Delete Service Price History", "/mpbhms/services/price-history/{historyId}", "DELETE", "Service"));
+            permissions.add(new Permission("Get Service Price At Date", "/mpbhms/services/{id}/price-at-date", "GET", "Service"));
             //Schedule
             permissions.add(new Permission("Create Schedule", "/mpbhms/schedules", "POST", "Schedule"));
             permissions.add(new Permission("Get All Schedules", "/mpbhms/schedules", "GET", "Schedule"));
@@ -471,6 +479,9 @@ public class DatabaseInitializer implements CommandLineRunner {
             services.add(internet);
 
             serviceRepository.saveAll(services);
+            
+            // Khởi tạo lịch sử giá cho các dịch vụ mặc định
+            initializeServicePriceHistory(services);
         }
 
         // --- Init Default Contract Templates ---
@@ -482,6 +493,27 @@ public class DatabaseInitializer implements CommandLineRunner {
             System.out.println(">>> SKIP INIT DATABASE <<<");
         }
         System.out.println(">>> INIT DONE <<<");
+    }
+
+    private void initializeServicePriceHistory(List<CustomService> services) {
+        LocalDate today = LocalDate.now();
+        
+        for (CustomService service : services) {
+            // Kiểm tra xem đã có lịch sử giá cho service này chưa
+            if (servicePriceHistoryRepository.findByServiceIdOrderByEffectiveDateDesc(service.getId()).isEmpty()) {
+                ServicePriceHistory priceHistory = new ServicePriceHistory();
+                priceHistory.setService(service);
+                priceHistory.setUnitPrice(service.getUnitPrice());
+                priceHistory.setEffectiveDate(today);
+                priceHistory.setEndDate(null); // Giá hiện tại chưa có ngày kết thúc
+                priceHistory.setReason("Giá mặc định khi khởi tạo hệ thống");
+                priceHistory.setIsActive(true);
+                
+                servicePriceHistoryRepository.save(priceHistory);
+            }
+        }
+        
+        System.out.println(">>> INITIALIZED SERVICE PRICE HISTORY <<<");
     }
 
     private void initializeDefaultContractTemplates() {
