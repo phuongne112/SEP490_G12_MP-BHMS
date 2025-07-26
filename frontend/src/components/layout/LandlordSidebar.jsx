@@ -1,7 +1,6 @@
 import React from "react";
 import {
   HomeOutlined,
-  UserOutlined,
   DollarOutlined,
   ToolOutlined,
   TeamOutlined,
@@ -10,7 +9,7 @@ import {
 } from "@ant-design/icons";
 import Sidebar from "./Sidebar";
 import { useSelector } from "react-redux";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { Menu } from "antd";
 
 export default function LandlordSidebar() {
@@ -24,12 +23,7 @@ export default function LandlordSidebar() {
       label: "Tổng quan",
       path: "/landlord/dashboard",
     },
-    {
-      key: "/landlord/users",
-      icon: <UserOutlined />,
-      label: "Người dùng",
-      path: "/landlord/users",
-    },
+
     {
       key: "/landlord/renters",
       icon: <TeamOutlined />,
