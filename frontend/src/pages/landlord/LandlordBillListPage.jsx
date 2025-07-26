@@ -35,6 +35,7 @@ import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import axiosClient from '../../services/axiosClient';
+import { useMediaQuery } from "react-responsive";
 dayjs.extend(customParseFormat);
 
 const { Sider, Content } = Layout;
@@ -88,14 +89,17 @@ function BillFilterPopover({ onFilter }) {
 }
 
 export default function LandlordBillListPage() {
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+  const isTablet = useMediaQuery({ minWidth: 769, maxWidth: 1024 });
+  
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [pageSize, setPageSize] = useState(5);
-  const pageSizeOptions = [5, 10, 20, 50];
+  const [pageSize, setPageSize] = useState(isMobile ? 3 : 5);
+  const pageSizeOptions = isMobile ? [3, 5, 10] : [5, 10, 20, 50];
   const [filterOpen, setFilterOpen] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
   const navigate = useNavigate();
@@ -219,34 +223,36 @@ export default function LandlordBillListPage() {
     {
       title: "STT",
       align: "center",
-      width: 70,
+      width: isMobile ? 50 : 70,
       render: (_, __, index) => (currentPage - 1) * pageSize + index + 1,
     },
     { 
       title: "Mã hóa đơn", 
       dataIndex: "id", 
       align: "center", 
-      width: 100,
+      width: isMobile ? 80 : 100,
       render: (id) => `#${id}`
     },
     { 
       title: "Phòng", 
       dataIndex: "roomNumber", 
       align: "center", 
-      width: 120 
+      width: isMobile ? 80 : 120 
     },
-    { 
-      title: "Mã hợp đồng", 
-      dataIndex: "contractId", 
-      align: "center", 
-      width: 120,
-      render: (contractId) => contractId ? `#${contractId}` : 'Không có'
-    },
+    ...(isMobile ? [] : [
+      { 
+        title: "Mã hợp đồng", 
+        dataIndex: "contractId", 
+        align: "center", 
+        width: 120,
+        render: (contractId) => contractId ? `#${contractId}` : 'Không có'
+      }
+    ]),
     { 
       title: "Loại hóa đơn", 
       dataIndex: "billType", 
       align: "center", 
-      width: 120,
+      width: isMobile ? 100 : 120,
       render: (billType) => {
         if (!billType) return <span style={{ color: '#888' }}>Không xác định</span>;
         if (
@@ -273,31 +279,33 @@ export default function LandlordBillListPage() {
         return <Tag>{billType}</Tag>;
       }
     },
-    { 
-      title: "Từ ngày", 
-      dataIndex: "fromDate", 
-      align: "center", 
-      width: 120,
-      render: (date) => formatDate(date)
-    },
-    { 
-      title: "Đến ngày", 
-      dataIndex: "toDate", 
-      align: "center", 
-      width: 120,
-      render: (date) => formatDate(date)
-    },
+    ...(isMobile ? [] : [
+      { 
+        title: "Từ ngày", 
+        dataIndex: "fromDate", 
+        align: "center", 
+        width: 120,
+        render: (date) => formatDate(date)
+      },
+      { 
+        title: "Đến ngày", 
+        dataIndex: "toDate", 
+        align: "center", 
+        width: 120,
+        render: (date) => formatDate(date)
+      }
+    ]),
     { 
       title: "Tổng tiền", 
       dataIndex: "totalAmount", 
       align: "center", 
-      width: 140,
+      width: isMobile ? 100 : 140,
       render: (amount) => formatCurrency(amount)
     },
     {
       title: "Trạng thái",
       align: "center",
-      width: 120,
+      width: isMobile ? 80 : 120,
       render: (_, record) => (
         <Tag color={record.status ? "green" : "red"}>
           {record.status ? "Đã thanh toán" : "Chưa thanh toán"}
@@ -307,9 +315,9 @@ export default function LandlordBillListPage() {
     {
       title: "Thao tác",
       align: "center",
-      width: 320,
+      width: isMobile ? 200 : 320,
       render: (_, record) => (
-        <Space>
+        <Space direction={isMobile ? "vertical" : "horizontal"} size="small">
           <Button 
             type="primary" 
             icon={<EyeOutlined />}
@@ -332,14 +340,16 @@ export default function LandlordBillListPage() {
               Xóa
             </Button>
           </Popconfirm>
-          <Button 
-            type="primary"
-            style={{ background: '#1677ff', borderColor: '#1677ff' }}
-            onClick={() => handleExport(record.id)}
-            size="small"
-          >
-            Xuất PDF
-          </Button>
+          {!isMobile && (
+            <Button 
+              type="primary"
+              style={{ background: '#1677ff', borderColor: '#1677ff' }}
+              onClick={() => handleExport(record.id)}
+              size="small"
+            >
+              Xuất PDF
+            </Button>
+          )}
           {/* Chỉ hiển thị nút Gửi Email nếu hóa đơn chưa thanh toán */}
           <Popover
             content={record.status ? 'Chỉ gửi email cho hóa đơn chưa thanh toán' : 'Gửi hóa đơn cho khách'}
@@ -352,7 +362,7 @@ export default function LandlordBillListPage() {
               style={{ background: '#52c41a', color: '#fff', opacity: record.status ? 0.7 : 1, cursor: record.status ? 'not-allowed' : 'pointer' }}
               disabled={record.status === true}
             >
-              Gửi Email
+              {isMobile ? "Email" : "Gửi Email"}
             </Button>
           </Popover>
         </Space>
@@ -361,23 +371,38 @@ export default function LandlordBillListPage() {
   ];
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Sider width={220}>
-        <LandlordSidebar />
-      </Sider>
+    <Layout style={{ minHeight: "100vh", flexDirection: isMobile ? "column" : "row" }}>
+      {!isMobile && (
+        <Sider width={220}>
+          <LandlordSidebar />
+        </Sider>
+      )}
       <Layout>
-        <Content style={{ padding: 24, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+        <Content style={{ padding: isMobile ? 16 : 24, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
           {/* Header Section */}
           <div style={{ 
             background: 'white', 
-            padding: 20, 
+            padding: isMobile ? 16 : 20, 
             borderRadius: 8, 
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             marginBottom: 20
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ 
+              display: "flex", 
+              flexDirection: isMobile ? "column" : "row",
+              justifyContent: "space-between", 
+              alignItems: isMobile ? "stretch" : "center", 
+              marginBottom: 12,
+              gap: isMobile ? 12 : 0
+            }}>
               <PageHeader title="Danh sách hóa đơn" style={{ margin: 0, padding: 0 }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: isMobile ? "column" : "row",
+                alignItems: 'center', 
+                gap: 12,
+                width: isMobile ? "100%" : "auto"
+              }}>
                 <Input
                   placeholder="Tìm hóa đơn..."
                   allowClear
@@ -385,7 +410,7 @@ export default function LandlordBillListPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   onPressEnter={() => setCurrentPage(1)}
-                  style={{ width: 300 }}
+                  style={{ width: isMobile ? "100%" : 300 }}
                 />
                 <Popover
                   open={filterOpen}
@@ -394,12 +419,19 @@ export default function LandlordBillListPage() {
                   trigger="click"
                   placement="bottomRight"
                 >
-                  <Button icon={<FilterOutlined />} type="default">Bộ lọc</Button>
+                  <Button 
+                    icon={<FilterOutlined />} 
+                    type="default"
+                    style={{ width: isMobile ? "100%" : "auto" }}
+                  >
+                    Bộ lọc
+                  </Button>
                 </Popover>
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
                   onClick={() => navigate("/landlord/bills/create")}
+                  style={{ width: isMobile ? "100%" : "auto" }}
                 >
                   Thêm hóa đơn
                 </Button>
@@ -409,7 +441,8 @@ export default function LandlordBillListPage() {
                     background: '#52c41a', 
                     borderColor: '#52c41a', 
                     color: '#fff',
-                    fontWeight: 'bold'
+                    fontWeight: 'bold',
+                    width: isMobile ? "100%" : "auto"
                   }}
                   loading={bulkLoading}
                   onClick={handleBulkGenerate}
@@ -422,19 +455,22 @@ export default function LandlordBillListPage() {
             {/* Status bar */}
             <div style={{ 
               display: 'flex', 
+              flexDirection: isMobile ? "column" : "row",
               justifyContent: 'space-between', 
-              alignItems: 'center',
+              alignItems: isMobile ? "stretch" : "center",
               borderTop: '1px solid #f0f0f0',
               paddingTop: 12,
-              fontSize: 14
+              fontSize: isMobile ? 12 : 14,
+              gap: isMobile ? 8 : 0
             }}>
               <div style={{ color: '#666' }}>
                 Hiển thị
                 <Select
-                  style={{ width: 80, margin: "0 8px" }}
+                  style={{ width: isMobile ? 60 : 80, margin: "0 8px" }}
                   value={pageSize}
                   onChange={handlePageSizeChange}
                   options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
+                  size={isMobile ? "small" : "middle"}
                 />
                 mục
               </div>
@@ -457,12 +493,13 @@ export default function LandlordBillListPage() {
               loading={loading}
               rowKey="id"
               pagination={false}
-              scroll={{ x: 1200 }}
+              scroll={{ x: isMobile ? 600 : 1200 }}
+              size={isMobile ? "small" : "middle"}
             />
             
             <div
               style={{
-                padding: 16,
+                padding: isMobile ? 12 : 16,
                 width: "100%",
                 display: "flex",
                 justifyContent: "flex-end",
@@ -479,8 +516,9 @@ export default function LandlordBillListPage() {
                   fetchBills(page, size);
                 }}
                 showSizeChanger={false}
-                showQuickJumper
-                showTotal={(total, range) => `${range[0]}-${range[1]} trên tổng số ${total} hóa đơn`}
+                showQuickJumper={!isMobile}
+                showTotal={!isMobile ? (total, range) => `${range[0]}-${range[1]} trên tổng số ${total} hóa đơn` : undefined}
+                size={isMobile ? "small" : "default"}
               />
             </div>
           </div>

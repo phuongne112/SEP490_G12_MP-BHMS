@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { getAllRooms } from "../../services/roomService";
 import { useSelector } from "react-redux";
 import AdminSidebar from "../../components/layout/AdminSidebar";
+import { useMediaQuery } from "react-responsive";
 
 import image1 from "../../assets/RoomImage/image1.png";
 import image2 from "../../assets/RoomImage/image2.png";
@@ -58,6 +59,9 @@ const mockRooms = [
 ];
 
 export default function LandlordRoomListPage() {
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+  const isTablet = useMediaQuery({ minWidth: 769, maxWidth: 1024 });
+  
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState({
     status: null,
@@ -71,7 +75,7 @@ export default function LandlordRoomListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rooms, setRooms] = useState([]);
   const [total, setTotal] = useState(0);
-  const pageSize = 6;
+  const pageSize = isMobile ? 4 : 6;
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const user = useSelector((state) => state.account.user);
@@ -129,20 +133,22 @@ export default function LandlordRoomListPage() {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Sider width={220}>
-        {user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
-          <AdminSidebar />
-        ) : (
-          <LandlordSidebar />
-        )}
-      </Sider>
+    <Layout style={{ minHeight: "100vh", flexDirection: isMobile ? "column" : "row" }}>
+      {!isMobile && (
+        <Sider width={220}>
+          {user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
+            <AdminSidebar />
+          ) : (
+            <LandlordSidebar />
+          )}
+        </Sider>
+      )}
 
       <Layout>
         <Content
           style={{
-            padding: "24px",
-            paddingTop: "32px", // ✅ Thêm khoảng cách trên
+            padding: isMobile ? "16px" : "24px",
+            paddingTop: isMobile ? "16px" : "32px",
             background: "#fff",
             borderRadius: 8,
           }}
@@ -152,12 +158,14 @@ export default function LandlordRoomListPage() {
             style={{
               marginBottom: 16,
               display: "flex",
+              flexDirection: isMobile ? "column" : "row",
               justifyContent: "space-between",
-              alignItems: "center",
+              alignItems: isMobile ? "stretch" : "center",
+              gap: isMobile ? 12 : 0,
             }}
           >
-            <PageHeader title="Danh sách phòng" /> {/* ✅ Dùng component chung */}
-            <Space>
+            <PageHeader title="Danh sách phòng" style={{ marginBottom: isMobile ? 0 : 0 }} />
+            <Space direction={isMobile ? "vertical" : "horizontal"} style={{ width: isMobile ? "100%" : "auto" }}>
               <Input
                 placeholder="Tìm phòng..."
                 allowClear
@@ -165,23 +173,28 @@ export default function LandlordRoomListPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onPressEnter={handleSearch}
+                style={{ width: isMobile ? "100%" : 200 }}
               />
               <Popover
                 content={<RoomFilterPopover onFilter={handleFilter} />}
                 trigger="click"
                 placement="bottomRight"
               >
-                <Button icon={<FilterOutlined />}>Bộ lọc</Button>
+                <Button icon={<FilterOutlined />} style={{ width: isMobile ? "100%" : "auto" }}>
+                  Bộ lọc
+                </Button>
               </Popover>
-              <Button type="primary" 
-              icon={<PlusOutlined />}
-              onClick={() => {
-                if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
-                  navigate("/admin/rooms/add");
-                } else {
-                  navigate("/landlord/rooms/add");
-                }
-              }}
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
+                    navigate("/admin/rooms/add");
+                  } else {
+                    navigate("/landlord/rooms/add");
+                  }
+                }}
+                style={{ width: isMobile ? "100%" : "auto" }}
               >
                 Thêm phòng
               </Button>
@@ -198,6 +211,9 @@ export default function LandlordRoomListPage() {
               pageSize={pageSize}
               total={total}
               onChange={(page) => setCurrentPage(page)}
+              size={isMobile ? "small" : "default"}
+              showSizeChanger={!isMobile}
+              showQuickJumper={!isMobile}
             />
           </div>
         </Content>
