@@ -43,4 +43,25 @@ export const updateService = async (id, serviceData) => {
 export const deleteService = async (id) => {
   const response = await axiosClient.delete(`/services/${id}`);
   return response;
+};
+
+// Thêm các API mới cho quản lý lịch sử giá
+export const updateServicePrice = async (serviceId, priceData) => {
+  const response = await axiosClient.put(`/services/${serviceId}/price`, priceData);
+  return response;
+};
+
+export const getServicePriceHistory = async (serviceId) => {
+  const response = await axiosClient.get(`/services/${serviceId}/price-history`);
+  return response;
+};
+
+export const getServicePriceAtDate = async (serviceId, date) => {
+  const response = await axiosClient.get(`/services/${serviceId}/price-at-date?date=${date}`);
+  return response;
+};
+
+export const deleteServicePriceHistory = async (historyId) => {
+  const response = await axiosClient.delete(`/services/price-history/${historyId}`);
+  return response;
 }; 
