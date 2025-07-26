@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Table, Button, Modal, Upload, message, Input } from "antd";
-import { detectElectricOcr, saveElectricReading } from "../../services/electricOcrApi";
+import { detectElectricOcr, detectAndSaveElectricOcr, saveElectricReading } from "../../services/electricOcrApi";
 import dayjs from "dayjs";
 import CameraCapture from "../common/CameraCapture";
 
@@ -32,21 +32,22 @@ export default function ElectricTable({
 
   const handleCameraCapture = async (roomId, capturedFile) => {
     try {
-      // Tự động chạy OCR trên ảnh đã chụp
+      // Use the new API that combines OCR detection and image saving
       setDetecting(true);
-      const res = await detectElectricOcr(capturedFile);
+      const res = await detectAndSaveElectricOcr(capturedFile, roomId);
       const detectedValue = res.data.data;
       
-      // Tự động lưu kết quả OCR
-      if (detectedValue) {
-        const valueToSave = detectedValue.split(".")[0];
-        await saveElectricReading(roomId, valueToSave);
-        message.success(`📷 Đã chụp và ghi nhận chỉ số điện: ${detectedValue}`);
+      // The new API already saves the reading to database if OCR was successful
+      if (detectedValue && detectedValue.match(/^\d{5}(\.\d)?$/)) {
+        message.success(`📷 Đã chụp, lưu ảnh và ghi nhận chỉ số điện: ${detectedValue}`);
         if (onReload) onReload();
       } else {
-        message.warning("Không thể đọc được chỉ số từ ảnh, vui lòng thử lại!");
+        message.warning("📷 Đã lưu ảnh nhưng không thể đọc được chỉ số từ ảnh, vui lòng kiểm tra lại!");
+        // Even if OCR failed, we still reload to show that capture happened
+        if (onReload) onReload();
       }
     } catch (err) {
+      console.error("Camera capture error:", err);
       message.error("Lỗi khi xử lý ảnh chụp: " + (err.response?.data?.message || err.message));
     } finally {
       setDetecting(false);
@@ -107,7 +108,9 @@ export default function ElectricTable({
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
           <CameraCapture
             onCapture={(file) => handleCameraCapture(record.roomId, file)}
-            buttonText="📷 Chụp công tơ"
+            buttonText="📷 Chụp tự động"
+            disabled={detecting}
+            autoMode={true}
           />
           <div style={{ fontSize: 11, color: '#999', textAlign: 'center' }}>
             {record.lastCaptureTime ? 

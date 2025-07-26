@@ -16,6 +16,7 @@ import com.mpbhms.backend.repository.ServiceReadingRepository;
 import com.mpbhms.backend.repository.ServiceRepository;
 import com.mpbhms.backend.repository.RoomRepository;
 import com.mpbhms.backend.service.BillService;
+import com.mpbhms.backend.service.ServiceService;
 import com.mpbhms.backend.dto.NotificationDTO;
 import com.mpbhms.backend.enums.NotificationType;
 import com.mpbhms.backend.service.NotificationService;
@@ -56,6 +57,7 @@ public class BillServiceImpl implements BillService {
     private final ContractRepository contractRepository;
     private final ServiceReadingRepository serviceReadingRepository;
     private final ServiceRepository serviceRepository;
+    private final ServiceService serviceService;
     private final RoomRepository roomRepository;
     private final NotificationService notificationService;
 
@@ -150,12 +152,14 @@ public class BillServiceImpl implements BillService {
                     }
                 }
                 if (totalConsumed.compareTo(BigDecimal.ZERO) > 0) {
-                    BigDecimal amount = service.getUnitPrice().multiply(totalConsumed);
+                    // Lấy giá dịch vụ tại ngày bắt đầu chu kỳ hóa đơn
+                    BigDecimal unitPrice = serviceService.getServicePriceAtDate(service.getId(), fromDate);
+                    BigDecimal amount = unitPrice.multiply(totalConsumed);
                     BillDetail serviceDetail = new BillDetail();
                     serviceDetail.setItemType(BillItemType.SERVICE);
                     serviceDetail.setDescription("Dịch vụ " + service.getServiceName() + " (" + service.getServiceType() + ") từ " + fromDate + " đến " + toDate);
                     serviceDetail.setService(service);
-                    serviceDetail.setUnitPriceAtBill(service.getUnitPrice());
+                    serviceDetail.setUnitPriceAtBill(unitPrice);
                     serviceDetail.setConsumedUnits(totalConsumed);
                     serviceDetail.setItemAmount(amount);
                     serviceDetail.setCreatedDate(Instant.now());
@@ -164,15 +168,16 @@ public class BillServiceImpl implements BillService {
                 }
             } else if (service.getServiceType() == ServiceType.WATER || service.getServiceType() == ServiceType.OTHER) {
                 // Nước & dịch vụ khác: tính cố định
+                BigDecimal unitPrice = serviceService.getServicePriceAtDate(service.getId(), fromDate);
                 BillDetail fixedDetail = new BillDetail();
                 fixedDetail.setItemType(BillItemType.SERVICE);
                 fixedDetail.setDescription("Dịch vụ cố định: " + service.getServiceName() + " từ " + fromDate + " đến " + toDate);
                 fixedDetail.setService(service);
-                fixedDetail.setUnitPriceAtBill(service.getUnitPrice());
-                fixedDetail.setItemAmount(service.getUnitPrice());
+                fixedDetail.setUnitPriceAtBill(unitPrice);
+                fixedDetail.setItemAmount(unitPrice);
                 fixedDetail.setCreatedDate(Instant.now());
                 details.add(fixedDetail);
-                totalAmount = totalAmount.add(service.getUnitPrice());
+                totalAmount = totalAmount.add(unitPrice);
             }
         }
 
@@ -350,12 +355,13 @@ public class BillServiceImpl implements BillService {
                         }
                     }
                     if (totalConsumed.compareTo(BigDecimal.ZERO) > 0) {
-                        BigDecimal amount = service.getUnitPrice().multiply(totalConsumed);
+                        BigDecimal unitPrice = serviceService.getServicePriceAtDate(service.getId(), fromDate);
+                        BigDecimal amount = unitPrice.multiply(totalConsumed);
                         BillDetail serviceDetail = new BillDetail();
                         serviceDetail.setItemType(BillItemType.SERVICE);
                         serviceDetail.setDescription("Dịch vụ " + service.getServiceName() + " (" + service.getServiceType() + ") từ " + fromDate + " đến " + toDate);
                         serviceDetail.setService(service);
-                        serviceDetail.setUnitPriceAtBill(service.getUnitPrice());
+                        serviceDetail.setUnitPriceAtBill(unitPrice);
                         serviceDetail.setConsumedUnits(totalConsumed);
                         serviceDetail.setItemAmount(amount);
                         serviceDetail.setCreatedDate(Instant.now());
@@ -363,11 +369,12 @@ public class BillServiceImpl implements BillService {
                         totalAmount = totalAmount.add(amount);
                     }
                 } else if (service.getServiceType() == ServiceType.WATER || service.getServiceType() == ServiceType.OTHER) {
+                    BigDecimal unitPrice = serviceService.getServicePriceAtDate(service.getId(), fromDate);
                     BillDetail fixedDetail = new BillDetail();
                     fixedDetail.setItemType(BillItemType.SERVICE);
                     fixedDetail.setDescription("Dịch vụ cố định: " + service.getServiceName() + " từ " + fromDate + " đến " + toDate);
                     fixedDetail.setService(service);
-                    fixedDetail.setUnitPriceAtBill(service.getUnitPrice());
+                    fixedDetail.setUnitPriceAtBill(unitPrice);
                     
                     // Tính toán tiền dịch vụ cố định theo tỷ lệ thời gian
                     BigDecimal serviceAmount;
@@ -375,11 +382,11 @@ public class BillServiceImpl implements BillService {
                         // Với khoảng ngày tùy chọn, tính theo tỷ lệ
                         long daysBetween = ChronoUnit.DAYS.between(fromDate, toDate) + 1;
                         double ratio = daysBetween / 30.0; // Tỷ lệ so với 1 tháng
-                        serviceAmount = service.getUnitPrice().multiply(BigDecimal.valueOf(ratio));
+                        serviceAmount = unitPrice.multiply(BigDecimal.valueOf(ratio));
                     } else {
                         // Với chu kỳ chuẩn, tính theo số tháng chu kỳ
                         int cycleMonths = countMonths(cycle);
-                        serviceAmount = service.getUnitPrice().multiply(BigDecimal.valueOf(cycleMonths));
+                        serviceAmount = unitPrice.multiply(BigDecimal.valueOf(cycleMonths));
                     }
                     
                     fixedDetail.setItemAmount(serviceAmount);
@@ -615,23 +622,27 @@ public class BillServiceImpl implements BillService {
                     }
                 }
                 if (totalConsumed.compareTo(BigDecimal.ZERO) > 0) {
-                    BigDecimal amount = service.getUnitPrice().multiply(totalConsumed);
+                    LocalDate billDate = LocalDate.of(year, month, 1);
+                    BigDecimal unitPrice = serviceService.getServicePriceAtDate(service.getId(), billDate);
+                    BigDecimal amount = unitPrice.multiply(totalConsumed);
                     BillDetailResponse detail = new BillDetailResponse();
                     detail.setItemType(BillItemType.SERVICE);
                     detail.setDescription("Dịch vụ " + service.getServiceName() + " (" + service.getServiceType() + ") tháng " + String.format("%02d/%d", month, year));
                     detail.setServiceName(service.getServiceName());
-                    detail.setUnitPriceAtBill(service.getUnitPrice());
+                    detail.setUnitPriceAtBill(unitPrice);
                     detail.setConsumedUnits(totalConsumed);
                     detail.setItemAmount(amount);
                     result.add(detail);
                 }
             } else if (service.getServiceType() == ServiceType.WATER || service.getServiceType() == ServiceType.OTHER) {
+                LocalDate billDate = LocalDate.of(year, month, 1);
+                BigDecimal unitPrice = serviceService.getServicePriceAtDate(service.getId(), billDate);
                 BillDetailResponse detail = new BillDetailResponse();
                 detail.setItemType(BillItemType.SERVICE);
                 detail.setDescription("Dịch vụ cố định: " + service.getServiceName() + " tháng " + String.format("%02d/%d", month, year));
                 detail.setServiceName(service.getServiceName());
-                detail.setUnitPriceAtBill(service.getUnitPrice());
-                detail.setItemAmount(service.getUnitPrice());
+                detail.setUnitPriceAtBill(unitPrice);
+                detail.setItemAmount(unitPrice);
                 result.add(detail);
             }
         }
@@ -672,12 +683,14 @@ public class BillServiceImpl implements BillService {
                     }
                 }
                 if (totalConsumed.compareTo(BigDecimal.ZERO) > 0) {
-                    BigDecimal amount = service.getUnitPrice().multiply(totalConsumed);
+                    LocalDate billDate = LocalDate.of(year, month, 1);
+                    BigDecimal unitPrice = serviceService.getServicePriceAtDate(service.getId(), billDate);
+                    BigDecimal amount = unitPrice.multiply(totalConsumed);
                     BillDetail detail = new BillDetail();
                     detail.setItemType(BillItemType.SERVICE);
                     detail.setDescription("Dịch vụ " + service.getServiceName() + " (" + service.getServiceType() + ") tháng " + String.format("%02d/%d", month, year));
                     detail.setService(service);
-                    detail.setUnitPriceAtBill(service.getUnitPrice());
+                    detail.setUnitPriceAtBill(unitPrice);
                     detail.setConsumedUnits(totalConsumed);
                     detail.setItemAmount(amount);
                     detail.setCreatedDate(Instant.now());
@@ -685,15 +698,17 @@ public class BillServiceImpl implements BillService {
                     totalAmount = totalAmount.add(amount);
                 }
             } else if (service.getServiceType() == ServiceType.WATER || service.getServiceType() == ServiceType.OTHER) {
+                LocalDate billDate = LocalDate.of(year, month, 1);
+                BigDecimal unitPrice = serviceService.getServicePriceAtDate(service.getId(), billDate);
                 BillDetail detail = new BillDetail();
                 detail.setItemType(BillItemType.SERVICE);
                 detail.setDescription("Dịch vụ cố định: " + service.getServiceName() + " tháng " + String.format("%02d/%d", month, year));
                 detail.setService(service);
-                detail.setUnitPriceAtBill(service.getUnitPrice());
-                detail.setItemAmount(service.getUnitPrice());
+                detail.setUnitPriceAtBill(unitPrice);
+                detail.setItemAmount(unitPrice);
                 detail.setCreatedDate(Instant.now());
                 details.add(detail);
-                totalAmount = totalAmount.add(service.getUnitPrice());
+                totalAmount = totalAmount.add(unitPrice);
             }
         }
         Bill bill = new Bill();
