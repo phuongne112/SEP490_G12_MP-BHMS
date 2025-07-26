@@ -34,6 +34,23 @@ public class ElectricMeterController {
         return ResponseEntity.ok(new ApiResponse<>(200, null, "Thành công", result));
     }
 
+    @PostMapping("/detect-and-save")
+    public ResponseEntity<ApiResponse<String>> detectAndSaveImage(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("roomId") Long roomId
+    ) throws IOException, InterruptedException {
+        String result = detectionService.detectReadAndSaveImage(file, roomId);
+
+        if (result.startsWith("File không hợp lệ") || result.startsWith("Không tìm thấy")
+                || result.startsWith("Lỗi") || result.startsWith("Giá trị không hợp lệ")
+                || result.startsWith("OCR timeout") || result.startsWith("Invalid") || result.equals("Không quét được chỉ số điện")) {
+            return ResponseEntity.badRequest().body(
+                    new ApiResponse<>(400, "Yêu cầu không hợp lệ", "Có lỗi xảy ra khi xử lý ảnh", result));
+        }
+
+        return ResponseEntity.ok(new ApiResponse<>(200, null, "Đã chụp và lưu ảnh thành công", result));
+    }
+
     @PostMapping("/save-reading")
     public ResponseEntity<ApiResponse<String>> saveReading(
             @RequestParam("roomId") Long roomId,
