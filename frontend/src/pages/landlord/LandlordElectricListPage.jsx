@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Row, Col, DatePicker, Select, Button, Popover, message, Modal, Table, Input, Space, Tooltip } from "antd";
+import { Layout, Row, Col, DatePicker, Select, Button, Popover, message, Modal, Table, Input, Space, Tooltip, Card, Switch, InputNumber } from "antd";
 import dayjs from "dayjs";
 import PageHeader from "../../components/common/PageHeader";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import ElectricTable from "../../components/landlord/ElectricTable";
 import { getElectricReadings } from "../../services/electricReadingApi";
 import { getRoomsWithElectricReadings } from "../../services/roomService";
-import { FilterOutlined } from "@ant-design/icons";
+import { FilterOutlined, CameraOutlined, PlayCircleOutlined, PauseCircleOutlined } from "@ant-design/icons";
 import { enableAutoScan, disableAutoScan, getAutoScanStatus, getScanLogs, getScanImages, getCurrentScanningImage } from "../../services/electricReadingApi";
 import { FolderOpenOutlined } from "@ant-design/icons";
 import axiosClient from "../../services/axiosClient";
-import { getElectricScanInterval } from '../../services/electricOcrApi';
+import { getElectricScanInterval, enableAutoCapture, disableAutoCapture, getAutoCaptureStatus, getAutoCaptureInterval, setAutoCaptureInterval, getTargetRoom, setTargetRoom, getAutoCaptureInfo } from '../../services/electricOcrApi';
 
 const { Sider, Content } = Layout;
 const { Option } = Select;
@@ -48,6 +48,12 @@ export default function LandlordElectricListPage() {
   // Thêm state cho interval
   const [scanInterval, setScanInterval] = useState(10000);
   const [intervalLoading, setIntervalLoading] = useState(false);
+
+  // Auto capture state
+  const [autoCaptureStatus, setAutoCaptureStatus] = useState("Auto capture OFF");
+  const [captureInterval, setCaptureInterval] = useState(30000);
+  const [targetRoom, setTargetRoom] = useState("A101");
+  const [captureIntervalLoading, setCaptureIntervalLoading] = useState(false);
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -304,20 +310,164 @@ export default function LandlordElectricListPage() {
       .finally(() => setIntervalLoading(false));
   };
 
+  // Auto Capture functions
+  const fetchAutoCaptureInfo = async () => {
+    try {
+      const [status, interval, room] = await Promise.all([
+        getAutoCaptureStatus(),
+        getAutoCaptureInterval(),
+        getTargetRoom()
+      ]);
+      setAutoCaptureStatus(status.data);
+      setCaptureInterval(interval.intervalMs);
+      setTargetRoom(room.roomNumber);
+    } catch (error) {
+      console.error("Error fetching auto capture info:", error);
+    }
+  };
+
+  const handleToggleAutoCapture = async () => {
+    try {
+      if (autoCaptureStatus === "Auto capture ON") {
+        await disableAutoCapture();
+        message.success("Auto capture disabled");
+      } else {
+        await enableAutoCapture();
+        message.success("Auto capture enabled");
+      }
+      fetchAutoCaptureInfo();
+    } catch (error) {
+      message.error("Error toggling auto capture");
+    }
+  };
+
+  const handleUpdateCaptureInterval = async () => {
+    setCaptureIntervalLoading(true);
+    try {
+      await setAutoCaptureInterval(captureInterval);
+      message.success("Capture interval updated successfully!");
+    } catch (error) {
+      message.error("Failed to update capture interval!");
+    } finally {
+      setCaptureIntervalLoading(false);
+    }
+  };
+
+  const handleUpdateTargetRoom = async () => {
+    try {
+      await setTargetRoom(targetRoom);
+      message.success("Target room updated successfully!");
+    } catch (error) {
+      message.error("Failed to update target room!");
+    }
+  };
+
+  useEffect(() => {
+    fetchAutoCaptureInfo();
+  }, []);
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Sider width={220} style={{ background: "#fff" }}>
         <LandlordSidebar />
       </Sider>
       <Layout>
-        <Content style={{ padding: 24, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
-          {/* Header Section */}
+        <Content style={{ margin: "24px 16px", padding: 24, background: "#fff" }}>
+          {/* Auto Control Panel */}
+          <Card title="🤖 Auto Control Panel" style={{ marginBottom: 24 }}>
+            <Row gutter={[16, 16]}>
+              {/* Auto Scan Control */}
+              <Col xs={24} md={12}>
+                <Card size="small" title="📁 Auto Scan" bordered>
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>Status: {autoScanStatus}</span>
+                      <Switch
+                        checked={autoScanStatus === "Auto scan ON"}
+                        onChange={(checked) => handleToggleAutoScan(checked)}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>Scan interval:</span>
+                      <InputNumber
+                        min={5000}
+                        max={300000}
+                        value={scanInterval}
+                        onChange={setScanInterval}
+                        disabled={intervalLoading}
+                        suffix="ms"
+                        style={{ width: 120 }}
+                      />
+                      <Button
+                        size="small"
+                        onClick={handleUpdateInterval}
+                        loading={intervalLoading}
+                      >
+                        Update
+                      </Button>
+                    </div>
+                  </Space>
+                </Card>
+              </Col>
+
+              {/* Auto Capture Control */}
+              <Col xs={24} md={12}>
+                <Card size="small" title="📷 Auto Capture" bordered>
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>Status: {autoCaptureStatus}</span>
+                      <Switch
+                        checked={autoCaptureStatus === "Auto capture ON"}
+                        onChange={handleToggleAutoCapture}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>Capture interval:</span>
+                      <InputNumber
+                        min={5000}
+                        max={300000}
+                        value={captureInterval}
+                        onChange={setCaptureInterval}
+                        disabled={captureIntervalLoading}
+                        suffix="ms"
+                        style={{ width: 120 }}
+                      />
+                      <Button
+                        size="small"
+                        onClick={handleUpdateCaptureInterval}
+                        loading={captureIntervalLoading}
+                      >
+                        Update
+                      </Button>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>Target room:</span>
+                      <Input
+                        value={targetRoom}
+                        onChange={(e) => setTargetRoom(e.target.value)}
+                        style={{ width: 100 }}
+                        placeholder="A101"
+                      />
+                      <Button
+                        size="small"
+                        onClick={handleUpdateTargetRoom}
+                      >
+                        Set
+                      </Button>
+                    </div>
+                  </Space>
+                </Card>
+              </Col>
+            </Row>
+          </Card>
+
+          {/* Filter Section */}
           <div style={{ 
             background: 'white', 
-            padding: 20, 
             borderRadius: 8, 
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            marginBottom: 20
+            padding: 16,
+            marginBottom: 16
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <PageHeader title="Quản lý chỉ số điện" style={{ margin: 0, padding: 0 }} />
