@@ -196,7 +196,7 @@ public class AutoElectricMeterScanner {
             // Check if we're running in a headless environment
             if (GraphicsEnvironment.isHeadless()) {
                 System.err.println("❌ Cannot capture screen in headless environment");
-                return createDummyImage();
+                return null;
             }
             
             Robot robot = new Robot();
@@ -205,7 +205,7 @@ public class AutoElectricMeterScanner {
             
             if (screenshot == null) {
                 System.err.println("❌ Robot.createScreenCapture returned null");
-                return createDummyImage();
+                return null;
             }
             
             System.out.println("📸 Screen captured successfully: " + screenshot.getWidth() + "x" + screenshot.getHeight());
@@ -213,33 +213,14 @@ public class AutoElectricMeterScanner {
             
         } catch (AWTException e) {
             System.err.println("❌ AWTException during screen capture: " + e.getMessage());
-            return createDummyImage();
+            return null;
         } catch (Exception e) {
             System.err.println("❌ Error capturing screen: " + e.getMessage());
-            return createDummyImage();
-        }
-    }
-    
-    // Create a dummy image for testing when screen capture fails
-    private BufferedImage createDummyImage() {
-        try {
-            BufferedImage dummyImage = new BufferedImage(640, 480, BufferedImage.TYPE_INT_RGB);
-            java.awt.Graphics2D g2d = dummyImage.createGraphics();
-            g2d.setColor(java.awt.Color.WHITE);
-            g2d.fillRect(0, 0, 640, 480);
-            g2d.setColor(java.awt.Color.BLACK);
-            g2d.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 24));
-            g2d.drawString("Auto Capture Test Image", 50, 240);
-            g2d.drawString("Room: " + targetRoomNumber, 50, 280);
-            g2d.drawString("Time: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), 50, 320);
-            g2d.dispose();
-            System.out.println("📸 Created dummy test image for room: " + targetRoomNumber);
-            return dummyImage;
-        } catch (Exception e) {
-            System.err.println("❌ Error creating dummy image: " + e.getMessage());
             return null;
         }
     }
+    
+
 
     // Bỏ annotation @Scheduled
     public void scanFolder() {
