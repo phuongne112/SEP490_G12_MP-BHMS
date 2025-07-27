@@ -24,6 +24,8 @@ import javax.imageio.ImageIO;
 import java.awt.Rectangle;
 import java.awt.Robot;
 import java.awt.Toolkit;
+import java.awt.GraphicsEnvironment;
+import java.awt.AWTException;
 
 @Service
 public class AutoElectricMeterScanner {
@@ -178,6 +180,8 @@ public class AutoElectricMeterScanner {
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
+            } else {
+                System.err.println("❌ Failed to capture screen - screenshot is null");
             }
             
         } catch (Exception e) {
@@ -189,11 +193,50 @@ public class AutoElectricMeterScanner {
     // Simulate screen capture (in real implementation, this would be webcam capture)
     private BufferedImage captureScreen() {
         try {
+            // Check if we're running in a headless environment
+            if (GraphicsEnvironment.isHeadless()) {
+                System.err.println("❌ Cannot capture screen in headless environment");
+                return createDummyImage();
+            }
+            
             Robot robot = new Robot();
             Rectangle screenRect = new Rectangle(Toolkit.getDefaultToolkit().getScreenSize());
-            return robot.createScreenCapture(screenRect);
+            BufferedImage screenshot = robot.createScreenCapture(screenRect);
+            
+            if (screenshot == null) {
+                System.err.println("❌ Robot.createScreenCapture returned null");
+                return createDummyImage();
+            }
+            
+            System.out.println("📸 Screen captured successfully: " + screenshot.getWidth() + "x" + screenshot.getHeight());
+            return screenshot;
+            
+        } catch (AWTException e) {
+            System.err.println("❌ AWTException during screen capture: " + e.getMessage());
+            return createDummyImage();
         } catch (Exception e) {
             System.err.println("❌ Error capturing screen: " + e.getMessage());
+            return createDummyImage();
+        }
+    }
+    
+    // Create a dummy image for testing when screen capture fails
+    private BufferedImage createDummyImage() {
+        try {
+            BufferedImage dummyImage = new BufferedImage(640, 480, BufferedImage.TYPE_INT_RGB);
+            java.awt.Graphics2D g2d = dummyImage.createGraphics();
+            g2d.setColor(java.awt.Color.WHITE);
+            g2d.fillRect(0, 0, 640, 480);
+            g2d.setColor(java.awt.Color.BLACK);
+            g2d.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 24));
+            g2d.drawString("Auto Capture Test Image", 50, 240);
+            g2d.drawString("Room: " + targetRoomNumber, 50, 280);
+            g2d.drawString("Time: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), 50, 320);
+            g2d.dispose();
+            System.out.println("📸 Created dummy test image for room: " + targetRoomNumber);
+            return dummyImage;
+        } catch (Exception e) {
+            System.err.println("❌ Error creating dummy image: " + e.getMessage());
             return null;
         }
     }
