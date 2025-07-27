@@ -176,7 +176,7 @@ public class UserServiceImpl implements UserService {
         }
         // 3. Kiểm tra số điện thoại đã tồn tại
         if (dto.getPhone() != null && userInfoRepository.existsByPhoneNumber(dto.getPhone())) {
-            errors.put("phone", "Số điện thoại '" + dto.getPhone() + "' đã tồn tại");
+            errors.put("phone", "Số điện thoại đã tồn tại");
         }
         // 4. Kiểm tra CCCD/CMND đã tồn tại
         if (dto.getCitizenId() != null && userInfoRepository.existsByNationalID(dto.getCitizenId())) {
@@ -191,6 +191,11 @@ public class UserServiceImpl implements UserService {
         user.setUsername(dto.getUsername());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setIsActive(true);
+
+        // Gán role USER mặc định cho người dùng đăng ký mới
+        Role userRole = roleService.fetchRoleById(5L) // Role USER có ID = 5
+                .orElseThrow(() -> new BusinessException("Không tìm thấy vai trò USER (ID = 5)"));
+        user.setRole(userRole);
 
         // 4. Tạo UserInfoEntity
         UserInfo info = new UserInfo();

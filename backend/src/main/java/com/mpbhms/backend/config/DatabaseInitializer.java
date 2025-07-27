@@ -63,6 +63,15 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Update User", "/mpbhms/users", "PUT", "User"));
             permissions.add(new Permission("Get User", "/mpbhms/users", "GET", "User"));
             permissions.add(new Permission("Active/ De-Active User", "/mpbhms/users/{id}/active", "PUT", "User"));
+            permissions.add(new Permission("Get My User Info", "/mpbhms/users/me/info", "GET", "User"));
+            permissions.add(new Permission("Update My User Info", "/mpbhms/users/me/info", "PUT", "User"));
+            permissions.add(new Permission("Add My User Info", "/mpbhms/users/me/info", "POST", "User"));
+            permissions.add(new Permission("Get My User Account", "/mpbhms/users/me/account", "GET", "User"));
+            permissions.add(new Permission("Update My User Account", "/mpbhms/users/me/account", "PUT", "User"));
+            //Auth
+            permissions.add(new Permission("Change Password", "/mpbhms/auth/change-password", "PUT", "Auth"));
+            permissions.add(new Permission("Request Reset Password", "/mpbhms/auth/request-reset", "POST", "Auth"));
+            permissions.add(new Permission("Reset Password", "/mpbhms/auth/reset-password", "POST", "Auth"));
             //Roles
             permissions.add(new Permission("Create Role", "/mpbhms/roles", "POST", "Role"));
             permissions.add(new Permission("Update Role", "/mpbhms/roles", "PUT", "Role"));
@@ -202,6 +211,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             Permission markReadNotification = permissionRepository.findByModuleAndApiPathAndMethod(
                 "Notification", "/mpbhms/notifications/{id}/read", "PUT"
             );
+            Permission ocrCccdPermission = permissionRepository.findByModuleAndApiPathAndMethod("Ocr", "/mpbhms/ocr/cccd", "POST");
             Role adminRole = new Role();
             adminRole.setRoleName("ADMIN");
             List<Permission> adminPermissions = new ArrayList<>(permissionRepository.findAll()
@@ -273,7 +283,6 @@ public class DatabaseInitializer implements CommandLineRunner {
             Permission createVnpayUrl = permissionRepository.findByModuleAndApiPathAndMethod("Payment", "/mpbhms/payment/create-vnpay-url", "POST");
             if (createVnpayUrl != null) renterPermission.add(createVnpayUrl);
             //Ocr
-            Permission ocrCccdPermission = permissionRepository.findByModuleAndApiPathAndMethod("Ocr", "/mpbhms/ocr/cccd", "POST");
             if (ocrCccdPermission != null) {
                 renterPermission.add(ocrCccdPermission);
             }
@@ -403,6 +412,11 @@ public class DatabaseInitializer implements CommandLineRunner {
 
             // Quyền xem phòng
             if (viewRoom != null) userPermissions.add(viewRoom);
+
+            // Quyền OCR CCCD cho USER (không được whitelist nên cần quyền cụ thể)
+            if (ocrCccdPermission != null && !userPermissions.contains(ocrCccdPermission)) {
+                userPermissions.add(ocrCccdPermission);
+            }
 
             userRole.setPermissionEntities(userPermissions);
             roleRepository.save(userRole);
