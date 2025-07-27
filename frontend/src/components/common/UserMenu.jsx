@@ -40,29 +40,69 @@ export default function UserMenu() {
     }
   };
 
-  const isRenter = user?.role?.roleName?.toUpperCase() === "RENTER" || user?.role?.roleId === 2;
-  const isAdmin = user?.role?.roleName?.toUpperCase() === "ADMIN" || user?.role?.roleId === 1;
+  // Debug: Log user role info
+  console.log("User role info:", {
+    roleName: user?.role?.roleName,
+    roleId: user?.role?.roleId,
+    user: user
+  });
 
-  const menu = (
-    <Menu>
-      <Menu.Item onClick={openAccountModal}>Account Info</Menu.Item>
-      <Menu.Item onClick={openInfoModal}>Personal Info</Menu.Item>
-      {isRenter && (
-        <Menu.Item onClick={() => navigate("/room")}>Renter Dashboard</Menu.Item>
-      )}
-      {isAdmin && (
-        <Menu.Item onClick={() => navigate("/admin/users")}>Admin Dashboard</Menu.Item>
-      )}
-      <Menu.Divider />
-      <Menu.Item onClick={handleLogout} style={{ color: "red" }}>
-        Logout
-      </Menu.Item>
-    </Menu>
-  );
+  // Kiểm tra role dựa trên roleName trước, sau đó mới kiểm tra roleId
+  const userRoleName = user?.role?.roleName?.toUpperCase();
+  const userRoleId = user?.role?.roleId;
+  
+  const isRenter = userRoleName === "RENTER" || userRoleId === 2;
+  const isAdmin = userRoleName === "ADMIN" || userRoleId === 1;
+  const isLandlord = userRoleName === "LANDLORD" || userRoleId === 3;
+
+  console.log("Role checks:", { 
+    userRoleName, 
+    userRoleId, 
+    isRenter, 
+    isAdmin, 
+    isLandlord 
+  });
+
+  const menuItems = [
+    {
+      key: 'account',
+      label: 'Thông tin tài khoản',
+      onClick: openAccountModal
+    },
+    {
+      key: 'personal',
+      label: 'Thông tin cá nhân',
+      onClick: openInfoModal
+    },
+    ...(isRenter ? [{
+      key: 'renter-dashboard',
+      label: 'Bảng điều khiển (Renter)',
+      onClick: () => navigate("/renter/dashboard")
+    }] : []),
+    ...(isAdmin ? [{
+      key: 'admin-dashboard',
+      label: 'Bảng điều khiển (Admin)',
+      onClick: () => navigate("/admin/dashboard")
+    }] : []),
+    ...(isLandlord ? [{
+      key: 'landlord-dashboard',
+      label: 'Bảng điều khiển (Landlord)',
+      onClick: () => navigate("/landlord/dashboard")
+    }] : []),
+    {
+      type: 'divider'
+    },
+    {
+      key: 'logout',
+      label: 'Đăng xuất',
+      onClick: handleLogout,
+      style: { color: 'red' }
+    }
+  ];
 
   return (
     <>
-      <Dropdown overlay={menu} placement="bottomRight" arrow>
+      <Dropdown menu={{ items: menuItems }} placement="bottomRight" arrow>
         <div style={{ cursor: "pointer", color: "#fff" }}>
           {user?.email || user?.fullName || user?.username || "User"}
           {user?.role?.roleName ? (

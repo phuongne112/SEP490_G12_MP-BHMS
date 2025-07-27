@@ -25,17 +25,21 @@ import ServiceTable from "../../components/landlord/ServiceTable";
 import { getAllServices, createService, updateService, deleteService, updateServicePrice, getServicePriceHistory, deleteServicePriceHistory } from "../../services/serviceApi";
 import { debounce } from "lodash";
 import ServiceFilterPopover from "../../components/landlord/ServiceFilterPopover";
+import { useMediaQuery } from "react-responsive";
 import dayjs from "dayjs";
 
 const { Sider, Content } = Layout;
 
 export default function LandlordServiceListPage() {
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+  const isTablet = useMediaQuery({ minWidth: 769, maxWidth: 1024 });
+  
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState(null);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 5, total: 0 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: isMobile ? 3 : 5, total: 0 });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [form] = Form.useForm();
   
@@ -58,7 +62,7 @@ export default function LandlordServiceListPage() {
     { label: "Khác", value: "OTHER" },
   ];
 
-  const pageSizeOptions = [5, 10, 20, 50];
+  const pageSizeOptions = isMobile ? [3, 5, 10] : [5, 10, 20, 50];
 
   const fetchServices = useCallback(async (page, size, filters) => {
     setLoading(true);
@@ -361,29 +365,44 @@ export default function LandlordServiceListPage() {
   ];
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Sider width={220}>
-        <LandlordSidebar />
-      </Sider>
+    <Layout style={{ minHeight: "100vh", flexDirection: isMobile ? "column" : "row" }}>
+      {!isMobile && (
+        <Sider width={220}>
+          <LandlordSidebar />
+        </Sider>
+      )}
       <Layout>
-        <Content style={{ padding: 24, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+        <Content style={{ padding: isMobile ? 16 : 24, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
           {/* Header Section */}
           <div style={{ 
             background: 'white', 
-            padding: 20, 
+            padding: isMobile ? 16 : 20, 
             borderRadius: 8, 
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             marginBottom: 20
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ 
+              display: "flex", 
+              flexDirection: isMobile ? "column" : "row",
+              justifyContent: "space-between", 
+              alignItems: isMobile ? "stretch" : "center", 
+              marginBottom: 12,
+              gap: isMobile ? 12 : 0
+            }}>
               <PageHeader title="Danh sách dịch vụ" style={{ margin: 0, padding: 0 }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: isMobile ? "column" : "row",
+                alignItems: 'center', 
+                gap: 12,
+                width: isMobile ? "100%" : "auto"
+              }}>
                 <Input
                   placeholder="Tìm tên dịch vụ"
                   prefix={<SearchOutlined />}
                   value={searchInput}
                   onChange={handleSearchInputChange}
-                  style={{ width: 250 }}
+                  style={{ width: isMobile ? "100%" : 250 }}
                 />
                 <Popover
                   content={<ServiceFilterPopover onFilter={handleAdvancedFilterApply} onClose={() => setIsFilterOpen(false)} onReset={handleResetFilter} />}
@@ -392,9 +411,20 @@ export default function LandlordServiceListPage() {
                   open={isFilterOpen}
                   onOpenChange={setIsFilterOpen}
                 >
-                  <Button icon={<FilterOutlined />} type="default">Bộ lọc</Button>
+                  <Button 
+                    icon={<FilterOutlined />} 
+                    type="default"
+                    style={{ width: isMobile ? "100%" : "auto" }}
+                  >
+                    Bộ lọc
+                  </Button>
                 </Popover>
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)}>
+                <Button 
+                  type="primary" 
+                  icon={<PlusOutlined />} 
+                  onClick={() => setIsModalOpen(true)}
+                  style={{ width: isMobile ? "100%" : "auto" }}
+                >
                   Thêm dịch vụ
                 </Button>
               </div>
@@ -403,19 +433,22 @@ export default function LandlordServiceListPage() {
             {/* Status bar */}
             <div style={{ 
               display: 'flex', 
+              flexDirection: isMobile ? "column" : "row",
               justifyContent: 'space-between', 
-              alignItems: 'center',
+              alignItems: isMobile ? "stretch" : "center",
               borderTop: '1px solid #f0f0f0',
               paddingTop: 12,
-              fontSize: 14
+              fontSize: isMobile ? 12 : 14,
+              gap: isMobile ? 8 : 0
             }}>
               <div style={{ color: '#666' }}>
                 Hiển thị
                 <Select
-                  style={{ width: 80, margin: "0 8px" }}
+                  style={{ width: isMobile ? 60 : 80, margin: "0 8px" }}
                   value={pagination.pageSize}
                   onChange={handlePageSizeChange}
                   options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
+                  size={isMobile ? "small" : "middle"}
                 />
                 mục
               </div>
@@ -451,6 +484,8 @@ export default function LandlordServiceListPage() {
             title={editingService ? "Chỉnh sửa dịch vụ" : "Thêm dịch vụ mới"}
             open={isModalOpen}
             onCancel={handleModalCancel}
+            width={isMobile ? '95%' : 600}
+            style={{ top: isMobile ? 20 : 100 }}
             footer={
               editingService ? (
                 [

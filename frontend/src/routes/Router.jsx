@@ -32,7 +32,7 @@ import LandlordBillListPage from "../pages/landlord/LandlordBillListPage";
 import LandlordBillCreatePage from "../pages/landlord/LandlordBillCreatePage";
 import LandlordBillDetailPage from "../pages/landlord/LandlordBillDetailPage";
 import LandlordBookAppointmentPage from "../pages/landlord/LandlordBookAppointmentPage";
-import LandlordUserListPage from "../pages/landlord/LandlordUserListPage";
+
 import RenterBillListPage from "../pages/renter/RenterBillListPage";
 import RenterBillDetailPage from "../pages/renter/RenterBillDetailPage";
 import LandlordAssetListPage from "../pages/landlord/LandlordAssetListPage";
@@ -180,7 +180,7 @@ export default function AppRouter() {
         <Route path="bills" element={<LandlordBillListPage />} />
         <Route path="bills/create" element={<LandlordBillCreatePage />} />
         <Route path="bills/:id" element={<LandlordBillDetailPage />} />
-        <Route path="users" element={<LandlordUserListPage />} />
+
         <Route path="assets" element={<LandlordAssetListPage />} />
         <Route path="bookings" element={<LandlordBookingListPage />} />
         <Route path="contract-templates" element={<LandlordContractTemplateManager />} />
