@@ -6,9 +6,12 @@ import ErrorMessage from "../components/common/ErrorMessage";
 import { register } from "../services/authService";
 import { getAllUsers } from "../services/userApi";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import { useMediaQuery } from 'react-responsive';
 
 export default function Register() {
   const navigate = useNavigate();
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+  const isTablet = useMediaQuery({ minWidth: 769, maxWidth: 1024 });
   const [errors, setErrors] = useState({});
   const [form, setForm] = useState({
     username: "",
@@ -72,18 +75,20 @@ export default function Register() {
         display: "flex",
         justifyContent: "center",
         alignItems: "start",
-        height: "100vh",
+        minHeight: "100vh",
         backgroundColor: "#ccc",
-        padding: 24,
+        padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
+        paddingTop: isMobile ? "20px" : "24px",
+        paddingBottom: isMobile ? "20px" : "24px",
       }}
     >
       <div
         style={{
           width: "100%",
-          maxWidth: 900,
+          maxWidth: isMobile ? "100%" : isTablet ? 800 : 900,
           background: "#B1D7E7",
-          borderRadius: 12,
-          padding: "48px 32px",
+          borderRadius: isMobile ? 8 : 12,
+          padding: isMobile ? "24px 16px" : isTablet ? "36px 24px" : "48px 32px",
           boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
           position: "relative",
         }}
@@ -94,7 +99,7 @@ export default function Register() {
           style={{
             display: "flex",
             justifyContent: "center",
-            marginBottom: 32,
+            marginBottom: isMobile ? 24 : 32,
             cursor: "pointer",
           }}
         >
@@ -105,8 +110,8 @@ export default function Register() {
           onSubmit={handleSubmit}
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 20,
+            gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+            gap: isMobile ? 16 : 20,
           }}
         >
           <TextInput
@@ -173,35 +178,40 @@ export default function Register() {
           />
 
           {errors.general && (
-            <div style={{ gridColumn: "1 / span 2" }}>
+            <div style={{ gridColumn: isMobile ? "1" : "1 / span 2" }}>
               <ErrorMessage message={errors.general} />
             </div>
           )}
 
           <div
             style={{
-              gridColumn: "1 / span 2",
+              gridColumn: isMobile ? "1" : "1 / span 2",
               textAlign: "center",
-              marginTop: 16,
+              marginTop: isMobile ? 12 : 16,
             }}
           >
             <button
               type="submit"
               style={{
-                padding: "12px 48px",
+                padding: isMobile ? "10px 32px" : "12px 48px",
                 background: "#0A2342",
                 color: "#fff",
                 border: "none",
                 borderRadius: 8,
                 fontWeight: "bold",
-                fontSize: 16,
+                fontSize: isMobile ? 14 : 16,
                 cursor: "pointer",
+                width: isMobile ? "100%" : "auto",
               }}
             >
               Đăng ký
             </button>
 
-            <div style={{ marginTop: 12, fontSize: 14 }}>
+            <div style={{ 
+              marginTop: isMobile ? 10 : 12, 
+              fontSize: isMobile ? 13 : 14,
+              padding: isMobile ? "0 8px" : 0
+            }}>
               Đã có tài khoản?{" "}
               <a
                 href="/login"

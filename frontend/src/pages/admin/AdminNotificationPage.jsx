@@ -11,12 +11,10 @@ import {
   Col,
   Select,
   DatePicker,
-  Badge,
   message,
   Alert,
 } from "antd";
 import { FilterOutlined, PlusOutlined } from "@ant-design/icons";
-import { FaBell } from "react-icons/fa";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import NotificationTable from "../../components/admin/NotificationTable";
@@ -163,13 +161,7 @@ export default function AdminNotificationPage() {
                     Bộ lọc
                   </Button>
                 </Popover>
-                <Badge count={3} offset={[-2, 2]} size="small">
-                  <FaBell
-                    size={20}
-                    style={{ color: "#555", cursor: "pointer" }}
-                    title="New notifications"
-                  />
-                </Badge>
+
                 <Access requiredPermissions={["Create Notification Send"]}>
                   <Button
                     type="primary"

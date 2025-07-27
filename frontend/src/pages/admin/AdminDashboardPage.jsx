@@ -42,12 +42,12 @@ const AdminDashboardPage = () => {
 
   // Chuẩn bị dữ liệu biểu đồ
   const userTypeRatio = [
-    { name: "Quản trị viên", value: userStats.admin },
-    { name: "Người thuê", value: userStats.renter },
-    { name: "Khách", value: userStats.guest },
+    { name: "Quản trị viên", value: userStats?.admin || 0 },
+    { name: "Người thuê", value: userStats?.renter || 0 },
+    { name: "Khách", value: userStats?.guest || 0 },
   ];
-  const assetTypeRatio = Object.entries(assetStats.byType).map(([name, value]) => ({ name, value }));
-  const transactionByMonth = Object.entries(billStats.byMonth).map(([month, count]) => ({ month, count }));
+  const assetTypeRatio = assetStats?.byType ? Object.entries(assetStats.byType).map(([name, value]) => ({ name, value })) : [];
+  const transactionByMonth = billStats?.byMonth ? Object.entries(billStats.byMonth).map(([month, count]) => ({ month, count })) : [];
 
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
@@ -59,25 +59,25 @@ const AdminDashboardPage = () => {
         <Row gutter={16} style={{ marginBottom: 24 }}>
           <Col span={6}>
             <Card>
-              <Statistic title="Tổng số người dùng" value={userStats.total} />
+              <Statistic title="Tổng số người dùng" value={userStats?.total || 0} />
               <div style={{ fontSize: 12, color: '#888' }}>
-                (Quản trị viên: {userStats.admin} / Người thuê: {userStats.renter} / Khách: {userStats.guest})
+                (Quản trị viên: {userStats?.admin || 0} / Người thuê: {userStats?.renter || 0} / Khách: {userStats?.guest || 0})
               </div>
             </Card>
           </Col>
           <Col span={6}>
             <Card>
-              <Statistic title="Tổng số phòng" value={roomStats.total} />
+              <Statistic title="Tổng số phòng" value={roomStats?.total || 0} />
             </Card>
           </Col>
           <Col span={6}>
             <Card>
-              <Statistic title="Tổng số giao dịch" value={billStats.total} />
+              <Statistic title="Tổng số giao dịch" value={billStats?.total || 0} />
             </Card>
           </Col>
           <Col span={6}>
             <Card>
-              <Statistic title="Doanh thu hệ thống" value={billStats.revenue} suffix="₫" />
+              <Statistic title="Doanh thu hệ thống" value={billStats?.revenue || 0} suffix="₫" />
             </Card>
           </Col>
         </Row>

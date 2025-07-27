@@ -215,7 +215,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             List<Permission> adminPermissions = new ArrayList<>(permissionRepository.findAll()
                     .stream()
                     .filter(p ->
-                            List.of("User", "Role", "Permission", "Notification", "Service", "Renter", "Schedule").contains(p.getModule()) ||
+                            List.of("User", "Role", "Permission", "Notification", "Service", "Renter", "Schedule", "Bill", "Asset").contains(p.getModule()) ||
                                     (p.getModule().equals("Room") && p.getMethod().equals("GET"))
                     )// hoặc theo API cụ thể
                     .toList());
@@ -366,7 +366,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             subAdminRole.setRoleName("SUBADMIN");
             List<Permission> subAdminPermission = new ArrayList<>(permissionRepository.findAll()
                     .stream()
-                    .filter(p -> List.of().contains(p.getModule())) // hoặc theo API cụ thể
+                    .filter(p -> List.of("User", "Role", "Permission", "Notification", "Service", "Renter", "Schedule", "Bill", "Asset", "Room").contains(p.getModule())) // hoặc theo API cụ thể
                     .toList());
             if (viewMyNotification != null && !subAdminPermission.contains(viewMyNotification)) {
                 subAdminPermission.add(viewMyNotification);
