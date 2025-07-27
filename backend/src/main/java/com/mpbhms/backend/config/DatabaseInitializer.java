@@ -207,7 +207,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             List<Permission> adminPermissions = new ArrayList<>(permissionRepository.findAll()
                     .stream()
                     .filter(p ->
-                            List.of("User", "Role", "Permission", "Notification", "Service", "Renter", "Schedule").contains(p.getModule()) ||
+                            List.of("User", "Role", "Permission", "Notification", "Service", "Renter", "Schedule", "Bill", "Asset").contains(p.getModule()) ||
                                     (p.getModule().equals("Room") && p.getMethod().equals("GET"))
                     )// hoặc theo API cụ thể
                     .toList());
