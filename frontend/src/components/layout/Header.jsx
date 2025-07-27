@@ -32,6 +32,35 @@ dayjs.extend(relativeTime);
 
 const { Title } = Typography;
 
+// Hàm chuyển đổi thời gian tương đối sang tiếng Việt
+const getRelativeTimeInVietnamese = (date) => {
+  const now = dayjs();
+  const targetDate = dayjs(date);
+  const diffInSeconds = now.diff(targetDate, 'second');
+  const diffInMinutes = now.diff(targetDate, 'minute');
+  const diffInHours = now.diff(targetDate, 'hour');
+  const diffInDays = now.diff(targetDate, 'day');
+  const diffInWeeks = now.diff(targetDate, 'week');
+  const diffInMonths = now.diff(targetDate, 'month');
+  const diffInYears = now.diff(targetDate, 'year');
+
+  if (diffInSeconds < 60) {
+    return 'Vừa xong';
+  } else if (diffInMinutes < 60) {
+    return `${diffInMinutes} phút trước`;
+  } else if (diffInHours < 24) {
+    return `${diffInHours} giờ trước`;
+  } else if (diffInDays < 7) {
+    return `${diffInDays} ngày trước`;
+  } else if (diffInWeeks < 4) {
+    return `${diffInWeeks} tuần trước`;
+  } else if (diffInMonths < 12) {
+    return `${diffInMonths} tháng trước`;
+  } else {
+    return `${diffInYears} năm trước`;
+  }
+};
+
 export default function Header() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -286,7 +315,7 @@ export default function Header() {
                   {item.title}
                 </div>
                 <div style={{ color: "#999", fontSize: 12, marginTop: 2 }}>
-                  {dayjs(item.createdDate).fromNow()}
+                  {getRelativeTimeInVietnamese(item.createdDate)}
                 </div>
               </div>
             </List.Item>
