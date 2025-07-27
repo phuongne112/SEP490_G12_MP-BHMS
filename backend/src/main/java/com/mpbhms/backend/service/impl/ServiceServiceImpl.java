@@ -3,11 +3,15 @@ package com.mpbhms.backend.service.impl;
 import com.mpbhms.backend.dto.Meta;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
 import com.mpbhms.backend.dto.ServiceDTO;
+import com.mpbhms.backend.dto.ServicePriceHistoryDTO;
+import com.mpbhms.backend.dto.UpdateServicePriceRequest;
 import com.mpbhms.backend.entity.CustomService;
+import com.mpbhms.backend.entity.ServicePriceHistory;
 import com.mpbhms.backend.exception.BusinessException;
 import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.exception.NotFoundException;
 import com.mpbhms.backend.repository.ServiceRepository;
+import com.mpbhms.backend.repository.ServicePriceHistoryRepository;
 import com.mpbhms.backend.repository.ServiceReadingRepository;
 import com.mpbhms.backend.entity.ServiceReading;
 import com.mpbhms.backend.service.ServiceService;
@@ -17,10 +21,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.stream.Collectors;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +34,7 @@ public class ServiceServiceImpl implements ServiceService {
 
     private final ServiceRepository serviceRepository;
     private final ServiceReadingRepository serviceReadingRepository;
+    private final ServicePriceHistoryRepository servicePriceHistoryRepository;
 
     @Override
     public List<ServiceDTO> getAllServices() {
@@ -82,9 +89,22 @@ public class ServiceServiceImpl implements ServiceService {
             throw new IdInvalidException("ID dịch vụ không được để trống");
         }
         
-        if (!serviceRepository.existsById(id)) {
-            throw new NotFoundException("Không tìm thấy dịch vụ với ID: " + id);
+        CustomService service = getServiceById(id);
+        
+        // Kiểm tra xem dịch vụ có lịch sử giá không
+        List<ServicePriceHistory> priceHistories = servicePriceHistoryRepository.findByServiceIdOrderByEffectiveDateDesc(id);
+        if (!priceHistories.isEmpty()) {
+            throw new BusinessException("Không thể xóa dịch vụ đã có lịch sử giá. Vui lòng xóa lịch sử giá trước.");
         }
+        
+        // Kiểm tra xem dịch vụ có đang được sử dụng trong phòng nào không
+        List<ServiceReading> serviceReadings = serviceReadingRepository.findByService_Id(id);
+        if (!serviceReadings.isEmpty()) {
+            throw new BusinessException("Không thể xóa dịch vụ đang được sử dụng trong phòng. Vui lòng gỡ bỏ dịch vụ khỏi phòng trước.");
+        }
+        
+        // Kiểm tra xem dịch vụ có đang được sử dụng trong hóa đơn nào không
+        // TODO: Thêm kiểm tra với bảng bill_detail nếu có
         
         serviceRepository.deleteById(id);
     }
@@ -130,6 +150,84 @@ public class ServiceServiceImpl implements ServiceService {
         dto.setUnit(service.getUnit());
         dto.setUnitPrice(service.getUnitPrice());
         dto.setServiceType(service.getServiceType().name());
+        return dto;
+    }
+
+    @Override
+    public ServicePriceHistoryDTO updateServicePrice(Long serviceId, UpdateServicePriceRequest request) {
+        CustomService service = getServiceById(serviceId);
+        
+        // Kiểm tra ngày hiệu lực không được trong quá khứ
+        if (request.getEffectiveDate().isBefore(LocalDate.now())) {
+            throw new BusinessException("Ngày hiệu lực không được trong quá khứ");
+        }
+        
+        // Tạo lịch sử giá mới (chưa active)
+        ServicePriceHistory priceHistory = new ServicePriceHistory();
+        priceHistory.setService(service);
+        priceHistory.setUnitPrice(request.getNewUnitPrice());
+        priceHistory.setEffectiveDate(request.getEffectiveDate());
+        priceHistory.setEndDate(null); // Giá mới chưa có ngày kết thúc
+        priceHistory.setReason(request.getReason());
+        priceHistory.setIsActive(false); // Chưa active, sẽ active khi đến ngày hiệu lực
+        
+        // KHÔNG cập nhật giá hiện tại của service ngay lập tức
+        // Giá sẽ được cập nhật khi đến ngày hiệu lực thông qua job tự động
+        
+        ServicePriceHistory savedHistory = servicePriceHistoryRepository.save(priceHistory);
+        return convertToServicePriceHistoryDTO(savedHistory);
+    }
+
+    @Override
+    public List<ServicePriceHistoryDTO> getServicePriceHistory(Long serviceId) {
+        List<ServicePriceHistory> histories = servicePriceHistoryRepository.findByServiceIdOrderByEffectiveDateDesc(serviceId);
+        return histories.stream()
+                .map(this::convertToServicePriceHistoryDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public BigDecimal getServicePriceAtDate(Long serviceId, LocalDate date) {
+        ServicePriceHistory priceHistory = servicePriceHistoryRepository.findActivePriceByServiceAndDate(serviceId, date)
+                .orElse(null);
+        
+        if (priceHistory != null) {
+            return priceHistory.getUnitPrice();
+        }
+        
+        // Nếu không có lịch sử giá, trả về giá hiện tại
+        CustomService service = getServiceById(serviceId);
+        return service.getUnitPrice();
+    }
+
+    @Override
+    public void deleteServicePriceHistory(Long historyId) {
+        if (historyId == null) {
+            throw new IdInvalidException("ID lịch sử giá không được để trống");
+        }
+        
+        ServicePriceHistory history = servicePriceHistoryRepository.findById(historyId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy lịch sử giá với ID: " + historyId));
+        
+        // Chỉ cho phép xóa lịch sử giá chưa active (chưa áp dụng)
+        if (history.getIsActive()) {
+            throw new BusinessException("Không thể xóa lịch sử giá đang được áp dụng");
+        }
+        
+        servicePriceHistoryRepository.deleteById(historyId);
+    }
+
+    private ServicePriceHistoryDTO convertToServicePriceHistoryDTO(ServicePriceHistory history) {
+        ServicePriceHistoryDTO dto = new ServicePriceHistoryDTO();
+        dto.setId(history.getId());
+        dto.setServiceId(history.getService().getId());
+        dto.setServiceName(history.getService().getServiceName());
+        dto.setUnitPrice(history.getUnitPrice());
+        dto.setEffectiveDate(history.getEffectiveDate());
+        dto.setEndDate(history.getEndDate());
+        dto.setReason(history.getReason());
+        dto.setIsActive(history.getIsActive());
+        dto.setCreatedAt(history.getCreatedDate().atZone(java.time.ZoneId.systemDefault()).toLocalDate());
         return dto;
     }
 } 

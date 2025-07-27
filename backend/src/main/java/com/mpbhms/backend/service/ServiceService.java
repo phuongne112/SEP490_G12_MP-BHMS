@@ -2,13 +2,16 @@ package com.mpbhms.backend.service;
 
 import com.mpbhms.backend.dto.ResultPaginationDTO;
 import com.mpbhms.backend.dto.ServiceDTO;
+import com.mpbhms.backend.dto.ServicePriceHistoryDTO;
+import com.mpbhms.backend.dto.UpdateServicePriceRequest;
 import com.mpbhms.backend.entity.CustomService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
-import java.util.List;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.Instant;
+import java.util.List;
 
 public interface ServiceService {
     List<ServiceDTO> getAllServices();
@@ -21,6 +24,12 @@ public interface ServiceService {
 
     // Thêm method cho readings
     List<ServiceReadingDTO> getServiceReadingsByServiceId(Long serviceId);
+
+    // Thêm methods cho quản lý lịch sử giá
+    ServicePriceHistoryDTO updateServicePrice(Long serviceId, UpdateServicePriceRequest request);
+    List<ServicePriceHistoryDTO> getServicePriceHistory(Long serviceId);
+    BigDecimal getServicePriceAtDate(Long serviceId, LocalDate date);
+    void deleteServicePriceHistory(Long historyId);
 
     class ServiceReadingDTO {
         public Long id;

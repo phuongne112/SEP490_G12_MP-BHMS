@@ -3,6 +3,8 @@ package com.mpbhms.backend.controller;
 import com.mpbhms.backend.dto.CreateServiceRequest;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
 import com.mpbhms.backend.dto.ServiceDTO;
+import com.mpbhms.backend.dto.ServicePriceHistoryDTO;
+import com.mpbhms.backend.dto.UpdateServicePriceRequest;
 import com.mpbhms.backend.entity.CustomService;
 import com.mpbhms.backend.service.ServiceService;
 import jakarta.validation.Valid;
@@ -20,10 +22,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.List;
-import java.util.stream.Collectors;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/mpbhms/services")
@@ -154,5 +156,35 @@ public class ServiceController {
                 sr.getCreatedDate()
             ))
             .collect(Collectors.toList());
+    }
+
+    // Thêm endpoints cho quản lý lịch sử giá
+    @PutMapping("/{id}/price")
+    public ResponseEntity<ServicePriceHistoryDTO> updateServicePrice(
+            @PathVariable Long id, 
+            @Valid @RequestBody UpdateServicePriceRequest request) {
+        ServicePriceHistoryDTO result = serviceService.updateServicePrice(id, request);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/{id}/price-history")
+    public ResponseEntity<List<ServicePriceHistoryDTO>> getServicePriceHistory(@PathVariable Long id) {
+        List<ServicePriceHistoryDTO> history = serviceService.getServicePriceHistory(id);
+        return ResponseEntity.ok(history);
+    }
+
+    @GetMapping("/{id}/price-at-date")
+    public ResponseEntity<BigDecimal> getServicePriceAtDate(
+            @PathVariable Long id, 
+            @RequestParam String date) {
+        LocalDate targetDate = LocalDate.parse(date);
+        BigDecimal price = serviceService.getServicePriceAtDate(id, targetDate);
+        return ResponseEntity.ok(price);
+    }
+
+    @DeleteMapping("/price-history/{historyId}")
+    public ResponseEntity<Void> deleteServicePriceHistory(@PathVariable Long historyId) {
+        serviceService.deleteServicePriceHistory(historyId);
+        return ResponseEntity.noContent().build();
     }
 } 

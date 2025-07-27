@@ -7,6 +7,8 @@ import org.springframework.web.multipart.MultipartFile;
 import com.mpbhms.backend.util.FileMultipartFile;
 
 import java.io.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.concurrent.atomic.AtomicBoolean;
 import com.mpbhms.backend.repository.RoomRepository;
 import com.mpbhms.backend.entity.Room;
@@ -14,6 +16,14 @@ import java.util.Optional;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import java.util.concurrent.ScheduledFuture;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import java.awt.Rectangle;
+import java.awt.Robot;
+import java.awt.Toolkit;
 
 @Service
 public class AutoElectricMeterScanner {
@@ -22,10 +32,15 @@ public class AutoElectricMeterScanner {
     private final RoomRepository roomRepository;
     private String scanFolder;
     private final AtomicBoolean enabled = new AtomicBoolean(false);
+    private final AtomicBoolean autoCaptureEnabled = new AtomicBoolean(false);
     private volatile String currentScanningFile = null;
     private long intervalMs = 10000; // mặc định 10s
+    private long captureIntervalMs = 30000; // mặc định 30s cho auto capture
     private final TaskScheduler taskScheduler;
+    private final TaskScheduler captureTaskScheduler;
     private ScheduledFuture<?> scheduledFuture;
+    private ScheduledFuture<?> captureScheduledFuture;
+    private String targetRoomNumber = "A101"; // Phòng mặc định để chụp
 
     public AutoElectricMeterScanner(ElectricMeterDetectionService detectionService,
                                     ScanLogService scanLogService,
@@ -35,11 +50,20 @@ public class AutoElectricMeterScanner {
         this.scanLogService = scanLogService;
         this.roomRepository = roomRepository;
         this.scanFolder = scanFolder;
+        
+        // Scheduler cho scan
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
         scheduler.setPoolSize(1);
         scheduler.setThreadNamePrefix("AutoElectricMeterScanner-");
         scheduler.initialize();
         this.taskScheduler = scheduler;
+        
+        // Scheduler riêng cho capture
+        ThreadPoolTaskScheduler captureScheduler = new ThreadPoolTaskScheduler();
+        captureScheduler.setPoolSize(1);
+        captureScheduler.setThreadNamePrefix("AutoCapture-");
+        captureScheduler.initialize();
+        this.captureTaskScheduler = captureScheduler;
     }
 
     public void start() {
@@ -64,6 +88,114 @@ public class AutoElectricMeterScanner {
 
     public long getInterval() {
         return intervalMs;
+    }
+
+    // Auto capture methods
+    public void startAutoCapture() {
+        if (captureScheduledFuture != null && !captureScheduledFuture.isCancelled()) return;
+        captureScheduledFuture = captureTaskScheduler.scheduleWithFixedDelay(this::captureImage, captureIntervalMs);
+        System.out.println("🤖 Auto capture started with interval: " + captureIntervalMs + "ms");
+    }
+
+    public void stopAutoCapture() {
+        if (captureScheduledFuture != null) {
+            captureScheduledFuture.cancel(false);
+            captureScheduledFuture = null;
+        }
+        System.out.println("⏹️ Auto capture stopped");
+    }
+
+    public void setCaptureInterval(long intervalMs) {
+        this.captureIntervalMs = intervalMs;
+        if (autoCaptureEnabled.get()) {
+            stopAutoCapture();
+            startAutoCapture();
+        }
+    }
+
+    public long getCaptureInterval() {
+        return captureIntervalMs;
+    }
+
+    public void setTargetRoom(String roomNumber) {
+        this.targetRoomNumber = roomNumber;
+    }
+
+    public String getTargetRoom() {
+        return targetRoomNumber;
+    }
+
+    public void setAutoCaptureEnabled(boolean enable) {
+        this.autoCaptureEnabled.set(enable);
+        if (enable) {
+            startAutoCapture();
+        } else {
+            stopAutoCapture();
+        }
+    }
+
+    public boolean isAutoCaptureEnabled() {
+        return this.autoCaptureEnabled.get();
+    }
+
+    // Capture image using screen capture (simulating webcam)
+    public void captureImage() {
+        if (!autoCaptureEnabled.get()) return;
+        
+        try {
+            System.out.println("📸 Auto capturing image for room: " + targetRoomNumber);
+            
+            // Tìm room ID
+            Optional<Room> roomOpt = roomRepository.findByRoomNumberAndDeletedFalse(targetRoomNumber);
+            if (roomOpt.isEmpty()) {
+                System.out.println("❌ Room not found: " + targetRoomNumber);
+                return;
+            }
+            
+            Long roomId = roomOpt.get().getId();
+            
+            // Tạo folder cho room nếu chưa có
+            Path roomDirectory = Paths.get(scanFolder, targetRoomNumber);
+            Files.createDirectories(roomDirectory);
+            
+            // Tạo tên file với timestamp
+            LocalDateTime now = LocalDateTime.now();
+            String timestamp = now.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            String filename = String.format("electric_meter_%s_%s.jpg", targetRoomNumber, timestamp);
+            Path filePath = roomDirectory.resolve(filename);
+            
+            // Capture screen (simulating webcam capture)
+            // Trong thực tế, đây sẽ là webcam capture
+            BufferedImage screenshot = captureScreen();
+            if (screenshot != null) {
+                ImageIO.write(screenshot, "jpg", filePath.toFile());
+                System.out.println("📸 Captured image saved: " + filePath.toString());
+                
+                // Tự động scan ngay sau khi capture
+                try {
+                    Thread.sleep(2000); // Đợi 2 giây để file được lưu hoàn toàn
+                    scanFolder(); // Scan ngay lập tức
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error during auto capture: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    // Simulate screen capture (in real implementation, this would be webcam capture)
+    private BufferedImage captureScreen() {
+        try {
+            Robot robot = new Robot();
+            Rectangle screenRect = new Rectangle(Toolkit.getDefaultToolkit().getScreenSize());
+            return robot.createScreenCapture(screenRect);
+        } catch (Exception e) {
+            System.err.println("❌ Error capturing screen: " + e.getMessage());
+            return null;
+        }
     }
 
     // Bỏ annotation @Scheduled

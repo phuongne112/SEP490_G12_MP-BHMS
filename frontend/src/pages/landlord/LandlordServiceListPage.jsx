@@ -13,15 +13,20 @@ import {
   Space,
   Popover,
   Pagination,
+  DatePicker,
+  Table,
+  Tag,
+  Tooltip,
 } from "antd";
-import { PlusOutlined, SearchOutlined, FilterOutlined } from "@ant-design/icons";
+import { PlusOutlined, SearchOutlined, FilterOutlined, HistoryOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import ServiceTable from "../../components/landlord/ServiceTable";
-import { getAllServices, createService, updateService, deleteService } from "../../services/serviceApi";
+import { getAllServices, createService, updateService, deleteService, updateServicePrice, getServicePriceHistory, deleteServicePriceHistory } from "../../services/serviceApi";
 import { debounce } from "lodash";
 import ServiceFilterPopover from "../../components/landlord/ServiceFilterPopover";
 import { useMediaQuery } from "react-responsive";
+import dayjs from "dayjs";
 
 const { Sider, Content } = Layout;
 
@@ -37,6 +42,13 @@ export default function LandlordServiceListPage() {
   const [pagination, setPagination] = useState({ current: 1, pageSize: isMobile ? 3 : 5, total: 0 });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [form] = Form.useForm();
+  
+  // Thêm state cho modal cập nhật giá
+  const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+  const [priceForm] = Form.useForm();
+  const [selectedServiceForPrice, setSelectedServiceForPrice] = useState(null);
+  const [priceHistory, setPriceHistory] = useState([]);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   
   // STEP 1: Refactor state management
   // Central state for all active filters being sent to the API
@@ -118,6 +130,54 @@ export default function LandlordServiceListPage() {
       setIsModalOpen(true);
     }
   };
+
+  // Thêm handler cho cập nhật giá
+  const handleUpdatePrice = (id) => {
+    const service = services.find(s => s.id === id);
+    if (service) {
+      setSelectedServiceForPrice(service);
+      const nextMonth = dayjs().add(1, 'month').startOf('month');
+      priceForm.setFieldsValue({
+        newUnitPrice: service.price,
+        effectiveDate: nextMonth,
+        reason: '',
+      });
+      setIsPriceModalOpen(true);
+    }
+  };
+
+  // Thêm handler cho xem lịch sử giá
+  const handleViewPriceHistory = async (id) => {
+    try {
+      const service = services.find(s => s.id === id);
+      if (!service) {
+        message.error("Không tìm thấy dịch vụ");
+        return;
+      }
+      
+      setSelectedServiceForPrice(service);
+      const response = await getServicePriceHistory(id);
+      setPriceHistory(response.data || []);
+      setIsHistoryModalOpen(true);
+    } catch (error) {
+      message.error("Không thể tải lịch sử giá");
+    }
+  };
+
+  // Thêm handler cho xóa lịch sử giá
+  const handleDeletePriceHistory = async (historyId) => {
+    try {
+      await deleteServicePriceHistory(historyId);
+      message.success("Xóa lịch sử giá thành công");
+      // Refresh lịch sử giá
+      if (selectedServiceForPrice) {
+        const response = await getServicePriceHistory(selectedServiceForPrice.id);
+        setPriceHistory(response.data || []);
+      }
+    } catch (error) {
+      message.error("Không thể xóa lịch sử giá");
+    }
+  };
   
   const handleTableChange = (newPagination) => {
     setPagination(prev => ({
@@ -159,6 +219,36 @@ export default function LandlordServiceListPage() {
     }
   };
 
+  // Thêm handler cho cập nhật giá
+  const handleUpdatePriceSubmit = async (values) => {
+    setIsSubmitting(true);
+    try {
+      const priceData = {
+        newUnitPrice: values.newUnitPrice,
+        effectiveDate: values.effectiveDate.format('YYYY-MM-DD'),
+        reason: values.reason,
+      };
+
+      const response = await updateServicePrice(selectedServiceForPrice.id, priceData);
+
+      if (response && response.data) {
+        message.success("Đã lưu giá mới vào lịch sử. Giá sẽ được áp dụng từ ngày hiệu lực.");
+        priceForm.resetFields();
+        setIsPriceModalOpen(false);
+        setSelectedServiceForPrice(null);
+        // Refresh danh sách dịch vụ
+        fetchServices(pagination.current, pagination.pageSize, activeFilters);
+      } else {
+        throw new Error(response.error || "Cập nhật giá thất bại");
+      }
+    } catch (error) {
+      console.error("Error updating price:", error);
+      message.error(error.message || "Cập nhật giá thất bại");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleDeleteService = async (id) => {
     try {
         await deleteService(id);
@@ -177,6 +267,12 @@ export default function LandlordServiceListPage() {
     form.resetFields();
   };
 
+  const handlePriceModalCancel = () => {
+    setIsPriceModalOpen(false);
+    setSelectedServiceForPrice(null);
+    priceForm.resetFields();
+  };
+
   const handlePageSizeChange = (value) => {
     setPagination(p => ({ ...p, pageSize: value, current: 1 }));
     fetchServices(1, value, activeFilters);
@@ -189,6 +285,84 @@ export default function LandlordServiceListPage() {
     setPagination(p => ({ ...p, current: 1 }));
     fetchServices(1, pagination.pageSize, {});
   };
+
+  // Cập nhật columns cho ServiceTable để thêm các action mới
+  const columns = [
+    {
+      title: "Tên dịch vụ",
+      dataIndex: "name",
+      key: "name",
+    },
+    {
+      title: "Đơn vị",
+      dataIndex: "unit",
+      key: "unit",
+    },
+    {
+      title: "Giá (VND/đơn vị)",
+      dataIndex: "price",
+      key: "price",
+      render: (value) => value ? value.toLocaleString("vi-VN") : "0",
+    },
+    {
+      title: "Loại",
+      dataIndex: "type",
+      key: "type",
+      render: (type) => {
+        const typeMap = {
+          ELECTRICITY: "Điện",
+          WATER: "Nước",
+          OTHER: "Khác",
+        };
+        return typeMap[type] || type;
+      },
+    },
+    {
+      title: "Thao tác",
+      key: "actions",
+      render: (_, record) => (
+        <Space>
+          <Button 
+            type="primary" 
+            icon={<EditOutlined />} 
+            onClick={() => handleEdit(record.id)}
+            size="small"
+          />
+          <Button
+            type="default"
+            icon={<EditOutlined />}
+            onClick={() => handleUpdatePrice(record.id)}
+            size="small"
+            title="Cập nhật giá"
+          >
+            Giá
+          </Button>
+          <Button
+            type="default"
+            icon={<HistoryOutlined />}
+            onClick={() => handleViewPriceHistory(record.id)}
+            size="small"
+            title="Xem lịch sử giá"
+          >
+            Lịch sử
+          </Button>
+          <Popconfirm
+            title="Xóa dịch vụ"
+            description="Bạn có chắc muốn xóa dịch vụ này?"
+            onConfirm={() => handleDeleteService(record.id)}
+            okText="Xóa"
+            cancelText="Không"
+          >
+            <Button
+              icon={<DeleteOutlined />}
+              danger
+              size="small"
+            />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
 
   return (
     <Layout style={{ minHeight: "100vh", flexDirection: isMobile ? "column" : "row" }}>
@@ -298,9 +472,14 @@ export default function LandlordServiceListPage() {
               onEdit={handleEdit}
               onDelete={handleDeleteService}
               onTableChange={handleTableChange}
+              onUpdatePrice={handleUpdatePrice}
+              onViewPriceHistory={handleViewPriceHistory}
             />
           </div>
 
+
+
+          {/* Modal thêm/sửa dịch vụ */}
           <Modal
             title={editingService ? "Chỉnh sửa dịch vụ" : "Thêm dịch vụ mới"}
             open={isModalOpen}
@@ -344,6 +523,123 @@ export default function LandlordServiceListPage() {
                 <Select options={serviceTypeOptions} placeholder="Chọn loại dịch vụ" />
               </Form.Item>
             </Form>
+          </Modal>
+
+          {/* Modal cập nhật giá */}
+          <Modal
+            title={`Cập nhật giá dịch vụ: ${selectedServiceForPrice?.name}`}
+            open={isPriceModalOpen}
+            onCancel={handlePriceModalCancel}
+            footer={[
+              <Button key="back" onClick={handlePriceModalCancel}>Hủy</Button>,
+              <Button key="submit" type="primary" loading={isSubmitting} onClick={() => priceForm.submit()}>
+                Cập nhật giá
+              </Button>
+            ]}
+          >
+            <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 6 }}>
+              <div style={{ color: '#52c41a', fontWeight: 500, marginBottom: 4 }}>ℹ️ Lưu ý:</div>
+              <div style={{ color: '#666', fontSize: 13 }}>
+                • Giá mới sẽ được lưu vào lịch sử và chỉ áp dụng từ ngày hiệu lực<br/>
+                • Giá hiện tại vẫn được sử dụng cho đến ngày hiệu lực<br/>
+                • Bạn có thể xem trạng thái trong "Lịch sử giá"
+              </div>
+            </div>
+            <Form layout="vertical" form={priceForm} onFinish={handleUpdatePriceSubmit}>
+              <Form.Item label="Giá mới (VND/đơn vị)" name="newUnitPrice" rules={[{ required: true, message: "Vui lòng nhập giá mới" }]}>
+                <InputNumber style={{ width: "100%" }} placeholder="Nhập giá mới" min={0} />
+              </Form.Item>
+              <Form.Item label="Ngày hiệu lực" name="effectiveDate" rules={[{ required: true, message: "Vui lòng chọn ngày hiệu lực" }]}>
+                <DatePicker style={{ width: "100%" }} placeholder="Chọn ngày hiệu lực" />
+              </Form.Item>
+              <Form.Item label="Lý do thay đổi" name="reason">
+                <Input.TextArea placeholder="Nhập lý do thay đổi giá (tùy chọn)" rows={3} />
+              </Form.Item>
+            </Form>
+          </Modal>
+
+          {/* Modal lịch sử giá */}
+          <Modal
+            title={`Lịch sử giá dịch vụ: ${selectedServiceForPrice?.name}`}
+            open={isHistoryModalOpen}
+            onCancel={() => setIsHistoryModalOpen(false)}
+            footer={null}
+            width={800}
+          >
+
+                         <Table
+               dataSource={priceHistory}
+               rowKey="id"
+               columns={[
+                 {
+                   title: "Giá (VND)",
+                   dataIndex: "unitPrice",
+                   key: "unitPrice",
+                   render: (value) => value ? value.toLocaleString("vi-VN") : "0",
+                 },
+                 {
+                   title: "Ngày hiệu lực",
+                   dataIndex: "effectiveDate",
+                   key: "effectiveDate",
+                   render: (date) => date ? new Date(date).toLocaleDateString("vi-VN") : "-",
+                 },
+                 {
+                   title: "Ngày kết thúc",
+                   dataIndex: "endDate",
+                   key: "endDate",
+                   render: (date) => date ? new Date(date).toLocaleDateString("vi-VN") : "Hiện tại",
+                 },
+                 {
+                   title: "Lý do",
+                   dataIndex: "reason",
+                   key: "reason",
+                   render: (reason) => reason || "-",
+                 },
+                 {
+                   title: "Trạng thái",
+                   dataIndex: "isActive",
+                   key: "isActive",
+                   render: (isActive, record) => {
+                     const today = new Date();
+                     const effectiveDate = record.effectiveDate ? new Date(record.effectiveDate) : null;
+                     
+                     if (isActive) {
+                       return <Tag color="green">Đang áp dụng</Tag>;
+                     } else if (effectiveDate && effectiveDate > today) {
+                       return <Tag color="orange">Chờ áp dụng</Tag>;
+                     } else {
+                       return <Tag color="red">Không áp dụng</Tag>;
+                     }
+                   },
+                 },
+                 {
+                   title: "Thao tác",
+                   key: "actions",
+                   render: (_, record) => (
+                     <Space>
+                       {!record.isActive && (
+                         <Popconfirm
+                           title="Xóa lịch sử giá"
+                           description="Bạn có chắc muốn xóa lịch sử giá này?"
+                           onConfirm={() => handleDeletePriceHistory(record.id)}
+                           okText="Xóa"
+                           cancelText="Không"
+                         >
+                           <Button
+                             icon={<DeleteOutlined />}
+                             danger
+                             size="small"
+                             title="Xóa lịch sử giá"
+                           />
+                         </Popconfirm>
+                       )}
+                     </Space>
+                   ),
+                 },
+               ]}
+               pagination={false}
+               size="small"
+             />
           </Modal>
         </Content>
       </Layout>

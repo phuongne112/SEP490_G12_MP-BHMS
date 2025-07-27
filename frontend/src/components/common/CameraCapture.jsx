@@ -1,26 +1,54 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Button, Modal, InputNumber, message, Progress, Space } from 'antd';
-import { CameraOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
+import { Button, Modal, InputNumber, message, Progress, Space, Switch, Radio } from 'antd';
+import { CameraOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons';
 
-export default function CameraCapture({ onCapture, buttonText = "📷 Chụp ảnh", disabled = false }) {
+export default function CameraCapture({ onCapture, buttonText = "📷 Chụp ảnh", disabled = false, autoMode = true }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [timerDuration, setTimerDuration] = useState(3); // Mặc định 3 giây
   const [capturing, setCapturing] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
+  const [autoCapture, setAutoCapture] = useState(autoMode);
+  const [captureMode, setCaptureMode] = useState('single'); // 'single' or 'continuous'
+  const [continuousInterval, setContinuousInterval] = useState(30); // 30 seconds
+  const [isContinuousRunning, setIsContinuousRunning] = useState(false);
+  const [continuousCount, setContinuousCount] = useState(0);
   
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const canvasRef = useRef(null);
   const timerRef = useRef(null);
+  const continuousTimerRef = useRef(null);
 
   // Cleanup stream khi component unmount
   useEffect(() => {
     return () => {
       stopStream();
+      stopContinuousCapture();
     };
   }, []);
+
+  // Auto start countdown when camera is ready in auto mode (single capture)
+  useEffect(() => {
+    if (isStreaming && autoCapture && !capturing && !capturedImage && captureMode === 'single') {
+      // Wait a moment for camera to stabilize, then start countdown
+      const autoStartTimer = setTimeout(() => {
+        startCountdown();
+      }, 1000);
+      
+      return () => clearTimeout(autoStartTimer);
+    }
+  }, [isStreaming, autoCapture, capturing, capturedImage, captureMode]);
+
+  // Start continuous capture when mode is set to continuous
+  useEffect(() => {
+    if (isStreaming && captureMode === 'continuous' && !isContinuousRunning) {
+      startContinuousCapture();
+    } else if (captureMode === 'single' && isContinuousRunning) {
+      stopContinuousCapture();
+    }
+  }, [isStreaming, captureMode, isContinuousRunning]);
 
   const startCamera = async () => {
     try {
@@ -54,6 +82,37 @@ export default function CameraCapture({ onCapture, buttonText = "📷 Chụp ả
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
+    stopContinuousCapture();
+  };
+
+  const startContinuousCapture = () => {
+    if (isContinuousRunning) return;
+    
+    setIsContinuousRunning(true);
+    setContinuousCount(0);
+    
+    // Start the continuous capture cycle
+    const startCaptureCycle = () => {
+      setContinuousCount(prev => prev + 1);
+      capturePhoto();
+      
+      // Schedule next capture
+      continuousTimerRef.current = setTimeout(startCaptureCycle, continuousInterval * 1000);
+    };
+    
+    // Start first capture after interval
+    continuousTimerRef.current = setTimeout(startCaptureCycle, continuousInterval * 1000);
+    
+    message.success(`🤖 Bắt đầu chụp tự động mỗi ${continuousInterval} giây`);
+  };
+
+  const stopContinuousCapture = () => {
+    if (continuousTimerRef.current) {
+      clearTimeout(continuousTimerRef.current);
+      continuousTimerRef.current = null;
+    }
+    setIsContinuousRunning(false);
+    message.info('⏹️ Dừng chụp tự động');
   };
 
   const startCountdown = () => {
@@ -98,7 +157,13 @@ export default function CameraCapture({ onCapture, buttonText = "📷 Chụp ả
           onCapture(file);
         }
         
-        message.success('Đã chụp ảnh thành công!');
+        if (captureMode === 'continuous') {
+          message.success(`📷 Chụp tự động lần ${continuousCount + 1} thành công!`);
+          // Don't show captured image in continuous mode to avoid UI clutter
+          setCapturedImage(null);
+        } else {
+          message.success('Đã chụp ảnh thành công!');
+        }
       }
     }, 'image/jpeg', 0.9);
     
@@ -112,6 +177,7 @@ export default function CameraCapture({ onCapture, buttonText = "📷 Chụp ả
   const handleModalOpen = () => {
     setModalOpen(true);
     setCapturedImage(null);
+    setContinuousCount(0);
     startCamera();
   };
 
@@ -119,6 +185,7 @@ export default function CameraCapture({ onCapture, buttonText = "📷 Chụp ả
     setModalOpen(false);
     stopStream();
     setCapturedImage(null);
+    setContinuousCount(0);
   };
 
   const handleConfirm = () => {
@@ -151,7 +218,7 @@ export default function CameraCapture({ onCapture, buttonText = "📷 Chụp ả
         onCancel={handleModalClose}
         title="📷 Chụp ảnh công tơ điện"
         width={800}
-        footer={capturedImage ? [
+        footer={capturedImage && captureMode === 'single' ? [
           <Button key="retake" onClick={handleRetake}>
             Chụp lại
           </Button>,
@@ -161,30 +228,111 @@ export default function CameraCapture({ onCapture, buttonText = "📷 Chụp ả
         ] : null}
       >
         <div style={{ textAlign: 'center' }}>
-          {/* Camera Settings */}
+          {/* Capture Mode Selection */}
           {!capturedImage && (
             <div style={{ marginBottom: 16, padding: 12, background: '#f6f6f6', borderRadius: 6 }}>
-              <Space align="center">
-                <ClockCircleOutlined />
-                <span>Thời gian đếm ngược:</span>
-                <InputNumber
-                  min={1}
-                  max={10}
-                  value={timerDuration}
-                  onChange={setTimerDuration}
-                  disabled={capturing}
-                  suffix="giây"
-                  style={{ width: 100 }}
-                />
-                <Button 
-                  type="primary" 
-                  onClick={startCountdown}
-                  disabled={!isStreaming || capturing}
-                  loading={capturing}
-                >
-                  {capturing ? 'Đang chụp...' : 'Bắt đầu chụp'}
-                </Button>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <div>
+                  <strong>Chế độ chụp:</strong>
+                  <Radio.Group 
+                    value={captureMode} 
+                    onChange={(e) => setCaptureMode(e.target.value)}
+                    style={{ marginLeft: 16 }}
+                  >
+                    <Radio.Button value="single">Chụp một lần</Radio.Button>
+                    <Radio.Button value="continuous">Chụp liên tục</Radio.Button>
+                  </Radio.Group>
+                </div>
+                
+                {captureMode === 'single' && (
+                  <Space align="center" wrap>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>Chế độ tự động:</span>
+                      <Switch 
+                        checked={autoCapture} 
+                        onChange={setAutoCapture}
+                        disabled={capturing}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <ClockCircleOutlined />
+                      <span>Thời gian đếm ngược:</span>
+                      <InputNumber
+                        min={1}
+                        max={10}
+                        value={timerDuration}
+                        onChange={setTimerDuration}
+                        disabled={capturing}
+                        suffix="giây"
+                        style={{ width: 100 }}
+                      />
+                    </div>
+                    {!autoCapture && (
+                      <Button 
+                        type="primary" 
+                        onClick={startCountdown}
+                        disabled={!isStreaming || capturing}
+                        loading={capturing}
+                      >
+                        {capturing ? 'Đang chụp...' : 'Bắt đầu chụp'}
+                      </Button>
+                    )}
+                  </Space>
+                )}
+                
+                {captureMode === 'continuous' && (
+                  <Space align="center" wrap>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>Chụp mỗi:</span>
+                      <InputNumber
+                        min={5}
+                        max={300}
+                        value={continuousInterval}
+                        onChange={setContinuousInterval}
+                        disabled={isContinuousRunning}
+                        suffix="giây"
+                        style={{ width: 100 }}
+                      />
+                    </div>
+                    <Button 
+                      type={isContinuousRunning ? "default" : "primary"}
+                      icon={isContinuousRunning ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
+                      onClick={isContinuousRunning ? stopContinuousCapture : startContinuousCapture}
+                      disabled={!isStreaming}
+                    >
+                      {isContinuousRunning ? 'Dừng chụp' : 'Bắt đầu chụp liên tục'}
+                    </Button>
+                  </Space>
+                )}
               </Space>
+            </div>
+          )}
+
+          {/* Auto Mode Indicator */}
+          {!capturedImage && autoCapture && isStreaming && !capturing && captureMode === 'single' && (
+            <div style={{ 
+              marginBottom: 16, 
+              padding: 8, 
+              background: '#e6f7ff', 
+              borderRadius: 6,
+              color: '#1890ff',
+              fontSize: 14
+            }}>
+              🤖 Chế độ tự động: Camera sẽ tự động chụp sau {timerDuration} giây...
+            </div>
+          )}
+
+          {/* Continuous Mode Status */}
+          {!capturedImage && isContinuousRunning && captureMode === 'continuous' && (
+            <div style={{ 
+              marginBottom: 16, 
+              padding: 8, 
+              background: '#f6ffed', 
+              borderRadius: 6,
+              color: '#52c41a',
+              fontSize: 14
+            }}>
+              🔄 Chụp liên tục: Đã chụp {continuousCount} lần - Lần tiếp theo sau {continuousInterval} giây
             </div>
           )}
 
@@ -247,8 +395,8 @@ export default function CameraCapture({ onCapture, buttonText = "📷 Chụp ả
             </div>
           )}
 
-          {/* Captured Image Preview */}
-          {capturedImage && (
+          {/* Captured Image Preview - Only show for single mode */}
+          {capturedImage && captureMode === 'single' && (
             <div>
               <div style={{ color: '#52c41a', marginBottom: 16, fontSize: 16 }}>
                 <CheckOutlined /> Đã chụp thành công!
