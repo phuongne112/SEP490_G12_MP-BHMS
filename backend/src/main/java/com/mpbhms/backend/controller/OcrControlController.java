@@ -61,62 +61,7 @@ public class OcrControlController {
         return ResponseEntity.badRequest().body("Invalid interval");
     }
 
-    // Auto Capture endpoints
-    @PostMapping("/auto-capture/on")
-    public ResponseEntity<String> enableAutoCapture() {
-        scanner.setAutoCaptureEnabled(true);
-        return ResponseEntity.ok("Auto capture ENABLED");
-    }
 
-    @PostMapping("/auto-capture/off")
-    public ResponseEntity<String> disableAutoCapture() {
-        scanner.setAutoCaptureEnabled(false);
-        return ResponseEntity.ok("Auto capture DISABLED");
-    }
-
-    @GetMapping("/auto-capture/status")
-    public ResponseEntity<String> getAutoCaptureStatus() {
-        return ResponseEntity.ok(scanner.isAutoCaptureEnabled() ? "Auto capture ON" : "Auto capture OFF");
-    }
-
-    @GetMapping("/auto-capture/interval")
-    public Map<String, Long> getCaptureInterval() {
-        return Map.of("intervalMs", scanner.getCaptureInterval());
-    }
-
-    @PostMapping("/auto-capture/interval")
-    public ResponseEntity<String> setCaptureInterval(@RequestBody Map<String, Long> request) {
-        Long intervalMs = request.get("intervalMs");
-        if (intervalMs != null && intervalMs > 0) {
-            scanner.setCaptureInterval(intervalMs);
-            return ResponseEntity.ok("Capture interval updated to " + intervalMs + "ms");
-        }
-        return ResponseEntity.badRequest().body("Invalid interval");
-    }
-
-    @GetMapping("/auto-capture/room")
-    public Map<String, String> getTargetRoom() {
-        return Map.of("roomNumber", scanner.getTargetRoom());
-    }
-
-    @PostMapping("/auto-capture/room")
-    public ResponseEntity<String> setTargetRoom(@RequestBody Map<String, String> request) {
-        String roomNumber = request.get("roomNumber");
-        if (roomNumber != null && !roomNumber.trim().isEmpty()) {
-            scanner.setTargetRoom(roomNumber);
-            return ResponseEntity.ok("Target room updated to " + roomNumber);
-        }
-        return ResponseEntity.badRequest().body("Invalid room number");
-    }
-
-    @GetMapping("/auto-capture/info")
-    public Map<String, Object> getAutoCaptureInfo() {
-        Map<String, Object> info = new HashMap<>();
-        info.put("enabled", scanner.isAutoCaptureEnabled());
-        info.put("intervalMs", scanner.getCaptureInterval());
-        info.put("targetRoom", scanner.getTargetRoom());
-        return info;
-    }
 
     @GetMapping("/scan-logs")
     public ResponseEntity<Page<ScanLog>> getScanLogs(
@@ -171,8 +116,8 @@ public class OcrControlController {
     }
 
     @PostMapping("/cccd")
-    public ResponseEntity<?> ocrCccd(@RequestParam("frontImage") org.springframework.web.multipart.MultipartFile frontImage,
-                                     @RequestParam("backImage") org.springframework.web.multipart.MultipartFile backImage) {
+    public ResponseEntity<?> ocrCccd(@RequestParam("front") org.springframework.web.multipart.MultipartFile frontImage,
+                                     @RequestParam("back") org.springframework.web.multipart.MultipartFile backImage) {
         try {
             Map<String, Object> result = ocrCccdService.ocrCccd(frontImage, backImage);
             return ResponseEntity.ok(result);
