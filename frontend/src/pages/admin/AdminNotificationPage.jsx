@@ -32,6 +32,59 @@ import { useDispatch } from "react-redux";
 import { setUser } from "../../store/accountSlice";
 import { useSelector } from "react-redux";
 
+// Hàm chuyển đổi ngày sang định dạng Việt Nam chuẩn (dd/mm/yyyy)
+const formatDateToVietnamese = (dateString) => {
+  if (!dateString) return "";
+  
+  // Xử lý format "2025-07-28 16:11:04 PM" từ API
+  let date;
+  
+  // Thử parse trực tiếp
+  date = new Date(dateString);
+  
+  // Nếu không hợp lệ, thử xử lý format đặc biệt
+  if (isNaN(date.getTime())) {
+    // Tách phần ngày từ "2025-07-28 16:11:04 PM"
+    const datePart = dateString.split(' ')[0];
+    if (datePart) {
+      date = new Date(datePart);
+    }
+  }
+  
+  // Kiểm tra xem ngày có hợp lệ không
+  if (isNaN(date.getTime())) {
+    return "";
+  }
+  
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}/${month}/${year}`;
+};
+
+// Hàm dịch loại thông báo
+const translateNotificationType = (type) => {
+  const typeMap = {
+    'ANNOUNCEMENT': 'Thông báo chung',
+    'PAYMENT_SUCCESS': 'Thanh toán thành công',
+    'PAYMENT_FAILED': 'Thanh toán thất bại',
+    'CUSTOM': 'Tùy chỉnh'
+  };
+  return typeMap[type] || type;
+};
+
+// Hàm dịch trạng thái thông báo
+const translateNotificationStatus = (status) => {
+  const statusMap = {
+    'SENT': 'Đã gửi',
+    'DELIVERED': 'Đã gửi',
+    'READ': 'Đã đọc',
+    'UNREAD': 'Chưa đọc'
+  };
+  return statusMap[status] || status;
+};
+
 const { Content } = Layout;
 const { Option } = Select;
 
@@ -370,32 +423,32 @@ export default function AdminNotificationPage() {
 
           {/* View Notification Detail Modal */}
           <Modal
-            title="🔔 Notification Detail"
+            title="🔔 Chi Tiết Thông Báo"
             open={isViewModalOpen}
             onCancel={() => setIsViewModalOpen(false)}
             footer={[
               <Button key="close" onClick={() => setIsViewModalOpen(false)}>
-                Done
+                Xong
               </Button>,
             ]}
           >
             {selectedNotification && (
               <div>
                 <p>
-                  <strong>Title:</strong> {selectedNotification.title}
+                  <strong>Tiêu đề:</strong> {selectedNotification.title}
                 </p>
                 <p>
-                  <strong>Message:</strong> {selectedNotification.message}
+                  <strong>Nội dung:</strong> {selectedNotification.message}
                 </p>
                 <p>
-                  <strong>Type:</strong> {selectedNotification.type}
+                  <strong>Loại:</strong> {translateNotificationType(selectedNotification.type)}
                 </p>
                 <p>
-                  <strong>Status:</strong> {selectedNotification.status}
+                  <strong>Trạng thái:</strong> {translateNotificationStatus(selectedNotification.status)}
                 </p>
                 <p>
-                  <strong>Created Date:</strong>{" "}
-                  {selectedNotification.createdAt}
+                  <strong>Ngày tạo:</strong>{" "}
+                  {selectedNotification.createdDate ? formatDateToVietnamese(selectedNotification.createdDate) : ""}
                 </p>
               </div>
             )}

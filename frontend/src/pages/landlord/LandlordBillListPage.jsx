@@ -102,6 +102,7 @@ export default function LandlordBillListPage() {
   const pageSizeOptions = isMobile ? [3, 5, 10] : [5, 10, 20, 50];
   const [filterOpen, setFilterOpen] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [emailLoading, setEmailLoading] = useState({}); // State để track loading cho từng bill
   const navigate = useNavigate();
 
   const fetchBills = async (page = currentPage, size = pageSize) => {
@@ -164,11 +165,31 @@ export default function LandlordBillListPage() {
   };
 
   const handleSendEmail = async (id) => {
+    // Kiểm tra hóa đơn đã được gửi email trong ngày hôm nay chưa
+    const today = new Date().toDateString();
+    const sentBillsToday = JSON.parse(localStorage.getItem('sentBillsToday') || '{}');
+    
+    if (sentBillsToday[id] === today) {
+      message.warning("Hóa đơn này đã được gửi email hôm nay. Vui lòng thử lại vào ngày mai!");
+      return;
+    }
+    
+    // Set loading state cho bill này
+    setEmailLoading(prev => ({ ...prev, [id]: true }));
+    
     try {
       await axiosClient.post(`/bills/send-email/${id}`);
+      
+      // Lưu ngày gửi email cho hóa đơn này
+      const updatedSentBillsToday = { ...sentBillsToday, [id]: today };
+      localStorage.setItem('sentBillsToday', JSON.stringify(updatedSentBillsToday));
+      
       message.success("Đã gửi hóa đơn qua email thành công!");
     } catch (err) {
       message.error("Gửi email thất bại!");
+    } finally {
+      // Clear loading state
+      setEmailLoading(prev => ({ ...prev, [id]: false }));
     }
   };
 
@@ -351,20 +372,46 @@ export default function LandlordBillListPage() {
             </Button>
           )}
           {/* Chỉ hiển thị nút Gửi Email nếu hóa đơn chưa thanh toán */}
-          <Popover
-            content={record.status ? 'Chỉ gửi email cho hóa đơn chưa thanh toán' : 'Gửi hóa đơn cho khách'}
-            placement="top"
-          >
-            <Button 
-              icon={<SendOutlined />} // Gửi Email
-              onClick={() => handleSendEmail(record.id)}
-              size="small"
-              style={{ background: '#52c41a', color: '#fff', opacity: record.status ? 0.7 : 1, cursor: record.status ? 'not-allowed' : 'pointer' }}
-              disabled={record.status === true}
-            >
-              {isMobile ? "Email" : "Gửi Email"}
-            </Button>
-          </Popover>
+          {(() => {
+            const today = new Date().toDateString();
+            const sentBillsToday = JSON.parse(localStorage.getItem('sentBillsToday') || '{}');
+            const isSentToday = sentBillsToday[record.id] === today;
+            const isDisabled = record.status === true || emailLoading[record.id] || isSentToday;
+            
+            return (
+              <Popover
+                content={
+                  record.status 
+                    ? 'Chỉ gửi email cho hóa đơn chưa thanh toán' 
+                    : isSentToday 
+                      ? 'Hóa đơn này đã được gửi email hôm nay'
+                      : 'Gửi hóa đơn cho khách'
+                }
+                placement="top"
+              >
+                <Button 
+                  icon={emailLoading[record.id] ? null : <SendOutlined />} // Gửi Email
+                  onClick={() => handleSendEmail(record.id)}
+                  size="small"
+                  loading={emailLoading[record.id]}
+                  style={{ 
+                    background: isSentToday ? '#d9d9d9' : '#52c41a', 
+                    color: '#fff', 
+                    opacity: isDisabled ? 0.7 : 1, 
+                    cursor: isDisabled ? 'not-allowed' : 'pointer' 
+                  }}
+                  disabled={isDisabled}
+                >
+                  {emailLoading[record.id] 
+                    ? "Đang gửi..." 
+                    : isSentToday 
+                      ? "Đã gửi hôm nay" 
+                      : (isMobile ? "Email" : "Gửi Email")
+                  }
+                </Button>
+              </Popover>
+            );
+          })()}
         </Space>
       ),
     },

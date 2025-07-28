@@ -138,6 +138,7 @@ export default function PermissionTable({
         current: pagination.current,
         total: pagination.total,
         pageSize,
+        showSizeChanger: false,
         onChange: (page) => fetchData(page),
       }}
     />

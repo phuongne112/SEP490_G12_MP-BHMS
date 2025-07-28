@@ -4,6 +4,37 @@ import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { getAllRoles } from "../../services/roleApi";
 import { useSelector } from "react-redux";
 
+// Hàm chuyển đổi ngày sang định dạng Việt Nam chuẩn (dd/mm/yyyy)
+const formatDateToVietnamese = (dateString) => {
+  if (!dateString) return "";
+  
+  // Xử lý format "2025-07-28 16:11:04 PM" từ API
+  let date;
+  
+  // Thử parse trực tiếp
+  date = new Date(dateString);
+  
+  // Nếu không hợp lệ, thử xử lý format đặc biệt
+  if (isNaN(date.getTime())) {
+    // Tách phần ngày từ "2025-07-28 16:11:04 PM"
+    const datePart = dateString.split(' ')[0];
+    if (datePart) {
+      date = new Date(datePart);
+    }
+  }
+  
+  // Kiểm tra xem ngày có hợp lệ không
+  if (isNaN(date.getTime())) {
+    return "";
+  }
+  
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}/${month}/${year}`;
+};
+
 const buildFilterDSL = (searchTerm, filters) => {
   const dsl = [];
   if (searchTerm?.trim()) {
@@ -53,7 +84,8 @@ export default function RoleTable({
         result.map((item, index) => ({
           key: item.id || index + 1 + (page - 1) * pageSize,
           ...item,
-          createdAt: item.createdDate?.slice(0, 10),
+          createdAt: item.createdDate ? formatDateToVietnamese(item.createdDate) : "",
+          updatedAt: item.updatedDate ? formatDateToVietnamese(item.updatedDate) : "",
         }))
       );
       setPagination({ current: page, total });
@@ -94,6 +126,10 @@ export default function RoleTable({
     {
       title: "Ngày tạo",
       dataIndex: "createdAt",
+    },
+    {
+      title: "Ngày cập nhật",
+      dataIndex: "updatedAt",
     },
     ...(canEdit || canDelete
       ? [

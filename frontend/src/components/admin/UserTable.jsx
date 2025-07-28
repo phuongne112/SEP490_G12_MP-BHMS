@@ -1,8 +1,40 @@
 import React, { useEffect, useState } from "react";
-import { Table, Tag, Button, Space, message, Popconfirm } from "antd";
+import { Table, Tag, Button, Space, message, Popconfirm, Tooltip } from "antd";
+import { EditOutlined } from "@ant-design/icons";
 import { getAllUsers, updateUserStatus } from "../../services/userApi";
 import Access from "../../components/common/Access";
 import { useSelector } from "react-redux";
+
+// Hàm chuyển đổi ngày sang định dạng Việt Nam chuẩn (dd/mm/yyyy)
+const formatDateToVietnamese = (dateString) => {
+  if (!dateString) return "";
+  
+  // Xử lý format "2025-07-28 16:11:04 PM" từ API
+  let date;
+  
+  // Thử parse trực tiếp
+  date = new Date(dateString);
+  
+  // Nếu không hợp lệ, thử xử lý format đặc biệt
+  if (isNaN(date.getTime())) {
+    // Tách phần ngày từ "2025-07-28 16:11:04 PM"
+    const datePart = dateString.split(' ')[0];
+    if (datePart) {
+      date = new Date(datePart);
+    }
+  }
+  
+  // Kiểm tra xem ngày có hợp lệ không
+  if (isNaN(date.getTime())) {
+    return "";
+  }
+  
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}/${month}/${year}`;
+};
 
 // Hàm tạo DSL lọc dữ liệu người dùng
 const buildFilterDSL = (searchTerm, filters) => {
@@ -70,7 +102,7 @@ export default function UserTable({
           fullName: item.fullName,
           phoneNumber: item.phoneNumber,
           isActive: item.isActive,
-          createdAt: item.createdDate?.slice(0, 10),
+          createdAt: item.createdDate ? formatDateToVietnamese(item.createdDate) : "",
           status: item.isActive ? "Đang hoạt động" : "Ngừng hoạt động",
           role: {
             roleName: item.role?.roleName || "USER",
@@ -192,9 +224,12 @@ export default function UserTable({
 
               return (
                 <Space>
-                  <Button size="middle" onClick={() => onEdit(record)}>
-                    Sửa
-                  </Button>
+                  <Tooltip title="Chỉnh sửa">
+                    <Button
+                      icon={<EditOutlined />}
+                      onClick={() => onEdit(record)}
+                    />
+                  </Tooltip>
                 </Space>
               );
             },
