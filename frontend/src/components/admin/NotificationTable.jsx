@@ -1,8 +1,40 @@
 import React, { useEffect, useState } from "react";
-import { Table, Button, Space, Tag, Alert } from "antd";
+import { Table, Button, Space, Tag, Alert, Tooltip } from "antd";
+import { EyeOutlined, DeleteOutlined } from "@ant-design/icons";
 import { getAllNotifications } from "../../services/notificationApi";
 import Access from "../common/Access";
 import { useSelector } from "react-redux";
+
+// Hàm chuyển đổi ngày sang định dạng Việt Nam chuẩn (dd/mm/yyyy)
+const formatDateToVietnamese = (dateString) => {
+  if (!dateString) return "";
+  
+  // Xử lý format "2025-07-28 16:11:04 PM" từ API
+  let date;
+  
+  // Thử parse trực tiếp
+  date = new Date(dateString);
+  
+  // Nếu không hợp lệ, thử xử lý format đặc biệt
+  if (isNaN(date.getTime())) {
+    // Tách phần ngày từ "2025-07-28 16:11:04 PM"
+    const datePart = dateString.split(' ')[0];
+    if (datePart) {
+      date = new Date(datePart);
+    }
+  }
+  
+  // Kiểm tra xem ngày có hợp lệ không
+  if (isNaN(date.getTime())) {
+    return "";
+  }
+  
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}/${month}/${year}`;
+};
 
 // Hàm tạo DSL filter
 const buildFilterDSL = (searchTerm, filters) => {
@@ -68,7 +100,7 @@ export default function NotificationTable({
           return {
             key: item.id || index + 1 + (page - 1) * pageSize,
             ...item,
-            createdAt: item.createdDate?.slice(0, 10),
+                         createdAt: item.createdDate ? formatDateToVietnamese(item.createdDate) : "",
             recipient: user?.fullName || user?.email || "Không xác định",
           };
         })
@@ -144,18 +176,21 @@ export default function NotificationTable({
             key: "actions",
             render: (_, record) => (
               <Space>
-                <Button size="small" onClick={() => onView(record)}>
-                  Xem
-                </Button>
+                <Tooltip title="Xem chi tiết">
+                  <Button
+                    icon={<EyeOutlined />}
+                    onClick={() => onView(record)}
+                  />
+                </Tooltip>
                 {hasDeletePermission && (
                   <Access requiredPermissions={["Delete Notification"]}>
-                    <Button
-                      size="small"
-                      danger
-                      onClick={() => onDelete(record)}
-                    >
-                      Xóa
-                    </Button>
+                    <Tooltip title="Xóa">
+                      <Button
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => onDelete(record)}
+                      />
+                    </Tooltip>
                   </Access>
                 )}
               </Space>
