@@ -134,6 +134,22 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
             <Descriptions.Item label="Nơi cấp">
               {info?.nationalIDIssuePlace || "-"}
             </Descriptions.Item>
+            <Descriptions.Item label="Ngày cấp">
+              {(() => {
+                if (!info?.nationalIDIssueDate) return "-";
+                let raw = info.nationalIDIssueDate.replace(" ", "T");
+                const tryFormats = ["DD/MM/YYYY", "DD-MM-YYYY", "YYYY-MM-DD", "YYYY-MM-DDTHH:mm:ss.SSSZ", "YYYY-MM-DDTHH:mm:ss.SSS"];
+                let d = null;
+                for (const fmt of tryFormats) {
+                  const tryDate = dayjs(raw, fmt, true);
+                  if (tryDate.isValid()) {
+                    d = tryDate;
+                    break;
+                  }
+                }
+                return d ? d.format("DD/MM/YYYY") : "-";
+              })()}
+            </Descriptions.Item>
             <Descriptions.Item label="Địa chỉ thường trú">
               {info?.permanentAddress || "-"}
             </Descriptions.Item>

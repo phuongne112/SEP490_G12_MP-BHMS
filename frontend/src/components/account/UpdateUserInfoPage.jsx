@@ -91,6 +91,7 @@ export default function UpdateUserInfoModal({
             birthPlace: data.birthPlace || "",
             nationalID: data.nationalID || "",
             nationalIDIssuePlace: data.nationalIDIssuePlace || "",
+            nationalIDIssueDate: data.nationalIDIssueDate ? dayjs(data.nationalIDIssueDate) : null,
             permanentAddress: data.permanentAddress || "",
           });
         })
@@ -121,9 +122,32 @@ export default function UpdateUserInfoModal({
       }
     }
     console.log('birthDateInstant gửi lên backend:', birthDateInstant);
+    
+    // Chuẩn hóa ngày cấp
+    let issueDateInstant = null;
+    if (values.nationalIDIssueDate) {
+      let d = values.nationalIDIssueDate;
+      // Nếu là object dayjs
+      if (d && typeof d === 'object' && d.isValid && d.isValid()) {
+        issueDateInstant = d.toISOString();
+      } else if (typeof d === 'string') {
+        // Nếu là string, thử parse lại
+        let raw = d.trim().replace(/[^0-9/\-]/g, "");
+        const tryFormats = ["DD/MM/YYYY", "DD-MM-YYYY", "YYYY-MM-DD"];
+        for (const fmt of tryFormats) {
+          const parsed = dayjs(raw, fmt, true);
+          if (parsed.isValid()) {
+            issueDateInstant = parsed.toISOString();
+            break;
+          }
+        }
+      }
+    }
+    
     const payload = {
       ...values,
       birthDate: birthDateInstant,
+      nationalIDIssueDate: issueDateInstant,
     };
 
     try {
@@ -195,6 +219,20 @@ export default function UpdateUserInfoModal({
         }
       }
       console.log('birthDateValue sau OCR:', birthDateValue);
+      
+      // Chuẩn hóa ngày cấp
+      let issueDateValue = null;
+      if (data.issueDate) {
+        const tryFormats = ["DD/MM/YYYY", "DD-MM-YYYY", "YYYY-MM-DD"];
+        for (const fmt of tryFormats) {
+          const d = dayjs(data.issueDate, fmt, true);
+          if (d.isValid()) {
+            issueDateValue = d;
+            break;
+          }
+        }
+      }
+      
       form.setFieldsValue({
         fullName: data.fullName,
         nationalID: data.nationalID,
@@ -203,6 +241,7 @@ export default function UpdateUserInfoModal({
         birthPlace: data.birthPlace,
         permanentAddress: data.permanentAddress,
         nationalIDIssuePlace: data.nationalIDIssuePlace,
+        nationalIDIssueDate: issueDateValue,
       });
       message.success("Nhận diện thành công! Đã tự động điền thông tin.");
     } catch (e) {
@@ -286,6 +325,11 @@ export default function UpdateUserInfoModal({
             rules={[{ required: true, message: "Vui lòng nhập nơi cấp" }]}
           >
             <Input />
+          </Form.Item>
+          <Form.Item name="nationalIDIssueDate" label="Ngày cấp"
+            rules={[{ required: true, message: "Vui lòng chọn ngày cấp" }]}
+          >
+            <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
           </Form.Item>
           <Form.Item name="permanentAddress" label="Địa chỉ thường trú"
             rules={[{ required: true, message: "Vui lòng nhập địa chỉ thường trú" }]}

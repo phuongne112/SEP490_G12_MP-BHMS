@@ -16,5 +16,9 @@ public class UserInfoDtoResponse {
     private String birthPlace;
     private String nationalID;
     private String nationalIDIssuePlace;
+    
+    @JsonFormat(pattern = "yyyy-MM-dd",timezone = "GMT+7")
+    private java.time.LocalDate nationalIDIssueDate;
+    
     private String permanentAddress;
 }

@@ -48,6 +48,9 @@ public class UserInfo {
     @Size(max = 200, message = "Nơi cấp CMND phải không vượt quá 200 ký tự")
     private String nationalIDIssuePlace;
 
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+7")
+    private java.time.LocalDate nationalIDIssueDate;
+
     @Lob
     @Size(max = 500, message = "Địa chỉ thường trú phải không vượt quá 500 ký tự")
     private String permanentAddress;
