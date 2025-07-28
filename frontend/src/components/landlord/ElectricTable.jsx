@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Table, Button, Modal, Upload, message, Input, Switch, InputNumber, Space, Card, Select } from "antd";
-import { detectElectricOcr, detectAndSaveElectricOcr, saveElectricReading } from "../../services/electricOcrApi";
+import { CameraOutlined } from "@ant-design/icons";
+import { detectElectricOcr, detectAndSaveElectricOcr, saveImageOnly, saveElectricReading } from "../../services/electricOcrApi";
 import dayjs from "dayjs";
 import CameraCapture from "../common/CameraCapture";
 
@@ -26,11 +27,24 @@ export default function ElectricTable({
   
   // Auto capture states
   const [autoCaptureEnabled, setAutoCaptureEnabled] = useState(false);
-  const [autoCaptureInterval, setAutoCaptureInterval] = useState(30); // seconds
+  const [autoCaptureInterval, setAutoCaptureInterval] = useState(() => {
+    const saved = localStorage.getItem('autoCaptureInterval');
+    const parsed = saved ? parseInt(saved) : 30;
+    return isNaN(parsed) ? 30 : parsed; // Ensure we never return NaN
+  }); // seconds
   const [autoCaptureTargetRoom, setAutoCaptureTargetRoom] = useState(null);
   const [autoCaptureCount, setAutoCaptureCount] = useState(0);
   const [autoCaptureRunning, setAutoCaptureRunning] = useState(false);
+  const [autoCaptureSettingsModalOpen, setAutoCaptureSettingsModalOpen] = useState(false);
   const autoCaptureTimerRef = useRef(null);
+  const cameraRef = useRef(null);
+
+  // Save autoCaptureInterval to localStorage when it changes
+  useEffect(() => {
+    if (autoCaptureInterval !== null && autoCaptureInterval !== undefined) {
+      localStorage.setItem('autoCaptureInterval', autoCaptureInterval.toString());
+    }
+  }, [autoCaptureInterval]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -56,7 +70,7 @@ export default function ElectricTable({
     setAutoCaptureRunning(true);
     setAutoCaptureCount(0);
     
-    message.success(`🤖 Bắt đầu chụp tự động cho phòng ${dataSource.find(r => r.roomId === autoCaptureTargetRoom)?.roomNumber} mỗi ${autoCaptureInterval} giây`);
+    message.success(`Bắt đầu chụp tự động cho phòng ${dataSource.find(r => r.roomId === autoCaptureTargetRoom)?.roomNumber} mỗi ${autoCaptureInterval} giây`);
   };
 
   const stopAutoCapture = () => {
@@ -67,34 +81,27 @@ export default function ElectricTable({
     setAutoCaptureRunning(false);
     setAutoCaptureEnabled(false); // Also disable the auto-capture switch
     
-    message.info('⏹️ Dừng chụp tự động');
+    message.info('Dừng chụp tự động');
   };
 
   const handleAutoCapture = async (roomId, capturedFile) => {
     try {
-      console.log('🔍 handleAutoCapture called with roomId:', roomId, 'file:', capturedFile);
+      console.log('handleAutoCapture được gọi với roomId:', roomId, 'file:', capturedFile);
       
       if (!roomId) {
-        console.error('❌ roomId is null or undefined');
+        console.error('roomId là null hoặc undefined');
         message.error('Vui lòng chọn phòng trước khi chụp tự động!');
         return;
       }
       
       setDetecting(true);
-      const res = await detectAndSaveElectricOcr(capturedFile, roomId);
-      const detectedValue = res.data.data;
+      await saveImageOnly(capturedFile, roomId);
       
       setAutoCaptureCount(prev => prev + 1);
-      
-      if (detectedValue && detectedValue.match(/^\d{5}(\.\d)?$/)) {
-        message.success(`📷 Chụp tự động lần ${autoCaptureCount + 1}: ${detectedValue}`);
-        if (onReload) onReload();
-      } else {
-        message.warning(`📷 Chụp tự động lần ${autoCaptureCount + 1}: Không đọc được chỉ số`);
-        if (onReload) onReload();
-      }
+      message.success(`Chụp tự động lần ${autoCaptureCount + 1}: Đã lưu ảnh thành công!`);
+      if (onReload) onReload();
     } catch (err) {
-      console.error("❌ Auto capture error:", err);
+      console.error("Lỗi chụp tự động:", err);
       message.error(`Lỗi chụp tự động lần ${autoCaptureCount + 1}: ${err.response?.data?.message || err.message}`);
     } finally {
       setDetecting(false);
@@ -111,20 +118,12 @@ export default function ElectricTable({
 
   const handleCameraCapture = async (roomId, capturedFile) => {
     try {
-      // Use the new API that combines OCR detection and image saving
+      // Use the new API that only saves image without OCR
       setDetecting(true);
-      const res = await detectAndSaveElectricOcr(capturedFile, roomId);
-      const detectedValue = res.data.data;
+      await saveImageOnly(capturedFile, roomId);
       
-      // The new API already saves the reading to database if OCR was successful
-      if (detectedValue && detectedValue.match(/^\d{5}(\.\d)?$/)) {
-        message.success(`📷 Đã chụp, lưu ảnh và ghi nhận chỉ số điện: ${detectedValue}`);
-        if (onReload) onReload();
-      } else {
-        message.warning("📷 Đã lưu ảnh nhưng không thể đọc được chỉ số từ ảnh, vui lòng kiểm tra lại!");
-        // Even if OCR failed, we still reload to show that capture happened
-        if (onReload) onReload();
-      }
+      message.success("Đã chụp và lưu ảnh thành công!");
+      if (onReload) onReload();
     } catch (err) {
       console.error("Camera capture error:", err);
       message.error("Lỗi khi xử lý ảnh chụp: " + (err.response?.data?.message || err.message));
@@ -181,26 +180,6 @@ export default function ElectricTable({
     { title: "Chỉ số cũ", dataIndex: "oldReading" },
     { title: "Chỉ số mới", dataIndex: "newReading" },
     {
-      title: "Camera tự động",
-      dataIndex: "autoCapture",
-      render: (text, record) => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-          <CameraCapture
-            onCapture={(file) => handleCameraCapture(record.roomId, file)}
-            buttonText="📷 Chụp tự động"
-            disabled={detecting}
-            autoMode={true}
-          />
-          <div style={{ fontSize: 11, color: '#999', textAlign: 'center' }}>
-            {record.lastCaptureTime ? 
-              `Lần cuối: ${dayjs(record.lastCaptureTime).format("DD/MM HH:mm")}` : 
-              "Chưa từng chụp"
-            }
-          </div>
-        </div>
-      )
-    },
-    {
       title: "Ngày ghi",
       dataIndex: "createdDate",
       render: (value) => value ? dayjs(value).format("DD/MM/YYYY HH:mm") : ""
@@ -223,76 +202,54 @@ export default function ElectricTable({
 
   return (
     <>
-      {/* Auto Capture Control Panel */}
-      <Card title="🤖 Auto Capture Control" style={{ marginBottom: 16 }}>
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>Bật chụp tự động:</span>
-              <Switch
-                checked={autoCaptureEnabled}
-                onChange={setAutoCaptureEnabled}
-                disabled={autoCaptureRunning}
-              />
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>Phòng:</span>
-              <Select
-                value={autoCaptureTargetRoom}
-                onChange={setAutoCaptureTargetRoom}
-                disabled={autoCaptureRunning}
-                style={{ width: 120 }}
-                placeholder="Chọn phòng"
-              >
-                {dataSource.map(room => (
-                  <Option key={room.roomId} value={room.roomId}>
-                    {room.roomNumber}
-                  </Option>
-                ))}
-              </Select>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>Chụp mỗi:</span>
-              <InputNumber
-                min={5}
-                max={300}
-                value={autoCaptureInterval}
-                onChange={setAutoCaptureInterval}
-                disabled={autoCaptureRunning}
-                suffix="giây"
-                style={{ width: 100 }}
-              />
-            </div>
-            
-            {autoCaptureRunning && (
-              <div style={{ 
-                padding: '4px 12px', 
-                background: '#f6ffed', 
-                borderRadius: 4,
-                color: '#52c41a',
-                fontSize: 12
-              }}>
-                🔄 Đã chụp {autoCaptureCount} lần
-              </div>
-            )}
-          </div>
+      {/* Auto Capture Control - Top Right */}
+      <div style={{ 
+        marginBottom: 16, 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 12
+      }}>
+        <div style={{ fontSize: 18, fontWeight: 600, color: '#1890ff' }}>
+          Danh sách chỉ số điện
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Button
+            type="primary"
+            icon={<CameraOutlined />}
+            onClick={() => {
+              if (autoCaptureRunning) {
+                stopAutoCapture();
+              } else {
+                setAutoCaptureSettingsModalOpen(true);
+              }
+            }}
+            style={{ 
+              height: 40,
+              fontSize: 14,
+              fontWeight: 500
+            }}
+          >
+            {autoCaptureRunning ? 'Dừng' : 'Chụp tự động'}
+          </Button>
           
-          {autoCaptureEnabled && autoCaptureTargetRoom && (
+          {autoCaptureRunning && (
             <div style={{ 
-              padding: 8, 
-              background: '#e6f7ff', 
+              padding: '6px 12px', 
+              background: '#f6ffed', 
               borderRadius: 4,
-              color: '#1890ff',
-              fontSize: 12
+              color: '#52c41a',
+              fontSize: 12,
+              fontWeight: 500,
+              border: '1px solid #b7eb8f'
             }}>
-              📷 Camera sẽ tự động chụp cho phòng {dataSource.find(r => r.roomId === autoCaptureTargetRoom)?.roomNumber} 
-              mỗi {autoCaptureInterval} giây
+              {autoCaptureCount} lần - {dataSource.find(r => r.roomId === autoCaptureTargetRoom)?.roomNumber}
             </div>
           )}
-        </Space>
-      </Card>
+        </div>
+      </div>
 
       <Table
         columns={columns}
@@ -307,20 +264,94 @@ export default function ElectricTable({
         locale={{ emptyText: 'Chưa có dữ liệu' }}
       />
       
-      {/* Auto Capture Camera - No outer modal wrapper */}
-      <CameraCapture
-        onCapture={(file) => handleAutoCapture(autoCaptureTargetRoom, file)}
-        buttonText="📷 Auto Capture"
-        disabled={detecting}
-        autoMode={true}
-        continuousMode={true}
-        continuousInterval={autoCaptureInterval}
-        isAutoRunning={autoCaptureRunning}
-        onClose={stopAutoCapture}
-        title={`🤖 Auto Capture - Phòng ${dataSource.find(r => r.roomId === autoCaptureTargetRoom)?.roomNumber}`}
-        autoCaptureCount={autoCaptureCount}
-      />
+
       
+      {/* Auto Capture Settings Modal */}
+      <Modal
+        open={autoCaptureSettingsModalOpen}
+        onCancel={() => setAutoCaptureSettingsModalOpen(false)}
+        title="Cài đặt chụp tự động"
+        footer={[
+          <Button key="cancel" onClick={() => setAutoCaptureSettingsModalOpen(false)}>
+            Hủy
+          </Button>,
+          <Button 
+            key="start" 
+            type="primary" 
+            onClick={() => {
+              if (!autoCaptureTargetRoom) {
+                message.warning('Vui lòng chọn phòng!');
+                return;
+              }
+              setAutoCaptureSettingsModalOpen(false);
+              setAutoCaptureEnabled(true);
+            }}
+          >
+            Bắt đầu chụp
+          </Button>
+        ]}
+      >
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ minWidth: 80 }}>Phòng:</span>
+            <Select
+              value={autoCaptureTargetRoom}
+              onChange={setAutoCaptureTargetRoom}
+              style={{ width: 200 }}
+              placeholder="Chọn phòng"
+            >
+              {dataSource.map(room => (
+                <Option key={room.roomId} value={room.roomId}>
+                  {room.roomNumber}
+                </Option>
+              ))}
+            </Select>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ minWidth: 80 }}>Chụp mỗi:</span>
+            <InputNumber
+              min={5}
+              max={300}
+              value={autoCaptureInterval}
+              onChange={setAutoCaptureInterval}
+              suffix="giây"
+              style={{ width: 120 }}
+            />
+          </div>
+          
+          <div style={{ 
+            padding: 12, 
+            background: '#e6f7ff', 
+            borderRadius: 6,
+            color: '#1890ff',
+            fontSize: 14
+          }}>
+            Camera sẽ tự động chụp cho phòng {dataSource.find(r => r.roomId === autoCaptureTargetRoom)?.roomNumber || '...'} 
+            mỗi {autoCaptureInterval} giây
+          </div>
+        </Space>
+      </Modal>
+
+      {/* Camera Capture Component */}
+      {autoCaptureEnabled && autoCaptureTargetRoom && (
+        <CameraCapture
+          ref={cameraRef}
+          onCapture={(file) => handleAutoCapture(autoCaptureTargetRoom, file)}
+          onClose={() => {
+            setAutoCaptureEnabled(false);
+            stopAutoCapture();
+          }}
+          title={`Chụp tự động - Phòng ${dataSource.find(r => r.roomId === autoCaptureTargetRoom)?.roomNumber}`}
+          autoMode={true}
+          continuousMode={true}
+          continuousInterval={autoCaptureInterval}
+          isAutoRunning={true}
+          autoCaptureCount={autoCaptureCount}
+          hideButton={true}
+        />
+      )}
+
       <Modal
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
