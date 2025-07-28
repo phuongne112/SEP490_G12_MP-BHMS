@@ -216,18 +216,18 @@ public class ElectricMeterDetectionService {
      */
     public String detectWithCustomVision(MultipartFile file) throws IOException, InterruptedException {
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            headers.set("Prediction-Key", predictionKey);
-            HttpEntity<byte[]> entity = new HttpEntity<>(file.getBytes(), headers);
-            ResponseEntity<String> response = restTemplate.exchange(imagePredictionUrl, HttpMethod.POST, entity, String.class);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.set("Prediction-Key", predictionKey);
+        HttpEntity<byte[]> entity = new HttpEntity<>(file.getBytes(), headers);
+        ResponseEntity<String> response = restTemplate.exchange(imagePredictionUrl, HttpMethod.POST, entity, String.class);
 
-            JsonNode json = objectMapper.readTree(response.getBody());
+        JsonNode json = objectMapper.readTree(response.getBody());
 
             // Thử nhiều bounding box với các ngưỡng xác suất khác nhau
             List<JsonNode> validBoxes = new ArrayList<>();
-            for (JsonNode prediction : json.get("predictions")) {
-                double probability = prediction.get("probability").asDouble();
+        for (JsonNode prediction : json.get("predictions")) {
+            double probability = prediction.get("probability").asDouble();
                 if (probability > 0.7) { // Giảm ngưỡng để nhận diện tốt hơn
                     validBoxes.add(prediction.get("boundingBox"));
                 }
@@ -357,22 +357,22 @@ public class ElectricMeterDetectionService {
      */
     private String performOcr(byte[] imageBytes) throws InterruptedException {
         try {
-            HttpHeaders ocrHeaders = new HttpHeaders();
-            ocrHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            ocrHeaders.set("Ocp-Apim-Subscription-Key", ocrKey);
+        HttpHeaders ocrHeaders = new HttpHeaders();
+        ocrHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        ocrHeaders.set("Ocp-Apim-Subscription-Key", ocrKey);
 
             HttpEntity<byte[]> ocrEntity = new HttpEntity<>(imageBytes, ocrHeaders);
-            ResponseEntity<Void> ocrInit = restTemplate.postForEntity(ocrEndpoint + "/vision/v3.2/read/analyze", ocrEntity, Void.class);
-            String operationUrl = ocrInit.getHeaders().getFirst("Operation-Location");
-            if (operationUrl == null) return "Lỗi: Không nhận được Operation-Location";
+        ResponseEntity<Void> ocrInit = restTemplate.postForEntity(ocrEndpoint + "/vision/v3.2/read/analyze", ocrEntity, Void.class);
+        String operationUrl = ocrInit.getHeaders().getFirst("Operation-Location");
+        if (operationUrl == null) return "Lỗi: Không nhận được Operation-Location";
 
             for (int i = 0; i < 15; i++) { // Tăng thời gian chờ
-                Thread.sleep(1000);
-                HttpEntity<Void> getEntity = new HttpEntity<>(ocrHeaders);
-                ResponseEntity<String> ocrResult = restTemplate.exchange(URI.create(operationUrl), HttpMethod.GET, getEntity, String.class);
-                JsonNode resultJson = objectMapper.readTree(ocrResult.getBody());
+            Thread.sleep(1000);
+            HttpEntity<Void> getEntity = new HttpEntity<>(ocrHeaders);
+            ResponseEntity<String> ocrResult = restTemplate.exchange(URI.create(operationUrl), HttpMethod.GET, getEntity, String.class);
+            JsonNode resultJson = objectMapper.readTree(ocrResult.getBody());
 
-                if ("succeeded".equals(resultJson.path("status").asText())) {
+            if ("succeeded".equals(resultJson.path("status").asText())) {
                     return extractReadingFromOcrResult(resultJson);
                 }
             }
@@ -390,7 +390,7 @@ public class ElectricMeterDetectionService {
      */
     private String extractReadingFromOcrResult(JsonNode resultJson) {
         try {
-            StringBuilder sb = new StringBuilder();
+                StringBuilder sb = new StringBuilder();
             
             // Trích xuất tất cả text từ kết quả OCR
             for (JsonNode page : resultJson.at("/analyzeResult/readResults")) {
