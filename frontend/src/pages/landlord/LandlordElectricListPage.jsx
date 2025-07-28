@@ -10,7 +10,7 @@ import { FilterOutlined, CameraOutlined, PlayCircleOutlined, PauseCircleOutlined
 import { enableAutoScan, disableAutoScan, getAutoScanStatus, getScanLogs, getScanImages, getCurrentScanningImage } from "../../services/electricReadingApi";
 import { FolderOpenOutlined } from "@ant-design/icons";
 import axiosClient from "../../services/axiosClient";
-import { getElectricScanInterval, enableAutoCapture, disableAutoCapture, getAutoCaptureStatus, getAutoCaptureInterval, setAutoCaptureInterval, getTargetRoom, setTargetRoom, getAutoCaptureInfo } from '../../services/electricOcrApi';
+import { getElectricScanInterval } from '../../services/electricOcrApi';
 
 const { Sider, Content } = Layout;
 const { Option } = Select;
@@ -49,11 +49,7 @@ export default function LandlordElectricListPage() {
   const [scanInterval, setScanInterval] = useState(10000);
   const [intervalLoading, setIntervalLoading] = useState(false);
 
-  // Auto capture state
-  const [autoCaptureStatus, setAutoCaptureStatus] = useState("Auto capture OFF");
-  const [captureInterval, setCaptureInterval] = useState(30000);
-  const [targetRoom, setTargetRoom] = useState("A101");
-  const [captureIntervalLoading, setCaptureIntervalLoading] = useState(false);
+
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -311,60 +307,7 @@ export default function LandlordElectricListPage() {
   };
 
   // Auto Capture functions
-  const fetchAutoCaptureInfo = async () => {
-    try {
-      const [status, interval, room] = await Promise.all([
-        getAutoCaptureStatus(),
-        getAutoCaptureInterval(),
-        getTargetRoom()
-      ]);
-      setAutoCaptureStatus(status.data);
-      setCaptureInterval(interval.intervalMs);
-      setTargetRoom(room.roomNumber);
-    } catch (error) {
-      console.error("Error fetching auto capture info:", error);
-    }
-  };
 
-  const handleToggleAutoCapture = async () => {
-    try {
-      if (autoCaptureStatus === "Auto capture ON") {
-        await disableAutoCapture();
-        message.success("Auto capture disabled");
-      } else {
-        await enableAutoCapture();
-        message.success("Auto capture enabled");
-      }
-      fetchAutoCaptureInfo();
-    } catch (error) {
-      message.error("Error toggling auto capture");
-    }
-  };
-
-  const handleUpdateCaptureInterval = async () => {
-    setCaptureIntervalLoading(true);
-    try {
-      await setAutoCaptureInterval(captureInterval);
-      message.success("Capture interval updated successfully!");
-    } catch (error) {
-      message.error("Failed to update capture interval!");
-    } finally {
-      setCaptureIntervalLoading(false);
-    }
-  };
-
-  const handleUpdateTargetRoom = async () => {
-    try {
-      await setTargetRoom(targetRoom);
-      message.success("Target room updated successfully!");
-    } catch (error) {
-      message.error("Failed to update target room!");
-    }
-  };
-
-  useEffect(() => {
-    fetchAutoCaptureInfo();
-  }, []);
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -373,93 +316,6 @@ export default function LandlordElectricListPage() {
       </Sider>
       <Layout>
         <Content style={{ margin: "24px 16px", padding: 24, background: "#fff" }}>
-          {/* Auto Control Panel */}
-          <Card title="🤖 Auto Control Panel" style={{ marginBottom: 24 }}>
-            <Row gutter={[16, 16]}>
-              {/* Auto Scan Control */}
-              <Col xs={24} md={12}>
-                <Card size="small" title="📁 Auto Scan" bordered>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>Status: {autoScanStatus}</span>
-                      <Switch
-                        checked={autoScanStatus === "Auto scan ON"}
-                        onChange={(checked) => handleToggleAutoScan(checked)}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span>Scan interval:</span>
-                      <InputNumber
-                        min={5000}
-                        max={300000}
-                        value={scanInterval}
-                        onChange={setScanInterval}
-                        disabled={intervalLoading}
-                        suffix="ms"
-                        style={{ width: 120 }}
-                      />
-                      <Button
-                        size="small"
-                        onClick={handleUpdateInterval}
-                        loading={intervalLoading}
-                      >
-                        Update
-                      </Button>
-                    </div>
-                  </Space>
-                </Card>
-              </Col>
-
-              {/* Auto Capture Control */}
-              <Col xs={24} md={12}>
-                <Card size="small" title="📷 Auto Capture" bordered>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>Status: {autoCaptureStatus}</span>
-                      <Switch
-                        checked={autoCaptureStatus === "Auto capture ON"}
-                        onChange={handleToggleAutoCapture}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span>Capture interval:</span>
-                      <InputNumber
-                        min={5000}
-                        max={300000}
-                        value={captureInterval}
-                        onChange={setCaptureInterval}
-                        disabled={captureIntervalLoading}
-                        suffix="ms"
-                        style={{ width: 120 }}
-                      />
-                      <Button
-                        size="small"
-                        onClick={handleUpdateCaptureInterval}
-                        loading={captureIntervalLoading}
-                      >
-                        Update
-                      </Button>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span>Target room:</span>
-                      <Input
-                        value={targetRoom}
-                        onChange={(e) => setTargetRoom(e.target.value)}
-                        style={{ width: 100 }}
-                        placeholder="A101"
-                      />
-                      <Button
-                        size="small"
-                        onClick={handleUpdateTargetRoom}
-                      >
-                        Set
-                      </Button>
-                    </div>
-                  </Space>
-                </Card>
-              </Col>
-            </Row>
-          </Card>
 
           {/* Filter Section */}
           <div style={{ 
@@ -524,11 +380,11 @@ export default function LandlordElectricListPage() {
                   Thời gian quét tự động:
                   <Input
                     type="number"
-                    min={1000}
-                    value={scanInterval}
-                    onChange={e => setScanInterval(Number(e.target.value))}
+                    min={1}
+                    value={Math.round(scanInterval / 1000)}
+                    onChange={e => setScanInterval(Number(e.target.value) * 1000)}
                     style={{ width: 100, marginLeft: 8 }}
-                    suffix="ms"
+                    suffix="giây"
                   />
                 </label>
                 <Button

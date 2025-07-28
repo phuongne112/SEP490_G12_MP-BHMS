@@ -28,5 +28,9 @@ public class UserInfoDtoRequest {
     private String nationalID;
 
     private String nationalIDIssuePlace;
+    
+    @Past(message = "Ngày cấp phải trước ngày hiện tại")
+    private java.time.LocalDate nationalIDIssueDate;
+    
     private String permanentAddress;
 }

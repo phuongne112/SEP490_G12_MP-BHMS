@@ -1,6 +1,6 @@
 import React from "react";
 import { Table, Button, Space, Switch, Popconfirm } from "antd";
-import { EditOutlined, DeleteOutlined, HistoryOutlined } from "@ant-design/icons";
+import { EditOutlined, DeleteOutlined, HistoryOutlined, DollarOutlined } from "@ant-design/icons";
 
 export default function ServiceTable({ services, pagination, loading, onEdit, onDelete, onTableChange, onUpdatePrice, onViewPriceHistory }) {
   const columns = [
@@ -38,15 +38,18 @@ export default function ServiceTable({ services, pagination, loading, onEdit, on
       key: "actions",
       render: (_, record) => (
         <Space>
-          <Button 
-            type="primary" 
-            icon={<EditOutlined />} 
-            onClick={() => onEdit(record.id)}
-            size="small"
-          />
           <Button
             type="default"
             icon={<EditOutlined />}
+            onClick={() => onEdit && onEdit(record.id)}
+            size="small"
+            title="Chỉnh sửa thông tin dịch vụ"
+          >
+            Sửa
+          </Button>
+          <Button
+            type="default"
+            icon={<DollarOutlined />}
             onClick={() => onUpdatePrice && onUpdatePrice(record.id)}
             size="small"
             title="Cập nhật giá"

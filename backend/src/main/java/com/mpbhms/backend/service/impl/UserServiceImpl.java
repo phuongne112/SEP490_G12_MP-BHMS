@@ -444,6 +444,7 @@ public class UserServiceImpl implements UserService {
         dto.setBirthPlace(info.getBirthPlace());
         dto.setNationalID(info.getNationalID());
         dto.setNationalIDIssuePlace(info.getNationalIDIssuePlace());
+        dto.setNationalIDIssueDate(info.getNationalIDIssueDate());
         dto.setPermanentAddress(info.getPermanentAddress());
 
         return dto;
@@ -496,6 +497,7 @@ public class UserServiceImpl implements UserService {
         info.setBirthPlace(request.getBirthPlace());
         info.setNationalID(request.getNationalID());
         info.setNationalIDIssuePlace(request.getNationalIDIssuePlace());
+        info.setNationalIDIssueDate(request.getNationalIDIssueDate());
         info.setPermanentAddress(request.getPermanentAddress());
 
         user.setUserInfo(info); // nếu cascade thì sẽ tự lưu info khi lưu user
@@ -519,6 +521,7 @@ public class UserServiceImpl implements UserService {
         info.setBirthPlace(request.getBirthPlace());
         info.setNationalID(request.getNationalID());
         info.setNationalIDIssuePlace(request.getNationalIDIssuePlace());
+        info.setNationalIDIssueDate(request.getNationalIDIssueDate());
         info.setPermanentAddress(request.getPermanentAddress());
 
         user.setUserInfo(info); // nếu cascade thì sẽ tự lưu info khi lưu user

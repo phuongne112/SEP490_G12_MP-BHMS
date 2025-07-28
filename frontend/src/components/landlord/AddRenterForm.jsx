@@ -44,6 +44,8 @@ export default function AddRenterForm() {
     try {
       const res = await ocrCccd(frontFile, backFile);
       const data = res?.data || res;
+      console.log('Kết quả OCR CCCD:', data);
+      
       // Chuẩn hóa ngày sinh
       let birthDateValue = null;
       if (data.birthDate) {
@@ -56,11 +58,27 @@ export default function AddRenterForm() {
           }
         }
       }
+      
+      // Chuẩn hóa ngày cấp (nếu có)
+      let issueDateValue = null;
+      if (data.issueDate) {
+        const tryFormats = ['DD/MM/YYYY', 'DD-MM-YYYY', 'YYYY-MM-DD'];
+        for (const fmt of tryFormats) {
+          const d = dayjs(data.issueDate, fmt, true);
+          if (d.isValid()) {
+            issueDateValue = d;
+            break;
+          }
+        }
+      }
+      
       form.setFieldsValue({
         fullName: data.fullName,
         citizenId: data.nationalID,
         dateOfBirth: birthDateValue,
         address: data.permanentAddress,
+        // Thêm ngày cấp nếu form có trường này
+        ...(issueDateValue && { issueDate: issueDateValue }),
       });
       message.success('Nhận diện thành công! Đã tự động điền thông tin.');
     } catch (e) {

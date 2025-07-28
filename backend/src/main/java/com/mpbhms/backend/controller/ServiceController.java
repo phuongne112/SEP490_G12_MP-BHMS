@@ -5,6 +5,7 @@ import com.mpbhms.backend.dto.ResultPaginationDTO;
 import com.mpbhms.backend.dto.ServiceDTO;
 import com.mpbhms.backend.dto.ServicePriceHistoryDTO;
 import com.mpbhms.backend.dto.UpdateServicePriceRequest;
+import com.mpbhms.backend.dto.UpdateServiceRequest;
 import com.mpbhms.backend.entity.CustomService;
 import com.mpbhms.backend.service.ServiceService;
 import jakarta.validation.Valid;
@@ -72,12 +73,15 @@ public class ServiceController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ServiceDTO> updateService(@PathVariable Long id, @Valid @RequestBody CreateServiceRequest request) {
+    public ResponseEntity<ServiceDTO> updateService(@PathVariable Long id, @Valid @RequestBody UpdateServiceRequest request) {
+        // Lấy thông tin dịch vụ hiện tại để giữ nguyên giá
+        CustomService existingService = serviceService.getServiceById(id);
+        
         CustomService service = new CustomService();
         service.setId(id);
         service.setServiceName(request.getServiceName());
         service.setUnit(request.getUnit());
-        service.setUnitPrice(request.getUnitPrice());
+        service.setUnitPrice(existingService.getUnitPrice()); // Giữ nguyên giá hiện tại
         service.setServiceType(request.getServiceType());
         CustomService updatedService = serviceService.updateService(service);
         ServiceDTO dto = mapToDTO(updatedService);
