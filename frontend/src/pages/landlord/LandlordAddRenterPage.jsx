@@ -5,7 +5,7 @@ import AddRenterForm from "../../components/landlord/AddRenterForm";
 import { Layout } from "antd";
 import { createRenter } from "../../services/renterApi";
 import { message } from "antd";
-import { Modal, Button, Table } from "antd";
+import { Modal, Button, Table, Popconfirm } from "antd";
 import { getAllUsers, updateUser } from "../../services/userApi";
 
 const { Sider, Content } = Layout;
@@ -93,15 +93,36 @@ export default function LandlordAddRenterPage() {
                   { title: "ID", dataIndex: "id", width: 60 },
                   { title: "Email", dataIndex: "email", width: 220 },
                   { title: "Tên đăng nhập", dataIndex: "username", width: 160 },
-                  {
-                    title: "Thao tác",
-                    width: 160,
-                    render: (_, record) => (
-                      <Button type="primary" onClick={() => handleGrantRenter(record)}>
-                        Cấp quyền người thuê
-                      </Button>
-                    ),
-                  },
+                                     {
+                     title: "Thao tác",
+                     width: 180,
+                     render: (_, record) => (
+                       <Popconfirm
+                         title="Xác nhận cấp quyền"
+                         description={`Bạn có chắc chắn muốn cấp quyền người thuê cho ${record.username} (${record.email})?`}
+                         onConfirm={() => handleGrantRenter(record)}
+                         okText="Đồng ý"
+                         cancelText="Huỷ"
+                         placement="topRight"
+                         overlayStyle={{ 
+                           maxWidth: '300px',
+                           zIndex: 1001
+                         }}
+                       >
+                         <Button 
+                           type="primary" 
+                           size="small"
+                           style={{ 
+                             fontSize: '12px',
+                             whiteSpace: 'nowrap',
+                             padding: '4px 8px'
+                           }}
+                         >
+                           Cấp quyền người thuê
+                         </Button>
+                       </Popconfirm>
+                     ),
+                   },
                 ]}
                 pagination={{ pageSize: 5 }}
               />
