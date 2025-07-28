@@ -141,10 +141,24 @@ export default function ElectricTable({
     setDetecting(true);
     try {
       const res = await detectElectricOcr(file);
-      setOcrResult(res.data.data);
-      setInputValue(res.data.data);
+      const result = res.data.data;
+      setOcrResult(result);
+      setInputValue(result);
+      
+              // Show success message with details
+        if (result.match(/^\d{4,5}$/)) {
+          const isFiveDigits = result.length === 5;
+          const messageText = isFiveDigits 
+            ? `Quét thành công! Chỉ số 5 số: ${result}` 
+            : `Quét thành công! Chỉ số 4 số: ${result}`;
+          message.success(messageText);
+        } else {
+        message.warning(`Kết quả quét: ${result}`);
+      }
     } catch (err) {
-      setOcrResult(err.response?.data?.data || "Lỗi khi quét OCR");
+      const errorMessage = err.response?.data?.data || "Lỗi khi quét OCR";
+      setOcrResult(errorMessage);
+      setInputValue("");
       message.error(err.response?.data?.message || "Lỗi khi quét OCR");
     } finally {
       setDetecting(false);
@@ -392,8 +406,23 @@ export default function ElectricTable({
           Lưu
         </Button>
         {ocrResult && (
-          <div style={{ marginTop: 16, color: ocrResult.match(/^\d{5}(\.\d)?$/) ? 'green' : 'red' }}>
-            Kết quả OCR: {ocrResult}
+          <div style={{ marginTop: 16 }}>
+            <div style={{ 
+                              color: ocrResult.match(/^\d{4,5}$/) ? (ocrResult.length === 5 ? 'green' : 'orange') : 'red',
+              fontWeight: 'bold',
+              marginBottom: 8
+            }}>
+              Kết quả OCR: {ocrResult}
+            </div>
+                                            {ocrResult.match(/^\d{4,5}$/) ? (
+                <div style={{ color: ocrResult.length === 5 ? 'green' : 'orange', fontSize: '12px' }}>
+                  {ocrResult.length === 5 ? '✓ Chỉ số 5 số hợp lệ - Có thể lưu' : '⚠ Chỉ số 4 số - Có thể lưu nhưng chưa tối ưu'}
+                </div>
+              ) : (
+              <div style={{ color: 'orange', fontSize: '12px' }}>
+                ⚠ Hệ thống sẽ thử nhiều phương pháp khác nhau để quét chỉ số
+              </div>
+            )}
           </div>
         )}
       </Modal>
