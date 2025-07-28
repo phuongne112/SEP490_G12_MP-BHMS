@@ -4,7 +4,7 @@ import { CameraOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, Play
 
 const CameraCapture = forwardRef(({ 
   onCapture, 
-  buttonText = "📷 Chụp ảnh", 
+  buttonText = "Chụp ảnh", 
   disabled = false, 
   autoMode = true,
   continuousMode = false,
@@ -12,7 +12,8 @@ const CameraCapture = forwardRef(({
   isAutoRunning = false,
   onClose,
   title,
-  autoCaptureCount
+  autoCaptureCount,
+  hideButton = false
 }, ref) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -88,7 +89,7 @@ const CameraCapture = forwardRef(({
     if (modalOpen && isAutoRunning && isStreaming && !isContinuousRunning) {
       // Wait longer for camera to fully stabilize, then start continuous capture
       const autoStartTimer = setTimeout(() => {
-        console.log('🚀 Starting auto capture after camera stabilization');
+        console.log('Bắt đầu chụp tự động sau khi camera ổn định');
         setCaptureMode('continuous');
         startContinuousCapture();
       }, 3000); // Increased from 2000 to 3000ms
@@ -134,12 +135,12 @@ const CameraCapture = forwardRef(({
         
         // Wait for video to be ready before setting streaming to true
         videoRef.current.onloadedmetadata = () => {
-          console.log('🎥 Video metadata loaded, dimensions:', videoRef.current.videoWidth, 'x', videoRef.current.videoHeight);
-          setIsStreaming(true);
+          console.log('Video metadata đã tải, kích thước:', videoRef.current.videoWidth, 'x', videoRef.current.videoHeight);
+        setIsStreaming(true);
         };
         
         videoRef.current.oncanplay = () => {
-          console.log('🎥 Video can play, ready for capture');
+          console.log('Video có thể phát, sẵn sàng chụp');
         };
       }
     } catch (error) {
@@ -165,7 +166,7 @@ const CameraCapture = forwardRef(({
   const startContinuousCapture = () => {
     if (isContinuousRunning) return;
     
-    console.log('🚀 startContinuousCapture - prop interval:', continuousInterval, 'state interval:', continuousIntervalState);
+          console.log('Bắt đầu chụp liên tục - prop interval:', continuousInterval, 'state interval:', continuousIntervalState);
     
     setIsContinuousRunning(true);
     setContinuousCount(0);
@@ -175,10 +176,10 @@ const CameraCapture = forwardRef(({
       setAutoCaptureCountdown(continuousIntervalState);
       autoCaptureCountdownRef.current = setInterval(() => {
         setAutoCaptureCountdown(prev => {
-          console.log('⏰ Auto capture countdown:', prev);
+          console.log('Đếm ngược chụp tự động:', prev);
           if (prev <= 1) {
             // Trigger capture immediately when countdown reaches 0
-            console.log('📷 Countdown reached 0, triggering capture!');
+            console.log('Đếm ngược về 0, bắt đầu chụp!');
             capturePhoto();
             return continuousIntervalState; // Reset to full interval
           }
@@ -191,20 +192,20 @@ const CameraCapture = forwardRef(({
     // For manual continuous mode, use setTimeout
     if (!isAutoRunning) {
       // Start the continuous capture cycle for manual mode
-      const startCaptureCycle = () => {
-        setContinuousCount(prev => prev + 1);
-        capturePhoto();
-        
+    const startCaptureCycle = () => {
+      setContinuousCount(prev => prev + 1);
+      capturePhoto();
+      
         // Schedule next capture using the synchronized state
         continuousTimerRef.current = setTimeout(startCaptureCycle, continuousIntervalState * 1000);
-      };
-      
+    };
+    
       // Start first capture after interval using the synchronized state
       continuousTimerRef.current = setTimeout(startCaptureCycle, continuousIntervalState * 1000);
     }
     
     if (!isAutoRunning) {
-      message.success(`🤖 Bắt đầu chụp tự động mỗi ${continuousIntervalState} giây`);
+      message.success(`Bắt đầu chụp tự động mỗi ${continuousIntervalState} giây`);
     }
   };
 
@@ -220,7 +221,7 @@ const CameraCapture = forwardRef(({
     setIsContinuousRunning(false);
     setAutoCaptureCountdown(0);
     if (!isAutoRunning) {
-      message.info('⏹️ Dừng chụp tự động');
+    message.info('Dừng chụp tự động');
     }
   };
 
@@ -242,11 +243,11 @@ const CameraCapture = forwardRef(({
   };
 
   const capturePhoto = () => {
-    console.log('📸 capturePhoto called - isAutoRunning:', isAutoRunning, 'isStreaming:', isStreaming);
+    console.log('capturePhoto được gọi - isAutoRunning:', isAutoRunning, 'isStreaming:', isStreaming);
     
     // Simple check - just make sure video and canvas exist
     if (!videoRef.current || !canvasRef.current) {
-      console.log('❌ Video or canvas not ready');
+      console.log('Video hoặc canvas chưa sẵn sàng');
       return;
     }
     
@@ -276,15 +277,15 @@ const CameraCapture = forwardRef(({
         
         // Call parent callback with the captured file
         if (onCapture) {
-          console.log('📤 Sending captured file to parent');
-          onCapture(file);
-        } else {
-          console.warn('⚠️ onCapture callback not provided');
-        }
+                  console.log('Gửi file ảnh đã chụp đến component cha');
+        onCapture(file);
+      } else {
+        console.warn('onCapture callback không được cung cấp');
+      }
         
         if (captureMode === 'continuous' || isAutoRunning) {
           if (!isAutoRunning) {
-            message.success(`📷 Chụp tự động lần ${continuousCount + 1} thành công!`);
+          message.success(`Chụp tự động lần ${continuousCount + 1} thành công!`);
           }
           // Don't show captured image in continuous mode to avoid UI clutter
           setCapturedImage(null);
@@ -292,7 +293,7 @@ const CameraCapture = forwardRef(({
           message.success('Đã chụp ảnh thành công!');
         }
       } else {
-        console.error('❌ Failed to create blob from canvas');
+        console.error('Không thể tạo blob từ canvas');
       }
     }, 'image/jpeg', 0.9);
     
@@ -339,19 +340,22 @@ const CameraCapture = forwardRef(({
 
   return (
     <>
-      <Button
-        icon={<CameraOutlined />}
-        onClick={handleModalOpen}
-        disabled={disabled}
-        style={{ minWidth: 120 }}
-      >
-        {buttonText}
-      </Button>
+      {!hideButton && (
+        <Button 
+          icon={<CameraOutlined />} 
+          onClick={handleModalOpen}
+          disabled={disabled}
+          style={{ minWidth: 120 }}
+        >
+          {buttonText}
+        </Button>
+      )}
 
       <Modal
         open={modalOpen}
         onCancel={isAutoRunning ? onClose : handleModalClose}
-        title={title || "📷 Camera Capture"}
+        title={title || "Chụp ảnh"}
+        closable={!isAutoRunning}
         footer={isAutoRunning ? [
           <Button key="stop" type="primary" danger onClick={onClose}>
             Dừng chụp tự động
@@ -361,14 +365,14 @@ const CameraCapture = forwardRef(({
             Đóng
           </Button>,
           capturedImage && (
-            <Button key="retake" onClick={handleRetake}>
-              Chụp lại
+          <Button key="retake" onClick={handleRetake}>
+            Chụp lại
             </Button>
           ),
           capturedImage && (
-            <Button key="confirm" type="primary" onClick={handleConfirm}>
-              Xác nhận
-            </Button>
+          <Button key="confirm" type="primary" onClick={handleConfirm}>
+            Xác nhận
+          </Button>
           )
         ]}
         width={900}
@@ -385,7 +389,7 @@ const CameraCapture = forwardRef(({
               fontSize: 14,
               marginBottom: 16
             }}>
-              🔄 Đang chụp tự động: Đã chụp {autoCaptureCount} lần - Lần tiếp theo sau {autoCaptureCountdown} giây
+              Đang chụp tự động: Đã chụp {autoCaptureCount} lần - Lần tiếp theo sau {autoCaptureCountdown} giây
             </div>
             
             <div style={{ 
@@ -395,7 +399,7 @@ const CameraCapture = forwardRef(({
               color: '#1890ff',
               fontSize: 12
             }}>
-              📷 Camera sẽ tự động chụp mỗi {continuousIntervalState} giây. Đảm bảo camera hướng về công tơ điện.
+              Camera sẽ tự động chụp mỗi {continuousIntervalState} giây. Đảm bảo camera hướng về công tơ điện.
             </div>
             
             {/* Countdown Display */}
@@ -412,7 +416,7 @@ const CameraCapture = forwardRef(({
                 display: 'inline-block',
                 minWidth: 80
               }}>
-                ⏰ {autoCaptureCountdown}s
+                {autoCaptureCountdown}s
               </div>
             )}
           </div>
@@ -420,193 +424,193 @@ const CameraCapture = forwardRef(({
 
         {/* Settings Panel */}
         {!capturedImage && !isAutoRunning && (
-          <div style={{ marginBottom: 16, padding: 12, background: '#f6f6f6', borderRadius: 6 }}>
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <div>
-                <strong>Chế độ chụp:</strong>
-                <Radio.Group 
-                  value={captureMode} 
-                  onChange={(e) => setCaptureMode(e.target.value)}
-                  style={{ marginLeft: 16 }}
+            <div style={{ marginBottom: 16, padding: 12, background: '#f6f6f6', borderRadius: 6 }}>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <div>
+                  <strong>Chế độ chụp:</strong>
+                  <Radio.Group 
+                    value={captureMode} 
+                    onChange={(e) => setCaptureMode(e.target.value)}
+                    style={{ marginLeft: 16 }}
                   disabled={isAutoRunning}
-                >
-                  <Radio.Button value="single">Chụp một lần</Radio.Button>
-                  <Radio.Button value="continuous">Chụp liên tục</Radio.Button>
-                </Radio.Group>
-              </div>
-              
+                  >
+                    <Radio.Button value="single">Chụp một lần</Radio.Button>
+                    <Radio.Button value="continuous">Chụp liên tục</Radio.Button>
+                  </Radio.Group>
+                </div>
+                
               {captureMode === 'single' && !isAutoRunning && (
-                <Space align="center" wrap>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>Chế độ tự động:</span>
-                    <Switch 
-                      checked={autoCapture} 
-                      onChange={setAutoCapture}
-                      disabled={capturing}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <ClockCircleOutlined />
-                    <span>Thời gian đếm ngược:</span>
-                    <InputNumber
-                      min={1}
-                      max={10}
-                      value={timerDuration}
-                      onChange={setTimerDuration}
-                      disabled={capturing}
-                      suffix="giây"
-                      style={{ width: 100 }}
-                    />
-                  </div>
-                  {!autoCapture && (
-                    <Button 
-                      type="primary" 
-                      onClick={startCountdown}
-                      disabled={!isStreaming || capturing}
-                      loading={capturing}
-                    >
-                      {capturing ? 'Đang chụp...' : 'Bắt đầu chụp'}
-                    </Button>
-                  )}
-                </Space>
-              )}
-              
+                  <Space align="center" wrap>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>Chế độ tự động:</span>
+                      <Switch 
+                        checked={autoCapture} 
+                        onChange={setAutoCapture}
+                        disabled={capturing}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <ClockCircleOutlined />
+                      <span>Thời gian đếm ngược:</span>
+                      <InputNumber
+                        min={1}
+                        max={10}
+                        value={timerDuration}
+                        onChange={setTimerDuration}
+                        disabled={capturing}
+                        suffix="giây"
+                        style={{ width: 100 }}
+                      />
+                    </div>
+                    {!autoCapture && (
+                      <Button 
+                        type="primary" 
+                        onClick={startCountdown}
+                        disabled={!isStreaming || capturing}
+                        loading={capturing}
+                      >
+                        {capturing ? 'Đang chụp...' : 'Bắt đầu chụp'}
+                      </Button>
+                    )}
+                  </Space>
+                )}
+                
               {captureMode === 'continuous' && !isAutoRunning && (
-                <Space align="center" wrap>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>Chụp mỗi:</span>
-                    <InputNumber
-                      min={5}
-                      max={300}
+                  <Space align="center" wrap>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>Chụp mỗi:</span>
+                      <InputNumber
+                        min={5}
+                        max={300}
                       value={continuousIntervalState}
                       onChange={setContinuousIntervalState}
-                      disabled={isContinuousRunning}
-                      suffix="giây"
-                      style={{ width: 100 }}
-                    />
-                  </div>
-                  <Button 
-                    type={isContinuousRunning ? "default" : "primary"}
-                    icon={isContinuousRunning ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
-                    onClick={isContinuousRunning ? stopContinuousCapture : startContinuousCapture}
-                    disabled={!isStreaming}
-                  >
-                    {isContinuousRunning ? 'Dừng chụp' : 'Bắt đầu chụp liên tục'}
-                  </Button>
-                </Space>
-              )}
-            </Space>
-          </div>
-        )}
+                        disabled={isContinuousRunning}
+                        suffix="giây"
+                        style={{ width: 100 }}
+                      />
+                    </div>
+                    <Button 
+                      type={isContinuousRunning ? "default" : "primary"}
+                      icon={isContinuousRunning ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
+                      onClick={isContinuousRunning ? stopContinuousCapture : startContinuousCapture}
+                      disabled={!isStreaming}
+                    >
+                      {isContinuousRunning ? 'Dừng chụp' : 'Bắt đầu chụp liên tục'}
+                    </Button>
+                  </Space>
+                )}
+              </Space>
+            </div>
+          )}
 
-        {/* Auto Mode Indicator */}
+          {/* Auto Mode Indicator */}
         {!capturedImage && autoCapture && isStreaming && !capturing && captureMode === 'single' && !isAutoRunning && (
-          <div style={{ 
-            marginBottom: 16, 
-            padding: 8, 
-            background: '#e6f7ff', 
-            borderRadius: 6,
-            color: '#1890ff',
-            fontSize: 14
-          }}>
-            🤖 Chế độ tự động: Camera sẽ tự động chụp sau {timerDuration} giây...
-          </div>
-        )}
+            <div style={{ 
+              marginBottom: 16, 
+              padding: 8, 
+              background: '#e6f7ff', 
+              borderRadius: 6,
+              color: '#1890ff',
+              fontSize: 14
+            }}>
+              Chế độ tự động: Camera sẽ tự động chụp sau {timerDuration} giây...
+            </div>
+          )}
 
-        {/* Continuous Mode Status */}
+          {/* Continuous Mode Status */}
         {!capturedImage && (isContinuousRunning || isAutoRunning) && (captureMode === 'continuous' || isAutoRunning) && !isAutoRunning && (
-          <div style={{ 
-            marginBottom: 16, 
-            padding: 8, 
-            background: '#f6ffed', 
-            borderRadius: 6,
-            color: '#52c41a',
-            fontSize: 14
-          }}>
-            🔄 Chụp liên tục: Đã chụp {continuousCount} lần - Lần tiếp theo sau {continuousIntervalState} giây
-          </div>
-        )}
+            <div style={{ 
+              marginBottom: 16, 
+              padding: 8, 
+              background: '#f6ffed', 
+              borderRadius: 6,
+              color: '#52c41a',
+              fontSize: 14
+            }}>
+            Chụp liên tục: Đã chụp {continuousCount} lần - Lần tiếp theo sau {continuousIntervalState} giây
+            </div>
+          )}
 
-                 {/* Camera View */}
-         {!capturedImage && (
-           <div style={{ position: 'relative', display: 'inline-block' }}>
-             <video
-               ref={videoRef}
-               autoPlay
-               playsInline
-               style={{
-                 width: '100%',
-                 maxWidth: 640,
-                 height: 'auto',
-                 border: '2px solid #d9d9d9',
-                 borderRadius: 8,
-                 background: '#000'
-               }}
-             />
+          {/* Camera View */}
+          {!capturedImage && (
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                style={{
+                  width: '100%',
+                  maxWidth: 640,
+                  height: 'auto',
+                  border: '2px solid #d9d9d9',
+                  borderRadius: 8,
+                  background: '#000'
+                }}
+              />
              
              {/* Hidden canvas for capturing */}
              <canvas
                ref={canvasRef}
                style={{ display: 'none' }}
              />
-            
-            {/* Countdown Overlay */}
-            {capturing && countdown > 0 && (
-              <div style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                background: 'rgba(0, 0, 0, 0.8)',
-                color: 'white',
-                padding: 20,
-                borderRadius: 50,
-                fontSize: 48,
-                fontWeight: 'bold',
-                minWidth: 100,
-                minHeight: 100,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                {countdown}
-              </div>
-            )}
+              
+              {/* Countdown Overlay */}
+              {capturing && countdown > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  background: 'rgba(0, 0, 0, 0.8)',
+                  color: 'white',
+                  padding: 20,
+                  borderRadius: 50,
+                  fontSize: 48,
+                  fontWeight: 'bold',
+                  minWidth: 100,
+                  minHeight: 100,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {countdown}
+                </div>
+              )}
 
-            {/* Progress Ring */}
-            {capturing && (
-              <div style={{
-                position: 'absolute',
-                bottom: 20,
-                left: '50%',
-                transform: 'translateX(-50%)'
-              }}>
-                <Progress
-                  type="circle"
-                  percent={((timerDuration - countdown) / timerDuration) * 100}
-                  size={60}
-                  format={() => '📷'}
-                />
-              </div>
-            )}
-          </div>
-        )}
+              {/* Progress Ring */}
+              {capturing && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: 20,
+                  left: '50%',
+                  transform: 'translateX(-50%)'
+                }}>
+                  <Progress
+                    type="circle"
+                    percent={((timerDuration - countdown) / timerDuration) * 100}
+                    size={60}
+                    format={() => 'Chụp'}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
         {/* Captured Image */}
         {capturedImage && (
           <div style={{ textAlign: 'center' }}>
-            <img
-              src={capturedImage}
-              alt="Captured"
-              style={{
+              <img
+                src={capturedImage}
+                alt="Captured"
+                style={{
                 maxWidth: '100%',
                 maxHeight: 400,
                 border: '2px solid #d9d9d9',
-                borderRadius: 8
-              }}
-            />
-          </div>
-        )}
+                  borderRadius: 8
+                }}
+              />
+            </div>
+          )}
       </Modal>
     </>
   );
