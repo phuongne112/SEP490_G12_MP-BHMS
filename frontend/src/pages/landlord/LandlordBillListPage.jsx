@@ -183,7 +183,7 @@ export default function LandlordBillListPage() {
     try {
       const result = await bulkGenerateBills();
       if (result.success) {
-        message.success(`🎉 ${result.message}! Đã tạo ${result.count} hóa đơn mới.`);
+                 message.success(`${result.message}! Đã tạo ${result.count} hóa đơn mới.`);
         fetchBills(); // Refresh danh sách
       } else {
         message.error(result.message || "Có lỗi xảy ra");
@@ -441,13 +441,12 @@ export default function LandlordBillListPage() {
                     background: '#52c41a', 
                     borderColor: '#52c41a', 
                     color: '#fff',
-                    fontWeight: 'bold',
                     width: isMobile ? "100%" : "auto"
                   }}
                   loading={bulkLoading}
                   onClick={handleBulkGenerate}
                 >
-                  🚀 Tạo Hóa Đơn Tự Động
+                  Tạo Hóa Đơn Tự Động
                 </Button>
               </div>
             </div>
