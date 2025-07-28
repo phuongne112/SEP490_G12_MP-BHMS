@@ -117,19 +117,18 @@ export default function LandlordServiceListPage() {
     setIsFilterOpen(false);
   };
   
-  const handleEdit = (id) => {
-    const service = services.find(s => s.id === id);
-    if (service) {
-      setEditingService(service);
-      form.setFieldsValue({
-        name: service.name,
-        price: service.price,
-        type: service.type,
-        unit: service.unit,
-      });
-      setIsModalOpen(true);
-    }
-  };
+     const handleEdit = (id) => {
+     const service = services.find(s => s.id === id);
+     if (service) {
+       setEditingService(service);
+       form.setFieldsValue({
+         name: service.name,
+         type: service.type,
+         unit: service.unit,
+       });
+       setIsModalOpen(true);
+     }
+   };
 
   // Thêm handler cho cập nhật giá
   const handleUpdatePrice = (id) => {
@@ -187,37 +186,49 @@ export default function LandlordServiceListPage() {
     }));
   };
 
-  const handleAddService = async (values) => {
-    setIsSubmitting(true);
-    try {
-      const serviceData = {
-        serviceName: values.name,
-        unitPrice: values.price,
-        serviceType: values.type,
-        unit: values.unit,
-      };
+     const handleAddService = async (values) => {
+     setIsSubmitting(true);
+     try {
+       let serviceData;
 
-      const response = editingService
-        ? await updateService(editingService.id, serviceData)
-        : await createService(serviceData);
+       if (editingService) {
+         // Khi chỉnh sửa: chỉ gửi thông tin dịch vụ (không bao gồm giá)
+         serviceData = {
+           serviceName: values.name,
+           serviceType: values.type,
+           unit: values.unit,
+         };
+       } else {
+         // Khi tạo mới: gửi đầy đủ thông tin bao gồm giá
+         serviceData = {
+           serviceName: values.name,
+           serviceType: values.type,
+           unit: values.unit,
+           unitPrice: values.price,
+         };
+       }
 
-      if (response && response.data) {
-        message.success(editingService ? "Cập nhật dịch vụ thành công" : "Thêm dịch vụ thành công");
-        form.resetFields();
-        setIsModalOpen(false);
-        setEditingService(null);
-        // STEP 2: Refresh with the correct active filters
-        fetchServices(1, pagination.pageSize, activeFilters);
-      } else {
-        throw new Error(response.error || "Lưu dịch vụ thất bại");
-      }
-    } catch (error) {
-      console.error("Error saving service:", error);
-      message.error(error.message || "Lưu dịch vụ thất bại");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+       const response = editingService
+         ? await updateService(editingService.id, serviceData)
+         : await createService(serviceData);
+
+       if (response && response.data) {
+         message.success(editingService ? "Cập nhật dịch vụ thành công" : "Thêm dịch vụ thành công");
+         form.resetFields();
+         setIsModalOpen(false);
+         setEditingService(null);
+         // STEP 2: Refresh with the correct active filters
+         fetchServices(1, pagination.pageSize, activeFilters);
+       } else {
+         throw new Error(response.error || "Lưu dịch vụ thất bại");
+       }
+     } catch (error) {
+       console.error("Error saving service:", error);
+       message.error(error.message || "Lưu dịch vụ thất bại");
+     } finally {
+       setIsSubmitting(false);
+     }
+   };
 
   // Thêm handler cho cập nhật giá
   const handleUpdatePriceSubmit = async (values) => {
@@ -509,20 +520,22 @@ export default function LandlordServiceListPage() {
               )
             }
           >
-            <Form layout="vertical" form={form} onFinish={handleAddService}>
-              <Form.Item label="Tên dịch vụ" name="name" rules={[{ required: true, message: "Vui lòng nhập tên dịch vụ" }]}>
-                <Input placeholder="Nhập tên dịch vụ" />
-              </Form.Item>
-              <Form.Item label="Đơn vị" name="unit" rules={[{ required: true, message: "Vui lòng nhập đơn vị" }]}>
-                <Input placeholder="VD: kWh, m³, ..." />
-              </Form.Item>
-              <Form.Item label="Giá (VND/đơn vị)" name="price" rules={[{ required: true, message: "Vui lòng nhập giá" }]}>
-                <InputNumber style={{ width: "100%" }} placeholder="Nhập giá" min={0} />
-              </Form.Item>
-              <Form.Item label="Loại dịch vụ" name="type" rules={[{ required: true, message: "Vui lòng chọn loại dịch vụ" }]}>
-                <Select options={serviceTypeOptions} placeholder="Chọn loại dịch vụ" />
-              </Form.Item>
-            </Form>
+                         <Form layout="vertical" form={form} onFinish={handleAddService}>
+               <Form.Item label="Tên dịch vụ" name="name" rules={[{ required: true, message: "Vui lòng nhập tên dịch vụ" }]}>
+                 <Input placeholder="Nhập tên dịch vụ" />
+               </Form.Item>
+               <Form.Item label="Đơn vị" name="unit" rules={[{ required: true, message: "Vui lòng nhập đơn vị" }]}>
+                 <Input placeholder="VD: kWh, m³, ..." />
+               </Form.Item>
+               {!editingService && (
+                 <Form.Item label="Giá (VND/đơn vị)" name="price" rules={[{ required: true, message: "Vui lòng nhập giá" }]}>
+                   <InputNumber style={{ width: "100%" }} placeholder="Nhập giá" min={0} />
+                 </Form.Item>
+               )}
+               <Form.Item label="Loại dịch vụ" name="type" rules={[{ required: true, message: "Vui lòng chọn loại dịch vụ" }]}>
+                 <Select options={serviceTypeOptions} placeholder="Chọn loại dịch vụ" />
+               </Form.Item>
+             </Form>
           </Modal>
 
           {/* Modal cập nhật giá */}
