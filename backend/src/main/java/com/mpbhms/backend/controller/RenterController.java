@@ -63,4 +63,12 @@ public class RenterController {
     public ResponseEntity<List<UserDTO>> getAllRentersForAssignFull() {
         return ResponseEntity.ok(renterService.getAllRentersWithInfo());
     }
+
+    // ✅ 4. Lấy thông tin chi tiết người thuê theo ID
+    @GetMapping("/{id}")
+    @ApiMessage("Get renter details by ID")
+    public ResponseEntity<UserDTO> getRenterById(@PathVariable Long id) {
+        UserDTO renter = renterService.getRenterById(id);
+        return ResponseEntity.ok(renter);
+    }
 }
