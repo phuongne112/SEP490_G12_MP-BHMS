@@ -141,6 +141,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Change renter status", "/mpbhms/renters/{id}/status", "PUT", "Renter"));
             permissions.add(new Permission("Get Renters for Assign", "/mpbhms/renters/for-assign", "GET", "Renter"));
             permissions.add(new Permission("Get Renters for Assign Full", "/mpbhms/renters/for-assign-full", "GET", "Renter"));
+            permissions.add(new Permission("Get Renter by ID", "/mpbhms/renters/{id}", "GET", "Renter"));
             //Service
             permissions.add(new Permission("Create Service", "/mpbhms/services", "POST", "Service"));
             permissions.add(new Permission("Update Service", "/mpbhms/services/{id}", "PUT", "Service"));
