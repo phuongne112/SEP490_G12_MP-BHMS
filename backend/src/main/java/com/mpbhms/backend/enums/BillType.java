@@ -6,5 +6,6 @@ public enum BillType {
     OTHER,
     CUSTOM,
     SERVICE,
-    CONTRACT_ROOM_RENT
+    CONTRACT_ROOM_RENT,
+    LATE_PENALTY
 }
