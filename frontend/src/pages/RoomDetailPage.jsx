@@ -26,6 +26,8 @@ import { SyncOutlined } from "@ant-design/icons";
 import { getPersonalInfo } from "../services/userApi";
 import UserInfoModal from "../components/account/UserInfoModal";
 import UpdateUserInfoPage from "../components/account/UpdateUserInfoPage";
+import scheduleApi from "../services/scheduleApi";
+import dayjs from "dayjs";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -220,13 +222,36 @@ export default function RoomDetailPage() {
   const handleBookingSubmit = async (values) => {
     setBookingLoading(true);
     try {
-      // TODO: Gửi dữ liệu booking lên backend nếu có API
-      // await apiBookRoom(room.id, values)
+      const appointmentDate = values.date;
+      const appointmentTime = values.time;
+      let appointmentDateTime = null;
+
+      if (appointmentDate && appointmentTime) {
+        appointmentDateTime = appointmentDate
+          .hour(appointmentTime.hour())
+          .minute(appointmentTime.minute())
+          .second(0)
+          .millisecond(0);
+      }
+
+      await scheduleApi.bookAppointment({
+        roomId: room.id,
+        fullName: values.name,
+        phone: values.phone,
+        email: values.email,
+        appointmentTime: appointmentDateTime
+          ? appointmentDateTime.toISOString()
+          : null,
+        note: values.note,
+      });
+
       message.success("Đặt lịch hẹn thành công!");
       setBookingModalOpen(false);
       bookingForm.resetFields();
     } catch (err) {
-      message.error("Đặt lịch thất bại!");
+      console.error("[DEBUG] booking error:", err);
+      const errorMessage = err.response?.data?.message || err.message || "Đặt lịch thất bại";
+      message.error(errorMessage);
     } finally {
       setBookingLoading(false);
     }
