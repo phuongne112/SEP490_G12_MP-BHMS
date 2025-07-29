@@ -28,6 +28,12 @@ public class NotificationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(notificationService.createAndSend(request));
     }
 
+    @PostMapping("/send-multiple")
+    @ApiMessage("Create and send notifications to multiple users")
+    public ResponseEntity<List<Notification>> createAndSendMultiple(@RequestBody NotificationDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(notificationService.createAndSendMultiple(request));
+    }
+
     @GetMapping()
     @ApiMessage("Get all notifications for the current user")
     public ResponseEntity<List<NotificationDTO>> getUserNotifications(Principal principal) {
@@ -38,10 +44,12 @@ public class NotificationController {
             dto.setTitle(n.getTitle());
             dto.setMessage(n.getMessage());
             dto.setType(n.getType());
+            dto.setDisplayType(n.getType() != null ? n.getType().getDisplayName() : null);
             dto.setRecipientId(n.getRecipientId());
             dto.setMetadata(n.getMetadata());
             dto.setCreatedDate(n.getCreatedDate());
             dto.setStatus(n.getStatus());
+            dto.setDisplayStatus(n.getStatus() != null ? n.getStatus().getDisplayName() : null);
             return dto;
         }).toList();
         return ResponseEntity.ok(dtos);

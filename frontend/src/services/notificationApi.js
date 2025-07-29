@@ -3,6 +3,11 @@ import axiosClient from "./axiosClient";
 export const sendNotification = async (data) => {
   return axiosClient.post("/notifications/send", data);
 };
+
+export const sendMultipleNotifications = async (data) => {
+  return axiosClient.post("/notifications/send-multiple", data);
+};
+
 export const deleteNotification = async (id) => {
   return axiosClient.delete(`/notifications/${id}`); // ✅ đúng cú pháp
 };
