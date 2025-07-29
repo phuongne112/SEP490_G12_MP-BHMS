@@ -54,7 +54,7 @@ export default function UserFilterPopover({ onApply }) {
             placeholder="Chọn vai trò"
           >
             <Option value="none">-- Tất cả --</Option>
-            <Option value="null">Người dùng chưa có vai trò</Option>
+            <Option value="5">Tài khoản USER (có thể chuyển thành RENTER)</Option>
             {roles.map((r) => (
               <Option key={r.id} value={r.id}>
                 {r.roleName}

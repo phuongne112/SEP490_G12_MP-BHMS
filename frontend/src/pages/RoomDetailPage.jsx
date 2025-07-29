@@ -23,6 +23,11 @@ import Footer from "../components/layout/Footer";
 import LandlordBookAppointmentPage from "./landlord/LandlordBookAppointmentPage";
 import Image360Viewer from "../components/Image360Viewer";
 import { SyncOutlined } from "@ant-design/icons";
+import { getPersonalInfo } from "../services/userApi";
+import UserInfoModal from "../components/account/UserInfoModal";
+import UpdateUserInfoPage from "../components/account/UpdateUserInfoPage";
+import scheduleApi from "../services/scheduleApi";
+import dayjs from "dayjs";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -49,17 +54,30 @@ export default function RoomDetailPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const reduxUser = useSelector((state) => state.account.user);
-  const user = reduxUser || JSON.parse(localStorage.getItem("account"));
+  const user = reduxUser || (() => {
+    try {
+      const account = localStorage.getItem("account");
+      return account ? JSON.parse(account) : null;
+    } catch (error) {
+      return null;
+    }
+  })();
 
-  const [room, setRoom] = useState(location.state?.room || null);
+  const [room, setRoom] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
-  const [loading, setLoading] = useState(!room);
+  const [images360, setImages360] = useState([]);
+  const [viewer360Open, setViewer360Open] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [personalInfoModalOpen, setPersonalInfoModalOpen] = useState(false);
+  const [checkingPersonalInfo, setCheckingPersonalInfo] = useState(false);
   const [bookingForm] = Form.useForm();
   const [bookingLoading, setBookingLoading] = useState(false);
-  const [viewer360Open, setViewer360Open] = useState(false);
-  const [images360, setImages360] = useState([]);
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [showUpdateInfoModal, setShowUpdateInfoModal] = useState(false);
+  const [isCreate, setIsCreate] = useState(false);
+  const [ocrData, setOcrData] = useState(null);
 
   useEffect(() => {
     const hasLandlordInfo = room?.landlordName && room?.landlordPhone;
@@ -154,17 +172,86 @@ export default function RoomDetailPage() {
     }
   };
 
+  // Thêm hàm kiểm tra thông tin cá nhân
+  const checkPersonalInfo = async () => {
+    if (!user) return false;
+    
+    setCheckingPersonalInfo(true);
+    try {
+      const personalInfo = await getPersonalInfo();
+      // Kiểm tra các trường bắt buộc
+      const hasRequiredInfo = personalInfo && 
+        personalInfo.fullName && 
+        personalInfo.phoneNumber && 
+        personalInfo.phoneNumber2 && 
+        personalInfo.gender && 
+        personalInfo.birthDate && 
+        personalInfo.birthPlace && 
+        personalInfo.nationalID && 
+        personalInfo.nationalIDIssuePlace && 
+        personalInfo.permanentAddress;
+      
+      return !!hasRequiredInfo;
+    } catch (error) {
+      // Nếu không có thông tin cá nhân hoặc lỗi, trả về false
+      return false;
+    } finally {
+      setCheckingPersonalInfo(false);
+    }
+  };
+
+  // Thêm hàm xử lý click đặt lịch
+  const handleBookingClick = async () => {
+    if (!user) {
+      setLoginModalOpen(true);
+      return;
+    }
+
+    // Kiểm tra thông tin cá nhân
+    const hasPersonalInfo = await checkPersonalInfo();
+    if (!hasPersonalInfo) {
+      setPersonalInfoModalOpen(true);
+      return;
+    }
+
+    // Nếu có đủ thông tin, mở modal đặt lịch
+    setBookingModalOpen(true);
+  };
+
   // Thêm hàm xử lý gửi đặt lịch
   const handleBookingSubmit = async (values) => {
     setBookingLoading(true);
     try {
-      // TODO: Gửi dữ liệu booking lên backend nếu có API
-      // await apiBookRoom(room.id, values)
+      const appointmentDate = values.date;
+      const appointmentTime = values.time;
+      let appointmentDateTime = null;
+
+      if (appointmentDate && appointmentTime) {
+        appointmentDateTime = appointmentDate
+          .hour(appointmentTime.hour())
+          .minute(appointmentTime.minute())
+          .second(0)
+          .millisecond(0);
+      }
+
+      await scheduleApi.bookAppointment({
+        roomId: room.id,
+        fullName: values.name,
+        phone: values.phone,
+        email: values.email,
+        appointmentTime: appointmentDateTime
+          ? appointmentDateTime.toISOString()
+          : null,
+        note: values.note,
+      });
+
       message.success("Đặt lịch hẹn thành công!");
       setBookingModalOpen(false);
       bookingForm.resetFields();
     } catch (err) {
-      message.error("Đặt lịch thất bại!");
+      console.error("[DEBUG] booking error:", err);
+      const errorMessage = err.response?.data?.message || err.message || "Đặt lịch thất bại";
+      message.error(errorMessage);
     } finally {
       setBookingLoading(false);
     }
@@ -548,33 +635,60 @@ export default function RoomDetailPage() {
 
                 {/* Booking Button */}
                 {(() => {
-                  if (!user) return true;
+                  console.log("Debug - user:", user);
+                  console.log("Debug - user role:", user?.role);
+                  
+                  if (!user) {
+                    // Người dùng chưa đăng nhập - hiển thị nút đăng nhập
+                    return (
+                      <Button
+                        type="primary"
+                        size="large"
+                        onClick={() => setLoginModalOpen(true)}
+                        style={{
+                          width: "100%",
+                          height: 48,
+                          borderRadius: 8,
+                          fontSize: 15,
+                          fontWeight: 500
+                        }}
+                      >
+                        Đăng nhập để đặt lịch hẹn
+                      </Button>
+                    );
+                  }
+                  
+                  // Kiểm tra role của người dùng đã đăng nhập
                   const roleName = user?.role?.roleName || user?.role || "";
                   const normalizedRole = (roleName || "").toUpperCase().trim();
-                  if (["ADMIN", "SUBADMIN", "LANDLORD"].includes(normalizedRole)) return false;
-                  return true;
-                })() && (
-                  <Button
-                    type="primary"
-                    size="large"
-                    onClick={() => {
-                      if (!user) {
-                        setLoginModalOpen(true);
-                      } else {
-                        setBookingModalOpen(true);
-                      }
-                    }}
-                    style={{
-                      width: "100%",
-                      height: 48,
-                      borderRadius: 8,
-                      fontSize: 15,
-                      fontWeight: 500
-                    }}
-                  >
-                    Đặt lịch hẹn xem phòng
-                  </Button>
-                )}
+                  console.log("Debug - roleName:", roleName);
+                  console.log("Debug - normalizedRole:", normalizedRole);
+                  
+                  // Chỉ hiển thị cho RENTER và USER
+                  if (["RENTER", "USER"].includes(normalizedRole)) {
+                    return (
+                      <Button
+                        type="primary"
+                        size="large"
+                        onClick={handleBookingClick}
+                        loading={checkingPersonalInfo}
+                        style={{
+                          width: "100%",
+                          height: 48,
+                          borderRadius: 8,
+                          fontSize: 15,
+                          fontWeight: 500
+                        }}
+                      >
+                        Đặt lịch hẹn xem phòng
+                      </Button>
+                    );
+                  }
+                  
+                  // Không hiển thị cho ADMIN, SUBADMIN, LANDLORD
+                  console.log("Debug - Không hiển thị nút cho role:", normalizedRole);
+                  return null;
+                })()}
               </Space>
             </Col>
           </Row>
@@ -626,6 +740,63 @@ export default function RoomDetailPage() {
         visible={viewer360Open}
         onClose={() => setViewer360Open(false)}
         roomNumber={room?.roomNumber}
+      />
+
+      {/* Modal yêu cầu điền thông tin cá nhân */}
+      <Modal
+        open={personalInfoModalOpen}
+        onCancel={() => setPersonalInfoModalOpen(false)}
+        footer={null}
+        centered
+        closable={false}
+        maskClosable={false}
+      >
+        <div style={{ textAlign: "center", padding: "20px 0" }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>📝</div>
+          <Title level={4} style={{ fontWeight: 500 }}>Cần điền thông tin cá nhân</Title>
+          <Text type="secondary" style={{ fontWeight: 400, display: "block", marginBottom: 24 }}>
+            Để đặt lịch xem phòng, bạn cần điền đầy đủ thông tin cá nhân trước.
+          </Text>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+            <Button 
+              onClick={() => setPersonalInfoModalOpen(false)}
+              size="large"
+            >
+              Hủy
+            </Button>
+            <Button 
+              type="primary" 
+              size="large"
+              onClick={() => {
+                setPersonalInfoModalOpen(false);
+                // Mở modal cập nhật thông tin cá nhân
+                setIsCreate(true);
+                setShowUpdateInfoModal(true);
+              }}
+            >
+              Điền thông tin ngay
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modals cho thông tin cá nhân */}
+      <UserInfoModal
+        open={isInfoModalOpen}
+        onClose={() => setIsInfoModalOpen(false)}
+        onShowUpdateModal={(create = false, ocrData = null) => {
+          setIsInfoModalOpen(false);
+          setIsCreate(create);
+          setShowUpdateInfoModal(true);
+          setOcrData(ocrData);
+        }}
+      />
+      <UpdateUserInfoPage
+        open={showUpdateInfoModal}
+        isCreate={isCreate}
+        onClose={() => setShowUpdateInfoModal(false)}
+        onBackToInfoModal={() => setIsInfoModalOpen(true)}
+        ocrData={ocrData}
       />
 
       <Footer />

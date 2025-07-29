@@ -199,10 +199,26 @@ public class RenterServiceImpl implements RenterService {
         dto.setCreatedDate(user.getCreatedDate());
         dto.setUpdatedBy(user.getUpdatedBy());
         dto.setUpdatedDate(user.getUpdatedDate());
+        
         if (user.getUserInfo() != null) {
             dto.setFullName(user.getUserInfo().getFullName());
             dto.setPhoneNumber(user.getUserInfo().getPhoneNumber());
+            
+            // Populate UserInfoDTO
+            UserDTO.UserInfoDTO userInfoDTO = new UserDTO.UserInfoDTO();
+            userInfoDTO.setFullName(user.getUserInfo().getFullName());
+            userInfoDTO.setPhoneNumber(user.getUserInfo().getPhoneNumber());
+            userInfoDTO.setPhoneNumber2(user.getUserInfo().getPhoneNumber2());
+            userInfoDTO.setNationalID(user.getUserInfo().getNationalID());
+            userInfoDTO.setPermanentAddress(user.getUserInfo().getPermanentAddress());
+            userInfoDTO.setBirthDate(user.getUserInfo().getBirthDate() != null ? user.getUserInfo().getBirthDate().toString() : null);
+            userInfoDTO.setBirthPlace(user.getUserInfo().getBirthPlace());
+            userInfoDTO.setNationalIDIssuePlace(user.getUserInfo().getNationalIDIssuePlace());
+            userInfoDTO.setNationalIDIssueDate(user.getUserInfo().getNationalIDIssueDate() != null ? user.getUserInfo().getNationalIDIssueDate().toString() : null);
+            userInfoDTO.setGender(user.getUserInfo().getGender() != null ? user.getUserInfo().getGender().name() : null);
+            dto.setUserInfo(userInfoDTO);
         }
+        
         return dto;
     }
 
@@ -234,5 +250,17 @@ public class RenterServiceImpl implements RenterService {
             }
         }
         return renters;
+    }
+
+    @Override
+    public UserDTO getRenterById(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người thuê với ID: " + id));
+        
+        if (user.getRole() == null || user.getRole().getId() != 2) {
+            throw new BusinessException("Người dùng không phải là người thuê");
+        }
+        
+        return convertToUserDTOWithRoom(user);
     }
 }

@@ -67,6 +67,15 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Update User", "/mpbhms/users", "PUT", "User"));
             permissions.add(new Permission("Get User", "/mpbhms/users", "GET", "User"));
             permissions.add(new Permission("Active/ De-Active User", "/mpbhms/users/{id}/active", "PUT", "User"));
+            permissions.add(new Permission("Get My User Info", "/mpbhms/users/me/info", "GET", "User"));
+            permissions.add(new Permission("Update My User Info", "/mpbhms/users/me/info", "PUT", "User"));
+            permissions.add(new Permission("Add My User Info", "/mpbhms/users/me/info", "POST", "User"));
+            permissions.add(new Permission("Get My User Account", "/mpbhms/users/me/account", "GET", "User"));
+            permissions.add(new Permission("Update My User Account", "/mpbhms/users/me/account", "PUT", "User"));
+            //Auth
+            permissions.add(new Permission("Change Password", "/mpbhms/auth/change-password", "PUT", "Auth"));
+            permissions.add(new Permission("Request Reset Password", "/mpbhms/auth/request-reset", "POST", "Auth"));
+            permissions.add(new Permission("Reset Password", "/mpbhms/auth/reset-password", "POST", "Auth"));
             //Roles
             permissions.add(new Permission("Create Role", "/mpbhms/roles", "POST", "Role"));
             permissions.add(new Permission("Update Role", "/mpbhms/roles", "PUT", "Role"));
@@ -78,6 +87,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Delete Notification", "/mpbhms/notifications/{id}", "DELETE", "Notification"));
             permissions.add(new Permission("View Notification", "/mpbhms/notifications/all", "GET", "Notification"));
             permissions.add(new Permission("Create Notification Send", "/mpbhms/notifications/send", "POST", "Notification"));
+            permissions.add(new Permission("Create Multiple Notifications Send", "/mpbhms/notifications/send-multiple", "POST", "Notification"));
             permissions.add(new Permission("View My Notification", "/mpbhms/notifications", "GET", "Notification"));
             permissions.add(new Permission("Mark Notification as Read", "/mpbhms/notifications/{id}/read", "PUT", "Notification"));
             //Permissions
@@ -146,6 +156,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Change renter status", "/mpbhms/renters/{id}/status", "PUT", "Renter"));
             permissions.add(new Permission("Get Renters for Assign", "/mpbhms/renters/for-assign", "GET", "Renter"));
             permissions.add(new Permission("Get Renters for Assign Full", "/mpbhms/renters/for-assign-full", "GET", "Renter"));
+            permissions.add(new Permission("Get Renter by ID", "/mpbhms/renters/{id}", "GET", "Renter"));
             //Service
             permissions.add(new Permission("Create Service", "/mpbhms/services", "POST", "Service"));
             permissions.add(new Permission("Update Service", "/mpbhms/services/{id}", "PUT", "Service"));
@@ -215,6 +226,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             Permission markReadNotification = permissionRepository.findByModuleAndApiPathAndMethod(
                 "Notification", "/mpbhms/notifications/{id}/read", "PUT"
             );
+            Permission ocrCccdPermission = permissionRepository.findByModuleAndApiPathAndMethod("Ocr", "/mpbhms/ocr/cccd", "POST");
             Role adminRole = new Role();
             adminRole.setRoleName("ADMIN");
             List<Permission> adminPermissions = new ArrayList<>(permissionRepository.findAll()
@@ -230,6 +242,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             }
             if (markReadNotification != null && !adminPermissions.contains(markReadNotification)) {
                 adminPermissions.add(markReadNotification);
+            }
+            Permission sendMultipleNotificationsAdmin = permissionRepository.findByModuleAndApiPathAndMethod("Notification", "/mpbhms/notifications/send-multiple", "POST");
+            if (sendMultipleNotificationsAdmin != null && !adminPermissions.contains(sendMultipleNotificationsAdmin)) {
+                adminPermissions.add(sendMultipleNotificationsAdmin);
             }
             adminRole.setPermissionEntities(adminPermissions);
             roleRepository.save(adminRole);
@@ -286,7 +302,6 @@ public class DatabaseInitializer implements CommandLineRunner {
             Permission createVnpayUrl = permissionRepository.findByModuleAndApiPathAndMethod("Payment", "/mpbhms/payment/create-vnpay-url", "POST");
             if (createVnpayUrl != null) renterPermission.add(createVnpayUrl);
             //Ocr
-            Permission ocrCccdPermission = permissionRepository.findByModuleAndApiPathAndMethod("Ocr", "/mpbhms/ocr/cccd", "POST");
             if (ocrCccdPermission != null) {
                 renterPermission.add(ocrCccdPermission);
             }
@@ -359,6 +374,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             if (sendNotification != null && !landlordPermission.contains(sendNotification)) {
                 landlordPermission.add(sendNotification);
             }
+            Permission sendMultipleNotifications = permissionRepository.findByModuleAndApiPathAndMethod("Notification", "/mpbhms/notifications/send-multiple", "POST");
+            if (sendMultipleNotifications != null && !landlordPermission.contains(sendMultipleNotifications)) {
+                landlordPermission.add(sendMultipleNotifications);
+            }
             // Đảm bảo LANDLORD có quyền xem dashboard-stats
             Permission dashboardStats = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/dashboard-stats", "GET");
             if (dashboardStats != null && !landlordPermission.contains(dashboardStats)) {
@@ -378,6 +397,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             }
             if (markReadNotification != null && !subAdminPermission.contains(markReadNotification)) {
                 subAdminPermission.add(markReadNotification);
+            }
+            Permission sendMultipleNotificationsSubAdmin = permissionRepository.findByModuleAndApiPathAndMethod("Notification", "/mpbhms/notifications/send-multiple", "POST");
+            if (sendMultipleNotificationsSubAdmin != null && !subAdminPermission.contains(sendMultipleNotificationsSubAdmin)) {
+                subAdminPermission.add(sendMultipleNotificationsSubAdmin);
             }
             subAdminRole.setPermissionEntities(subAdminPermission);
             roleRepository.save(subAdminRole);
@@ -416,6 +439,11 @@ public class DatabaseInitializer implements CommandLineRunner {
 
             // Quyền xem phòng
             if (viewRoom != null) userPermissions.add(viewRoom);
+
+            // Quyền OCR CCCD cho USER (không được whitelist nên cần quyền cụ thể)
+            if (ocrCccdPermission != null && !userPermissions.contains(ocrCccdPermission)) {
+                userPermissions.add(ocrCccdPermission);
+            }
 
             userRole.setPermissionEntities(userPermissions);
             roleRepository.save(userRole);
