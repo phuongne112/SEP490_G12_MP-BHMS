@@ -78,4 +78,10 @@ export const getBillStats = async () => {
 export const bulkGenerateBills = async () => {
   const response = await axiosClient.post("/bills/bulk-generate");
   return response.data;
+};
+
+// Cập nhật trạng thái thanh toán hóa đơn
+export const updateBillPaymentStatus = async (id, status) => {
+  const response = await axiosClient.put(`/bills/${id}/payment-status`, { status });
+  return response.data;
 }; 

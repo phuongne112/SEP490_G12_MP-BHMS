@@ -1144,4 +1144,22 @@ public class BillServiceImpl implements BillService {
             }
         }
     }
+
+    @Override
+    public BillResponse updatePaymentStatus(Long billId, Boolean status) {
+        Bill bill = billRepository.findById(billId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy hóa đơn với ID: " + billId));
+        
+        bill.setStatus(status);
+        
+        // Nếu đánh dấu là đã thanh toán, cập nhật ngày thanh toán
+        if (status) {
+            bill.setPaidDate(Instant.now());
+        } else {
+            bill.setPaidDate(null);
+        }
+        
+        Bill updatedBill = billRepository.save(bill);
+        return toResponse(updatedBill);
+    }
 }

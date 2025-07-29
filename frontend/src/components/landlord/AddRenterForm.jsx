@@ -8,6 +8,7 @@ import {
   Col,
   message,
   Switch,
+  ConfigProvider,
 } from "antd";
 import { addRenter } from "../../services/renterApi";
 import { InboxOutlined } from '@ant-design/icons';
@@ -15,6 +16,11 @@ import { Upload } from 'antd';
 import { ocrCccd } from '../../services/userApi';
 import dayjs from "dayjs";
 import { ArrowLeftOutlined } from '@ant-design/icons';
+import locale from "antd/es/locale/vi_VN";
+import "dayjs/locale/vi";
+
+// Đặt locale cho dayjs
+dayjs.locale('vi');
 
 export default function AddRenterForm() {
   const [form] = Form.useForm();
@@ -195,7 +201,13 @@ export default function AddRenterForm() {
                 }
               }
             ]}>
-              <DatePicker style={{ width: '100%' }} placeholder="Chọn ngày sinh" />
+              <ConfigProvider locale={locale}>
+                <DatePicker 
+                  style={{ width: '100%' }} 
+                  placeholder="Chọn ngày sinh" 
+                  format="DD/MM/YYYY"
+                />
+              </ConfigProvider>
             </Form.Item>
           </Col>
           <Col span={12}>

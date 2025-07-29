@@ -236,18 +236,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       render: (_, record) => {
         const isTerminatedOrExpired = record.contractStatus === "TERMINATED" || record.contractStatus === "EXPIRED";
         return (
-          <div
-            className="action-scrollbar"
-            style={{
-              display: 'flex',
-              flexWrap: 'nowrap',
-              gap: 8,
-              justifyContent: 'center',
-              minWidth: 400,
-              maxWidth: 500,
-              overflowX: 'auto'
-            }}
-          >
+          <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
             <Button
               type="primary"
               icon={<FilePdfOutlined />}
@@ -286,7 +275,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
                 Chấm dứt
               </Button>
             </Popconfirm>
-          </div>
+          </Space>
         );
       },
     },
@@ -325,6 +314,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       style={{ background: "#fff", borderRadius: 8, padding: 16 }}
       loading={loading}
       scroll={{ x: 1800 }}
+      bordered
     />
   );
 }
