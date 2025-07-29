@@ -121,6 +121,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             //OCR
             permissions.add(new Permission("OCR", "/mpbhms/ocr/detect-ocr", "POST", "Ocr"));
             permissions.add(new Permission("Save Reading", "/mpbhms/ocr/save-reading", "POST", "Ocr"));
+            permissions.add(new Permission("Save Image Only", "/mpbhms/ocr/save-image-only", "POST", "Ocr"));
             permissions.add(new Permission("Enable Auto Scan", "/mpbhms/ocr/auto-scan/on", "POST", "Ocr"));
             permissions.add(new Permission("Disable Auto Scan", "/mpbhms/ocr/auto-scan/off", "POST", "Ocr"));
             permissions.add(new Permission("Get Auto Scan Status", "/mpbhms/ocr/auto-scan/status", "GET", "Ocr"));
@@ -146,6 +147,9 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Dashboard Bill Stats", "/mpbhms/bills/dashboard-stats", "GET", "Bill"));
             permissions.add(new Permission("Bulk Generate Bills", "/mpbhms/bills/bulk-generate", "POST", "Bill"));
             permissions.add(new Permission("Update Bill Payment Status", "/mpbhms/bills/{id}/payment-status", "PUT", "Bill"));
+            permissions.add(new Permission("Create Late Penalty Bill", "/mpbhms/bills/{id}/create-penalty", "POST", "Bill"));
+            permissions.add(new Permission("Check And Create Late Penalties", "/mpbhms/bills/check-and-create-penalties", "POST", "Bill"));
+            permissions.add(new Permission("Get Overdue Bills", "/mpbhms/bills/overdue", "GET", "Bill"));
             //Renter
             permissions.add(new Permission("Get Renter List", "/mpbhms/renters", "GET", "Renter"));
             permissions.add(new Permission("Create new Renter", "/mpbhms/renters", "POST", "Renter"));

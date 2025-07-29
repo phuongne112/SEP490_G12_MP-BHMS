@@ -27,6 +27,7 @@ public class Room extends BaseEntity {
     private Double pricePerMonth;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     private RoomStatus roomStatus;
 
     private Integer numberOfBedrooms;

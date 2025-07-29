@@ -32,8 +32,8 @@ public class ContractTerm {
     @Column(name = "is_mandatory", nullable = false)
     private Boolean isMandatory = false;
 
-    @Column(name = "term_category")
     @Enumerated(EnumType.STRING)
+    @Column(name = "term_category", length = 30)
     private TermCategory termCategory = TermCategory.GENERAL;
 
     @Column(name = "is_active", nullable = false)

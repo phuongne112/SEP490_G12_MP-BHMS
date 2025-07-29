@@ -16,7 +16,7 @@ import java.util.List;
 public class CustomService extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private ServiceType serviceType;
 
     @Column(nullable = false)

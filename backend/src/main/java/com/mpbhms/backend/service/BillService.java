@@ -21,6 +21,8 @@ public interface BillService {
     Page<Bill> getBillsByContractOrRoom(Long contractId, Long roomId, Pageable pageable);
     Bill getBillById(Long billId);
 
+    // Convert Bill to BillResponse với transaction
+    @org.springframework.transaction.annotation.Transactional
     BillResponse toResponse(Bill bill);
 
     List<BillDetailResponse> calculateServiceBill(Long roomId, int month, int year);
@@ -50,4 +52,27 @@ public interface BillService {
     // Cập nhật trạng thái thanh toán hóa đơn
     BillResponse updatePaymentStatus(Long billId, Boolean status);
 
+    // Xử lý phạt quá hạn
+    BillResponse createLatePenaltyBill(Long originalBillId);
+    
+    // Kiểm tra và tạo phạt quá hạn tự động
+    List<BillResponse> checkAndCreateLatePenalties();
+    
+    // Tính toán phạt quá hạn
+    java.math.BigDecimal calculateLatePenalty(java.math.BigDecimal originalAmount, int overdueDays);
+    
+    // Lấy danh sách hóa đơn quá hạn
+    List<Bill> getOverdueBills();
+    
+    // Gửi thông báo cảnh báo hóa đơn quá hạn
+    void sendOverdueWarningNotification(Bill bill);
+    
+    // Lấy tất cả hóa đơn phạt
+    List<Bill> getAllPenaltyBills();
+    
+    // Tính số ngày quá hạn
+    int calculateOverdueDays(Bill bill);
+    
+    // Tạo nội dung email hóa đơn thông thường
+    String buildNormalBillEmailContent(Bill bill, String paymentUrl);
 }

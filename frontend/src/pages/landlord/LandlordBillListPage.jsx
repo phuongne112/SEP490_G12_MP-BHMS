@@ -12,6 +12,8 @@ import {
   Select,
   Tag,
   Card,
+  Alert,
+  Modal,
 } from "antd";
 import {
   PlusOutlined,
@@ -21,6 +23,9 @@ import {
   DeleteOutlined,
   DownloadOutlined,
   SendOutlined,
+  ExclamationCircleOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
@@ -30,6 +35,11 @@ import {
   exportBillPdf,
   sendBillToRenter,
   bulkGenerateBills,
+  updateBillPaymentStatus,
+  createLatePenaltyBill,
+  checkAndCreateLatePenalties,
+  getOverdueBills,
+  runLatePenaltyCheck,
 } from "../../services/billApi";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
@@ -45,10 +55,11 @@ function BillFilterPopover({ onFilter }) {
   const [minPrice, setMinPrice] = useState();
   const [maxPrice, setMaxPrice] = useState();
   const [roomId, setRoomId] = useState();
+  const [overdueFilter, setOverdueFilter] = useState();
   
   const handleApply = () => {
     const roomIdNumber = roomId && !isNaN(roomId) ? Number(roomId) : undefined;
-    onFilter({ status, minPrice, maxPrice, roomId: roomIdNumber });
+    onFilter({ status, minPrice, maxPrice, roomId: roomIdNumber, overdue: overdueFilter });
   };
   
   return (
@@ -63,6 +74,18 @@ function BillFilterPopover({ onFilter }) {
         options={[
           { label: "Đã thanh toán", value: true },
           { label: "Chưa thanh toán", value: false },
+        ]}
+      />
+      <div style={{ marginBottom: 8 }}>Tình trạng quá hạn</div>
+      <Select
+        allowClear
+        style={{ width: "100%", marginBottom: 12 }}
+        placeholder="Tất cả"
+        value={overdueFilter}
+        onChange={setOverdueFilter}
+        options={[
+          { label: "Quá hạn", value: true },
+          { label: "Chưa quá hạn", value: false },
         ]}
       />
       <div style={{ marginBottom: 8 }}>Giá tối thiểu</div>
@@ -98,27 +121,146 @@ export default function LandlordBillListPage() {
   const [filter, setFilter] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [pageSize, setPageSize] = useState(isMobile ? 3 : 5);
-  const pageSizeOptions = isMobile ? [3, 5, 10] : [5, 10, 20, 50];
+  const [pageSize, setPageSize] = useState(5);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [bulkLoading, setBulkLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState({});
-  
-  // Initialize sentEmailsToday from localStorage
-  const [sentEmailsToday, setSentEmailsToday] = useState(() => {
-    const saved = localStorage.getItem('sentEmailsToday');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Check if the saved data is from today, if not, clear it
-      const today = new Date().toDateString();
-      if (parsed.date === today) {
-        return new Set(parsed.bills);
-      }
-    }
-    return new Set();
-  });
-  
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkPenaltyLoading, setBulkPenaltyLoading] = useState(false);
+  const [sentEmailsToday, setSentEmailsToday] = useState(new Set());
+  const [autoRefresh, setAutoRefresh] = useState(true); // Tự động refresh
+  const [refreshInterval, setRefreshInterval] = useState(30000); // 30 giây
+  const [overdueBills, setOverdueBills] = useState([]);
+  const [overdueModalVisible, setOverdueModalVisible] = useState(false);
+  const [penaltyLoading, setPenaltyLoading] = useState({});
+
   const navigate = useNavigate();
+
+  // Kiểm tra hóa đơn quá hạn
+  const checkOverdue = (bill) => {
+    if (bill.status) return false; // Đã thanh toán thì không quá hạn
+    
+    const today = dayjs();
+    
+    // Parse dueDate nếu có
+    let dueDate = null;
+    if (bill.dueDate) {
+      dueDate = dayjs(bill.dueDate, "YYYY-MM-DD HH:mm:ss A");
+    }
+    
+    // Parse toDate nếu có
+    let toDate = null;
+    if (bill.toDate) {
+      toDate = dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A");
+    }
+    
+    // Logic đơn giản: toDate + 7 ngày là hạn thanh toán
+    const actualDueDate = dueDate || (toDate ? toDate.add(7, 'day') : null);
+    
+    return actualDueDate && today.isAfter(actualDueDate, 'day');
+  };
+
+  // Tính số ngày quá hạn
+  const getOverdueDays = (bill) => {
+    if (bill.status) return 0;
+    
+    const today = dayjs();
+    
+    // Parse dueDate nếu có
+    let dueDate = null;
+    if (bill.dueDate) {
+      dueDate = dayjs(bill.dueDate, "YYYY-MM-DD HH:mm:ss A");
+    }
+    
+    // Parse toDate nếu có
+    let toDate = null;
+    if (bill.toDate) {
+      toDate = dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A");
+    }
+    
+    const actualDueDate = dueDate || (toDate ? toDate.add(7, 'day') : null);
+    
+    if (actualDueDate && today.isAfter(actualDueDate, 'day')) {
+      return today.diff(actualDueDate, 'day');
+    }
+    return 0;
+  };
+
+  // Xử lý tạo phạt cho hóa đơn quá hạn
+  const handleCreatePenalty = async (bill) => {
+    setPenaltyLoading(prev => ({ ...prev, [bill.id]: true }));
+    try {
+      const response = await createLatePenaltyBill(bill.id);
+      if (response.success) {
+        message.success(`Đã tạo hóa đơn phạt cho hóa đơn #${bill.id}`);
+        fetchBills(); // Refresh danh sách
+      } else {
+        message.error(response.message || "Không thể tạo hóa đơn phạt");
+      }
+    } catch (error) {
+      message.error("Lỗi khi tạo hóa đơn phạt: " + (error.response?.data?.message || error.message));
+    } finally {
+      setPenaltyLoading(prev => ({ ...prev, [bill.id]: false }));
+    }
+  };
+
+  // Xử lý hóa đơn quá hạn - Chỉ gửi email cảnh báo
+  const handleOverdueBill = async (bill) => {
+    // Set loading state
+    setEmailLoading(prev => ({ ...prev, [bill.id]: true }));
+    
+    try {
+      // Kiểm tra xem đã gửi hôm nay chưa
+      if (isEmailSentToday(bill.id)) {
+        message.warning(`Đã gửi email cho hóa đơn #${bill.id} hôm nay rồi`);
+        return;
+      }
+
+      // Chỉ gửi cảnh báo quá hạn
+      await sendBillToRenter(bill.id);
+      message.success(`Đã gửi email cảnh báo cho hóa đơn #${bill.id}`);
+      
+      // Đánh dấu đã gửi hôm nay
+      markEmailSentToday(bill.id);
+      
+      // Cập nhật danh sách
+      fetchBills();
+    } catch (error) {
+      message.error("Không thể gửi email cảnh báo: " + (error.response?.data?.message || error.message));
+    } finally {
+      // Clear loading state
+      setEmailLoading(prev => ({ ...prev, [bill.id]: false }));
+    }
+  };
+
+  // Xử lý hàng loạt hóa đơn quá hạn - Logic thống nhất
+  const handleBulkOverdue = async () => {
+    setBulkPenaltyLoading(true);
+    try {
+      // Gửi cảnh báo cho tất cả hóa đơn quá hạn
+      let successCount = 0;
+      for (const bill of overdueBills) {
+        try {
+          await sendBillToRenter(bill.id);
+          successCount++;
+        } catch (error) {
+          console.error(`Lỗi gửi cảnh báo cho hóa đơn #${bill.id}:`, error);
+        }
+      }
+      
+      if (successCount > 0) {
+        message.success(`✅ Đã gửi cảnh báo cho ${successCount}/${overdueBills.length} hóa đơn quá hạn`);
+      } else {
+        message.warning("⚠️ Không thể gửi cảnh báo cho hóa đơn nào");
+      }
+      
+      // Refresh danh sách
+      fetchBills();
+    } catch (error) {
+      message.error("❌ Lỗi khi xử lý hàng loạt: " + (error.response?.data?.message || error.message));
+    } finally {
+      setBulkPenaltyLoading(false);
+    }
+  };
 
   // Check if a bill was sent today
   const isEmailSentToday = (billId) => {
@@ -141,19 +283,64 @@ export default function LandlordBillListPage() {
     }));
   };
 
+  // Load sent emails from localStorage
+  const loadSentEmailsFromStorage = () => {
+    const saved = localStorage.getItem('sentEmailsToday');
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        const today = new Date().toDateString();
+        if (data.date === today) {
+          setSentEmailsToday(new Set(data.bills));
+        } else {
+          // Clear old data if it's not today
+          setSentEmailsToday(new Set());
+          localStorage.removeItem('sentEmailsToday');
+        }
+      } catch (error) {
+        console.error('Error loading sent emails:', error);
+        setSentEmailsToday(new Set());
+      }
+    }
+  };
+
+  // Load sent emails from localStorage on mount
+  useEffect(() => {
+    loadSentEmailsFromStorage();
+  }, []);
+
   const fetchBills = async (page = currentPage, size = pageSize) => {
     setLoading(true);
     try {
-      const params = { 
-        ...filter, 
-        page: page - 1, 
-        size: size 
+      // Load sent emails state before fetching bills
+      loadSentEmailsFromStorage();
+      
+      const params = {
+        page: page - 1,
+        size,
+        search: search.trim() || undefined,
+        ...filter,
       };
-      if (search) params.search = search;
-      const res = await getAllBills(params);
-      setBills(res.content || []);
-      setTotal(res.totalElements || 0);
-    } catch (err) {
+
+      const response = await getAllBills(params);
+      const billsData = response.content || response.result || [];
+      
+      // Xử lý hóa đơn quá hạn
+      const processedBills = billsData.map(bill => ({
+        ...bill,
+        isOverdue: checkOverdue(bill),
+        overdueDays: getOverdueDays(bill)
+      }));
+      
+      setBills(processedBills);
+      setTotal(response.totalElements || response.meta?.total || 0);
+      
+      // Cập nhật danh sách hóa đơn quá hạn
+      const overdueBillsList = processedBills.filter(bill => bill.isOverdue);
+      setOverdueBills(overdueBillsList);
+      
+    } catch (error) {
+      console.error("Error fetching bills:", error);
       message.error("Không thể tải danh sách hóa đơn");
     } finally {
       setLoading(false);
@@ -164,6 +351,17 @@ export default function LandlordBillListPage() {
     fetchBills(currentPage, pageSize);
     // eslint-disable-next-line
   }, [search, filter, currentPage, pageSize]);
+
+  // Auto refresh effect
+  useEffect(() => {
+    if (!autoRefresh) return;
+    
+    const interval = setInterval(() => {
+      fetchBills();
+    }, refreshInterval);
+    
+    return () => clearInterval(interval);
+  }, [autoRefresh, refreshInterval, currentPage, pageSize, search, filter]);
 
   const handleDelete = async (id) => {
     try {
@@ -230,17 +428,24 @@ export default function LandlordBillListPage() {
     setBulkLoading(true);
     try {
       const result = await bulkGenerateBills();
-      if (result.success) {
-                 message.success(`${result.message}! Đã tạo ${result.count} hóa đơn mới.`);
-        fetchBills(); // Refresh danh sách
-      } else {
-        message.error(result.message || "Có lỗi xảy ra");
-      }
-    } catch (err) {
-      console.error("Bulk generate error:", err);
-      message.error("Lỗi khi tạo hóa đơn tự động: " + (err.response?.data?.message || err.message));
+      // API trả về object với format: { success: true, count: number, generatedBills: array }
+      const count = result && result.count ? result.count : 0;
+      message.success("Đã tạo " + count + " hóa đơn tự động!");
+      fetchBills();
+    } catch (error) {
+      message.error("Có lỗi xảy ra khi tạo hóa đơn tự động");
     } finally {
       setBulkLoading(false);
+    }
+  };
+  
+  const handleRunLatePenaltyCheck = async () => {
+    try {
+      const result = await runLatePenaltyCheck();
+      message.success(result);
+      fetchBills(); // Refresh danh sách
+    } catch (error) {
+      message.error("Có lỗi xảy ra khi chạy job kiểm tra phạt: " + error.message);
     }
   };
 
@@ -324,6 +529,9 @@ export default function LandlordBillListPage() {
         if (billType === 'CONTRACT_TOTAL') {
           return <Tag color="geekblue">Tổng hợp đồng</Tag>;
         }
+        if (billType === 'LATE_PENALTY') {
+          return <Tag color="volcano">Phạt quá hạn</Tag>;
+        }
         return <Tag>{billType}</Tag>;
       }
     },
@@ -361,65 +569,124 @@ export default function LandlordBillListPage() {
       ),
     },
     {
+      title: "Quá hạn",
+      align: "center",
+      width: isMobile ? 80 : 120,
+      render: (_, record) => (
+        <Tag color={record.isOverdue ? "red" : "green"}>
+          {record.isOverdue ? "Quá hạn" : "Chưa quá hạn"}
+        </Tag>
+      ),
+    },
+    {
       title: "Thao tác",
       align: "center",
       width: isMobile ? 200 : 320,
-      render: (_, record) => (
-        <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
-          <Button 
-            type="primary" 
-            icon={<EyeOutlined />}
-            onClick={() => navigate(`/landlord/bills/${record.id}`)}
-            size="small"
-          >
-            Xem
-          </Button>
-          {!isMobile && (
+      render: (_, record) => {
+        const isOverdue = record.isOverdue;
+        const overdueDays = record.overdueDays;
+
+        return (
+          <div style={{ 
+            display: 'flex', 
+            gap: '4px', 
+            flexWrap: 'nowrap', 
+            justifyContent: 'flex-start',
+            alignItems: 'center',
+            minHeight: '32px'
+          }}>
+            {/* 1. Nút "Xem" - Luôn hiển thị */}
             <Button 
-              type="default"
-              icon={<DownloadOutlined />}
-              onClick={() => handleExport(record.id)}
+              type="primary" 
+              icon={<EyeOutlined />}
+              onClick={() => navigate(`/landlord/bills/${record.id}`)}
               size="small"
+              style={{ minWidth: '60px' }}
             >
-              Xuất PDF
+              Xem
             </Button>
-          )}
-          <Popover
-            content={
-              record.status 
-                ? 'Chỉ gửi email cho hóa đơn chưa thanh toán' 
-                : isEmailSentToday(record.id)
-                ? 'Hóa đơn này đã được gửi email hôm nay'
-                : 'Gửi hóa đơn cho khách'
-            }
-            placement="top"
-          >
-            <Button 
-              type="default"
-              icon={<SendOutlined />}
-              onClick={() => handleSendEmail(record.id)}
-              size="small"
-              loading={emailLoading[record.id]}
-              disabled={record.status === true || isEmailSentToday(record.id)}
+            
+            {/* 2. Nút "Xuất PDF" - Chỉ hiển thị trên desktop */}
+            {!isMobile && (
+              <Button 
+                type="default"
+                icon={<DownloadOutlined />}
+                onClick={() => handleExport(record.id)}
+                size="small"
+                style={{ minWidth: '80px' }}
+              >
+                Xuất PDF
+              </Button>
+            )}
+            
+            {/* 3. Nút "Quá hạn/Gửi Email" - Nút thông minh tự động hóa */}
+            <Popover
+              content={
+                isOverdue
+                  ? `Gửi email cho hóa đơn quá hạn ${overdueDays} ngày (1 lần/ngày)`
+                  : record.status
+                    ? 'Chỉ gửi email cho hóa đơn chưa thanh toán'
+                    : isEmailSentToday(record.id)
+                      ? 'Đã gửi hôm nay'
+                      : 'Gửi email hóa đơn'
+              }
+              placement="top"
             >
-              {isMobile ? "Email" : (isEmailSentToday(record.id) ? "Đã gửi hôm nay" : "Gửi Email")}
-            </Button>
-          </Popover>
-          <Popconfirm
-            title="Bạn có chắc chắn muốn xóa hóa đơn này?"
-            okText="Có"
-            cancelText="Không"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button 
-              icon={<DeleteOutlined />}
-              type="primary"
-              danger
-              size="small"
-            />
-          </Popconfirm>
-        </Space>
-      ),
+              <Button
+                type={isOverdue ? "default" : "default"}
+                icon={isOverdue ? <ClockCircleOutlined /> : <SendOutlined />}
+                onClick={() => isOverdue ? handleOverdueBill(record) : handleSendEmail(record.id)}
+                size="small"
+                loading={emailLoading[record.id]}
+                disabled={record.status === true || isEmailSentToday(record.id)}
+                style={{ 
+                  minWidth: '90px',
+                  color: isOverdue ? '#ff4d4f' : undefined,
+                  borderColor: isOverdue ? '#ff4d4f' : undefined
+                }}
+              >
+                {isOverdue ? "Gửi email" : (isMobile ? "Email" : (isEmailSentToday(record.id) ? "Đã gửi hôm nay" : "Gửi email"))}
+              </Button>
+            </Popover>
+            
+            {/* 4. Nút "Tạo phạt" - Ẩn đi vì hệ thống đã tự động tạo phạt */}
+            {/* {isOverdue && !record.status && record.billType !== 'LATE_PENALTY' && (
+              <Popover
+                content={`Tạo hóa đơn phạt cho hóa đơn quá hạn ${overdueDays} ngày`}
+                placement="top"
+              >
+                <Button 
+                  type="default"
+                  icon={<ExclamationCircleOutlined />}
+                  onClick={() => handleCreatePenalty(record)}
+                  size="small"
+                  danger
+                  loading={penaltyLoading[record.id]}
+                  style={{ minWidth: '80px' }}
+                >
+                  Tạo phạt
+                </Button>
+              </Popover>
+            )} */}
+            
+            {/* 6. Nút "Xóa" - Luôn hiển thị (cuối cùng) */}
+            <Popconfirm
+              title="Bạn có chắc chắn muốn xóa hóa đơn này?"
+              okText="Có"
+              cancelText="Không"
+              onConfirm={() => handleDelete(record.id)}
+            >
+              <Button 
+                icon={<DeleteOutlined />}
+                type="primary"
+                danger
+                size="small"
+                style={{ minWidth: '32px' }}
+              />
+            </Popconfirm>
+          </div>
+        );
+      },
     },
   ];
 
@@ -516,15 +783,7 @@ export default function LandlordBillListPage() {
               gap: isMobile ? 8 : 0
             }}>
               <div style={{ color: '#666' }}>
-                Hiển thị
-                <Select
-                  style={{ width: isMobile ? 60 : 80, margin: "0 8px" }}
-                  value={pageSize}
-                  onChange={handlePageSizeChange}
-                  options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
-                  size={isMobile ? "small" : "middle"}
-                />
-                mục
+                Hiển thị 5 mục mỗi trang
               </div>
               <div style={{ fontWeight: 500, color: "#1890ff" }}>
                 Tổng: {total} hóa đơn
@@ -569,7 +828,7 @@ export default function LandlordBillListPage() {
                   fetchBills(page, size);
                 }}
                 showSizeChanger={false}
-                showQuickJumper={!isMobile}
+                showQuickJumper={false}
                 showTotal={!isMobile ? (total, range) => `${range[0]}-${range[1]} trên tổng số ${total} hóa đơn` : undefined}
                 size={isMobile ? "small" : "default"}
               />

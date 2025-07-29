@@ -32,11 +32,11 @@ public class Contract extends BaseEntity {
     private Instant contractEndDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "contract_status", nullable = false)
+    @Column(name = "contract_status", nullable = false, length = 20)
     private ContractStatus contractStatus;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_cycle", nullable = false)
+    @Column(name = "payment_cycle", nullable = false, length = 20)
     private PaymentCycle paymentCycle;
 
     @Column(name = "deposit_amount", precision = 15, scale = 2)

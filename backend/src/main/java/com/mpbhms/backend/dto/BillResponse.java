@@ -35,4 +35,11 @@ public class BillResponse {
     private Boolean status;
 
     private List<BillDetailResponse> details;
+
+    // Thông tin phạt quá hạn
+    private Long originalBillId; // ID hóa đơn gốc bị phạt
+    private BigDecimal penaltyRate; // Tỷ lệ phạt (%)
+    private Integer overdueDays; // Số ngày quá hạn
+    private BigDecimal penaltyAmount; // Số tiền phạt
+    private String notes; // Ghi chú
 }

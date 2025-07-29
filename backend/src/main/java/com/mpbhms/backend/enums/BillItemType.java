@@ -3,6 +3,7 @@ package com.mpbhms.backend.enums;
 public enum BillItemType {
     ROOM_RENT,
     DEPOSIT,
-    SERVICE
+    SERVICE,
+    LATE_PENALTY
 }
 
