@@ -2,6 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Table, Spin, Popconfirm, message, Tag } from "antd";
 import { getAllRenters, updateRenterStatus } from "../../services/renterApi";
 import dayjs from "dayjs";
+import "dayjs/locale/vi";
+
+// Đặt locale cho dayjs
+dayjs.locale('vi');
 
 export default function RenterTable({ search = "", filter = {} }) {
   const [data, setData] = useState([]);
@@ -47,7 +51,7 @@ export default function RenterTable({ search = "", filter = {} }) {
         name: item.fullName || item.username,
         room: item.renterRoomInfo?.roomName || "N/A",
         checkInDate: item.renterRoomInfo?.checkInDate
-          ? new Date(item.renterRoomInfo.checkInDate).toLocaleDateString()
+          ? dayjs(item.renterRoomInfo.checkInDate).format("DD/MM/YYYY")
           : "N/A",
         status: (item.renterRoomInfo?.roomName && item.renterRoomInfo?.roomName !== "N/A") ? "Đang thuê" : "Ngừng thuê",
         isActive: item.isActive,
@@ -189,6 +193,9 @@ export default function RenterTable({ search = "", filter = {} }) {
         pagination={pagination}
         onChange={handleTableChange}
         locale={{ emptyText: "Không có dữ liệu" }}
+        style={{ background: "#fff", borderRadius: 8, padding: 16 }}
+        scroll={{ x: 800 }}
+        bordered
       />
     </Spin>
   );
