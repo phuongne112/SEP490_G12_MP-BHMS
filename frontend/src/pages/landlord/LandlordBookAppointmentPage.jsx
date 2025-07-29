@@ -19,6 +19,8 @@ import { useSelector } from "react-redux";
 import axiosClient from "../../services/axiosClient";
 import { getPersonalInfo } from "../../services/userApi";
 import { ArrowLeftOutlined } from "@ant-design/icons";
+import UserInfoModal from "../../components/account/UserInfoModal";
+import UpdateUserInfoPage from "../../components/account/UpdateUserInfoPage";
 
 const { Title, Text } = Typography;
 
@@ -53,6 +55,40 @@ export default function LandlordBookAppointmentPage(props) {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [personalInfoModalOpen, setPersonalInfoModalOpen] = useState(false);
+  const [checkingPersonalInfo, setCheckingPersonalInfo] = useState(false);
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [showUpdateInfoModal, setShowUpdateInfoModal] = useState(false);
+  const [isCreate, setIsCreate] = useState(false);
+  const [ocrData, setOcrData] = useState(null);
+
+  // Thêm hàm kiểm tra thông tin cá nhân
+  const checkPersonalInfo = async () => {
+    if (!user) return false;
+    
+    setCheckingPersonalInfo(true);
+    try {
+      const personalInfo = await getPersonalInfo();
+      // Kiểm tra các trường bắt buộc
+      const hasRequiredInfo = personalInfo && 
+        personalInfo.fullName && 
+        personalInfo.phoneNumber && 
+        personalInfo.phoneNumber2 && 
+        personalInfo.gender && 
+        personalInfo.birthDate && 
+        personalInfo.birthPlace && 
+        personalInfo.nationalID && 
+        personalInfo.nationalIDIssuePlace && 
+        personalInfo.permanentAddress;
+      
+      return !!hasRequiredInfo;
+    } catch (error) {
+      // Nếu không có thông tin cá nhân hoặc lỗi, trả về false
+      return false;
+    } finally {
+      setCheckingPersonalInfo(false);
+    }
+  };
 
   useEffect(() => {
     if (!user && !isPopup) {
@@ -60,24 +96,37 @@ export default function LandlordBookAppointmentPage(props) {
       return;
     }
     if (!user) return;
-    const email = user.email || "";
-    getPersonalInfo()
-      .then((info) => {
-        const name = info.fullName || info.name || "";
-        const phone = info.phone || info.phoneNumber || "";
-        form.setFields([
-          { name: "name", value: name },
-          { name: "phone", value: phone },
-          { name: "email", value: email },
-        ]);
-      })
-      .catch(() => {
-        form.setFields([
-          { name: "name", value: "" },
-          { name: "phone", value: "" },
-          { name: "email", value: user.email || "" },
-        ]);
-      });
+
+    // Kiểm tra thông tin cá nhân khi component mount
+    const checkInfo = async () => {
+      const hasPersonalInfo = await checkPersonalInfo();
+      if (!hasPersonalInfo) {
+        setPersonalInfoModalOpen(true);
+        return;
+      }
+
+      // Nếu có thông tin cá nhân, tiếp tục load form
+      const email = user.email || "";
+      getPersonalInfo()
+        .then((info) => {
+          const name = info.fullName || info.name || "";
+          const phone = info.phone || info.phoneNumber || "";
+          form.setFields([
+            { name: "name", value: name },
+            { name: "phone", value: phone },
+            { name: "email", value: email },
+          ]);
+        })
+        .catch(() => {
+          form.setFields([
+            { name: "name", value: "" },
+            { name: "phone", value: "" },
+            { name: "email", value: user.email || "" },
+          ]);
+        });
+    };
+
+    checkInfo();
   }, [user, form, isPopup]);
 
   const handleLoginConfirm = () => {
@@ -127,490 +176,612 @@ export default function LandlordBookAppointmentPage(props) {
 
   // Nếu là popup chỉ render Card nội dung, không bọc div minHeight 100vh...
   if (isPopup) {
-  return (
-      <Card
-        style={{
-          maxWidth: 950,
-          width: '100%',
-          borderRadius: 18,
-          boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-          padding: 0,
-          margin: '0 auto',
-          marginTop: 0
-        }}
-      >
-        <Row gutter={[0, 0]} style={{ minHeight: 520 }}>
-          <Col
-            xs={24}
-            md={11}
-            style={{
-              background: "#f0f2f5",
-              borderTopLeftRadius: 18,
-              borderBottomLeftRadius: 18,
-              padding: 32,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {room.images && room.images.length > 0 ? (
-              <img
-                src={getImageUrl(room.images[0])}
-                alt="Room"
-                style={{
-                  width: 300,
-                  height: 200,
-                  objectFit: "cover",
-                  borderRadius: 12,
-                  marginBottom: 18,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: 300,
-                  height: 200,
-                  background: "#e0e0e0",
-                  borderRadius: 12,
-                  marginBottom: 18,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#888",
-                }}
-              >
-                No image
-              </div>
-            )}
-            <Title level={4} style={{ marginBottom: 8 }}>
-              {room.name || room.roomNumber}
-            </Title>
-            <Text>
-              <b>Diện tích:</b> {room.area || "-"} m²
-            </Text>
-            <br />
-            <Text>
-              <b>Giá:</b> {room.pricePerMonth ? room.pricePerMonth.toLocaleString() : room.price?.toLocaleString() || "-"} VND/tháng
-            </Text>
-            <br />
-            <Text>
-              <b>Số phòng ngủ:</b> {room.numberOfBedrooms || "-"}
-            </Text>
-            <br />
-            <Text>
-              <b>Số phòng tắm:</b> {room.numberOfBathrooms || "-"}
-            </Text>
-            <br />
-            <Text>
-              <b>Trạng thái:</b>{" "}
-              <Tag
-                color={(() => {
-                  const status = room.roomStatus || room.status;
-                  if (status === "Available") return "green";
-                  if (status === "Occupied") return "red";
-                  if (status === "Maintenance") return "orange";
-                  if (status === "Inactive") return "default";
-                  return "default";
-                })()}
-                style={{ fontWeight: 600, fontSize: 15 }}
-              >
-                {(() => {
-                  const status = room.roomStatus || room.status;
-                  if (status === "Available") return "Có sẵn";
-                  if (status === "Occupied") return "Đã thuê";
-                  if (status === "Maintenance") return "Bảo trì";
-                  if (status === "Inactive") return "Không hoạt động";
-                  return "Không xác định";
-                })()}
-              </Tag>
-            </Text>
-            <br />
-            <Text>
-              <b>Mô tả:</b> {room.description || "—"}
-            </Text>
-            <br />
-            <Text>
-              <b>Hoạt động:</b> {room.isActive ? "Có" : "Không"}
-            </Text>
-            <br />
-            <Text>
-              <b>Chủ nhà:</b> {room.landlordName || "Không có"} | {room.landlordPhone || "Không có số điện thoại"}
-            </Text>
-            <br />
-          </Col>
-
-          <Col
-            xs={24}
-            md={13}
-            style={{
-              padding: 36,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <div style={{ width: "100%", maxWidth: 370 }}>
-              <Title level={4} style={{ marginBottom: 18 }}>
-                Đặt lịch hẹn
+    return (
+      <>
+        <Card
+          style={{
+            maxWidth: 950,
+            width: '100%',
+            borderRadius: 18,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+            padding: 0,
+            margin: '0 auto',
+            marginTop: 0
+          }}
+        >
+          <Row gutter={[0, 0]} style={{ minHeight: 520 }}>
+            <Col
+              xs={24}
+              md={11}
+              style={{
+                background: "#f0f2f5",
+                borderTopLeftRadius: 18,
+                borderBottomLeftRadius: 18,
+                padding: 32,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {room.images && room.images.length > 0 ? (
+                <img
+                  src={getImageUrl(room.images[0])}
+                  alt="Room"
+                  style={{
+                    width: 300,
+                    height: 200,
+                    objectFit: "cover",
+                    borderRadius: 12,
+                    marginBottom: 18,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 300,
+                    height: 200,
+                    background: "#e0e0e0",
+                    borderRadius: 12,
+                    marginBottom: 18,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#888",
+                  }}
+                >
+                  No image
+                </div>
+              )}
+              <Title level={4} style={{ marginBottom: 8 }}>
+                {room.name || room.roomNumber}
               </Title>
-              <Form
-                form={form}
-                layout="vertical"
-                onFinish={onFinish}
-                disabled={isUnavailable || !user}
-              >
-                <Form.Item
-                  label="Họ và tên"
-                  name="name"
-                  rules={[
-                    { required: true, message: "Vui lòng nhập họ và tên" },
-                  ]}
+              <Text>
+                <b>Diện tích:</b> {room.area || "-"} m²
+              </Text>
+              <br />
+              <Text>
+                <b>Giá:</b> {room.pricePerMonth ? room.pricePerMonth.toLocaleString() : room.price?.toLocaleString() || "-"} VND/tháng
+              </Text>
+              <br />
+              <Text>
+                <b>Số phòng ngủ:</b> {room.numberOfBedrooms || "-"}
+              </Text>
+              <br />
+              <Text>
+                <b>Số phòng tắm:</b> {room.numberOfBathrooms || "-"}
+              </Text>
+              <br />
+              <Text>
+                <b>Trạng thái:</b>{" "}
+                <Tag
+                  color={(() => {
+                    const status = room.roomStatus || room.status;
+                    if (status === "Available") return "green";
+                    if (status === "Occupied") return "red";
+                    if (status === "Maintenance") return "orange";
+                    if (status === "Inactive") return "default";
+                    return "default";
+                  })()}
+                  style={{ fontWeight: 600, fontSize: 15 }}
                 >
-                  <Input size="large" placeholder="Nhập họ và tên" />
-                </Form.Item>
+                  {(() => {
+                    const status = room.roomStatus || room.status;
+                    if (status === "Available") return "Có sẵn";
+                    if (status === "Occupied") return "Đã thuê";
+                    if (status === "Maintenance") return "Bảo trì";
+                    if (status === "Inactive") return "Không hoạt động";
+                    return "Không xác định";
+                  })()}
+                </Tag>
+              </Text>
+              <br />
+              <Text>
+                <b>Mô tả:</b> {room.description || "—"}
+              </Text>
+              <br />
+              <Text>
+                <b>Hoạt động:</b> {room.isActive ? "Có" : "Không"}
+              </Text>
+              <br />
+              <Text>
+                <b>Chủ nhà:</b> {room.landlordName || "Không có"} | {room.landlordPhone || "Không có số điện thoại"}
+              </Text>
+              <br />
+            </Col>
 
-                <Form.Item
-                  label="Số điện thoại"
-                  name="phone"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Vui lòng nhập số điện thoại",
-                    },
-                  ]}
-                >
-                  <Input size="large" placeholder="Nhập số điện thoại" />
-                </Form.Item>
-
-                <Form.Item
-                  label="Email"
-                  name="email"
-                  rules={[
-                    {
-                      required: true,
-                      type: "email",
-                      message: "Vui lòng nhập email hợp lệ",
-                    },
-                  ]}
-                >
-                  <Input size="large" placeholder="Nhập email" />
-                </Form.Item>
-
-                <Form.Item
-                  label="Ngày"
-                  name="date"
-                  rules={[{ required: true, message: "Vui lòng chọn ngày" }]}
-                >
-                  <DatePicker
-                    size="large"
-                    style={{ width: "100%" }}
-                    disabledDate={(d) => d && d < dayjs().startOf("day")}
-                    placeholder="Chọn ngày"
-                  />
-                </Form.Item>
-
-                <Form.Item
-                  label="Giờ"
-                  name="time"
-                  rules={[{ required: true, message: "Vui lòng chọn giờ" }]}
-                >
-                  <TimePicker
-                    size="large"
-                    style={{ width: "100%" }}
-                    format="HH:mm"
-                    placeholder="Chọn giờ"
-                  />
-                </Form.Item>
-
-                <Form.Item label="Ghi chú" name="note">
-                  <Input.TextArea
-                    rows={3}
-                    placeholder="Ghi chú cho chủ nhà (nếu có)" />
-                </Form.Item>
-
-                <Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  size="large"
-                  loading={submitting}
+            <Col
+              xs={24}
+              md={13}
+              style={{
+                padding: 36,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <div style={{ width: "100%", maxWidth: 370 }}>
+                <Title level={4} style={{ marginBottom: 18 }}>
+                  Đặt lịch hẹn
+                </Title>
+                <Form
+                  form={form}
+                  layout="vertical"
+                  onFinish={onFinish}
                   disabled={isUnavailable || !user}
-                    style={{ marginTop: 8, marginRight: 8, width: 140, display: 'inline-block' }}
                 >
-                  Đặt lịch
-                </Button>
-                  <Button
-                    onClick={onCancel}
-                    size="large"
-                    style={{ width: 140, display: 'inline-block' }}
+                  <Form.Item
+                    label="Họ và tên"
+                    name="name"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập họ và tên" },
+                    ]}
                   >
-                    Hủy
-                  </Button>
-                </Form.Item>
+                    <Input size="large" placeholder="Nhập họ và tên" />
+                  </Form.Item>
 
-                {isUnavailable && (
-                  <div style={{ color: "red", marginTop: 12 }}>
-                    Phòng này hiện không khả dụng để đặt lịch.
-                  </div>
-                )}
-              </Form>
+                  <Form.Item
+                    label="Số điện thoại"
+                    name="phone"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập số điện thoại",
+                      },
+                    ]}
+                  >
+                    <Input size="large" placeholder="Nhập số điện thoại" />
+                  </Form.Item>
+
+                  <Form.Item
+                    label="Email"
+                    name="email"
+                    rules={[
+                      {
+                        required: true,
+                        type: "email",
+                        message: "Vui lòng nhập email hợp lệ",
+                      },
+                    ]}
+                  >
+                    <Input size="large" placeholder="Nhập email" />
+                  </Form.Item>
+
+                  <Form.Item
+                    label="Ngày"
+                    name="date"
+                    rules={[{ required: true, message: "Vui lòng chọn ngày" }]}
+                  >
+                    <DatePicker
+                      size="large"
+                      style={{ width: "100%" }}
+                      disabledDate={(d) => d && d < dayjs().startOf("day")}
+                      placeholder="Chọn ngày"
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    label="Giờ"
+                    name="time"
+                    rules={[{ required: true, message: "Vui lòng chọn giờ" }]}
+                  >
+                    <TimePicker
+                      size="large"
+                      style={{ width: "100%" }}
+                      format="HH:mm"
+                      placeholder="Chọn giờ"
+                    />
+                  </Form.Item>
+
+                  <Form.Item label="Ghi chú" name="note">
+                    <Input.TextArea
+                      rows={3}
+                      placeholder="Ghi chú cho chủ nhà (nếu có)" />
+                  </Form.Item>
+
+                  <Form.Item>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    size="large"
+                    loading={submitting}
+                    disabled={isUnavailable || !user}
+                      style={{ marginTop: 8, marginRight: 8, width: 140, display: 'inline-block' }}
+                  >
+                    Đặt lịch
+                  </Button>
+                    <Button
+                      onClick={onCancel}
+                      size="large"
+                      style={{ width: 140, display: 'inline-block' }}
+                    >
+                      Hủy
+                    </Button>
+                  </Form.Item>
+
+                  {isUnavailable && (
+                    <div style={{ color: "red", marginTop: 12 }}>
+                      Phòng này hiện không khả dụng để đặt lịch.
+                    </div>
+                  )}
+                </Form>
+              </div>
+            </Col>
+          </Row>
+        </Card>
+
+        {/* Modal yêu cầu điền thông tin cá nhân */}
+        <Modal
+          open={personalInfoModalOpen}
+          onCancel={() => setPersonalInfoModalOpen(false)}
+          footer={null}
+          centered
+          closable={false}
+          maskClosable={false}
+        >
+          <div style={{ textAlign: "center", padding: "20px 0" }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>📝</div>
+            <Title level={4} style={{ fontWeight: 500 }}>Cần điền thông tin cá nhân</Title>
+            <Text type="secondary" style={{ fontWeight: 400, display: "block", marginBottom: 24 }}>
+              Để đặt lịch xem phòng, bạn cần điền đầy đủ thông tin cá nhân trước.
+            </Text>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+              <Button 
+                onClick={() => {
+                  setPersonalInfoModalOpen(false);
+                  onCancel?.();
+                }}
+                size="large"
+              >
+                Hủy
+              </Button>
+              <Button 
+                type="primary" 
+                size="large"
+                onClick={() => {
+                  setPersonalInfoModalOpen(false);
+                  setIsCreate(true);
+                  setShowUpdateInfoModal(true);
+                }}
+              >
+                Điền thông tin ngay
+              </Button>
             </div>
-          </Col>
-        </Row>
-      </Card>
+          </div>
+        </Modal>
+
+        {/* Modals cho thông tin cá nhân */}
+        <UserInfoModal
+          open={isInfoModalOpen}
+          onClose={() => setIsInfoModalOpen(false)}
+          onShowUpdateModal={(create = false, ocrData = null) => {
+            setIsInfoModalOpen(false);
+            setIsCreate(create);
+            setShowUpdateInfoModal(true);
+            setOcrData(ocrData);
+          }}
+        />
+        <UpdateUserInfoPage
+          open={showUpdateInfoModal}
+          isCreate={isCreate}
+          onClose={() => setShowUpdateInfoModal(false)}
+          onBackToInfoModal={() => setIsInfoModalOpen(true)}
+          ocrData={ocrData}
+        />
+      </>
     );
   }
 
   // Nếu không phải popup, render layout cũ
   return (
-    <div style={{ minHeight: "100vh", background: "#f5f6fa", display: "flex", flexDirection: "column" }}>
-      <div style={{ flex: 1, width: '100%', background: '#f5f6fa' }}>
-        <div style={{ width: '100%', maxWidth: 1200, margin: '0 auto', position: 'relative', marginTop: 0 }}>
-          <Card
-            style={{
-              maxWidth: 950,
-              width: '100%',
-              borderRadius: 18,
-              boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-              padding: 0,
-              margin: '0 auto',
-              marginTop: 32
-            }}
-          >
-            <Row gutter={[0, 0]} style={{ minHeight: 520 }}>
-              <Col
-                xs={24}
-                md={11}
-                style={{
-                  background: "#f0f2f5",
-                  borderTopLeftRadius: 18,
-                  borderBottomLeftRadius: 18,
-                  padding: 32,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {room.images && room.images.length > 0 ? (
-                  <img
-                    src={getImageUrl(room.images[0])}
-                    alt="Room"
-                    style={{
-                      width: 300,
-                      height: 200,
-                      objectFit: "cover",
-                      borderRadius: 12,
-                      marginBottom: 18,
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                    }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: 300,
-                      height: 200,
-                      background: "#e0e0e0",
-                      borderRadius: 12,
-                      marginBottom: 18,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#888",
-                    }}
-                  >
-                    No image
-                  </div>
-                )}
-                <Title level={4} style={{ marginBottom: 8 }}>
-                  {room.name || room.roomNumber}
-                </Title>
-                <Text>
-                  <b>Diện tích:</b> {room.area || "-"} m²
-                </Text>
-                <br />
-                <Text>
-                  <b>Giá:</b>{" "}
-                  {room.pricePerMonth
-                    ? room.pricePerMonth.toLocaleString()
-                    : room.price?.toLocaleString() || "-"}{" "}
-                  VND/tháng
-                </Text>
-                <br />
-                <Text>
-                  <b>Tiện nghi:</b> {room.amenities || room.description || "-"}
-                </Text>
-                <br />
-                <Text>
-                  <b>Trạng thái:</b>{" "}
-                  <Tag
-                    color={
-                      (() => {
-                        const status = room.roomStatus || room.status;
-                        if (status === "Available") return "green";
-                        if (status === "Occupied") return "red";
-                        if (status === "Maintenance") return "orange";
-                        if (status === "Inactive") return "default";
-                        return "default";
-                      })()
-                    }
-                    style={{ fontWeight: 600, fontSize: 15 }}
-                  >
-                    {(() => {
-                      const status = room.roomStatus || room.status;
-                      if (status === "Available") return "Có sẵn";
-                      if (status === "Occupied") return "Đã thuê";
-                      if (status === "Maintenance") return "Bảo trì";
-                      if (status === "Inactive") return "Không hoạt động";
-                      return "Không xác định";
-                    })()}
-                  </Tag>
-                </Text>
-              </Col>
-
-              <Col
-                xs={24}
-                md={13}
-                style={{
-                  padding: 36,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <div style={{ width: "100%", maxWidth: 370 }}>
-                  <Title level={4} style={{ marginBottom: 18 }}>
-                    Đặt lịch hẹn
+    <>
+      <div style={{ minHeight: "100vh", background: "#f0f2f5" }}>
+        <div style={{ flex: 1, width: '100%', background: '#f5f6fa' }}>
+          <div style={{ width: '100%', maxWidth: 1200, margin: '0 auto', position: 'relative', marginTop: 0 }}>
+            <Card
+              style={{
+                maxWidth: 950,
+                width: '100%',
+                borderRadius: 18,
+                boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+                padding: 0,
+                margin: '0 auto',
+                marginTop: 32
+              }}
+            >
+              <Row gutter={[0, 0]} style={{ minHeight: 520 }}>
+                <Col
+                  xs={24}
+                  md={11}
+                  style={{
+                    background: "#f0f2f5",
+                    borderTopLeftRadius: 18,
+                    borderBottomLeftRadius: 18,
+                    padding: 32,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {room.images && room.images.length > 0 ? (
+                    <img
+                      src={getImageUrl(room.images[0])}
+                      alt="Room"
+                      style={{
+                        width: 300,
+                        height: 200,
+                        objectFit: "cover",
+                        borderRadius: 12,
+                        marginBottom: 18,
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 300,
+                        height: 200,
+                        background: "#e0e0e0",
+                        borderRadius: 12,
+                        marginBottom: 18,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#888",
+                      }}
+                    >
+                      No image
+                    </div>
+                  )}
+                  <Title level={4} style={{ marginBottom: 8 }}>
+                    {room.name || room.roomNumber}
                   </Title>
-                  <Form
-                    form={form}
-                    layout="vertical"
-                    onFinish={onFinish}
-                    disabled={isUnavailable || !user}
-                  >
-                    <Form.Item
-                      label="Họ và tên"
-                      name="name"
-                      rules={[
-                        { required: true, message: "Vui lòng nhập họ và tên" },
-                      ]}
+                  <Text>
+                    <b>Diện tích:</b> {room.area || "-"} m²
+                  </Text>
+                  <br />
+                  <Text>
+                    <b>Giá:</b>{" "}
+                    {room.pricePerMonth
+                      ? room.pricePerMonth.toLocaleString()
+                      : room.price?.toLocaleString() || "-"}{" "}
+                    VND/tháng
+                  </Text>
+                  <br />
+                  <Text>
+                    <b>Tiện nghi:</b> {room.amenities || room.description || "-"}
+                  </Text>
+                  <br />
+                  <Text>
+                    <b>Trạng thái:</b>{" "}
+                    <Tag
+                      color={
+                        (() => {
+                          const status = room.roomStatus || room.status;
+                          if (status === "Available") return "green";
+                          if (status === "Occupied") return "red";
+                          if (status === "Maintenance") return "orange";
+                          if (status === "Inactive") return "default";
+                          return "default";
+                        })()
+                      }
+                      style={{ fontWeight: 600, fontSize: 15 }}
                     >
-                      <Input size="large" placeholder="Nhập họ và tên" />
-                    </Form.Item>
+                      {(() => {
+                        const status = room.roomStatus || room.status;
+                        if (status === "Available") return "Có sẵn";
+                        if (status === "Occupied") return "Đã thuê";
+                        if (status === "Maintenance") return "Bảo trì";
+                        if (status === "Inactive") return "Không hoạt động";
+                        return "Không xác định";
+                      })()}
+                    </Tag>
+                  </Text>
+                </Col>
 
-                    <Form.Item
-                      label="Số điện thoại"
-                      name="phone"
-                      rules={[
-                        {
-                          required: true,
-                          message: "Vui lòng nhập số điện thoại",
-                        },
-                      ]}
+                <Col
+                  xs={24}
+                  md={13}
+                  style={{
+                    padding: 36,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <div style={{ width: "100%", maxWidth: 370 }}>
+                    <Title level={4} style={{ marginBottom: 18 }}>
+                      Đặt lịch hẹn
+                    </Title>
+                    <Form
+                      form={form}
+                      layout="vertical"
+                      onFinish={onFinish}
+                      disabled={isUnavailable || !user}
                     >
-                      <Input size="large" placeholder="Nhập số điện thoại" />
-                    </Form.Item>
-
-                    <Form.Item
-                      label="Email"
-                      name="email"
-                      rules={[
-                        {
-                          required: true,
-                          type: "email",
-                          message: "Vui lòng nhập email hợp lệ",
-                        },
-                      ]}
-                    >
-                      <Input size="large" placeholder="Nhập email" />
-                    </Form.Item>
-
-                    <Form.Item
-                      label="Ngày"
-                      name="date"
-                      rules={[{ required: true, message: "Vui lòng chọn ngày" }]}
-                    >
-                      <DatePicker
-                        size="large"
-                        style={{ width: "100%" }}
-                        disabledDate={(d) => d && d < dayjs().startOf("day")}
-                        placeholder="Chọn ngày"
-                      />
-                    </Form.Item>
-
-                    <Form.Item
-                      label="Giờ"
-                      name="time"
-                      rules={[{ required: true, message: "Vui lòng chọn giờ" }]}
-                    >
-                      <TimePicker
-                        size="large"
-                        style={{ width: "100%" }}
-                        format="HH:mm"
-                        placeholder="Chọn giờ"
-                      />
-                    </Form.Item>
-
-                    <Form.Item label="Ghi chú" name="note">
-                      <Input.TextArea
-                        rows={3}
-                        placeholder="Ghi chú cho chủ nhà (nếu có)"
-                      />
-                    </Form.Item>
-
-                    <Form.Item>
-                      <Button
-                        type="primary"
-                        htmlType="submit"
-                        block={!isPopup}
-                        size="large"
-                        loading={submitting}
-                        disabled={isUnavailable || !user}
-                        style={{ marginTop: 8, marginRight: isPopup ? 8 : 0, width: isPopup ? 140 : undefined, display: isPopup ? 'inline-block' : undefined }}
+                      <Form.Item
+                        label="Họ và tên"
+                        name="name"
+                        rules={[
+                          { required: true, message: "Vui lòng nhập họ và tên" },
+                        ]}
                       >
-                        Đặt lịch
-                      </Button>
-                      {isPopup && (
-                        <Button
-                          onClick={onCancel}
-                          size="large"
-                          style={{ width: 140, display: 'inline-block' }}
-                        >
-                          Hủy
-                        </Button>
-                      )}
-                    </Form.Item>
+                        <Input size="large" placeholder="Nhập họ và tên" />
+                      </Form.Item>
 
-                    {isUnavailable && (
-                      <div style={{ color: "red", marginTop: 12 }}>
-                        Phòng này hiện không khả dụng để đặt lịch.
-                      </div>
-                    )}
-                  </Form>
-                </div>
-              </Col>
-            </Row>
-          </Card>
-        </div>
-        <Modal
-          open={loginModalOpen}
-          onCancel={() => setLoginModalOpen(false)}
-          onOk={handleLoginConfirm}
-          okText="Đăng nhập"
-          cancelText="Hủy"
-          closable={false}
-          maskClosable={false}
-          centered
-        >
-          <div style={{ textAlign: "center", fontSize: 16, fontWeight: 500 }}>
-            Bạn cần đăng nhập để đặt lịch hẹn.
-            <br />
-            Vui lòng đăng nhập để tiếp tục.
+                      <Form.Item
+                        label="Số điện thoại"
+                        name="phone"
+                        rules={[
+                          {
+                            required: true,
+                            message: "Vui lòng nhập số điện thoại",
+                          },
+                        ]}
+                      >
+                        <Input size="large" placeholder="Nhập số điện thoại" />
+                      </Form.Item>
+
+                      <Form.Item
+                        label="Email"
+                        name="email"
+                        rules={[
+                          {
+                            required: true,
+                            type: "email",
+                            message: "Vui lòng nhập email hợp lệ",
+                          },
+                        ]}
+                      >
+                        <Input size="large" placeholder="Nhập email" />
+                      </Form.Item>
+
+                      <Form.Item
+                        label="Ngày"
+                        name="date"
+                        rules={[{ required: true, message: "Vui lòng chọn ngày" }]}
+                      >
+                        <DatePicker
+                          size="large"
+                          style={{ width: "100%" }}
+                          disabledDate={(d) => d && d < dayjs().startOf("day")}
+                          placeholder="Chọn ngày"
+                        />
+                      </Form.Item>
+
+                      <Form.Item
+                        label="Giờ"
+                        name="time"
+                        rules={[{ required: true, message: "Vui lòng chọn giờ" }]}
+                      >
+                        <TimePicker
+                          size="large"
+                          style={{ width: "100%" }}
+                          format="HH:mm"
+                          placeholder="Chọn giờ"
+                        />
+                      </Form.Item>
+
+                      <Form.Item label="Ghi chú" name="note">
+                        <Input.TextArea
+                          rows={3}
+                          placeholder="Ghi chú cho chủ nhà (nếu có)"
+                        />
+                      </Form.Item>
+
+                      <Form.Item>
+                        <Button
+                          type="primary"
+                          htmlType="submit"
+                          block={!isPopup}
+                          size="large"
+                          loading={submitting}
+                          disabled={isUnavailable || !user}
+                          style={{ marginTop: 8, marginRight: isPopup ? 8 : 0, width: isPopup ? 140 : undefined, display: isPopup ? 'inline-block' : undefined }}
+                        >
+                          Đặt lịch
+                        </Button>
+                        {isPopup && (
+                          <Button
+                            onClick={onCancel}
+                            size="large"
+                            style={{ width: 140, display: 'inline-block' }}
+                          >
+                            Hủy
+                          </Button>
+                        )}
+                      </Form.Item>
+
+                      {isUnavailable && (
+                        <div style={{ color: "red", marginTop: 12 }}>
+                          Phòng này hiện không khả dụng để đặt lịch.
+                        </div>
+                      )}
+                    </Form>
+                  </div>
+                </Col>
+              </Row>
+            </Card>
           </div>
-        </Modal>
+          <Modal
+            open={loginModalOpen}
+            onCancel={() => setLoginModalOpen(false)}
+            onOk={handleLoginConfirm}
+            okText="Đăng nhập"
+            cancelText="Hủy"
+            closable={false}
+            maskClosable={false}
+            centered
+          >
+            <div style={{ textAlign: "center", fontSize: 16, fontWeight: 500 }}>
+              Bạn cần đăng nhập để đặt lịch hẹn.
+              <br />
+              Vui lòng đăng nhập để tiếp tục.
+            </div>
+          </Modal>
+        </div>
       </div>
-    </div>
+
+      {/* Modal yêu cầu điền thông tin cá nhân */}
+      <Modal
+        open={personalInfoModalOpen}
+        onCancel={() => setPersonalInfoModalOpen(false)}
+        footer={null}
+        centered
+        closable={false}
+        maskClosable={false}
+      >
+        <div style={{ textAlign: "center", padding: "20px 0" }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>📝</div>
+          <Title level={4} style={{ fontWeight: 500 }}>Cần điền thông tin cá nhân</Title>
+          <Text type="secondary" style={{ fontWeight: 400, display: "block", marginBottom: 24 }}>
+            Để đặt lịch xem phòng, bạn cần điền đầy đủ thông tin cá nhân trước.
+          </Text>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+            <Button 
+              onClick={() => {
+                setPersonalInfoModalOpen(false);
+                navigate(-1);
+              }}
+              size="large"
+            >
+              Hủy
+            </Button>
+            <Button 
+              type="primary" 
+              size="large"
+              onClick={() => {
+                setPersonalInfoModalOpen(false);
+                setIsCreate(true);
+                setShowUpdateInfoModal(true);
+              }}
+            >
+              Điền thông tin ngay
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modals cho thông tin cá nhân */}
+      <UserInfoModal
+        open={isInfoModalOpen}
+        onClose={() => setIsInfoModalOpen(false)}
+        onShowUpdateModal={(create = false, ocrData = null) => {
+          setIsInfoModalOpen(false);
+          setIsCreate(create);
+          setShowUpdateInfoModal(true);
+          setOcrData(ocrData);
+        }}
+      />
+      <UpdateUserInfoPage
+        open={showUpdateInfoModal}
+        isCreate={isCreate}
+        onClose={() => setShowUpdateInfoModal(false)}
+        onBackToInfoModal={() => setIsInfoModalOpen(true)}
+        ocrData={ocrData}
+      />
+    </>
   );
 }
