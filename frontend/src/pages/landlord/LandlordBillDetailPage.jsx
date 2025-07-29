@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Descriptions, Table, Button, Spin, message, Tag, Layout } from "antd";
-import { getBillDetail, exportBillPdf, createVnPayUrl } from "../../services/billApi";
+import { Card, Descriptions, Table, Button, Spin, message, Tag, Layout, Popconfirm } from "antd";
+import { getBillDetail, exportBillPdf, createVnPayUrl, updateBillPaymentStatus } from "../../services/billApi";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import dayjs from "dayjs";
@@ -15,6 +15,7 @@ export default function LandlordBillDetailPage() {
   const navigate = useNavigate();
   const [bill, setBill] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   useEffect(() => {
     fetchBill();
@@ -58,6 +59,21 @@ export default function LandlordBillDetailPage() {
       window.location.href = paymentUrl;
     } catch (err) {
       alert("Không tạo được link thanh toán!");
+    }
+  };
+
+  const handleUpdatePaymentStatus = async () => {
+    setUpdatingStatus(true);
+    try {
+      await updateBillPaymentStatus(bill.id, true);
+      message.success("Đã cập nhật trạng thái thanh toán thành công!");
+      // Refresh bill data
+      await fetchBill();
+    } catch (error) {
+      message.error("Không thể cập nhật trạng thái thanh toán!");
+      console.error("Error updating payment status:", error);
+    } finally {
+      setUpdatingStatus(false);
     }
   };
 
@@ -211,13 +227,32 @@ export default function LandlordBillDetailPage() {
                 <Button onClick={handleExport} type="primary">Xuất PDF</Button>
 
                 {!bill.status && (
-                  <Button
-                    type="primary"
-                    style={{ marginLeft: 16 }}
-                    onClick={handlePayVnPay}
-                  >
-                    Thanh toán VNPay
-                  </Button>
+                  <>
+                    <Button
+                      type="primary"
+                      style={{ marginLeft: 16 }}
+                      onClick={handlePayVnPay}
+                    >
+                      Thanh toán VNPay
+                    </Button>
+                    
+                    <Popconfirm
+                      title="Xác nhận thanh toán"
+                      description="Bạn có chắc muốn đánh dấu hóa đơn này đã được thanh toán?"
+                      onConfirm={handleUpdatePaymentStatus}
+                      okText="Xác nhận"
+                      cancelText="Hủy"
+                    >
+                      <Button
+                        type="default"
+                        style={{ marginLeft: 16 }}
+                        loading={updatingStatus}
+                        title="Đánh dấu đã thanh toán (cho thanh toán tại văn phòng)"
+                      >
+                        Đã thanh toán
+                      </Button>
+                    </Popconfirm>
+                  </>
                 )}
 
                 <Button style={{ marginLeft: 16 }} onClick={() => navigate(-1)}>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table, Card, Tag, Input, Select, DatePicker, Button, Popover, Form, Popconfirm, message } from "antd";
+import { Table, Card, Tag, Input, Select, DatePicker, Button, Popover, Form, Popconfirm, message, Space } from "antd";
 import axiosClient from "../../services/axiosClient";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
@@ -12,6 +12,7 @@ import timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 import { sendNotification } from "../../services/notificationApi";
+import { DeleteOutlined } from "@ant-design/icons";
 
 const { Sider, Content } = Layout;
 
@@ -145,8 +146,10 @@ export default function LandlordBookingListPage() {
     {
       title: "Thao tác",
       key: "actions",
+      align: "center",
+      width: 300,
       render: (_, record) => (
-        <>
+        <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
           {record.status === "PENDING" && (
             <>
               <Popconfirm
@@ -158,7 +161,6 @@ export default function LandlordBookingListPage() {
                 <Button
                   type="primary"
                   size="small"
-                  style={{ marginRight: 8 }}
                 >
                   Chấp nhận
                 </Button>
@@ -169,7 +171,13 @@ export default function LandlordBookingListPage() {
                 okText="Từ chối"
                 cancelText="Không"
               >
-                <Button danger size="small" style={{ marginRight: 8 }}>Từ chối</Button>
+                <Button 
+                  type="default"
+                  danger
+                  size="small"
+                >
+                  Từ chối
+                </Button>
               </Popconfirm>
             </>
           )}
@@ -179,9 +187,14 @@ export default function LandlordBookingListPage() {
             okText="Xóa"
             cancelText="Không"
           >
-            <Button danger size="small">Xóa</Button>
+            <Button 
+              icon={<DeleteOutlined />}
+              type="primary"
+              danger
+              size="small"
+            />
           </Popconfirm>
-        </>
+        </Space>
       ),
     },
   ];
@@ -310,6 +323,7 @@ export default function LandlordBookingListPage() {
                 showSizeChanger: false,
                 onChange: (page) => setCurrentPage(page),
               }}
+              bordered
             />
           </div>
         </Content>
