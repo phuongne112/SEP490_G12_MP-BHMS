@@ -78,6 +78,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Delete Notification", "/mpbhms/notifications/{id}", "DELETE", "Notification"));
             permissions.add(new Permission("View Notification", "/mpbhms/notifications/all", "GET", "Notification"));
             permissions.add(new Permission("Create Notification Send", "/mpbhms/notifications/send", "POST", "Notification"));
+            permissions.add(new Permission("Create Multiple Notifications Send", "/mpbhms/notifications/send-multiple", "POST", "Notification"));
             permissions.add(new Permission("View My Notification", "/mpbhms/notifications", "GET", "Notification"));
             permissions.add(new Permission("Mark Notification as Read", "/mpbhms/notifications/{id}/read", "PUT", "Notification"));
             //Permissions
@@ -227,6 +228,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             if (markReadNotification != null && !adminPermissions.contains(markReadNotification)) {
                 adminPermissions.add(markReadNotification);
             }
+            Permission sendMultipleNotificationsAdmin = permissionRepository.findByModuleAndApiPathAndMethod("Notification", "/mpbhms/notifications/send-multiple", "POST");
+            if (sendMultipleNotificationsAdmin != null && !adminPermissions.contains(sendMultipleNotificationsAdmin)) {
+                adminPermissions.add(sendMultipleNotificationsAdmin);
+            }
             adminRole.setPermissionEntities(adminPermissions);
             roleRepository.save(adminRole);
 
@@ -355,6 +360,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             if (sendNotification != null && !landlordPermission.contains(sendNotification)) {
                 landlordPermission.add(sendNotification);
             }
+            Permission sendMultipleNotifications = permissionRepository.findByModuleAndApiPathAndMethod("Notification", "/mpbhms/notifications/send-multiple", "POST");
+            if (sendMultipleNotifications != null && !landlordPermission.contains(sendMultipleNotifications)) {
+                landlordPermission.add(sendMultipleNotifications);
+            }
             // Đảm bảo LANDLORD có quyền xem dashboard-stats
             Permission dashboardStats = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/dashboard-stats", "GET");
             if (dashboardStats != null && !landlordPermission.contains(dashboardStats)) {
@@ -374,6 +383,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             }
             if (markReadNotification != null && !subAdminPermission.contains(markReadNotification)) {
                 subAdminPermission.add(markReadNotification);
+            }
+            Permission sendMultipleNotificationsSubAdmin = permissionRepository.findByModuleAndApiPathAndMethod("Notification", "/mpbhms/notifications/send-multiple", "POST");
+            if (sendMultipleNotificationsSubAdmin != null && !subAdminPermission.contains(sendMultipleNotificationsSubAdmin)) {
+                subAdminPermission.add(sendMultipleNotificationsSubAdmin);
             }
             subAdminRole.setPermissionEntities(subAdminPermission);
             roleRepository.save(subAdminRole);
