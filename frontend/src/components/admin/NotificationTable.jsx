@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table, Button, Space, Tag, Alert, Tooltip } from "antd";
+import { Table, Button, Space, Tag, Alert, Tooltip, Popconfirm } from "antd";
 import { EyeOutlined, DeleteOutlined } from "@ant-design/icons";
 import { getAllNotifications } from "../../services/notificationApi";
 import Access from "../common/Access";
@@ -124,25 +124,118 @@ export default function NotificationTable({
     {
       title: "STT",
       render: (_, __, index) => (pagination.current - 1) * pageSize + index + 1,
+      align: "center",
       width: 60,
     },
-    { title: "Tiêu đề", dataIndex: "title" },
+    { 
+      title: "Tiêu đề", 
+      dataIndex: "title",
+      align: "center",
+      width: 200,
+    },
     {
       title: "Loại",
       dataIndex: "type",
+      align: "center",
+      width: 120,
       render: (type) => {
+        // Vietnamese translations for notification types
+        const typeTranslations = {
+          // Bill-related notifications
+          'BILL_CREATED': 'Hóa đơn mới',
+          'BILL_PAID': 'Hóa đơn đã thanh toán',
+          'BILL_OVERDUE': 'Hóa đơn quá hạn',
+          'BILL_DUE': 'Hóa đơn đến hạn',
+          'BILL_SENT': 'Hóa đơn đã gửi',
+          'BILL_DELETED': 'Hóa đơn đã xóa',
+          'BILL_UPDATED': 'Hóa đơn đã cập nhật',
+          
+          // Contract-related notifications
+          'CONTRACT_CREATED': 'Hợp đồng mới',
+          'CONTRACT_EXPIRED': 'Hợp đồng hết hạn',
+          'CONTRACT_TERMINATED': 'Hợp đồng chấm dứt',
+          'CONTRACT_RENEWED': 'Hợp đồng gia hạn',
+          'CONTRACT_UPDATED': 'Hợp đồng đã cập nhật',
+          'CONTRACT_SIGNED': 'Hợp đồng đã ký',
+          
+          // Room booking notifications
+          'ROOM_BOOKING': 'Đặt phòng',
+          'ROOM_BOOKING_ACCEPTED': 'Đặt phòng được chấp nhận',
+          'ROOM_BOOKING_REJECTED': 'Đặt phòng bị từ chối',
+          'ROOM_BOOKING_CANCELLED': 'Đặt phòng bị hủy',
+          'ROOM_BOOKING_PENDING': 'Đặt phòng chờ xử lý',
+          
+          // Service and maintenance notifications
+          'SERVICE_UPDATE': 'Cập nhật dịch vụ',
+          'SERVICE_CREATED': 'Dịch vụ mới',
+          'SERVICE_DELETED': 'Dịch vụ đã xóa',
+          'SERVICE_PRICE_CHANGED': 'Thay đổi giá dịch vụ',
+          'MAINTENANCE_REQUEST': 'Yêu cầu bảo trì',
+          'MAINTENANCE_COMPLETED': 'Bảo trì hoàn thành',
+          'MAINTENANCE_SCHEDULED': 'Lịch bảo trì',
+          
+          // Payment notifications
+          'PAYMENT_REMINDER': 'Nhắc nhở thanh toán',
+          'PAYMENT_RECEIVED': 'Đã nhận thanh toán',
+          'PAYMENT_FAILED': 'Thanh toán thất bại',
+          'PAYMENT_PENDING': 'Thanh toán chờ xử lý',
+          'PAYMENT_REFUNDED': 'Hoàn tiền',
+          
+          // System notifications
+          'SYSTEM_ANNOUNCEMENT': 'Thông báo hệ thống',
+          'SYSTEM_MAINTENANCE': 'Bảo trì hệ thống',
+          'SYSTEM_UPDATE': 'Cập nhật hệ thống',
+          'SYSTEM_ERROR': 'Lỗi hệ thống',
+          
+          // User-related notifications
+          'USER_REGISTERED': 'Người dùng đăng ký',
+          'USER_ACTIVATED': 'Người dùng đã kích hoạt',
+          'USER_DEACTIVATED': 'Người dùng bị vô hiệu hóa',
+          'USER_UPDATED': 'Thông tin người dùng đã cập nhật',
+          'USER_DELETED': 'Người dùng đã xóa',
+          
+          // Room-related notifications
+          'ROOM_AVAILABLE': 'Phòng có sẵn',
+          'ROOM_OCCUPIED': 'Phòng đã có người thuê',
+          'ROOM_MAINTENANCE': 'Phòng bảo trì',
+          'ROOM_CLEANED': 'Phòng đã dọn dẹp',
+          
+          // Asset notifications
+          'ASSET_ADDED': 'Tài sản mới',
+          'ASSET_UPDATED': 'Tài sản đã cập nhật',
+          'ASSET_DELETED': 'Tài sản đã xóa',
+          'ASSET_MAINTENANCE': 'Bảo trì tài sản',
+          
+          // General notifications
+          'GENERAL': 'Thông báo chung',
+          'CUSTOM': 'Tùy chỉnh',
+          'INFO': 'Thông tin',
+          'WARNING': 'Cảnh báo',
+          'ERROR': 'Lỗi',
+          'SUCCESS': 'Thành công',
+          'ALERT': 'Cảnh báo',
+          'NOTICE': 'Thông báo'
+        };
+
+        // Return Vietnamese translation if available, otherwise format the original
+        if (typeTranslations[type]) {
+          return typeTranslations[type];
+        }
+
+        // Fallback: format the original type if no translation is available
         const label = type
           .toLowerCase()
           .split("_")
           .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
           .join(" ");
-        // Có thể dịch thêm nếu muốn
         return label;
       },
     },
     {
       title: "Trạng thái",
       dataIndex: "status",
+      align: "center",
+      width: 120,
       render: (status) => {
         const color =
           status === "READ"
@@ -164,33 +257,50 @@ export default function NotificationTable({
     {
       title: "Người nhận",
       dataIndex: "recipient",
+      align: "center",
+      width: 150,
     },
     {
       title: "Ngày tạo",
       dataIndex: "createdAt",
+      align: "center",
+      width: 120,
     },
     ...(hasDeletePermission || hasViewPermission
       ? [
           {
             title: "Thao tác",
             key: "actions",
+            align: "center",
+            width: 200,
             render: (_, record) => (
-              <Space>
-                <Tooltip title="Xem chi tiết">
-                  <Button
-                    icon={<EyeOutlined />}
-                    onClick={() => onView(record)}
-                  />
-                </Tooltip>
+              <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
+                <Button
+                  type="primary"
+                  icon={<EyeOutlined />}
+                  size="small"
+                  onClick={() => onView(record)}
+                  title="Xem chi tiết thông báo"
+                >
+                  Xem
+                </Button>
                 {hasDeletePermission && (
                   <Access requiredPermissions={["Delete Notification"]}>
-                    <Tooltip title="Xóa">
+                    <Popconfirm
+                      title="Xóa thông báo"
+                      description="Bạn có chắc muốn xóa thông báo này?"
+                      onConfirm={() => onDelete(record)}
+                      okText="Xóa"
+                      cancelText="Không"
+                    >
                       <Button
-                        danger
                         icon={<DeleteOutlined />}
-                        onClick={() => onDelete(record)}
+                        type="primary"
+                        danger
+                        size="small"
+                        title="Xóa thông báo"
                       />
-                    </Tooltip>
+                    </Popconfirm>
                   </Access>
                 )}
               </Space>
@@ -223,6 +333,8 @@ export default function NotificationTable({
           pageSize,
           onChange: (page) => fetchData(page),
         }}
+        style={{ background: "#fff", borderRadius: 8, padding: 16 }}
+        scroll={{ x: 1000 }}
         bordered
         rowKey="id"
       />

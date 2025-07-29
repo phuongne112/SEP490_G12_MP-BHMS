@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table, Button, Space, Tooltip, message } from "antd";
+import { Table, Button, Space, Tooltip, message, Popconfirm } from "antd";
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { getAllPermissions } from "../../services/permissionApi";
 import { useSelector } from "react-redux";
@@ -80,23 +80,33 @@ export default function PermissionTable({
     {
       title: "STT",
       dataIndex: "id",
+      align: "center",
+      width: 60,
       render: (_, __, index) => (pagination.current - 1) * pageSize + index + 1,
     },
     {
       title: "Tên quyền",
       dataIndex: "name",
+      align: "center",
+      width: 200,
     },
     {
       title: "API",
       dataIndex: "apiPath",
+      align: "center",
+      width: 250,
     },
     {
       title: "Phương thức",
       dataIndex: "method",
+      align: "center",
+      width: 120,
     },
     {
       title: "Chức năng",
       dataIndex: "module",
+      align: "center",
+      width: 150,
     },
   ];
 
@@ -104,24 +114,38 @@ export default function PermissionTable({
   if (hasEdit || hasDelete) {
     columns.push({
       title: "Thao tác",
+      align: "center",
+      width: 200,
       render: (_, record) => (
-        <Space>
+        <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
           {hasEdit && (
-            <Tooltip title="Chỉnh sửa">
-              <Button
-                icon={<EditOutlined />}
-                onClick={() => onEditPermission(record)}
-              />
-            </Tooltip>
+            <Button
+              type="default"
+              icon={<EditOutlined />}
+              size="small"
+              style={{ color: "#faad14", borderColor: "#faad14" }}
+              onClick={() => onEditPermission(record)}
+              title="Chỉnh sửa thông tin quyền"
+            >
+              Sửa
+            </Button>
           )}
           {hasDelete && (
-            <Tooltip title="Xóa">
+            <Popconfirm
+              title="Xóa quyền"
+              description="Bạn có chắc muốn xóa quyền này?"
+              onConfirm={() => onDeletePermission(record)}
+              okText="Xóa"
+              cancelText="Không"
+            >
               <Button
-                danger
                 icon={<DeleteOutlined />}
-                onClick={() => onDeletePermission(record)}
+                type="primary"
+                danger
+                size="small"
+                title="Xóa quyền"
               />
-            </Tooltip>
+            </Popconfirm>
           )}
         </Space>
       ),
@@ -141,6 +165,9 @@ export default function PermissionTable({
         showSizeChanger: false,
         onChange: (page) => fetchData(page),
       }}
+      style={{ background: "#fff", borderRadius: 8, padding: 16 }}
+      scroll={{ x: 1000 }}
+      bordered
     />
   );
 }

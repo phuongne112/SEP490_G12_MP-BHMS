@@ -47,4 +47,7 @@ public interface BillService {
     // Tạo hóa đơn tự động hàng loạt cho tất cả phòng
     List<BillResponse> bulkGenerateBills();
 
+    // Cập nhật trạng thái thanh toán hóa đơn
+    BillResponse updatePaymentStatus(Long billId, Boolean status);
+
 }

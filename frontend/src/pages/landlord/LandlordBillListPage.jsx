@@ -102,8 +102,44 @@ export default function LandlordBillListPage() {
   const pageSizeOptions = isMobile ? [3, 5, 10] : [5, 10, 20, 50];
   const [filterOpen, setFilterOpen] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
-  const [emailLoading, setEmailLoading] = useState({}); // State để track loading cho từng bill
+  const [emailLoading, setEmailLoading] = useState({});
+  
+  // Initialize sentEmailsToday from localStorage
+  const [sentEmailsToday, setSentEmailsToday] = useState(() => {
+    const saved = localStorage.getItem('sentEmailsToday');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Check if the saved data is from today, if not, clear it
+      const today = new Date().toDateString();
+      if (parsed.date === today) {
+        return new Set(parsed.bills);
+      }
+    }
+    return new Set();
+  });
+  
   const navigate = useNavigate();
+
+  // Check if a bill was sent today
+  const isEmailSentToday = (billId) => {
+    const today = new Date().toDateString();
+    const key = `${billId}-${today}`;
+    return sentEmailsToday.has(key);
+  };
+
+  // Mark a bill as sent today and save to localStorage
+  const markEmailSentToday = (billId) => {
+    const today = new Date().toDateString();
+    const key = `${billId}-${today}`;
+    const newSet = new Set([...sentEmailsToday, key]);
+    setSentEmailsToday(newSet);
+    
+    // Save to localStorage
+    localStorage.setItem('sentEmailsToday', JSON.stringify({
+      date: today,
+      bills: Array.from(newSet)
+    }));
+  };
 
   const fetchBills = async (page = currentPage, size = pageSize) => {
     setLoading(true);
@@ -165,30 +201,21 @@ export default function LandlordBillListPage() {
   };
 
   const handleSendEmail = async (id) => {
-    // Kiểm tra hóa đơn đã được gửi email trong ngày hôm nay chưa
-    const today = new Date().toDateString();
-    const sentBillsToday = JSON.parse(localStorage.getItem('sentBillsToday') || '{}');
-    
-    if (sentBillsToday[id] === today) {
-      message.warning("Hóa đơn này đã được gửi email hôm nay. Vui lòng thử lại vào ngày mai!");
+    // Check if email was already sent today
+    if (isEmailSentToday(id)) {
+      message.warning("Hóa đơn này đã được gửi email hôm nay!");
       return;
     }
-    
-    // Set loading state cho bill này
+
     setEmailLoading(prev => ({ ...prev, [id]: true }));
-    
     try {
       await axiosClient.post(`/bills/send-email/${id}`);
-      
-      // Lưu ngày gửi email cho hóa đơn này
-      const updatedSentBillsToday = { ...sentBillsToday, [id]: today };
-      localStorage.setItem('sentBillsToday', JSON.stringify(updatedSentBillsToday));
-      
       message.success("Đã gửi hóa đơn qua email thành công!");
+      // Mark as sent today after successful sending
+      markEmailSentToday(id);
     } catch (err) {
       message.error("Gửi email thất bại!");
     } finally {
-      // Clear loading state
       setEmailLoading(prev => ({ ...prev, [id]: false }));
     }
   };
@@ -338,7 +365,7 @@ export default function LandlordBillListPage() {
       align: "center",
       width: isMobile ? 200 : 320,
       render: (_, record) => (
-        <Space direction={isMobile ? "vertical" : "horizontal"} size="small">
+        <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
           <Button 
             type="primary" 
             icon={<EyeOutlined />}
@@ -347,6 +374,37 @@ export default function LandlordBillListPage() {
           >
             Xem
           </Button>
+          {!isMobile && (
+            <Button 
+              type="default"
+              icon={<DownloadOutlined />}
+              onClick={() => handleExport(record.id)}
+              size="small"
+            >
+              Xuất PDF
+            </Button>
+          )}
+          <Popover
+            content={
+              record.status 
+                ? 'Chỉ gửi email cho hóa đơn chưa thanh toán' 
+                : isEmailSentToday(record.id)
+                ? 'Hóa đơn này đã được gửi email hôm nay'
+                : 'Gửi hóa đơn cho khách'
+            }
+            placement="top"
+          >
+            <Button 
+              type="default"
+              icon={<SendOutlined />}
+              onClick={() => handleSendEmail(record.id)}
+              size="small"
+              loading={emailLoading[record.id]}
+              disabled={record.status === true || isEmailSentToday(record.id)}
+            >
+              {isMobile ? "Email" : (isEmailSentToday(record.id) ? "Đã gửi hôm nay" : "Gửi Email")}
+            </Button>
+          </Popover>
           <Popconfirm
             title="Bạn có chắc chắn muốn xóa hóa đơn này?"
             okText="Có"
@@ -354,64 +412,12 @@ export default function LandlordBillListPage() {
             onConfirm={() => handleDelete(record.id)}
           >
             <Button 
-              danger 
               icon={<DeleteOutlined />}
-              size="small"
-            >
-              Xóa
-            </Button>
-          </Popconfirm>
-          {!isMobile && (
-            <Button 
               type="primary"
-              style={{ background: '#1677ff', borderColor: '#1677ff' }}
-              onClick={() => handleExport(record.id)}
+              danger
               size="small"
-            >
-              Xuất PDF
-            </Button>
-          )}
-          {/* Chỉ hiển thị nút Gửi Email nếu hóa đơn chưa thanh toán */}
-          {(() => {
-            const today = new Date().toDateString();
-            const sentBillsToday = JSON.parse(localStorage.getItem('sentBillsToday') || '{}');
-            const isSentToday = sentBillsToday[record.id] === today;
-            const isDisabled = record.status === true || emailLoading[record.id] || isSentToday;
-            
-            return (
-              <Popover
-                content={
-                  record.status 
-                    ? 'Chỉ gửi email cho hóa đơn chưa thanh toán' 
-                    : isSentToday 
-                      ? 'Hóa đơn này đã được gửi email hôm nay'
-                      : 'Gửi hóa đơn cho khách'
-                }
-                placement="top"
-              >
-                <Button 
-                  icon={emailLoading[record.id] ? null : <SendOutlined />} // Gửi Email
-                  onClick={() => handleSendEmail(record.id)}
-                  size="small"
-                  loading={emailLoading[record.id]}
-                  style={{ 
-                    background: isSentToday ? '#d9d9d9' : '#52c41a', 
-                    color: '#fff', 
-                    opacity: isDisabled ? 0.7 : 1, 
-                    cursor: isDisabled ? 'not-allowed' : 'pointer' 
-                  }}
-                  disabled={isDisabled}
-                >
-                  {emailLoading[record.id] 
-                    ? "Đang gửi..." 
-                    : isSentToday 
-                      ? "Đã gửi hôm nay" 
-                      : (isMobile ? "Email" : "Gửi Email")
-                  }
-                </Button>
-              </Popover>
-            );
-          })()}
+            />
+          </Popconfirm>
         </Space>
       ),
     },
@@ -541,6 +547,7 @@ export default function LandlordBillListPage() {
               pagination={false}
               scroll={{ x: isMobile ? 600 : 1200 }}
               size={isMobile ? "small" : "middle"}
+              bordered
             />
             
             <div

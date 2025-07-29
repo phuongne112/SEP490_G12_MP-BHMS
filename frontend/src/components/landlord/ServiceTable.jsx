@@ -8,22 +8,30 @@ export default function ServiceTable({ services, pagination, loading, onEdit, on
       title: "Tên dịch vụ",
       dataIndex: "name",
       key: "name",
+      align: "center",
+      width: 200,
     },
     {
       title: "Đơn vị",
       dataIndex: "unit",
       key: "unit",
+      align: "center",
+      width: 120,
     },
     {
       title: "Giá (VND/đơn vị)",
       dataIndex: "price",
       key: "price",
+      align: "center",
+      width: 150,
       render: (value) => value ? value.toLocaleString("vi-VN") : "0",
     },
     {
       title: "Loại",
       dataIndex: "type",
       key: "type",
+      align: "center",
+      width: 120,
       render: (type) => {
         const typeMap = {
           ELECTRICITY: "Điện",
@@ -36,13 +44,16 @@ export default function ServiceTable({ services, pagination, loading, onEdit, on
     {
       title: "Thao tác",
       key: "actions",
+      align: "center",
+      width: 400,
       render: (_, record) => (
-        <Space>
+        <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
           <Button
             type="default"
             icon={<EditOutlined />}
             onClick={() => onEdit && onEdit(record.id)}
             size="small"
+            style={{ color: "#faad14", borderColor: "#faad14" }}
             title="Chỉnh sửa thông tin dịch vụ"
           >
             Sửa
@@ -57,7 +68,7 @@ export default function ServiceTable({ services, pagination, loading, onEdit, on
             Giá
           </Button>
           <Button
-            type="default"
+            type="dashed"
             icon={<HistoryOutlined />}
             onClick={() => onViewPriceHistory && onViewPriceHistory(record.id)}
             size="small"
@@ -74,6 +85,7 @@ export default function ServiceTable({ services, pagination, loading, onEdit, on
           >
             <Button
               icon={<DeleteOutlined />}
+              type="primary"
               danger
               size="small"
             />
@@ -93,10 +105,12 @@ export default function ServiceTable({ services, pagination, loading, onEdit, on
         showQuickJumper: false,
         showTotal: (total, range) => `${range[0]}-${range[1]} trên tổng số ${total} mục`,
       }}
-      bordered
       rowKey="id"
       loading={loading}
       onChange={onTableChange}
+      style={{ background: "#fff", borderRadius: 8, padding: 16 }}
+      scroll={{ x: 1000 }}
+      bordered
     />
   );
 }

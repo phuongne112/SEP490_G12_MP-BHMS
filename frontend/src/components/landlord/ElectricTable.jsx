@@ -276,6 +276,7 @@ export default function ElectricTable({
         }}
         loading={loading}
         locale={{ emptyText: 'Chưa có dữ liệu' }}
+        bordered
       />
       
 
