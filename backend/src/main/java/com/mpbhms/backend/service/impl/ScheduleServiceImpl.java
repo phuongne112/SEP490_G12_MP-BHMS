@@ -40,6 +40,45 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     @Override
     public ScheduleDTO createSchedule(CreateScheduleRequest request) {
+        // Kiểm tra lịch hẹn trùng thời gian cho cùng một người dùng (email)
+        if (request.getAppointmentTime() != null) {
+            List<Schedule> overlappingUserAppointments = scheduleRepository.findOverlappingAppointmentsByEmail(
+                request.getEmail(), request.getAppointmentTime());
+            
+            if (!overlappingUserAppointments.isEmpty()) {
+                throw new RuntimeException("Bạn đã có lịch hẹn khác vào thời gian này. Vui lòng chọn thời gian khác.");
+            }
+            
+            // Kiểm tra giới hạn spam: tối đa 3 lịch hẹn mỗi ngày cho mỗi người
+            java.time.Instant appointmentTime = request.getAppointmentTime();
+            java.time.LocalDate appointmentDate = appointmentTime.atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+            java.time.Instant startOfDay = appointmentDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+            java.time.Instant endOfDay = appointmentDate.plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+            
+            long userAppointmentsInDay = scheduleRepository.countAppointmentsByEmailInTimeRange(
+                request.getEmail(), startOfDay, endOfDay);
+            
+            if (userAppointmentsInDay >= 3) {
+                throw new RuntimeException("Bạn đã đặt 3 lịch hẹn vào ngày " + appointmentDate + ". Vui lòng thử lại vào ngày khác.");
+            }
+            
+            // Kiểm tra số người đang xem phòng tại thời điểm này (tối đa 4 người cùng lúc)
+            long peopleViewingAtTime = scheduleRepository.countPeopleViewingRoomAtTime(
+                request.getRoomId(), request.getAppointmentTime());
+            
+            if (peopleViewingAtTime >= 4) {
+                throw new RuntimeException("Phòng này đã có đủ người xem vào thời gian này. Vui lòng chọn thời gian khác.");
+            }
+            
+            // Kiểm tra giới hạn số người xem phòng: tối đa 8 người cùng xem một phòng mỗi ngày
+            long roomAppointmentsInDay = scheduleRepository.countAppointmentsByRoomInTimeRange(
+                request.getRoomId(), startOfDay, endOfDay);
+            
+            if (roomAppointmentsInDay >= 8) {
+                throw new RuntimeException("Phòng này đã có quá nhiều người đặt xem vào ngày " + appointmentDate + ". Vui lòng chọn ngày khác.");
+            }
+        }
+        
         Schedule schedule = new Schedule();
         Room room = roomRepository.findById(request.getRoomId()).orElseThrow();
         schedule.setRoom(room);
@@ -88,6 +127,53 @@ public class ScheduleServiceImpl implements ScheduleService {
     @Override
     public ScheduleDTO updateSchedule(Long id, CreateScheduleRequest request) {
         Schedule schedule = scheduleRepository.findById(id).orElseThrow();
+        
+        // Kiểm tra lịch hẹn trùng thời gian khi cập nhật
+        if (request.getAppointmentTime() != null) {
+            // Kiểm tra trùng thời gian cho cùng một người dùng (email) (loại trừ lịch hẹn hiện tại)
+            List<Schedule> overlappingUserAppointments = scheduleRepository.findOverlappingAppointmentsByEmail(
+                request.getEmail(), request.getAppointmentTime());
+            
+            // Lọc ra lịch hẹn hiện tại để không tính vào trùng lặp
+            overlappingUserAppointments = overlappingUserAppointments.stream()
+                .filter(s -> !s.getId().equals(id))
+                .collect(Collectors.toList());
+            
+            if (!overlappingUserAppointments.isEmpty()) {
+                throw new RuntimeException("Bạn đã có lịch hẹn khác vào thời gian này. Vui lòng chọn thời gian khác.");
+            }
+            
+            // Kiểm tra số người đang xem phòng tại thời điểm này (tối đa 4 người cùng lúc)
+            List<Schedule> existingRoomAppointments = scheduleRepository.findOverlappingAppointments(
+                request.getRoomId(), request.getAppointmentTime());
+            long existingCount = existingRoomAppointments.stream()
+                .filter(s -> !s.getId().equals(id))
+                .count();
+            
+            if (existingCount >= 4) {
+                throw new RuntimeException("Phòng này đã có đủ người xem vào thời gian này. Vui lòng chọn thời gian khác.");
+            }
+            
+            // Kiểm tra giới hạn số người xem phòng: tối đa 8 người cùng xem một phòng mỗi ngày
+            java.time.Instant appointmentTime = request.getAppointmentTime();
+            java.time.LocalDate appointmentDate = appointmentTime.atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+            java.time.Instant startOfDay = appointmentDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+            java.time.Instant endOfDay = appointmentDate.plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+            
+            long roomAppointmentsInDay = scheduleRepository.countAppointmentsByRoomInTimeRange(
+                request.getRoomId(), startOfDay, endOfDay);
+            
+            // Lọc ra lịch hẹn hiện tại để không tính vào giới hạn
+            List<Schedule> allRoomAppointments = scheduleRepository.findOverlappingAppointments(
+                request.getRoomId(), request.getAppointmentTime());
+            long allCount = allRoomAppointments.stream()
+                .filter(s -> !s.getId().equals(id))
+                .count();
+            
+            if (allCount >= 8) {
+                throw new RuntimeException("Phòng này đã có quá nhiều người đặt xem vào ngày " + appointmentDate + ". Vui lòng chọn ngày khác.");
+            }
+        }
         
         // Cập nhật thông tin lịch hẹn
         if (request.getRoomId() != null) {
