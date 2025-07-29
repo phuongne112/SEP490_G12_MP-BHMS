@@ -17,4 +17,6 @@ public interface RenterService {
     List<UserDTO> getRentersForAssign(String keyword);
 
     List<UserDTO> getAllRentersWithInfo();
+
+    UserDTO getRenterById(Long id);
 }
