@@ -167,7 +167,8 @@ export default function LandlordBookAppointmentPage(props) {
       if (onSuccess) onSuccess();
       else navigate(-1);
     } catch (err) {
-      message.error("Đặt lịch hẹn thất bại");
+      const errorMessage = err.response?.data?.message || err.message || "Đặt lịch hẹn thất bại";
+      message.error(errorMessage);
       console.error("[DEBUG] booking error:", err);
     } finally {
       setSubmitting(false);
@@ -373,6 +374,21 @@ export default function LandlordBookAppointmentPage(props) {
                       placeholder="Chọn giờ"
                     />
                   </Form.Item>
+
+                  <div style={{ 
+                    background: "#f6ffed", 
+                    border: "1px solid #b7eb8f", 
+                    borderRadius: 6, 
+                    padding: 12, 
+                    marginBottom: 16,
+                    fontSize: 13
+                  }}>
+                    <div style={{ fontWeight: "bold", marginBottom: 4 }}>📋 Lưu ý khi đặt lịch:</div>
+                    <div>• Có thể cùng xem phòng với người khác (tối đa 4 người cùng lúc)</div>
+                    <div>• Không thể đặt lịch trùng thời gian với lịch hẹn khác của bạn</div>
+                    <div>• Tối đa 3 lịch hẹn mỗi ngày</div>
+                    <div>• Các lịch hẹn phải cách nhau ít nhất 30 phút</div>
+                  </div>
 
                   <Form.Item label="Ghi chú" name="note">
                     <Input.TextArea
@@ -663,6 +679,21 @@ export default function LandlordBookAppointmentPage(props) {
                           placeholder="Chọn giờ"
                         />
                       </Form.Item>
+
+                      <div style={{ 
+                        background: "#f6ffed", 
+                        border: "1px solid #b7eb8f", 
+                        borderRadius: 6, 
+                        padding: 12, 
+                        marginBottom: 16,
+                        fontSize: 13
+                      }}>
+                        <div style={{ fontWeight: "bold", marginBottom: 4 }}>📋 Lưu ý khi đặt lịch:</div>
+                        <div>• Có thể cùng xem phòng với người khác (tối đa 4 người cùng lúc)</div>
+                        <div>• Không thể đặt lịch trùng thời gian với lịch hẹn khác của bạn</div>
+                        <div>• Tối đa 3 lịch hẹn mỗi ngày</div>
+                        <div>• Các lịch hẹn phải cách nhau ít nhất 30 phút</div>
+                      </div>
 
                       <Form.Item label="Ghi chú" name="note">
                         <Input.TextArea
