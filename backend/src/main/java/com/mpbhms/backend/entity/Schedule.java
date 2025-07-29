@@ -32,5 +32,6 @@ public class Schedule {
     private String note;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     private ScheduleStatus status;
 } 

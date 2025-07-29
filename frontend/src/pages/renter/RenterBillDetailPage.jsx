@@ -32,6 +32,9 @@ import {
   FileTextOutlined,
   CreditCardOutlined,
   PrinterOutlined,
+  ExclamationCircleOutlined,
+  ClockCircleOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import dayjs from "dayjs";
@@ -78,6 +81,114 @@ export default function RenterBillDetailPage() {
   const [currentStep, setCurrentStep] = useState(0);
 
   const action = searchParams.get("action");
+
+  // Kiểm tra hóa đơn quá hạn
+  const checkOverdue = (bill) => {
+    if (!bill || bill.status) return false; // Đã thanh toán thì không quá hạn
+    
+    const today = dayjs();
+    
+    // Parse dueDate nếu có
+    let dueDate = null;
+    if (bill.dueDate) {
+      dueDate = dayjs(bill.dueDate, "YYYY-MM-DD HH:mm:ss A");
+    }
+    
+    // Parse toDate nếu có
+    let toDate = null;
+    if (bill.toDate) {
+      toDate = dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A");
+    }
+    
+    // Logic đơn giản: toDate + 7 ngày là hạn thanh toán
+    const actualDueDate = dueDate || (toDate ? toDate.add(7, 'day') : null);
+    
+    return actualDueDate && today.isAfter(actualDueDate, 'day');
+  };
+
+  // Tính số ngày quá hạn
+  const getOverdueDays = (bill) => {
+    if (!bill || bill.status) return 0;
+    
+    const today = dayjs();
+    
+    // Parse dueDate nếu có
+    let dueDate = null;
+    if (bill.dueDate) {
+      dueDate = dayjs(bill.dueDate, "YYYY-MM-DD HH:mm:ss A");
+    }
+    
+    // Parse toDate nếu có
+    let toDate = null;
+    if (bill.toDate) {
+      toDate = dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A");
+    }
+    
+    const actualDueDate = dueDate || (toDate ? toDate.add(7, 'day') : null);
+    
+    if (actualDueDate && today.isAfter(actualDueDate, 'day')) {
+      return today.diff(actualDueDate, 'day');
+    }
+    return 0;
+  };
+
+  // Lấy màu sắc cho trạng thái quá hạn
+  const getOverdueStatusColor = (isOverdue, overdueDays) => {
+    if (!isOverdue) return "green";
+    if (overdueDays <= 7) return "orange";
+    if (overdueDays <= 30) return "red";
+    return "volcano";
+  };
+
+  // Lấy văn bản cho trạng thái quá hạn
+  const getOverdueStatusText = (isOverdue, overdueDays) => {
+    if (!isOverdue) return "Chưa quá hạn";
+    if (overdueDays <= 7) return `Quá hạn ${overdueDays} ngày`;
+    if (overdueDays <= 30) return `Quá hạn ${overdueDays} ngày`;
+    return `Quá hạn ${overdueDays} ngày`;
+  };
+
+  // Lấy icon cho trạng thái quá hạn
+  const getOverdueStatusIcon = (isOverdue, overdueDays) => {
+    if (!isOverdue) return <CheckCircleOutlined />;
+    if (overdueDays <= 7) return <ClockCircleOutlined />;
+    if (overdueDays <= 30) return <ExclamationCircleOutlined />;
+    return <WarningOutlined />;
+  };
+
+  // Lấy thông tin hạn thanh toán để hiển thị
+  const getDueDateInfo = (bill) => {
+    if (!bill) return null;
+    
+    // Parse dueDate nếu có
+    let dueDate = null;
+    if (bill.dueDate) {
+      dueDate = dayjs(bill.dueDate, "YYYY-MM-DD HH:mm:ss A");
+    }
+    
+    // Parse toDate nếu có
+    let toDate = null;
+    if (bill.toDate) {
+      toDate = dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A");
+    }
+    
+    if (dueDate) {
+      return {
+        date: dueDate,
+        text: `Hạn thanh toán: ${dueDate.format('DD/MM/YYYY')}`,
+        source: 'dueDate'
+      };
+    } else if (toDate) {
+      const actualDueDate = toDate.add(7, 'day');
+      return {
+        date: actualDueDate,
+        text: `Hạn thanh toán: 7 ngày sau kỳ tính tiền (${actualDueDate.format('DD/MM/YYYY')})`,
+        source: 'calculated'
+      };
+    }
+    
+    return null;
+  };
 
   useEffect(() => {
     fetchBill();
@@ -350,6 +461,10 @@ export default function RenterBillDetailPage() {
     );
   }
 
+  const isOverdue = checkOverdue(bill);
+  const overdueDays = getOverdueDays(bill);
+  const dueDateInfo = getDueDateInfo(bill);
+
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
       <RenterSidebar />
@@ -383,25 +498,72 @@ export default function RenterBillDetailPage() {
                 <Tag color={getBillTypeColor(bill.billType)}>
                   {getBillTypeText(bill.billType)}
                 </Tag>
+                {isOverdue && (
+                  <Tag
+                    color={getOverdueStatusColor(isOverdue, overdueDays)}
+                    icon={getOverdueStatusIcon(isOverdue, overdueDays)}
+                  >
+                    {getOverdueStatusText(isOverdue, overdueDays)}
+                  </Tag>
+                )}
               </Space>
             </div>
 
             {/* Thông báo thanh toán */}
             {!bill.status && (
               <Alert
-                message="Hóa đơn chưa thanh toán"
-                description="Vui lòng thanh toán hóa đơn này trước hạn để tránh phí trễ. Hiện chỉ hỗ trợ thanh toán VNPay."
-                type="warning"
+                message={
+                  isOverdue 
+                    ? `Hóa đơn quá hạn ${overdueDays} ngày - Cần thanh toán gấp!`
+                    : "Hóa đơn chưa thanh toán"
+                }
+                description={
+                  <div>
+                    {isOverdue ? (
+                      <>
+                        <p>Hóa đơn này đã quá hạn {overdueDays} ngày. Vui lòng thanh toán ngay để tránh phí trễ hạn và các biện pháp xử lý khác.</p>
+                        {dueDateInfo && (
+                          <p style={{ marginTop: 8, fontSize: '13px', color: '#666' }}>
+                            <strong>Hạn thanh toán:</strong> {dueDateInfo.date.format('DD/MM/YYYY')}
+                          </p>
+                        )}
+                        <p style={{ marginTop: 8 }}>Hiện chỉ hỗ trợ thanh toán VNPay.</p>
+                      </>
+                    ) : (
+                      <>
+                        <p>Vui lòng thanh toán hóa đơn này trước hạn để tránh phí trễ.</p>
+                        {dueDateInfo && (
+                          <p style={{ marginTop: 8, fontSize: '13px', color: '#666' }}>
+                            <strong>Hạn thanh toán:</strong> {dueDateInfo.date.format('DD/MM/YYYY')}
+                          </p>
+                        )}
+                        <p style={{ marginTop: 8 }}>Hiện chỉ hỗ trợ thanh toán VNPay.</p>
+                      </>
+                    )}
+                  </div>
+                }
+                type={isOverdue ? "error" : "warning"}
                 showIcon
-                style={{ marginBottom: 24 }}
+                icon={isOverdue ? <ExclamationCircleOutlined /> : undefined}
+                style={{ 
+                  marginBottom: 24,
+                  border: isOverdue ? '2px solid #ff4d4f' : undefined,
+                  backgroundColor: isOverdue ? '#fff2f0' : undefined
+                }}
                 action={
                   <Button
                     type="primary"
-                    danger
+                    danger={isOverdue}
                     icon={<DollarOutlined />}
                     onClick={openPaymentModal}
+                    size={isOverdue ? "large" : "middle"}
+                    style={isOverdue ? { 
+                      fontWeight: 'bold',
+                      background: '#ff4d4f',
+                      borderColor: '#ff4d4f'
+                    } : {}}
                   >
-                    Thanh toán VNPay
+                    {isOverdue ? "Thanh toán gấp" : "Thanh toán VNPay"}
                   </Button>
                 }
               />
@@ -453,6 +615,26 @@ export default function RenterBillDetailPage() {
                         </span>
                       )}
                     </Descriptions.Item>
+                    {dueDateInfo && (
+                      <Descriptions.Item label="Hạn thanh toán" span={2}>
+                        <Text 
+                          strong 
+                          style={{ 
+                            color: isOverdue ? '#ff4d4f' : '#52c41a',
+                            fontSize: '14px'
+                          }}
+                        >
+                          {dueDateInfo.text}
+                        </Text>
+                        {dueDateInfo.source === 'calculated' && (
+                          <div style={{ marginTop: 4 }}>
+                            <Text type="secondary" style={{ fontSize: '12px' }}>
+                              (Tính toán dựa trên chu kỳ thanh toán: {bill.paymentCycle})
+                            </Text>
+                          </div>
+                        )}
+                      </Descriptions.Item>
+                    )}
                     <Descriptions.Item label="Tổng tiền" span={2}>
                       <Text
                         strong
@@ -470,6 +652,24 @@ export default function RenterBillDetailPage() {
                         {getStatusText(bill.status)}
                       </Tag>
                     </Descriptions.Item>
+                    {!bill.status && (
+                      <Descriptions.Item label="Tình trạng quá hạn" span={2}>
+                        <Tag
+                          color={getOverdueStatusColor(isOverdue, overdueDays)}
+                          icon={getOverdueStatusIcon(isOverdue, overdueDays)}
+                          style={{ fontSize: "14px", padding: "4px 8px", fontWeight: "bold" }}
+                        >
+                          {getOverdueStatusText(isOverdue, overdueDays)}
+                        </Tag>
+                        {isOverdue && (
+                          <div style={{ marginTop: 8 }}>
+                            <Text type="danger" style={{ fontSize: "12px" }}>
+                              ⚠️ Hóa đơn này đã quá hạn {overdueDays} ngày. Vui lòng thanh toán ngay để tránh phí trễ hạn.
+                            </Text>
+                          </div>
+                        )}
+                      </Descriptions.Item>
+                    )}
                   </Descriptions>
                 </Card>
 
@@ -512,16 +712,41 @@ export default function RenterBillDetailPage() {
                 <Card title="Thao tác" style={{ position: "sticky", top: 20 }}>
                   <Space direction="vertical" style={{ width: "100%" }}>
                     {!bill.status && (
-                      <Button
-                        type="primary"
-                        danger
-                        size="large"
-                        icon={<DollarOutlined />}
-                        onClick={openPaymentModal}
-                        block
-                      >
-                        Thanh toán VNPay
-                      </Button>
+                      <>
+                        {isOverdue && (
+                          <Alert
+                            message="Hóa đơn quá hạn!"
+                            description={
+                              <div>
+                                <p>Hóa đơn này đã quá hạn {overdueDays} ngày. Vui lòng thanh toán ngay để tránh phí trễ hạn.</p>
+                                {dueDateInfo && (
+                                  <p style={{ marginTop: 4, fontSize: '12px' }}>
+                                    <strong>Hạn thanh toán:</strong> {dueDateInfo.date.format('DD/MM/YYYY')}
+                                  </p>
+                                )}
+                              </div>
+                            }
+                            type="error"
+                            showIcon
+                            style={{ marginBottom: 16 }}
+                          />
+                        )}
+                        <Button
+                          type="primary"
+                          danger={isOverdue}
+                          size="large"
+                          icon={<DollarOutlined />}
+                          onClick={openPaymentModal}
+                          block
+                          style={isOverdue ? { 
+                            fontWeight: 'bold',
+                            background: '#ff4d4f',
+                            borderColor: '#ff4d4f'
+                          } : {}}
+                        >
+                          {isOverdue ? "Thanh toán gấp" : "Thanh toán VNPay"}
+                        </Button>
+                      </>
                     )}
 
                     <Button
@@ -552,6 +777,11 @@ export default function RenterBillDetailPage() {
                         • Chỉ hỗ trợ thanh toán VNPay.
                         <br />• Có thể thanh toán trực tiếp tại văn phòng (nếu
                         cần).
+                        {isOverdue && (
+                          <>
+                            <br />• <Text type="danger">Hóa đơn quá hạn có thể phát sinh phí trễ hạn.</Text>
+                          </>
+                        )}
                       </Text>
                     </Paragraph>
                   </div>
@@ -581,6 +811,15 @@ export default function RenterBillDetailPage() {
 
         {currentStep === 0 && (
           <div>
+            {isOverdue && (
+              <Alert
+                message="Cảnh báo: Hóa đơn quá hạn!"
+                description={`Hóa đơn này đã quá hạn ${overdueDays} ngày. Vui lòng thanh toán ngay để tránh phí trễ hạn và các biện pháp xử lý khác.`}
+                type="error"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+            )}
             <Alert
               message="Thông tin thanh toán"
               description={
@@ -595,6 +834,11 @@ export default function RenterBillDetailPage() {
                   <p>
                     <strong>Phòng:</strong> {bill.roomNumber}
                   </p>
+                  {isOverdue && (
+                    <p style={{ color: '#ff4d4f', fontWeight: 'bold' }}>
+                      <strong>Tình trạng:</strong> Quá hạn {overdueDays} ngày
+                    </p>
+                  )}
                 </div>
               }
               type="info"
@@ -604,11 +848,17 @@ export default function RenterBillDetailPage() {
             <Space>
               <Button
                 type="primary"
+                danger={isOverdue}
                 loading={paymentLoading}
                 onClick={handlePayment}
                 icon={<CreditCardOutlined />}
+                style={isOverdue ? { 
+                  fontWeight: 'bold',
+                  background: '#ff4d4f',
+                  borderColor: '#ff4d4f'
+                } : {}}
               >
-                Thanh toán qua VNPay
+                {isOverdue ? "Thanh toán gấp qua VNPay" : "Thanh toán qua VNPay"}
               </Button>
               <Button
                 onClick={() => {

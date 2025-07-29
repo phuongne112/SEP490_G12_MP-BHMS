@@ -19,9 +19,11 @@ public class Notification extends BaseEntity {
     private String message;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     private NotificationType type;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     private NotificationStatus status = NotificationStatus.SENT;
 
     private Long recipientId;

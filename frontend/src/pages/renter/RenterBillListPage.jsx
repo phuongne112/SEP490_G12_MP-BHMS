@@ -12,6 +12,7 @@ import {
   Typography,
   Space,
   Tooltip,
+  Alert,
 } from "antd";
 import { useNavigate } from "react-router-dom";
 import { getMyBills } from "../../services/billApi";
@@ -23,6 +24,8 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   FileDoneOutlined,
+  ExclamationCircleOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import dayjs from "dayjs";
@@ -53,15 +56,68 @@ export default function RenterBillListPage() {
     total: 0,
     paid: 0,
     unpaid: 0,
+    overdue: 0,
     totalAmount: 0,
+    overdueAmount: 0,
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [total, setTotal] = useState(0);
+  const [overdueBills, setOverdueBills] = useState([]);
 
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const user = useSelector((state) => state.account.user);
+
+  // Kiểm tra hóa đơn quá hạn
+  const checkOverdue = (bill) => {
+    if (bill.status) return false; // Đã thanh toán thì không quá hạn
+    
+    const today = dayjs();
+    
+    // Parse dueDate nếu có
+    let dueDate = null;
+    if (bill.dueDate) {
+      dueDate = dayjs(bill.dueDate, "YYYY-MM-DD HH:mm:ss A");
+    }
+    
+    // Parse toDate nếu có
+    let toDate = null;
+    if (bill.toDate) {
+      toDate = dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A");
+    }
+    
+    // Logic đơn giản: toDate + 7 ngày là hạn thanh toán
+    const actualDueDate = dueDate || (toDate ? toDate.add(7, 'day') : null);
+    
+    return actualDueDate && today.isAfter(actualDueDate, 'day');
+  };
+
+  // Tính số ngày quá hạn
+  const getOverdueDays = (bill) => {
+    if (bill.status) return 0;
+    
+    const today = dayjs();
+    
+    // Parse dueDate nếu có
+    let dueDate = null;
+    if (bill.dueDate) {
+      dueDate = dayjs(bill.dueDate, "YYYY-MM-DD HH:mm:ss A");
+    }
+    
+    // Parse toDate nếu có
+    let toDate = null;
+    if (bill.toDate) {
+      toDate = dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A");
+    }
+    
+    const actualDueDate = dueDate || (toDate ? toDate.add(7, 'day') : null);
+    
+    if (actualDueDate && today.isAfter(actualDueDate, 'day')) {
+      return today.diff(actualDueDate, 'day');
+    }
+    return 0;
+  };
 
   useEffect(() => {
     fetchBills(currentPage, pageSize);
@@ -73,16 +129,43 @@ export default function RenterBillListPage() {
     try {
       const res = await getMyBills({ page: page - 1, size });
       let billsData = res.content || [];
-      setBills(billsData);
+      
+      // Xử lý hóa đơn quá hạn
+      const processedBills = billsData.map(bill => ({
+        ...bill,
+        isOverdue: checkOverdue(bill),
+        overdueDays: getOverdueDays(bill)
+      }));
+      
+      setBills(processedBills);
       setTotal(res.totalElements || billsData.length);
-      const totalStats = billsData.length;
-      const paid = billsData.filter((bill) => bill.status).length;
+      
+      // Tính toán thống kê
+      const totalStats = processedBills.length;
+      const paid = processedBills.filter((bill) => bill.status).length;
       const unpaid = totalStats - paid;
-      const totalAmount = billsData.reduce(
+      const overdue = processedBills.filter((bill) => bill.isOverdue).length;
+      const totalAmount = processedBills.reduce(
         (sum, bill) => sum + (bill.totalAmount || 0),
         0
       );
-      setStats({ total: totalStats, paid, unpaid, totalAmount });
+      const overdueAmount = processedBills
+        .filter((bill) => bill.isOverdue)
+        .reduce((sum, bill) => sum + (bill.totalAmount || 0), 0);
+      
+      setStats({ 
+        total: totalStats, 
+        paid, 
+        unpaid, 
+        overdue,
+        totalAmount,
+        overdueAmount
+      });
+      
+      // Cập nhật danh sách hóa đơn quá hạn
+      const overdueBillsList = processedBills.filter(bill => bill.isOverdue);
+      setOverdueBills(overdueBillsList);
+      
     } catch (err) {
       message.error("Không thể tải danh sách hóa đơn");
     }
@@ -96,6 +179,20 @@ export default function RenterBillListPage() {
 
   const getStatusText = (status) =>
     status ? "Đã thanh toán" : "Chưa thanh toán";
+
+  const getOverdueStatusColor = (isOverdue, overdueDays) => {
+    if (!isOverdue) return "green";
+    if (overdueDays <= 7) return "orange";
+    if (overdueDays <= 30) return "red";
+    return "volcano";
+  };
+
+  const getOverdueStatusText = (isOverdue, overdueDays) => {
+    if (!isOverdue) return "Chưa quá hạn";
+    if (overdueDays <= 7) return `Quá hạn ${overdueDays} ngày`;
+    if (overdueDays <= 30) return `Quá hạn ${overdueDays} ngày`;
+    return `Quá hạn ${overdueDays} ngày`;
+  };
 
   const getBillTypeColor = (type) => {
     switch (type) {
@@ -185,6 +282,9 @@ export default function RenterBillListPage() {
         if (billType === 'OTHER') {
           return <Tag>Khác</Tag>;
         }
+        if (billType === 'LATE_PENALTY') {
+          return <Tag color="red">Phạt trễ hạn</Tag>;
+        }
         return <Tag>{billType}</Tag>;
       }
     },
@@ -225,7 +325,7 @@ export default function RenterBillListPage() {
         <Tag
           color={getStatusColor(status)}
           icon={getStatusIcon(status)}
-          style={{ fontWeight: "bold" }}
+          style={{ fontWeight: "normal" }}
         >
           {getStatusText(status)}
         </Tag>
@@ -233,12 +333,27 @@ export default function RenterBillListPage() {
       width: 120,
     },
     {
+      title: "Trạng thái quá hạn",
+      dataIndex: "isOverdue",
+      key: "isOverdue",
+      align: "center",
+      render: (isOverdue, record) => (
+        <Tag
+          color={getOverdueStatusColor(isOverdue, record.overdueDays)}
+          style={{ fontWeight: "normal" }}
+        >
+          {getOverdueStatusText(isOverdue, record.overdueDays)}
+        </Tag>
+      ),
+      width: 150,
+    },
+    {
       title: "Thao tác",
       key: "actions",
       align: "center",
       render: (_, record) => (
         <Space>
-          <Tooltip title="Xem chi tiết">
+          <Tooltip title="Xem chi tiết hóa đơn">
             <Button
               type="primary"
               icon={<EyeOutlined />}
@@ -249,23 +364,34 @@ export default function RenterBillListPage() {
             </Button>
           </Tooltip>
           {!record.status && (
-            <Tooltip title="Thanh toán ngay">
+            <Tooltip 
+              title={
+                record.isOverdue 
+                  ? `Thanh toán ngay - Hóa đơn quá hạn ${record.overdueDays} ngày`
+                  : "Thanh toán hóa đơn"
+              }
+            >
               <Button
                 type="primary"
-                danger
+                danger={record.isOverdue}
                 icon={<DollarOutlined />}
                 onClick={() =>
                   navigate(`/renter/bills/${record.id}?action=pay`)
                 }
                 size="small"
+                style={record.isOverdue ? { 
+                  background: '#ff4d4f', 
+                  borderColor: '#ff4d4f',
+                  fontWeight: 'normal'
+                } : {}}
               >
-                Thanh toán
+                {record.isOverdue ? "Thanh toán gấp" : "Thanh toán"}
               </Button>
             </Tooltip>
           )}
         </Space>
       ),
-      width: 150,
+      width: 180,
     },
   ];
 
@@ -294,7 +420,7 @@ export default function RenterBillListPage() {
               </div>
 
               <Row gutter={16} style={{ marginBottom: 24 }}>
-                <Col span={6}>
+                <Col span={isMobile ? 12 : 6}>
                   <Card>
                     <Statistic
                       title="Tổng số hóa đơn"
@@ -304,7 +430,7 @@ export default function RenterBillListPage() {
                     />
                   </Card>
                 </Col>
-                <Col span={6}>
+                <Col span={isMobile ? 12 : 6}>
                   <Card>
                     <Statistic
                       title="Đã thanh toán"
@@ -314,7 +440,7 @@ export default function RenterBillListPage() {
                     />
                   </Card>
                 </Col>
-                <Col span={6}>
+                <Col span={isMobile ? 12 : 6}>
                   <Card>
                     <Statistic
                       title="Chưa thanh toán"
@@ -324,21 +450,114 @@ export default function RenterBillListPage() {
                     />
                   </Card>
                 </Col>
-                <Col span={6}>
+                <Col span={isMobile ? 12 : 6}>
                   <Card>
                     <Statistic
-                      title="Tổng tiền"
-                      value={stats.totalAmount}
-                      prefix={<DollarOutlined />}
-                      suffix="₫"
-                      valueStyle={{ color: "#52c41a" }}
-                      formatter={(value) => value.toLocaleString()}
+                      title="Quá hạn"
+                      value={stats.overdue}
+                      prefix={<ExclamationCircleOutlined />}
+                      valueStyle={{ color: "#ff4d4f" }}
                     />
                   </Card>
                 </Col>
+                {!isMobile && (
+                  <>
+                    <Col span={6}>
+                      <Card>
+                        <Statistic
+                          title="Tổng tiền"
+                          value={stats.totalAmount}
+                          prefix={<DollarOutlined />}
+                          suffix="₫"
+                          valueStyle={{ color: "#52c41a" }}
+                          formatter={(value) => value.toLocaleString()}
+                        />
+                      </Card>
+                    </Col>
+                    <Col span={6}>
+                      <Card>
+                        <Statistic
+                          title="Tiền quá hạn"
+                          value={stats.overdueAmount}
+                          prefix={<WarningOutlined />}
+                          suffix="₫"
+                          valueStyle={{ color: "#ff4d4f" }}
+                          formatter={(value) => value.toLocaleString()}
+                        />
+                      </Card>
+                    </Col>
+                  </>
+                )}
               </Row>
 
+              {/* Cảnh báo hóa đơn quá hạn */}
+              {overdueBills.length > 0 && (
+                <Alert
+                  message={`Bạn có ${overdueBills.length} hóa đơn quá hạn cần thanh toán gấp!`}
+                  description={
+                    <div>
+                      <p style={{ marginBottom: 8 }}>
+                        <strong>Danh sách hóa đơn quá hạn:</strong>
+                      </p>
+                      <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                        {overdueBills.slice(0, 3).map(bill => (
+                          <li key={bill.id}>
+                            Hóa đơn #{bill.id} - {bill.totalAmount?.toLocaleString()} ₫ 
+                            (Quá hạn {bill.overdueDays} ngày)
+                          </li>
+                        ))}
+                        {overdueBills.length > 3 && (
+                          <li>... và {overdueBills.length - 3} hóa đơn khác</li>
+                        )}
+                      </ul>
+                      <p style={{ marginTop: 8, marginBottom: 0 }}>
+                        <strong>Tổng tiền quá hạn: {stats.overdueAmount.toLocaleString()} ₫</strong>
+                      </p>
+                    </div>
+                  }
+                  type="error"
+                  showIcon
+                  style={{ marginBottom: 16 }}
+                  action={
+                    <Button 
+                      type="primary" 
+                      danger 
+                      size="small"
+                      onClick={() => {
+                        const firstOverdueBill = overdueBills[0];
+                        if (firstOverdueBill) {
+                          navigate(`/renter/bills/${firstOverdueBill.id}?action=pay`);
+                        }
+                      }}
+                    >
+                      Thanh toán ngay
+                    </Button>
+                  }
+                />
+              )}
+
               <Card title="Danh sách hóa đơn" style={{ marginTop: 16 }}>
+                <style>
+                  {`
+                    .ant-pagination-total-text {
+                      font-weight: normal !important;
+                      font-size: 14px !important;
+                    }
+                    .ant-pagination-item {
+                      font-weight: normal !important;
+                    }
+                    .ant-pagination-item-active {
+                      font-weight: normal !important;
+                    }
+                    .ant-pagination-prev,
+                    .ant-pagination-next {
+                      font-weight: normal !important;
+                    }
+                    .ant-pagination .ant-pagination-total-text {
+                      font-weight: normal !important;
+                    }
+                  `}
+                </style>
                 {loading ? (
                   <div style={{ textAlign: "center", padding: "40px" }}>
                     <Spin size="large" />
@@ -353,20 +572,48 @@ export default function RenterBillListPage() {
                       current: currentPage,
                       pageSize: pageSize,
                       total: total,
-                      showSizeChanger: true,
-                      showQuickJumper: true,
+                      showSizeChanger: false,
+                      showQuickJumper: false,
                       onChange: (page, size) => {
                         setCurrentPage(page);
                         setPageSize(size);
                       },
-                      showTotal: (total, range) =>
-                        `${range[0]}-${range[1]} của ${total} hóa đơn`,
+                      showTotal: (total, range) => (
+                        <span style={{ fontWeight: 'normal', fontSize: '14px' }}>
+                          {range[0]}-{range[1]} trên tổng số {total} hóa đơn
+                        </span>
+                      ),
                       position: ["bottomCenter"],
-                      pageSizeOptions: [5, 10, 20, 50, 100],
+                      itemRender: (page, type, originalElement) => {
+                        if (type === 'page') {
+                          return <span style={{ fontWeight: 'normal' }}>{page}</span>;
+                        }
+                        return originalElement;
+                      },
+                      style: { 
+                        fontWeight: 'normal',
+                        fontSize: '14px'
+                      }
                     }}
                     scroll={{ x: 1000 }}
                     size="middle"
                     bordered
+                    rowClassName={(record) => {
+                      if (record.isOverdue) {
+                        if (record.overdueDays <= 7) return 'overdue-warning';
+                        if (record.overdueDays <= 30) return 'overdue-danger';
+                        return 'overdue-critical';
+                      }
+                      return '';
+                    }}
+                    onRow={(record) => ({
+                      style: record.isOverdue ? {
+                        backgroundColor: record.overdueDays <= 7 ? '#fff7e6' : 
+                                       record.overdueDays <= 30 ? '#fff2f0' : '#fff1f0',
+                        borderLeft: record.overdueDays <= 7 ? '4px solid #faad14' : 
+                                   record.overdueDays <= 30 ? '4px solid #ff4d4f' : '4px solid #cf1322'
+                      } : {}
+                    })}
                   />
                 )}
               </Card>

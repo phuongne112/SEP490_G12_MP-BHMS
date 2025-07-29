@@ -10,5 +10,6 @@ public enum NotificationType {
     CONTRACT_EXPIRED,
     CONTRACT_RENEWED,
     SCHEDULE,
-    CUSTOM
+    CUSTOM,
+    BILL_OVERDUE
 }
