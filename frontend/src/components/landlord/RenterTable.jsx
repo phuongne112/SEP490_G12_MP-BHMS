@@ -3,7 +3,10 @@ import { Table, Spin, Popconfirm, message, Tag } from "antd";
 import { getAllRenters, updateRenterStatus, getRenterById } from "../../services/renterApi";
 import dayjs from "dayjs";
 import RenterDetailModal from "./RenterDetailModal";
+import "dayjs/locale/vi";
 
+// Đặt locale cho dayjs
+dayjs.locale('vi');
 export default function RenterTable({ search = "", filter = {} }) {
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 5 });
@@ -50,7 +53,7 @@ export default function RenterTable({ search = "", filter = {} }) {
         name: item.fullName || item.username,
         room: item.renterRoomInfo?.roomName || "N/A",
         checkInDate: item.renterRoomInfo?.checkInDate
-          ? new Date(item.renterRoomInfo.checkInDate).toLocaleDateString()
+          ? dayjs(item.renterRoomInfo.checkInDate).format("DD/MM/YYYY")
           : "N/A",
         status: (item.renterRoomInfo?.roomName && item.renterRoomInfo?.roomName !== "N/A") ? "Đang thuê" : "Ngừng thuê",
         isActive: item.isActive,
@@ -235,6 +238,9 @@ export default function RenterTable({ search = "", filter = {} }) {
         visible={detailModalVisible}
         onClose={() => setDetailModalVisible(false)}
         renterData={selectedRenter}
+        style={{ background: "#fff", borderRadius: 8, padding: 16 }}
+        scroll={{ x: 800 }}
+        bordered
       />
     </Spin>
   );

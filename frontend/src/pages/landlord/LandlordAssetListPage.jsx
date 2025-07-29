@@ -162,20 +162,31 @@ export default function LandlordAssetListPage() {
     {
       title: "Thao tác",
       key: "actions",
+      align: "center",
+      width: 200,
       render: (_, record) => (
-        <Space>
+        <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
           <Button
+            type="default"
             icon={<EditOutlined />}
             size="small"
+            style={{ color: "#faad14", borderColor: "#faad14" }}
             onClick={() => handleEditAsset(record)}
-          />
+          >
+            Sửa
+          </Button>
           <Popconfirm
             title="Bạn có chắc chắn muốn xóa tài sản này?"
             okText="Có"
             cancelText="Không"
             onConfirm={() => handleDeleteAsset(record.id)}
           >
-            <Button icon={<DeleteOutlined />} size="small" danger />
+            <Button 
+              icon={<DeleteOutlined />} 
+              type="primary"
+              danger
+              size="small" 
+            />
           </Popconfirm>
         </Space>
       ),
@@ -274,6 +285,7 @@ export default function LandlordAssetListPage() {
                 },
                 showSizeChanger: false,
               }}
+              bordered
             />
           </div>
         </Content>

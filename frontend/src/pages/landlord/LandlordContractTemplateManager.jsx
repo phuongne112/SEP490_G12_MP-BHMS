@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Modal, Form, Input, message, Popconfirm, Tag, Drawer, Space } from 'antd';
-import { MenuOutlined } from "@ant-design/icons";
+import { MenuOutlined, DeleteOutlined } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import {
   getTemplates,
@@ -120,23 +120,42 @@ export default function LandlordContractTemplateManager() {
     {
       title: 'Hành động',
       key: 'action',
+      align: "center",
       width: isMobile ? 150 : 200,
       render: (_, record) => (
-        <Space direction={isMobile ? "vertical" : "horizontal"} size="small">
-          <Button size="small" onClick={() => setEditing(record)}>
+        <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
+          <Button 
+            type="default"
+            size="small" 
+            style={{ color: "#faad14", borderColor: "#faad14" }}
+            onClick={() => setEditing(record)}
+          >
             Sửa
           </Button>
-          <Popconfirm title="Xóa mẫu này?" onConfirm={() => handleDelete(record.id)}>
-            <Button size="small" danger>Xóa</Button>
-          </Popconfirm>
+          <Button 
+            type="dashed"
+            size="small" 
+            onClick={() => handlePreview(record)}
+          >
+            Preview
+          </Button>
           {!record.isDefault && (
-            <Button size="small" onClick={() => handleSetDefault(record.id)}>
+            <Button 
+              type="default"
+              size="small" 
+              onClick={() => handleSetDefault(record.id)}
+            >
               Đặt mặc định
             </Button>
           )}
-          <Button size="small" onClick={() => handlePreview(record)}>
-            Preview
-          </Button>
+          <Popconfirm title="Xóa mẫu này?" onConfirm={() => handleDelete(record.id)} okText="Xóa" cancelText="Không">
+            <Button 
+              icon={<DeleteOutlined />}
+              type="primary"
+              danger
+              size="small"
+            />
+          </Popconfirm>
         </Space>
       ),
     },
@@ -252,6 +271,7 @@ export default function LandlordContractTemplateManager() {
               scroll={{ x: isMobile ? 400 : 'auto' }}
               size={isMobile ? "small" : "middle"}
               style={{ fontSize: isMobile ? "12px" : "14px" }}
+              bordered
             />
           </div>
 

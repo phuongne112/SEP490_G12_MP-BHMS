@@ -149,36 +149,49 @@ export default function UserTable({
     {
       title: "STT",
       dataIndex: "key",
+      align: "center",
       width: 60,
       render: (_, __, index) => (pagination.current - 1) * pageSize + index + 1,
     },
     {
       title: "Họ và tên",
       dataIndex: "fullName",
+      align: "center",
+      width: 150,
       render: (text) => text || "---",
     },
     {
       title: "Email",
       dataIndex: "email",
+      align: "center",
+      width: 200,
     },
     {
       title: "Tên đăng nhập",
       dataIndex: "username",
+      align: "center",
+      width: 150,
     },
     {
       title: "Số điện thoại",
       dataIndex: "phoneNumber",
+      align: "center",
+      width: 130,
       render: (text) => text || "---",
     },
     {
       title: "Ngày tạo",
       dataIndex: "createdAt",
+      align: "center",
+      width: 120,
     },
     ...(hasStatusPermission
       ? [
           {
             title: "Trạng thái",
             dataIndex: "status",
+            align: "center",
+            width: 140,
             render: (_, record) => (
               <Popconfirm
                 title={`Bạn có chắc muốn ${
@@ -203,6 +216,8 @@ export default function UserTable({
     {
       title: "Vai trò",
       dataIndex: "role",
+      align: "center",
+      width: 120,
       render: (role) => role?.roleName || "USER",
     },
     ...(hasUpdatePermission
@@ -210,6 +225,8 @@ export default function UserTable({
           {
             title: "Thao tác",
             key: "actions",
+            align: "center",
+            width: 120,
             render: (_, record) => {
               const currentUser = JSON.parse(localStorage.getItem("user"));
               const currentRole = currentUser?.role?.roleName?.toUpperCase?.();
@@ -223,13 +240,17 @@ export default function UserTable({
               if (shouldHideEditButton) return null;
 
               return (
-                <Space>
-                  <Tooltip title="Chỉnh sửa">
-                    <Button
-                      icon={<EditOutlined />}
-                      onClick={() => onEdit(record)}
-                    />
-                  </Tooltip>
+                <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
+                  <Button
+                    type="default"
+                    icon={<EditOutlined />}
+                    size="small"
+                    style={{ color: "#faad14", borderColor: "#faad14" }}
+                    onClick={() => onEdit(record)}
+                    title="Chỉnh sửa thông tin người dùng"
+                  >
+                    Sửa
+                  </Button>
                 </Space>
               );
             },
@@ -249,6 +270,9 @@ export default function UserTable({
         pageSize,
         onChange: (page) => fetchData(page),
       }}
+      style={{ background: "#fff", borderRadius: 8, padding: 16 }}
+      scroll={{ x: 1200 }}
+      bordered
     />
   );
 }

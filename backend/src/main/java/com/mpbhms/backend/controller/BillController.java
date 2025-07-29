@@ -203,4 +203,10 @@ public class BillController {
             "monthRevenue", monthRevenue
         );
     }
+
+    @PutMapping("/{id}/payment-status")
+    public BillResponse updatePaymentStatus(@PathVariable Long id, @RequestBody Map<String, Object> request) {
+        Boolean status = Boolean.valueOf(request.get("status").toString());
+        return billService.updatePaymentStatus(id, status);
+    }
 }
