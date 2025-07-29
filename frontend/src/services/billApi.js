@@ -84,4 +84,28 @@ export const bulkGenerateBills = async () => {
 export const updateBillPaymentStatus = async (id, status) => {
   const response = await axiosClient.put(`/bills/${id}/payment-status`, { status });
   return response.data;
+};
+
+// Tạo hóa đơn phạt quá hạn
+export const createLatePenaltyBill = async (billId) => {
+  const response = await axiosClient.post(`/bills/${billId}/create-penalty`);
+  return response.data;
+};
+
+// Kiểm tra và tạo phạt quá hạn tự động
+export const checkAndCreateLatePenalties = async () => {
+  const response = await axiosClient.post("/bills/check-and-create-penalties");
+  return response.data;
+};
+
+// Chạy thủ công job kiểm tra phạt quá hạn
+export const runLatePenaltyCheck = async () => {
+  const response = await axiosClient.post("/bills/run-late-penalty-check");
+  return response.data;
+};
+
+// Lấy danh sách hóa đơn quá hạn
+export const getOverdueBills = async () => {
+  const response = await axiosClient.get("/bills/overdue-bills");
+  return response.data;
 }; 
