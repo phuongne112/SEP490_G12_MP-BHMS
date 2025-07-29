@@ -48,8 +48,8 @@ const buildFilterDSL = (searchTerm, filters) => {
   }
 
   if (filters.role !== undefined && filters.role !== "none") {
-    if (filters.role === "null") {
-      dsl.push("role IS NULL");
+    if (filters.role === "5") {
+      dsl.push("role.id = 5");
     } else {
       dsl.push(`role.id = ${filters.role}`);
     }

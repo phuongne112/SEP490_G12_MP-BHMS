@@ -18,7 +18,8 @@ export default function LandlordAddRenterPage() {
   const fetchUsersWithoutRole = async () => {
     setLoading(true);
     try {
-      const res = await getAllUsers(0, 20, "role IS NULL");
+      // Thay đổi từ "role IS NULL" thành "role.id = 5" để tìm users có role USER
+      const res = await getAllUsers(0, 20, "role.id = 5");
       setUserList(res.result || []);
     } catch (err) {
       message.error("Không lấy được danh sách user!");
@@ -73,13 +74,13 @@ export default function LandlordAddRenterPage() {
         >
           <PageHeader title="Thêm người thuê" />
           <Button type="primary" onClick={handleOpenModal} style={{ marginBottom: 16 }}>
-            Cấp quyền người thuê cho tài khoản chưa có vai trò
+            Cấp quyền người thuê cho tài khoản USER
           </Button>
           <Modal
             open={modalOpen}
             onCancel={() => setModalOpen(false)}
             footer={null}
-            title="Tài khoản chưa có vai trò"
+            title="Tài khoản USER (có thể chuyển thành RENTER)"
             width={700} // Giới hạn chiều rộng modal
             bodyStyle={{ padding: 0 }} // Giảm padding nếu cần
           >
