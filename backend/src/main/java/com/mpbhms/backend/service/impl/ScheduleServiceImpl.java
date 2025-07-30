@@ -277,14 +277,16 @@ public class ScheduleServiceImpl implements ScheduleService {
     }
 
     @Override
-    public ResultPaginationDTO searchAndFilter(Long landlordId, String search, ScheduleStatus status, Instant from, Instant to, int page, int pageSize) {
+    public ResultPaginationDTO searchAndFilter(Long landlordId, String search, ScheduleStatus status, Instant from, Instant to, Integer hourFrom, Integer hourTo, int page, int pageSize) {
         Pageable pageable = PageRequest.of(page, pageSize);
         Page<Schedule> resultPage = scheduleRepository.searchAndFilter(
             landlordId,
             (search == null || search.isBlank()) ? null : search,
-            status,
+            status != null ? status.name() : null,
             from,
             to,
+            hourFrom,
+            hourTo,
             pageable
         );
         ResultPaginationDTO dto = new ResultPaginationDTO();
