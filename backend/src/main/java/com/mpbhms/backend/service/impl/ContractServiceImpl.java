@@ -194,7 +194,7 @@ public class ContractServiceImpl implements ContractService {
         java.text.NumberFormat currencyFormat = java.text.NumberFormat.getInstance(new java.util.Locale("vi", "VN"));
         map.put("rentAmount", contract.getRentAmount() != null ? currencyFormat.format(contract.getRentAmount()) : "0");
         map.put("depositAmount", contract.getDepositAmount() != null ? currencyFormat.format(contract.getDepositAmount()) : "0");
-        map.put("paymentCycle", contract.getPaymentCycle() != null ? contract.getPaymentCycle() : "");
+        map.put("paymentCycle", contract.getPaymentCycle() != null ? localizePaymentCycle(contract.getPaymentCycle()) : "");
 
         // Format ngày
         java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
@@ -211,6 +211,21 @@ public class ContractServiceImpl implements ContractService {
         }
 
         return map;
+    }
+
+    /**
+     * Localize payment cycle enum to Vietnamese
+     */
+    private String localizePaymentCycle(com.mpbhms.backend.enums.PaymentCycle paymentCycle) {
+        if (paymentCycle == null) {
+            return "";
+        }
+        
+        return switch (paymentCycle) {
+            case MONTHLY -> "Hàng tháng";
+            case QUARTERLY -> "Hàng quý";
+            case YEARLY -> "Hàng năm";
+        };
     }
 
     private String mergeTemplate(String templateContent, java.util.Map<String, Object> data) throws Exception {
