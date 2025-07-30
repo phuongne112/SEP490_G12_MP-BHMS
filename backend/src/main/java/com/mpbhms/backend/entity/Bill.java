@@ -55,11 +55,25 @@ public class Bill extends BaseEntity {
     private Boolean status = false;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "bill_type", nullable = false)
+    @Column(name = "bill_type", nullable = false, length = 20)
     private BillType billType = BillType.CONTRACT_TOTAL;
 
     @Column(columnDefinition = "TEXT")
     private String notes;
+
+    // Trường để theo dõi hóa đơn phạt
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "original_bill_id")
+    private Bill originalBill; // Hóa đơn gốc bị phạt
+
+    @Column(name = "penalty_rate", precision = 5, scale = 2)
+    private BigDecimal penaltyRate; // Tỷ lệ phạt (%)
+
+    @Column(name = "overdue_days")
+    private Integer overdueDays; // Số ngày quá hạn
+
+    @Column(name = "penalty_amount", precision = 15, scale = 2)
+    private BigDecimal penaltyAmount; // Số tiền phạt
 
     @OneToMany(mappedBy = "bill", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference

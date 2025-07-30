@@ -298,14 +298,14 @@ const Image360Viewer = ({ images, visible, onClose, roomNumber }) => {
                   Phòng {roomNumber}
                 </h3>
               </div>
-              <Text style={{ color: '#ccc', fontSize: 14 }}>
-                {imageLoadError ? '❌ Lỗi tải ảnh' : 
-                 loading ? `🔄 Đang tải ảnh... ${loadedImages}/${images?.length}` :
-                 isAutoRotating ? '🔄 Đang tự động xoay...' :
-                 isDragging ? '👆 Đang kéo...' :
-                 dragVelocity !== 0 ? '💫 Đà quay...' :
-                 '👆 Kéo để xoay • ' + `${currentIndex + 1}/${images?.length}`}
-              </Text>
+                             <Text style={{ color: '#ccc', fontSize: 14 }}>
+                 {imageLoadError ? '❌ Lỗi tải ảnh' : 
+                  loading ? `🔄 Đang tải ảnh... ${loadedImages}/${images?.length}` :
+                  isAutoRotating ? '🔄 Đang tự động xoay...' :
+                  isDragging ? '👆 Đang kéo...' :
+                  dragVelocity !== 0 ? '💫 Đà quay...' :
+                  ''}
+               </Text>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <Button 
@@ -437,44 +437,7 @@ const Image360Viewer = ({ images, visible, onClose, roomNumber }) => {
           </div>
         )}
 
-        {/* FB-style Progress indicator */}
-        {!loading && !imageLoadError && images?.length > 1 && (
-          <div style={{
-            position: 'absolute',
-            bottom: 80,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex',
-            gap: 3,
-            background: 'rgba(0,0,0,0.6)',
-            padding: '8px 16px',
-            borderRadius: 25,
-            maxWidth: '80%',
-            overflow: 'hidden',
-            backdropFilter: 'blur(10px)'
-          }}>
-            {images?.slice(0, Math.min(images.length, 30)).map((_, index) => (
-              <div
-                key={index}
-                style={{
-                  width: index === currentIndex ? 16 : 8,
-                  height: index === currentIndex ? 8 : 6,
-                  borderRadius: 4,
-                  background: index === currentIndex ? 
-                    'linear-gradient(45deg, #FF6B35, #F7931E)' : 
-                    'rgba(255,255,255,0.4)',
-                  transition: 'all 0.3s ease',
-                  boxShadow: index === currentIndex ? '0 0 8px rgba(255,107,53,0.6)' : 'none'
-                }}
-              />
-            ))}
-            {images?.length > 30 && (
-              <Text style={{ color: 'white', fontSize: 10, marginLeft: 8, opacity: 0.8 }}>
-                +{images.length - 30}
-              </Text>
-            )}
-          </div>
-        )}
+
       </div>
     </Modal>
   );

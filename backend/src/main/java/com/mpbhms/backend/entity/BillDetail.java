@@ -22,7 +22,7 @@ public class BillDetail extends BaseEntity {
 
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "item_type", nullable = false)
+    @Column(name = "item_type", nullable = false, length = 20)
     private BillItemType itemType;
 
     @Column(columnDefinition = "TEXT")

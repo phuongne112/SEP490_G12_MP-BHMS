@@ -1,8 +1,39 @@
 import React, { useEffect, useState } from "react";
-import { Table, Button, Space, Tooltip, message, Alert } from "antd";
+import { Table, Button, Space, Tooltip, message, Alert, Popconfirm } from "antd";
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { getAllRoles } from "../../services/roleApi";
 import { useSelector } from "react-redux";
+
+// Hàm chuyển đổi ngày sang định dạng Việt Nam chuẩn (dd/mm/yyyy)
+const formatDateToVietnamese = (dateString) => {
+  if (!dateString) return "";
+  
+  // Xử lý format "2025-07-28 16:11:04 PM" từ API
+  let date;
+  
+  // Thử parse trực tiếp
+  date = new Date(dateString);
+  
+  // Nếu không hợp lệ, thử xử lý format đặc biệt
+  if (isNaN(date.getTime())) {
+    // Tách phần ngày từ "2025-07-28 16:11:04 PM"
+    const datePart = dateString.split(' ')[0];
+    if (datePart) {
+      date = new Date(datePart);
+    }
+  }
+  
+  // Kiểm tra xem ngày có hợp lệ không
+  if (isNaN(date.getTime())) {
+    return "";
+  }
+  
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}/${month}/${year}`;
+};
 
 const buildFilterDSL = (searchTerm, filters) => {
   const dsl = [];
@@ -53,7 +84,8 @@ export default function RoleTable({
         result.map((item, index) => ({
           key: item.id || index + 1 + (page - 1) * pageSize,
           ...item,
-          createdAt: item.createdDate?.slice(0, 10),
+          createdAt: item.createdDate ? formatDateToVietnamese(item.createdDate) : "",
+          updatedAt: item.updatedDate ? formatDateToVietnamese(item.updatedDate) : "",
         }))
       );
       setPagination({ current: page, total });
@@ -88,12 +120,21 @@ export default function RoleTable({
     {
       title: "Tên vai trò",
       dataIndex: "roleName",
-      width: "60%",
-      render: (text) => <span style={{ fontWeight: 500 }}>{text}</span>,
+      align: "center",
+      width: 200,
+      render: (text) => <span>{text}</span>,
     },
     {
       title: "Ngày tạo",
       dataIndex: "createdAt",
+      align: "center",
+      width: 120,
+    },
+    {
+      title: "Ngày cập nhật",
+      dataIndex: "updatedAt",
+      align: "center",
+      width: 120,
     },
     ...(canEdit || canDelete
       ? [
@@ -101,7 +142,7 @@ export default function RoleTable({
             title: "Thao tác",
             key: "actions",
             align: "center",
-            width: 120,
+            width: 200,
             render: (_, record) => {
               const targetRole = record.roleName;
 
@@ -113,27 +154,39 @@ export default function RoleTable({
               }
 
               return (
-                <Space>
+                <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
                   {canEdit && (
-                    <Tooltip title="Chỉnh sửa">
-                      <Button
-                        icon={<EditOutlined />}
-                        onClick={() => onEditRole(record)}
-                      />
-                    </Tooltip>
+                    <Button
+                      type="default"
+                      icon={<EditOutlined />}
+                      size="small"
+                      style={{ color: "#faad14", borderColor: "#faad14" }}
+                      onClick={() => onEditRole(record)}
+                      title="Chỉnh sửa thông tin vai trò"
+                    >
+                      Sửa
+                    </Button>
                   )}
                   {canDelete &&
                     !(
                       currentRole?.roleName === "ADMIN" &&
                       record.roleName === "ADMIN"
                     ) && (
-                      <Tooltip title="Xóa">
+                      <Popconfirm
+                        title="Xóa vai trò"
+                        description="Bạn có chắc muốn xóa vai trò này?"
+                        onConfirm={() => onDeleteRole(record)}
+                        okText="Xóa"
+                        cancelText="Không"
+                      >
                         <Button
-                          danger
                           icon={<DeleteOutlined />}
-                          onClick={() => onDeleteRole(record)}
+                          type="primary"
+                          danger
+                          size="small"
+                          title="Xóa vai trò"
                         />
-                      </Tooltip>
+                      </Popconfirm>
                     )}
                 </Space>
               );
@@ -166,6 +219,8 @@ export default function RoleTable({
           pageSize,
           onChange: (page) => fetchData(page),
         }}
+        style={{ background: "#fff", borderRadius: 8, padding: 16 }}
+        scroll={{ x: 800 }}
         bordered
         rowKey="id"
       />

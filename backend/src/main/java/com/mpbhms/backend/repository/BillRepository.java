@@ -43,9 +43,9 @@ public interface BillRepository extends JpaRepository<Bill, Long>, JpaSpecificat
     long countByStatusFalse();
     // Đếm số hóa đơn đã thanh toán
     long countByStatusTrue();
-    // Đếm số hóa đơn quá hạn (chưa thanh toán và toDate < hiện tại)
-    @Query("SELECT COUNT(b) FROM Bill b WHERE b.status = false AND b.toDate < :now")
-    long countOverdue(@Param("now") Instant now);
+    // Đếm số hóa đơn quá hạn (chưa thanh toán và toDate + 7 ngày < hiện tại - từ ngày thứ 7 trở đi)
+    @Query("SELECT COUNT(b) FROM Bill b WHERE b.status = false AND b.toDate < :sevenDaysAgo")
+    long countOverdue(@Param("sevenDaysAgo") Instant sevenDaysAgo);
 
     // Tổng doanh thu đã thanh toán
     @Query("SELECT COALESCE(SUM(b.totalAmount),0) FROM Bill b WHERE b.status = true")
@@ -58,4 +58,11 @@ public interface BillRepository extends JpaRepository<Bill, Long>, JpaSpecificat
     // Doanh thu tháng hiện tại
     @Query("SELECT COALESCE(SUM(b.totalAmount),0) FROM Bill b WHERE b.status = true AND FUNCTION('DATE_FORMAT', b.toDate, '%Y-%m') = :month")
     BigDecimal getMonthRevenue(@Param("month") String month);
+
+    // Kiểm tra đã tồn tại hóa đơn phạt cho hóa đơn gốc
+    boolean existsByOriginalBillAndBillType(Bill originalBill, BillType billType);
+
+    // Tìm hóa đơn quá hạn (chưa thanh toán và toDate + 7 ngày < hiện tại)
+    @Query("SELECT b FROM Bill b WHERE b.status = false AND b.toDate < :sevenDaysAgo AND b.billType != 'LATE_PENALTY'")
+    List<Bill> findByStatusFalseAndToDateBefore(@Param("sevenDaysAgo") Instant sevenDaysAgo);
 }

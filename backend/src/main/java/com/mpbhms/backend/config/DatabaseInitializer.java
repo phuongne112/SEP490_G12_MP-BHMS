@@ -67,6 +67,15 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Update User", "/mpbhms/users", "PUT", "User"));
             permissions.add(new Permission("Get User", "/mpbhms/users", "GET", "User"));
             permissions.add(new Permission("Active/ De-Active User", "/mpbhms/users/{id}/active", "PUT", "User"));
+            permissions.add(new Permission("Get My User Info", "/mpbhms/users/me/info", "GET", "User"));
+            permissions.add(new Permission("Update My User Info", "/mpbhms/users/me/info", "PUT", "User"));
+            permissions.add(new Permission("Add My User Info", "/mpbhms/users/me/info", "POST", "User"));
+            permissions.add(new Permission("Get My User Account", "/mpbhms/users/me/account", "GET", "User"));
+            permissions.add(new Permission("Update My User Account", "/mpbhms/users/me/account", "PUT", "User"));
+            //Auth
+            permissions.add(new Permission("Change Password", "/mpbhms/auth/change-password", "PUT", "Auth"));
+            permissions.add(new Permission("Request Reset Password", "/mpbhms/auth/request-reset", "POST", "Auth"));
+            permissions.add(new Permission("Reset Password", "/mpbhms/auth/reset-password", "POST", "Auth"));
             //Roles
             permissions.add(new Permission("Create Role", "/mpbhms/roles", "POST", "Role"));
             permissions.add(new Permission("Update Role", "/mpbhms/roles", "PUT", "Role"));
@@ -78,6 +87,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Delete Notification", "/mpbhms/notifications/{id}", "DELETE", "Notification"));
             permissions.add(new Permission("View Notification", "/mpbhms/notifications/all", "GET", "Notification"));
             permissions.add(new Permission("Create Notification Send", "/mpbhms/notifications/send", "POST", "Notification"));
+            permissions.add(new Permission("Create Multiple Notifications Send", "/mpbhms/notifications/send-multiple", "POST", "Notification"));
             permissions.add(new Permission("View My Notification", "/mpbhms/notifications", "GET", "Notification"));
             permissions.add(new Permission("Mark Notification as Read", "/mpbhms/notifications/{id}/read", "PUT", "Notification"));
             //Permissions
@@ -111,6 +121,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             //OCR
             permissions.add(new Permission("OCR", "/mpbhms/ocr/detect-ocr", "POST", "Ocr"));
             permissions.add(new Permission("Save Reading", "/mpbhms/ocr/save-reading", "POST", "Ocr"));
+            permissions.add(new Permission("Save Image Only", "/mpbhms/ocr/save-image-only", "POST", "Ocr"));
             permissions.add(new Permission("Enable Auto Scan", "/mpbhms/ocr/auto-scan/on", "POST", "Ocr"));
             permissions.add(new Permission("Disable Auto Scan", "/mpbhms/ocr/auto-scan/off", "POST", "Ocr"));
             permissions.add(new Permission("Get Auto Scan Status", "/mpbhms/ocr/auto-scan/status", "GET", "Ocr"));
@@ -135,12 +146,17 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Send bill to Email", "/mpbhms/bills/send-email/{billId}", "POST", "Bill"));
             permissions.add(new Permission("Dashboard Bill Stats", "/mpbhms/bills/dashboard-stats", "GET", "Bill"));
             permissions.add(new Permission("Bulk Generate Bills", "/mpbhms/bills/bulk-generate", "POST", "Bill"));
+            permissions.add(new Permission("Update Bill Payment Status", "/mpbhms/bills/{id}/payment-status", "PUT", "Bill"));
+            permissions.add(new Permission("Create Late Penalty Bill", "/mpbhms/bills/{id}/create-penalty", "POST", "Bill"));
+            permissions.add(new Permission("Check And Create Late Penalties", "/mpbhms/bills/check-and-create-penalties", "POST", "Bill"));
+            permissions.add(new Permission("Get Overdue Bills", "/mpbhms/bills/overdue", "GET", "Bill"));
             //Renter
             permissions.add(new Permission("Get Renter List", "/mpbhms/renters", "GET", "Renter"));
             permissions.add(new Permission("Create new Renter", "/mpbhms/renters", "POST", "Renter"));
             permissions.add(new Permission("Change renter status", "/mpbhms/renters/{id}/status", "PUT", "Renter"));
             permissions.add(new Permission("Get Renters for Assign", "/mpbhms/renters/for-assign", "GET", "Renter"));
             permissions.add(new Permission("Get Renters for Assign Full", "/mpbhms/renters/for-assign-full", "GET", "Renter"));
+            permissions.add(new Permission("Get Renter by ID", "/mpbhms/renters/{id}", "GET", "Renter"));
             //Service
             permissions.add(new Permission("Create Service", "/mpbhms/services", "POST", "Service"));
             permissions.add(new Permission("Update Service", "/mpbhms/services/{id}", "PUT", "Service"));
@@ -210,6 +226,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             Permission markReadNotification = permissionRepository.findByModuleAndApiPathAndMethod(
                 "Notification", "/mpbhms/notifications/{id}/read", "PUT"
             );
+            Permission ocrCccdPermission = permissionRepository.findByModuleAndApiPathAndMethod("Ocr", "/mpbhms/ocr/cccd", "POST");
             Role adminRole = new Role();
             adminRole.setRoleName("ADMIN");
             List<Permission> adminPermissions = new ArrayList<>(permissionRepository.findAll()
@@ -225,6 +242,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             }
             if (markReadNotification != null && !adminPermissions.contains(markReadNotification)) {
                 adminPermissions.add(markReadNotification);
+            }
+            Permission sendMultipleNotificationsAdmin = permissionRepository.findByModuleAndApiPathAndMethod("Notification", "/mpbhms/notifications/send-multiple", "POST");
+            if (sendMultipleNotificationsAdmin != null && !adminPermissions.contains(sendMultipleNotificationsAdmin)) {
+                adminPermissions.add(sendMultipleNotificationsAdmin);
             }
             adminRole.setPermissionEntities(adminPermissions);
             roleRepository.save(adminRole);
@@ -281,7 +302,6 @@ public class DatabaseInitializer implements CommandLineRunner {
             Permission createVnpayUrl = permissionRepository.findByModuleAndApiPathAndMethod("Payment", "/mpbhms/payment/create-vnpay-url", "POST");
             if (createVnpayUrl != null) renterPermission.add(createVnpayUrl);
             //Ocr
-            Permission ocrCccdPermission = permissionRepository.findByModuleAndApiPathAndMethod("Ocr", "/mpbhms/ocr/cccd", "POST");
             if (ocrCccdPermission != null) {
                 renterPermission.add(ocrCccdPermission);
             }
@@ -354,6 +374,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             if (sendNotification != null && !landlordPermission.contains(sendNotification)) {
                 landlordPermission.add(sendNotification);
             }
+            Permission sendMultipleNotifications = permissionRepository.findByModuleAndApiPathAndMethod("Notification", "/mpbhms/notifications/send-multiple", "POST");
+            if (sendMultipleNotifications != null && !landlordPermission.contains(sendMultipleNotifications)) {
+                landlordPermission.add(sendMultipleNotifications);
+            }
             // Đảm bảo LANDLORD có quyền xem dashboard-stats
             Permission dashboardStats = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/dashboard-stats", "GET");
             if (dashboardStats != null && !landlordPermission.contains(dashboardStats)) {
@@ -373,6 +397,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             }
             if (markReadNotification != null && !subAdminPermission.contains(markReadNotification)) {
                 subAdminPermission.add(markReadNotification);
+            }
+            Permission sendMultipleNotificationsSubAdmin = permissionRepository.findByModuleAndApiPathAndMethod("Notification", "/mpbhms/notifications/send-multiple", "POST");
+            if (sendMultipleNotificationsSubAdmin != null && !subAdminPermission.contains(sendMultipleNotificationsSubAdmin)) {
+                subAdminPermission.add(sendMultipleNotificationsSubAdmin);
             }
             subAdminRole.setPermissionEntities(subAdminPermission);
             roleRepository.save(subAdminRole);
@@ -411,6 +439,11 @@ public class DatabaseInitializer implements CommandLineRunner {
 
             // Quyền xem phòng
             if (viewRoom != null) userPermissions.add(viewRoom);
+
+            // Quyền OCR CCCD cho USER (không được whitelist nên cần quyền cụ thể)
+            if (ocrCccdPermission != null && !userPermissions.contains(ocrCccdPermission)) {
+                userPermissions.add(ocrCccdPermission);
+            }
 
             userRole.setPermissionEntities(userPermissions);
             roleRepository.save(userRole);
@@ -523,14 +556,33 @@ public class DatabaseInitializer implements CommandLineRunner {
                 .toList();
 
         String professionalTemplate = createProfessionalContractTemplate();
+        String simpleTemplate = createSimpleContractTemplate();
+        String detailedTemplate = createDetailedContractTemplate();
 
         for (User landlord : landlords) {
-            ContractTemplate template = new ContractTemplate();
-            template.setLandlordId(landlord.getId());
-            template.setName("Mẫu hợp đồng chuyên nghiệp");
-            template.setContent(professionalTemplate);
-            template.setIsDefault(true);
-            contractTemplateRepository.save(template);
+            // Mẫu hợp đồng chuyên nghiệp
+            ContractTemplate template1 = new ContractTemplate();
+            template1.setLandlordId(landlord.getId());
+            template1.setName("Mẫu hợp đồng chuyên nghiệp");
+            template1.setContent(professionalTemplate);
+            template1.setIsDefault(true);
+            contractTemplateRepository.save(template1);
+
+            // Mẫu hợp đồng đơn giản
+            ContractTemplate template2 = new ContractTemplate();
+            template2.setLandlordId(landlord.getId());
+            template2.setName("Mẫu hợp đồng đơn giản");
+            template2.setContent(simpleTemplate);
+            template2.setIsDefault(false);
+            contractTemplateRepository.save(template2);
+
+            // Mẫu hợp đồng chi tiết
+            ContractTemplate template3 = new ContractTemplate();
+            template3.setLandlordId(landlord.getId());
+            template3.setName("Mẫu hợp đồng chi tiết");
+            template3.setContent(detailedTemplate);
+            template3.setIsDefault(false);
+            contractTemplateRepository.save(template3);
         }
 
         // Tạo template mặc định cho landlords sẽ tạo sau này (landlordId = null)
@@ -553,6 +605,7 @@ public class DatabaseInitializer implements CommandLineRunner {
     <style>
         body { 
             font-family: Arial, sans-serif; 
+            font-size: 16px;
             line-height: 1.6; 
             margin: 40px;
             color: #333;
@@ -560,25 +613,21 @@ public class DatabaseInitializer implements CommandLineRunner {
         .header { 
             text-align: center; 
             margin-bottom: 30px;
-            border-bottom: 2px solid #333;
             padding-bottom: 20px;
         }
         .title { 
             font-size: 24px; 
             font-weight: bold; 
-            color: #d32f2f;
             margin: 20px 0;
+            text-align: center;
         }
         .section { 
             margin: 20px 0; 
         }
         .section-title { 
-            font-size: 16px; 
+            font-size: 18px; 
             font-weight: bold; 
-            color: #1976d2;
             margin: 15px 0 10px 0;
-            border-left: 4px solid #1976d2;
-            padding-left: 10px;
         }
         .info-table {
             width: 100%;
@@ -595,25 +644,18 @@ public class DatabaseInitializer implements CommandLineRunner {
             font-weight: bold;
             width: 30%;
         }
-        .signature-section {
-            margin-top: 50px;
-        }
-        .signature-box {
-            width: 45%;
-            text-align: center;
-            border: 1px solid #ddd;
-            padding: 20px;
-            min-height: 100px;
-            display: inline-block;
-            vertical-align: top;
-        }
-        .legal-note {
-            background-color: #f9f9f9;
-            border-left: 4px solid #ff9800;
-            padding: 15px;
-            margin: 20px 0;
-            font-style: italic;
-        }
+                            .signature-section {
+                        margin-top: 50px;
+                        display: flex;
+                        justify-content: space-between;
+                        gap: 20px;
+                    }
+                    .signature-box {
+                        width: 50%;
+                        text-align: center;
+                        min-height: 120px;
+                        box-sizing: border-box;
+                    }
         ul {
             margin: 10px 0;
             padding-left: 25px;
@@ -625,24 +667,15 @@ public class DatabaseInitializer implements CommandLineRunner {
 </head>
 <body>
     <div class="header">
-        <div style="font-weight: bold; font-size: 16px;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
-        <div style="font-weight: bold; font-size: 16px;">Độc lập - Tự do - Hạnh phúc</div>
-        <div style="margin: 15px 0;">═══════════════════════════════════════════</div>
+        <div style="font-weight: bold; font-size: 20px;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+        <div style="font-weight: bold; font-size: 18px;">Độc lập - Tự do - Hạnh phúc</div>
     </div>
 
-    <div class="title" style="text-align: center;">HỢP ĐỒNG THUÊ PHÒNG TRỌ</div>
+    <div class="title">HỢP ĐỒNG THUÊ PHÒNG TRỌ</div>
     
     <div style="text-align: center; margin-bottom: 20px;">
-        <strong>Số hợp đồng: {{contract.contractNumber}}</strong><br />
+        <strong>Số hợp đồng: {{contractNumber}}</strong><br />
         <em>Ký {{startDate}}</em>
-    </div>
-
-    <div class="legal-note">
-        <strong>Căn cứ pháp lý:</strong><br />
-        - Bộ luật Dân sự năm 2015;<br />
-        - Luật Nhà ở năm 2014;<br />
-        - Nghị định số 99/2015/NĐ-CP ngày 20/10/2015 của Chính phủ;<br />
-        - Các quy định pháp luật có liên quan và thỏa thuận của các bên.
     </div>
 
     <p>Hôm nay, <strong>{{startDate}}</strong>, tại <strong>{{room.roomNumber}}</strong>, chúng tôi gồm các bên:</p>
@@ -652,19 +685,19 @@ public class DatabaseInitializer implements CommandLineRunner {
         <table class="info-table">
             <tr>
                 <td class="label">Họ và tên:</td>
-                <td>{{landlord.userInfo.fullName}}</td>
+                <td>{{landlord.fullName}}</td>
             </tr>
             <tr>
                 <td class="label">Số điện thoại:</td>
-                <td>{{landlord.userInfo.phoneNumber}}</td>
+                <td>{{landlord.phoneNumber}}</td>
             </tr>
             <tr>
                 <td class="label">CCCD/CMND:</td>
-                <td>{{landlord.userInfo.nationalID}}</td>
+                <td>{{landlord.nationalID}}</td>
             </tr>
             <tr>
                 <td class="label">Địa chỉ thường trú:</td>
-                <td>{{landlord.userInfo.permanentAddress}}</td>
+                <td>{{landlord.permanentAddress}}</td>
             </tr>
         </table>
     </div>
@@ -683,11 +716,11 @@ public class DatabaseInitializer implements CommandLineRunner {
             </tr>
             <tr>
                 <td class="label">CCCD/CMND:</td>
-                <td>{{identityNumber}}</td>
+                <td>{{nationalID}}</td>
             </tr>
             <tr>
                 <td class="label">Địa chỉ thường trú:</td>
-                <td>{{address}}</td>
+                <td>{{permanentAddress}}</td>
             </tr>
         </table>
         {{/each}}
@@ -705,7 +738,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             </tr>
             <tr>
                 <td class="label">Địa chỉ:</td>
-                <td>Địa chỉ nhà trọ</td>
+                <td>Thôn 2 Thạch Hoà, Thạch Thất HN</td>
             </tr>
             <tr>
                 <td class="label">Diện tích:</td>
@@ -718,10 +751,6 @@ public class DatabaseInitializer implements CommandLineRunner {
             <tr>
                 <td class="label">Tình trạng phòng:</td>
                 <td>Bàn giao theo hiện trạng</td>
-            </tr>
-            <tr>
-                <td class="label">Trang thiết bị:</td>
-                <td>Theo biên bản bàn giao tài sản</td>
             </tr>
         </table>
     </div>
@@ -745,19 +774,19 @@ public class DatabaseInitializer implements CommandLineRunner {
         <table class="info-table">
             <tr>
                 <td class="label">Giá thuê phòng:</td>
-                <td>{{contract.rentAmount}} VNĐ/tháng</td>
+                <td>{{rentAmount}} VNĐ/tháng</td>
             </tr>
             <tr>
                 <td class="label">Tiền đặt cọc:</td>
-                <td>{{contract.depositAmount}} VNĐ (hoàn trả khi kết thúc hợp đồng, không vi phạm)</td>
+                <td>{{depositAmount}} VNĐ</td>
             </tr>
             <tr>
                 <td class="label">Chu kỳ thanh toán:</td>
-                <td>{{contract.paymentCycle}}</td>
+                <td>{{paymentCycle}}</td>
             </tr>
             <tr>
                 <td class="label">Hạn thanh toán:</td>
-                <td>Trước ngày 05 của chu kỳ thanh toán</td>
+                <td>Trước ngày 07 của chu kỳ thanh toán</td>
             </tr>
             <tr>
                 <td class="label">Phương thức:</td>
@@ -777,14 +806,13 @@ public class DatabaseInitializer implements CommandLineRunner {
             <li>Yêu cầu Bên B thanh toán đầy đủ, đúng hạn các khoản tiền theo hợp đồng</li>
             <li>Yêu cầu Bên B bồi thường thiệt hại do vi phạm hợp đồng gây ra</li>
             <li>Đơn phương chấm dứt hợp đồng nếu Bên B vi phạm nghiêm trọng</li>
-            <li>Kiểm tra tình hình sử dụng phòng trọ (báo trước 24 giờ)</li>
         </ul>
         <p><strong>4.2. Nghĩa vụ của Bên A:</strong></p>
         <ul>
             <li>Bàn giao phòng trọ đúng tình trạng thỏa thuận</li>
             <li>Bảo đảm quyền sử dụng ổn định của Bên B trong thời hạn hợp đồng</li>
             <li>Bảo trì, sửa chữa phòng trọ theo thỏa thuận</li>
-            <li>Hoàn trả tiền đặt cọc khi kết thúc hợp đồng (trừ các khoản vi phạm)</li>
+            <li>Hoàn trả tiền đặt cọc khi kết thúc hợp đồng</li>
         </ul>
     </div>
 
@@ -827,25 +855,515 @@ public class DatabaseInitializer implements CommandLineRunner {
     </div>
     {{/if}}
 
-    <div class="legal-note">
-        <strong>Điều cuối:</strong> Hợp đồng này được lập thành 02 (hai) bản có giá trị pháp lý như nhau, mỗi bên giữ 01 bản. 
-        Hợp đồng có hiệu lực kể từ ngày ký và chấm dứt theo đúng thỏa thuận.
-    </div>
+    <p style="margin-top: 30px;"><strong>Điều cuối:</strong> Hợp đồng này được lập thành 02 (hai) bản có giá trị pháp lý như nhau, mỗi bên giữ 01 bản. 
+    Hợp đồng có hiệu lực kể từ ngày ký và chấm dứt theo đúng thỏa thuận.</p>
 
     <div class="signature-section">
-        <div class="signature-box" style="margin-right: 10%;">
-            <div style="font-weight: bold; margin-bottom: 10px;">BÊN CHO THUÊ (BÊN A)</div>
+        <div class="signature-box">
+            <div style="font-weight: bold; margin-bottom: 10px;">ĐẠI DIỆN BÊN B</div>
             <div style="font-style: italic; margin-bottom: 60px;">(Ký và ghi rõ họ tên)</div>
-            <div style="font-weight: bold;">{{landlord.userInfo.fullName}}</div>
         </div>
         <div class="signature-box">
-            <div style="font-weight: bold; margin-bottom: 10px;">BÊN THUÊ PHÒNG (BÊN B)</div>
+            <div style="font-weight: bold; margin-bottom: 10px;">ĐẠI DIỆN BÊN A</div>
             <div style="font-style: italic; margin-bottom: 60px;">(Ký và ghi rõ họ tên)</div>
-            <div style="font-weight: bold;">
-                {{#each renters}}
-                {{fullName}}{{#unless @last}}<br />{{/unless}}
-                {{/each}}
+                        </div>
             </div>
+        </body>
+        </html>
+                """;
+    }
+
+    private String createSimpleContractTemplate() {
+        return """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            font-size: 14px;
+            line-height: 1.5; 
+            margin: 30px;
+            color: #333;
+        }
+        .header { 
+            text-align: center; 
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+        }
+        .title { 
+            font-size: 20px; 
+            font-weight: bold; 
+            margin: 15px 0;
+            text-align: center;
+        }
+        .section { 
+            margin: 15px 0; 
+        }
+        .section-title { 
+            font-size: 16px; 
+            font-weight: bold; 
+            margin: 10px 0 5px 0;
+            color: #2c3e50;
+        }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        .info-table td {
+            padding: 6px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+        .info-table .label {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            width: 25%;
+        }
+        .signature-section {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+        }
+        .signature-box {
+            width: 50%;
+            text-align: center;
+            min-height: 80px;
+            box-sizing: border-box;
+        }
+        ul {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+        li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div style="font-weight: bold; font-size: 18px;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+        <div style="font-weight: bold; font-size: 16px;">Độc lập - Tự do - Hạnh phúc</div>
+    </div>
+
+    <div class="title">HỢP ĐỒNG THUÊ PHÒNG</div>
+    
+    <div style="text-align: center; margin-bottom: 15px;">
+        <strong>Số hợp đồng: {{contractNumber}}</strong><br />
+        <em>Ngày: {{startDate}}</em>
+    </div>
+
+    <p><strong>BÊN CHO THUÊ:</strong> {{landlord.fullName}} - SĐT: {{landlord.phoneNumber}}</p>
+    <p><strong>BÊN THUÊ:</strong></p>
+    {{#each renters}}
+    <p>- {{fullName}} - SĐT: {{phoneNumber}}</p>
+    {{/each}}
+
+    <div class="section">
+        <div class="section-title">THÔNG TIN PHÒNG</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">Số phòng:</td>
+                <td>{{room.roomNumber}}</td>
+            </tr>
+            <tr>
+                <td class="label">Giá thuê:</td>
+                <td>{{rentAmount}} VNĐ/tháng</td>
+            </tr>
+            <tr>
+                <td class="label">Tiền cọc:</td>
+                <td>{{depositAmount}} VNĐ</td>
+            </tr>
+            <tr>
+                <td class="label">Thời hạn:</td>
+                <td>{{startDate}} - {{endDate}}</td>
+            </tr>
+            <tr>
+                <td class="label">Thanh toán:</td>
+                <td>{{paymentCycle}}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">ĐIỀU KHOẢN CHÍNH</div>
+        <ul>
+            <li>Bên thuê thanh toán đúng hạn tiền phòng và các dịch vụ</li>
+            <li>Giữ gìn vệ sinh và trật tự chung</li>
+            <li>Không được sửa chữa, thay đổi cấu trúc phòng</li>
+            <li>Báo cáo ngay khi có sự cố về điện, nước</li>
+            <li>Trả phòng đúng hạn khi kết thúc hợp đồng</li>
+        </ul>
+    </div>
+
+    {{#if terms}}
+    <div class="section">
+        <div class="section-title">ĐIỀU KHOẢN BỔ SUNG</div>
+        <ol>
+            {{#each terms}}
+            <li>{{this}}</li>
+            {{/each}}
+        </ol>
+    </div>
+    {{/if}}
+
+    <p style="margin-top: 20px;"><strong>Hợp đồng này có hiệu lực từ ngày ký.</strong></p>
+
+    <div class="signature-section">
+        <div class="signature-box">
+            <div style="font-weight: bold; margin-bottom: 8px;">BÊN THUÊ</div>
+            <div style="font-style: italic; margin-bottom: 40px;">(Ký tên)</div>
+        </div>
+        <div class="signature-box">
+            <div style="font-weight: bold; margin-bottom: 8px;">BÊN CHO THUÊ</div>
+            <div style="font-style: italic; margin-bottom: 40px;">(Ký tên)</div>
+        </div>
+    </div>
+</body>
+</html>
+                """;
+    }
+
+    private String createDetailedContractTemplate() {
+        return """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        body { 
+            font-family: 'Times New Roman', serif; 
+            font-size: 14px;
+            line-height: 1.6; 
+            margin: 40px;
+            color: #2c3e50;
+        }
+        .header { 
+            text-align: center; 
+            margin-bottom: 30px;
+            border-bottom: 3px solid #34495e;
+            padding-bottom: 20px;
+        }
+        .title { 
+            font-size: 22px; 
+            font-weight: bold; 
+            margin: 20px 0;
+            text-align: center;
+            color: #2c3e50;
+        }
+        .section { 
+            margin: 20px 0; 
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+        }
+        .section-title { 
+            font-size: 16px; 
+            font-weight: bold; 
+            margin: 15px 0 10px 0;
+            color: #2980b9;
+            text-transform: uppercase;
+        }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .info-table td {
+            padding: 10px;
+            border: 1px solid #bdc3c7;
+            vertical-align: top;
+        }
+        .info-table .label {
+            background-color: #ecf0f1;
+            font-weight: bold;
+            width: 30%;
+            color: #2c3e50;
+        }
+        .signature-section {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+            gap: 30px;
+        }
+        .signature-box {
+            width: 50%;
+            text-align: center;
+            min-height: 120px;
+            box-sizing: border-box;
+            border: 1px solid #bdc3c7;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        ul {
+            margin: 12px 0;
+            padding-left: 25px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            padding: 10px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+        }
+        .warning {
+            background-color: #f8d7da;
+            padding: 10px;
+            border-left: 4px solid #dc3545;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div style="font-weight: bold; font-size: 18px;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+        <div style="font-weight: bold; font-size: 16px;">Độc lập - Tự do - Hạnh phúc</div>
+        <div style="font-size: 12px; margin-top: 10px;">---o0o---</div>
+    </div>
+
+    <div class="title">HỢP ĐỒNG THUÊ PHÒNG TRỌ CHI TIẾT</div>
+    
+    <div style="text-align: center; margin-bottom: 25px;">
+        <strong>Số hợp đồng: {{contractNumber}}</strong><br />
+        <em>Ngày ký: {{startDate}}</em><br />
+        <em>Địa điểm: {{room.roomNumber}}</em>
+    </div>
+
+    <div class="highlight">
+        <strong>LƯU Ý:</strong> Hợp đồng này được lập theo quy định của pháp luật Việt Nam về nhà ở và các văn bản pháp luật có liên quan.
+    </div>
+
+    <div class="section">
+        <div class="section-title">THÔNG TIN CÁC BÊN</div>
+        
+        <div style="margin-bottom: 20px;">
+            <strong style="color: #e74c3c;">BÊN CHO THUÊ (BÊN A):</strong>
+            <table class="info-table">
+                <tr>
+                    <td class="label">Họ và tên:</td>
+                    <td>{{landlord.fullName}}</td>
+                </tr>
+                <tr>
+                    <td class="label">Số điện thoại:</td>
+                    <td>{{landlord.phoneNumber}}</td>
+                </tr>
+                <tr>
+                    <td class="label">CCCD/CMND:</td>
+                    <td>{{landlord.nationalID}}</td>
+                </tr>
+                <tr>
+                    <td class="label">Địa chỉ thường trú:</td>
+                    <td>{{landlord.permanentAddress}}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div>
+            <strong style="color: #27ae60;">BÊN THUÊ PHÒNG (BÊN B):</strong>
+            {{#each renters}}
+            <table class="info-table" style="margin-bottom: 15px;">
+                <tr>
+                    <td class="label">Họ và tên:</td>
+                    <td>{{fullName}}</td>
+                </tr>
+                <tr>
+                    <td class="label">Số điện thoại:</td>
+                    <td>{{phoneNumber}}</td>
+                </tr>
+                <tr>
+                    <td class="label">CCCD/CMND:</td>
+                    <td>{{nationalID}}</td>
+                </tr>
+                <tr>
+                    <td class="label">Địa chỉ thường trú:</td>
+                    <td>{{permanentAddress}}</td>
+                </tr>
+            </table>
+            {{/each}}
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">ĐIỀU 1: ĐỐI TƯỢNG VÀ MỤC ĐÍCH THUÊ</div>
+        <p>Bên A đồng ý cho Bên B thuê phòng trọ với các thông tin chi tiết:</p>
+        <table class="info-table">
+            <tr>
+                <td class="label">Số phòng:</td>
+                <td>{{room.roomNumber}}</td>
+            </tr>
+            <tr>
+                <td class="label">Địa chỉ:</td>
+                <td>Thôn 2 Thạch Hoà, Thạch Thất, Hà Nội</td>
+            </tr>
+            <tr>
+                <td class="label">Diện tích:</td>
+                <td>Theo thực tế bàn giao</td>
+            </tr>
+            <tr>
+                <td class="label">Mục đích sử dụng:</td>
+                <td>Để ở và sinh hoạt cá nhân</td>
+            </tr>
+            <tr>
+                <td class="label">Tình trạng phòng:</td>
+                <td>Bàn giao theo hiện trạng, có đầy đủ tiện nghi cơ bản</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">ĐIỀU 2: THỜI HẠN VÀ HIỆU LỰC HỢP ĐỒNG</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">Thời hạn thuê:</td>
+                <td>Từ ngày {{startDate}} đến ngày {{endDate}}</td>
+            </tr>
+            <tr>
+                <td class="label">Hiệu lực:</td>
+                <td>Hợp đồng có hiệu lực kể từ ngày ký và bàn giao phòng</td>
+            </tr>
+            <tr>
+                <td class="label">Gia hạn:</td>
+                <td>Có thể gia hạn nếu hai bên đồng ý trước 30 ngày</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">ĐIỀU 3: GIÁ THUÊ VÀ PHƯƠNG THỨC THANH TOÁN</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">Giá thuê phòng:</td>
+                <td>{{rentAmount}} VNĐ/tháng (đã bao gồm thuế)</td>
+            </tr>
+            <tr>
+                <td class="label">Tiền đặt cọc:</td>
+                <td>{{depositAmount}} VNĐ (hoàn trả khi kết thúc hợp đồng)</td>
+            </tr>
+            <tr>
+                <td class="label">Chu kỳ thanh toán:</td>
+                <td>{{paymentCycle}}</td>
+            </tr>
+            <tr>
+                <td class="label">Hạn thanh toán:</td>
+                <td>Trước ngày 05 của chu kỳ thanh toán</td>
+            </tr>
+            <tr>
+                <td class="label">Phương thức:</td>
+                <td>Tiền mặt hoặc chuyển khoản ngân hàng</td>
+            </tr>
+            <tr>
+                <td class="label">Các khoản phí khác:</td>
+                <td>Điện, nước, internet, rác, vệ sinh... (theo thực tế sử dụng)</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">ĐIỀU 4: QUYỀN VÀ NGHĨA VỤ CỦA BÊN CHO THUÊ</div>
+        <p><strong>4.1. Quyền của Bên A:</strong></p>
+        <ul>
+            <li>Yêu cầu Bên B thanh toán đầy đủ, đúng hạn các khoản tiền theo hợp đồng</li>
+            <li>Yêu cầu Bên B bồi thường thiệt hại do vi phạm hợp đồng gây ra</li>
+            <li>Đơn phương chấm dứt hợp đồng nếu Bên B vi phạm nghiêm trọng</li>
+            <li>Kiểm tra tình trạng phòng định kỳ (có báo trước)</li>
+            <li>Thu hồi phòng khi hết hạn hợp đồng</li>
+        </ul>
+        <p><strong>4.2. Nghĩa vụ của Bên A:</strong></p>
+        <ul>
+            <li>Bàn giao phòng trọ đúng tình trạng thỏa thuận</li>
+            <li>Bảo đảm quyền sử dụng ổn định của Bên B trong thời hạn hợp đồng</li>
+            <li>Bảo trì, sửa chữa phòng trọ theo thỏa thuận</li>
+            <li>Hoàn trả tiền đặt cọc khi kết thúc hợp đồng (trừ thiệt hại)</li>
+            <li>Cung cấp thông tin liên lạc khẩn cấp</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <div class="section-title">ĐIỀU 5: QUYỀN VÀ NGHĨA VỤ CỦA BÊN THUÊ</div>
+        <p><strong>5.1. Quyền của Bên B:</strong></p>
+        <ul>
+            <li>Được sử dụng phòng trọ đúng mục đích đã thỏa thuận</li>
+            <li>Yêu cầu Bên A sửa chữa những hỏng hóc không do lỗi của mình</li>
+            <li>Được gia hạn hợp đồng nếu hai bên đồng ý</li>
+            <li>Được bảo mật thông tin cá nhân</li>
+            <li>Được yêu cầu cung cấp hóa đơn thanh toán</li>
+        </ul>
+        <p><strong>5.2. Nghĩa vụ của Bên B:</strong></p>
+        <ul>
+            <li>Thanh toán đầy đủ, đúng hạn các khoản tiền theo hợp đồng</li>
+            <li>Sử dụng phòng trọ đúng mục đích, giữ gìn vệ sinh chung</li>
+            <li>Tuân thủ quy định về phòng cháy chữa cháy, an ninh trật tự</li>
+            <li>Bồi thường thiệt hại do mình gây ra</li>
+            <li>Trả lại phòng trọ khi kết thúc hợp đồng</li>
+            <li>Báo cáo ngay khi có sự cố về điện, nước, an ninh</li>
+            <li>Không được cho người khác thuê lại</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <div class="section-title">ĐIỀU 6: ĐIỀU KHOẢN VỀ DỊCH VỤ</div>
+        <ul>
+            <li>Điện, nước: Tính theo đồng hồ, giá theo quy định</li>
+            <li>Internet: Theo gói dịch vụ đã đăng ký</li>
+            <li>Vệ sinh: Được cung cấp hàng tuần</li>
+            <li>An ninh: Có camera giám sát 24/7</li>
+            <li>Bảo trì: Miễn phí cho các hỏng hóc thông thường</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <div class="section-title">ĐIỀU 7: ĐIỀU KHOẢN CHẤM DỨT HỢP ĐỒNG</div>
+        <ul>
+            <li>Hết hạn hợp đồng theo thỏa thuận</li>
+            <li>Hai bên đồng ý chấm dứt sớm</li>
+            <li>Vi phạm nghiêm trọng các điều khoản hợp đồng</li>
+            <li>Phòng bị thu hồi theo quyết định của cơ quan có thẩm quyền</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <div class="section-title">ĐIỀU 8: GIẢI QUYẾT TRANH CHẤP</div>
+        <ul>
+            <li>Hai bên cam kết giải quyết tranh chấp bằng thương lượng</li>
+            <li>Nếu không thỏa thuận được, sẽ giải quyết tại Tòa án có thẩm quyền</li>
+            <li>Áp dụng pháp luật Việt Nam để giải quyết</li>
+        </ul>
+    </div>
+
+    {{#if terms}}
+    <div class="section">
+        <div class="section-title">ĐIỀU KHOẢN BỔ SUNG</div>
+        <ol>
+            {{#each terms}}
+            <li>{{this}}</li>
+            {{/each}}
+        </ol>
+    </div>
+    {{/if}}
+
+    <div class="warning">
+        <strong>LƯU Ý QUAN TRỌNG:</strong> Bên thuê cần đọc kỹ tất cả điều khoản trước khi ký. Việc ký hợp đồng đồng nghĩa với việc đồng ý tuân thủ tất cả điều khoản đã thỏa thuận.
+    </div>
+
+    <p style="margin-top: 30px;"><strong>Điều cuối:</strong> Hợp đồng này được lập thành 02 (hai) bản có giá trị pháp lý như nhau, mỗi bên giữ 01 bản. 
+    Hợp đồng có hiệu lực kể từ ngày ký và chấm dứt theo đúng thỏa thuận.</p>
+
+    <div class="signature-section">
+        <div class="signature-box">
+            <div style="font-weight: bold; margin-bottom: 10px; color: #e74c3c;">ĐẠI DIỆN BÊN B</div>
+            <div style="font-style: italic; margin-bottom: 60px;">(Ký và ghi rõ họ tên)</div>
+            <div style="font-size: 12px; color: #7f8c8d;">Ngày: ............</div>
+        </div>
+        <div class="signature-box">
+            <div style="font-weight: bold; margin-bottom: 10px; color: #27ae60;">ĐẠI DIỆN BÊN A</div>
+            <div style="font-style: italic; margin-bottom: 60px;">(Ký và ghi rõ họ tên)</div>
+            <div style="font-size: 12px; color: #7f8c8d;">Ngày: ............</div>
         </div>
     </div>
 </body>

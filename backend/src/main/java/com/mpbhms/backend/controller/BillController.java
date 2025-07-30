@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.Map;
 import com.mpbhms.backend.service.EmailService;
 import com.mpbhms.backend.service.VnPayService;
+import com.mpbhms.backend.service.NotificationService;
+import com.mpbhms.backend.dto.NotificationDTO;
+import com.mpbhms.backend.enums.NotificationType;
 
 @RestController
 @RequestMapping("/mpbhms/bills")
@@ -30,6 +33,7 @@ public class BillController {
     private final BillService billService;
     private final EmailService emailService;
     private final VnPayService vnPayService;
+    private final NotificationService notificationService;
 
     @PostMapping("/generate-first")
     public BillResponse generateFirstBill(@RequestParam Long contractId) {
@@ -150,38 +154,73 @@ public class BillController {
         }
     }
 
+    @PostMapping("/{billId}/send")
+    public ResponseEntity<?> sendBill(@PathVariable Long billId) {
+        return sendBillEmail(billId);
+    }
+
     @PostMapping("/send-email/{billId}")
     public ResponseEntity<?> sendBillEmail(@PathVariable Long billId) {
         Bill bill = billService.getBillById(billId);
         byte[] pdfBytes = billService.generateBillPdf(billId);
+        
         // Lấy email của tất cả người thuê trong hợp đồng
         List<String> emails = bill.getContract().getRoomUsers().stream()
             .filter(ru -> ru.getUser() != null && ru.getUser().getEmail() != null)
             .map(ru -> ru.getUser().getEmail())
             .distinct()
             .toList();
-        String subject = "Hóa đơn phòng " + bill.getRoom().getRoomNumber();
+            
+        String subject = "Hóa đơn mới - Phòng " + bill.getRoom().getRoomNumber();
+        
+        // Tạo payment URL
         String paymentUrl = "";
         try {
             paymentUrl = vnPayService.createPaymentUrl(bill.getId(), bill.getTotalAmount().longValue(), "Thanh toán hóa đơn #" + bill.getId());
         } catch (Exception e) {
             paymentUrl = null;
         }
-        String content = "Xin chào, vui lòng xem hóa đơn đính kèm.<br>" +
-                (paymentUrl != null ? ("Để thanh toán hóa đơn, vui lòng bấm vào <a href='" + paymentUrl + "'>đây</a>.<br>Hoặc copy link: " + paymentUrl) : "Không tạo được link thanh toán tự động.");
+        
+        // Tạo nội dung email đẹp hơn
+        String content = billService.buildNormalBillEmailContent(bill, paymentUrl);
+        
         int sent = 0;
-        for (String email : emails) {
-            try {
-                emailService.sendBillWithAttachment(email, subject, content, pdfBytes);
-                sent++;
-            } catch (Exception e) {
-                // Có thể log lỗi gửi từng email
+        int notificationsSent = 0;
+        
+        // Gửi email và notification cho từng người thuê
+        for (var roomUser : bill.getContract().getRoomUsers()) {
+            if (roomUser.getUser() != null && Boolean.TRUE.equals(roomUser.getIsActive())) {
+                // Gửi email
+                if (roomUser.getUser().getEmail() != null) {
+                    try {
+                        emailService.sendBillWithAttachment(roomUser.getUser().getEmail(), subject, content, pdfBytes);
+                        sent++;
+                    } catch (Exception e) {
+                        // Có thể log lỗi gửi từng email
+                    }
+                }
+                
+                // Gửi notification
+                try {
+                    NotificationDTO notification = new NotificationDTO();
+                    notification.setRecipientId(roomUser.getUser().getId());
+                    notification.setTitle("Hóa đơn mới - Phòng " + bill.getRoom().getRoomNumber());
+                    notification.setMessage("Bạn có hóa đơn mới #" + bill.getId() + " - Số tiền: " + 
+                        bill.getTotalAmount().toString() + " VNĐ. Vui lòng kiểm tra email để xem chi tiết.");
+                    notification.setType(NotificationType.BILL_OVERDUE);
+                    notification.setMetadata("{\"billId\":" + bill.getId() + ",\"roomNumber\":\"" + bill.getRoom().getRoomNumber() + "\"}");
+                    notificationService.createAndSend(notification);
+                    notificationsSent++;
+                } catch (Exception e) {
+                    // Có thể log lỗi gửi notification
+                }
             }
         }
-        if (sent > 0) {
-            return ResponseEntity.ok("Đã gửi email hóa đơn cho " + sent + " người thuê!");
+        
+        if (sent > 0 || notificationsSent > 0) {
+            return ResponseEntity.ok("Đã gửi email hóa đơn cho " + sent + " người thuê và " + notificationsSent + " thông báo!");
         } else {
-            return ResponseEntity.status(500).body("Không gửi được email cho người thuê nào!");
+            return ResponseEntity.status(500).body("Không gửi được email hoặc thông báo cho người thuê nào!");
         }
     }
 
@@ -202,5 +241,120 @@ public class BillController {
             "revenueByMonth", revenueByMonth,
             "monthRevenue", monthRevenue
         );
+    }
+
+    @PutMapping("/{id}/payment-status")
+    public BillResponse updatePaymentStatus(@PathVariable Long id, @RequestBody Map<String, Object> request) {
+        Boolean status = Boolean.valueOf(request.get("status").toString());
+        return billService.updatePaymentStatus(id, status);
+    }
+
+    @PostMapping("/{id}/create-penalty")
+    public ResponseEntity<?> createLatePenaltyBill(@PathVariable Long id) {
+        try {
+            // ⚠️ VALIDATION: Kiểm tra xem hóa đơn có phải là hóa đơn phạt không
+            Bill originalBill = billService.getBillById(id);
+            if (originalBill.getBillType() == BillType.LATE_PENALTY) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("message", "Không thể tạo phạt cho hóa đơn phạt. Chỉ có thể tạo phạt cho hóa đơn gốc.");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+            
+            BillResponse penaltyBill = billService.createLatePenaltyBill(id);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Đã tạo hóa đơn phạt thành công");
+            response.put("penaltyBill", penaltyBill);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Lỗi khi tạo hóa đơn phạt: " + e.getMessage());
+            
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+
+    @PostMapping("/check-and-create-penalties")
+    public ResponseEntity<?> checkAndCreateLatePenalties() {
+        try {
+            List<BillResponse> createdPenalties = billService.checkAndCreateLatePenalties();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Đã tạo " + createdPenalties.size() + " hóa đơn phạt");
+            response.put("createdPenalties", createdPenalties);
+            response.put("count", createdPenalties.size());
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Lỗi khi kiểm tra và tạo phạt: " + e.getMessage());
+            errorResponse.put("count", 0);
+            
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+
+    @PostMapping("/{billId}/send-overdue-warning")
+    public ResponseEntity<?> sendOverdueWarning(@PathVariable Long billId) {
+        try {
+            Bill bill = billService.getBillById(billId);
+            
+            // Kiểm tra hóa đơn có quá hạn không
+            if (bill.getStatus()) {
+                return ResponseEntity.badRequest().body("Hóa đơn đã thanh toán, không cần gửi cảnh báo quá hạn");
+            }
+            
+            // Gọi service để gửi thông báo cảnh báo
+            billService.sendOverdueWarningNotification(bill);
+            
+            return ResponseEntity.ok("Đã gửi thông báo cảnh báo quá hạn thành công");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Lỗi khi gửi thông báo cảnh báo: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * API để chạy thủ công job kiểm tra và tạo phạt quá hạn
+     * Chỉ dành cho ADMIN và LANDLORD
+     */
+    @PostMapping("/run-late-penalty-check")
+    public ResponseEntity<?> runLatePenaltyCheck() {
+        try {
+            List<BillResponse> createdPenalties = billService.checkAndCreateLatePenalties();
+            
+            if (!createdPenalties.isEmpty()) {
+                return ResponseEntity.ok("✅ Đã tạo " + createdPenalties.size() + " hóa đơn phạt tự động. Chi tiết: " + 
+                    createdPenalties.stream()
+                        .map(p -> "Hóa đơn phạt #" + p.getId() + " cho hóa đơn gốc #" + p.getOriginalBillId() + " - " + p.getTotalAmount() + " VNĐ")
+                        .collect(java.util.stream.Collectors.joining(", ")));
+            } else {
+                return ResponseEntity.ok("ℹ️ Không có hóa đơn nào cần tạo phạt");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("❌ Lỗi khi chạy job kiểm tra phạt: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * API để xem danh sách hóa đơn quá hạn hiện tại
+     */
+    @GetMapping("/overdue-bills")
+    public ResponseEntity<?> getOverdueBills() {
+        try {
+            List<Bill> overdueBills = billService.getOverdueBills();
+            List<BillResponse> overdueBillResponses = overdueBills.stream()
+                .map(billService::toResponse)
+                .collect(java.util.stream.Collectors.toList());
+            
+            return ResponseEntity.ok(overdueBillResponses);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("❌ Lỗi khi lấy danh sách hóa đơn quá hạn: " + e.getMessage());
+        }
     }
 }

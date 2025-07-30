@@ -14,6 +14,6 @@ public class AddUsersToRoomRequest {
 
     private Instant contractStartDate;
     private Instant contractEndDate;
-    private BigDecimal depositAmount;
+    private Double depositAmount;
     private String paymentCycle; // Enum: MONTHLY, QUARTERLY, ...
 }

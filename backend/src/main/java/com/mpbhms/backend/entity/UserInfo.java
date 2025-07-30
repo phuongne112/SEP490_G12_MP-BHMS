@@ -34,6 +34,7 @@ public class UserInfo {
     private String phoneNumber2;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     private Gender gender;
 
     @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+7")

@@ -63,8 +63,8 @@ public class ContractAmendment extends BaseEntity {
     @Column(name = "new_rent_amount")
     private Double newRentAmount;
 
-    @Column(name = "new_deposit_amount", precision = 15, scale = 2)
-    private BigDecimal newDepositAmount;
+    @Column(name = "new_deposit_amount")
+    private Double newDepositAmount;
 
     @Column(name = "new_end_date")
     private Instant newEndDate;
@@ -76,6 +76,10 @@ public class ContractAmendment extends BaseEntity {
     @Column(name = "new_renter_ids", columnDefinition = "TEXT")
     @Convert(converter = com.mpbhms.backend.util.JsonListLongConverter.class)
     private List<Long> newRenterIds;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "new_payment_cycle", length = 20)
+    private com.mpbhms.backend.enums.PaymentCycle newPaymentCycle;
     
     public enum AmendmentType {
         RENT_INCREASE,

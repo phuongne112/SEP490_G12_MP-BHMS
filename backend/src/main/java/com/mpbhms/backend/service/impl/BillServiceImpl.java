@@ -32,6 +32,8 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.PdfWriter;
 import java.io.ByteArrayOutputStream;
@@ -48,6 +50,8 @@ import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfWriter;
 import java.util.stream.Collectors;
+import com.mpbhms.backend.service.EmailService;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -60,6 +64,10 @@ public class BillServiceImpl implements BillService {
     private final ServiceService serviceService;
     private final RoomRepository roomRepository;
     private final NotificationService notificationService;
+    private final EmailService emailService;
+    
+    // Cache để theo dõi các hóa đơn đã gửi cảnh báo ngày thứ 7
+    private final Set<Long> warningSentBills = new HashSet<>();
 
     @Override
     public Bill generateFirstBill(Long contractId) {
@@ -212,11 +220,11 @@ public class BillServiceImpl implements BillService {
     @Override
     public Bill generateBill(Long contractId, LocalDate fromDate, LocalDate toDate, BillType billType) {
         System.out.println(String.format(
-            "\n🏁 GENERATE BILL REQUEST:\n" +
-            "Contract ID: %d\n" +
-            "From Date: %s\n" +
-            "To Date: %s\n" +
-            "Bill Type: %s\n" +
+            "\n🏁 YÊU CẦU TẠO HÓA ĐƠN:\n" +
+            "ID Hợp đồng: %d\n" +
+            "Từ ngày: %s\n" +
+            "Đến ngày: %s\n" +
+            "Loại hóa đơn: %s\n" +
             "================================",
             contractId, fromDate, toDate, billType
         ));
@@ -259,7 +267,7 @@ public class BillServiceImpl implements BillService {
 
         // Phân biệt validation giữa chu kỳ chuẩn và tùy chọn
         boolean isCustomPeriod = isCustomDateRange(fromDate, toDate, contractStart, expectedMonths);
-        System.out.println("🔍 DETECTION RESULT: isCustomPeriod = " + isCustomPeriod);
+        System.out.println("KẾT QUẢ PHÁT HIỆN: isCustomPeriod = " + isCustomPeriod);
         
         if (!isCustomPeriod) {
             // Logic cứng cho chu kỳ chuẩn - giữ nguyên để đảm bảo tính nhất quán
@@ -296,7 +304,7 @@ public class BillServiceImpl implements BillService {
             long daysBetween = ChronoUnit.DAYS.between(fromDate, toDate) + 1;
             months = Math.max(1, (int) Math.round(daysBetween / 30.0)); // Ít nhất 1 tháng
             System.out.println(String.format(
-                "✅ CUSTOM BILLING: %s to %s (%d days) -> %d months (Price: %,.0f × %d = %,.0f VND)",
+                "TÍNH TIỀN TÙY CHỌN: %s đến %s (%d ngày) -> %d tháng (Giá: %,.0f × %d = %,.0f VND)",
                 fromDate, toDate, daysBetween, months, 
                 room.getPricePerMonth(), months, room.getPricePerMonth() * months
             ));
@@ -304,7 +312,7 @@ public class BillServiceImpl implements BillService {
             // Với chu kỳ chuẩn, dùng logic cũ
             months = countMonths(cycle);
             System.out.println(String.format(
-                "✅ STANDARD BILLING: %s cycle -> %d months (Price: %,.0f × %d = %,.0f VND)", 
+                "TÍNH TIỀN CHUẨN: %s chu kỳ -> %d tháng (Giá: %,.0f × %d = %,.0f VND)", 
                 cycle, months, room.getPricePerMonth(), months, room.getPricePerMonth() * months
             ));
         }
@@ -559,12 +567,23 @@ public class BillServiceImpl implements BillService {
     }
 
     @Override
+    @Transactional
     public BillResponse toResponse(Bill bill) {
         BillResponse response = new BillResponse();
         response.setId(bill.getId());
         response.setContractId(bill.getContract().getId());
         response.setRoomId(bill.getRoom().getId());
-        response.setRoomNumber(bill.getRoom().getRoomNumber());
+        
+        // Fetch room để tránh lazy loading
+        try {
+            Room room = roomRepository.findById(bill.getRoom().getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy room"));
+            response.setRoomNumber(room.getRoomNumber());
+        } catch (Exception e) {
+            System.err.println("Lỗi khi fetch room cho bill #" + bill.getId() + ": " + e.getMessage());
+            response.setRoomNumber("N/A");
+        }
+        
         response.setFromDate(bill.getFromDate());
         response.setToDate(bill.getToDate());
         response.setPaymentCycle(bill.getPaymentCycle());
@@ -574,6 +593,24 @@ public class BillServiceImpl implements BillService {
         response.setPaidDate(bill.getPaidDate());
         response.setTotalAmount(bill.getTotalAmount());
         response.setStatus(bill.getStatus());
+
+        // Thông tin phạt quá hạn
+        if (bill.getOriginalBill() != null) {
+            response.setOriginalBillId(bill.getOriginalBill().getId());
+        }
+        response.setPenaltyRate(bill.getPenaltyRate());
+        
+        // Tính toán số ngày quá hạn cho tất cả hóa đơn
+        if (bill.getOverdueDays() != null) {
+            // Nếu đã có giá trị (hóa đơn phạt), sử dụng giá trị đó
+            response.setOverdueDays(bill.getOverdueDays());
+        } else {
+            // Tính toán số ngày quá hạn cho hóa đơn thường
+            response.setOverdueDays(calculateOverdueDays(bill));
+        }
+        
+        response.setPenaltyAmount(bill.getPenaltyAmount());
+        response.setNotes(bill.getNotes());
 
         List<BillDetailResponse> detailResponses = new ArrayList<>();
         for (BillDetail detail : bill.getBillDetails()) {
@@ -845,7 +882,7 @@ public class BillServiceImpl implements BillService {
                 boolean billExists = checkBillExists(contract.getId(), nextPeriodStart, nextPeriodEnd);
                 
                 if (billExists) {
-                    System.out.println("✅ Bill already exists for this period, skipping");
+                    System.out.println("Hóa đơn đã tồn tại cho kỳ này, bỏ qua");
                     continue;
                 }
                 
@@ -853,16 +890,16 @@ public class BillServiceImpl implements BillService {
                 Bill newBill = generateBill(contract.getId(), nextPeriodStart, nextPeriodEnd, BillType.CONTRACT_TOTAL);
                 generatedBills.add(toResponse(newBill));
                 
-                System.out.println("✅ Generated bill #" + newBill.getId() + " - Amount: " + newBill.getTotalAmount() + " VND");
+                System.out.println("Đã tạo hóa đơn #" + newBill.getId() + " - Số tiền: " + newBill.getTotalAmount() + " VND");
                 
             } catch (Exception e) {
-                System.out.println("❌ Error processing contract #" + contract.getId() + ": " + e.getMessage());
+                System.out.println("Lỗi xử lý hợp đồng #" + contract.getId() + ": " + e.getMessage());
                 // Tiếp tục với contracts khác
             }
         }
         
-        System.out.println("\n🏁 BULK GENERATION COMPLETED");
-        System.out.println("📊 Generated " + generatedBills.size() + " new bills");
+        System.out.println("\n🏁 HOÀN THÀNH TẠO HÓA ĐƠN HÀNG LOẠT");
+        System.out.println("Đã tạo " + generatedBills.size() + " hóa đơn mới");
         
         return generatedBills;
     }
@@ -1102,7 +1139,9 @@ public class BillServiceImpl implements BillService {
     }
     @Override
     public long countOverdue() {
-        return billRepository.countOverdue(Instant.now());
+        Instant now = Instant.now();
+        Instant sevenDaysAgo = now.minusSeconds(7 * 24 * 60 * 60); // 7 ngày trước (từ ngày thứ 7 trở đi)
+        return billRepository.countOverdue(sevenDaysAgo);
     }
 
     @Override
@@ -1137,11 +1176,858 @@ public class BillServiceImpl implements BillService {
                     noti.setMessage("Bạn có hóa đơn mới #" + bill.getId() + " từ " +
                         bill.getFromDate().atZone(java.time.ZoneId.systemDefault()).toLocalDate() + " đến " +
                         bill.getToDate().atZone(java.time.ZoneId.systemDefault()).toLocalDate() + ". Vui lòng kiểm tra và thanh toán.");
-                    noti.setType(NotificationType.CUSTOM); // Có thể thêm mới BILL nếu muốn
+                    noti.setType(NotificationType.BILL_CREATED); // Use specific bill notification type
                     noti.setMetadata("{\"billId\":" + bill.getId() + "}");
                     notificationService.createAndSend(noti);
                 }
             }
         }
     }
+
+    @Override
+    public BillResponse updatePaymentStatus(Long billId, Boolean status) {
+        Bill bill = billRepository.findById(billId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy hóa đơn với ID: " + billId));
+        
+        bill.setStatus(status);
+        
+        // Nếu đánh dấu là đã thanh toán, cập nhật ngày thanh toán
+        if (status) {
+            bill.setPaidDate(Instant.now());
+        } else {
+            bill.setPaidDate(null);
+        }
+        
+        Bill updatedBill = billRepository.save(bill);
+        
+        // 🆕 Xóa khỏi cache cảnh báo nếu bill được thanh toán
+        if (status) {
+            warningSentBills.remove(billId);
+            System.out.println("[" + java.time.LocalDateTime.now() + "] Đã xóa hóa đơn #" + billId + " khỏi cache cảnh báo (đã thanh toán)");
+        }
+        
+        return toResponse(updatedBill);
+    }
+
+    @Override
+    public BillResponse createLatePenaltyBill(Long originalBillId) {
+        Bill originalBill = billRepository.findById(originalBillId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy hóa đơn gốc với ID: " + originalBillId));
+        
+        // KIỂM TRA QUAN TRỌNG: Không cho phép tạo phạt cho hóa đơn phạt
+        if (originalBill.getBillType() == BillType.LATE_PENALTY) {
+            throw new BusinessException("Không thể tạo phạt cho hóa đơn phạt. Chỉ có thể tạo phạt cho hóa đơn gốc.");
+        }
+        
+        // Kiểm tra hóa đơn gốc chưa thanh toán
+        if (Boolean.TRUE.equals(originalBill.getStatus())) {
+            throw new BusinessException("Không thể tạo phạt cho hóa đơn đã thanh toán");
+        }
+        
+        // Tính toán số ngày quá hạn từ hóa đơn gốc
+        int overdueDays = calculateOverdueDays(originalBill);
+        if (overdueDays <= 0) {
+            throw new BusinessException("Hóa đơn chưa quá hạn");
+        }
+        
+        System.out.println("Tạo phạt cho hóa đơn #" + originalBill.getId() + " - Quá hạn: " + overdueDays + " ngày");
+        
+        // 🆕 LOGIC MỚI: Xóa hóa đơn phạt cũ nếu có và tạo hóa đơn phạt mới với tỷ lệ cao hơn
+        if (billRepository.existsByOriginalBillAndBillType(originalBill, BillType.LATE_PENALTY)) {
+            // Tìm và xóa hóa đơn phạt cũ
+            List<Bill> existingPenaltyBills = billRepository.findAll().stream()
+                .filter(bill -> bill.getOriginalBill() != null && 
+                               bill.getOriginalBill().getId().equals(originalBill.getId()) && 
+                               bill.getBillType() == BillType.LATE_PENALTY)
+                .collect(Collectors.toList());
+            
+            for (Bill existingPenaltyBill : existingPenaltyBills) {
+                System.out.println("Xóa hóa đơn phạt cũ #" + existingPenaltyBill.getId() + " để tạo phạt mới với tỷ lệ cao hơn");
+                billRepository.delete(existingPenaltyBill);
+            }
+        }
+        
+        // Tính toán phạt với số ngày quá hạn hiện tại
+        BigDecimal penaltyAmount = calculateLatePenalty(originalBill.getTotalAmount(), overdueDays);
+        
+        // Tạo hóa đơn phạt mới
+        Bill penaltyBill = new Bill();
+        penaltyBill.setRoom(originalBill.getRoom());
+        penaltyBill.setContract(originalBill.getContract());
+        penaltyBill.setFromDate(originalBill.getToDate()); // Từ ngày hết hạn hóa đơn gốc
+        penaltyBill.setToDate(Instant.now()); // Đến ngày hiện tại
+        penaltyBill.setPaymentCycle(originalBill.getPaymentCycle());
+        penaltyBill.setBillType(BillType.LATE_PENALTY);
+        penaltyBill.setBillDate(Instant.now());
+        penaltyBill.setTotalAmount(penaltyAmount);
+        penaltyBill.setStatus(false);
+        penaltyBill.setOriginalBill(originalBill);
+        penaltyBill.setPenaltyRate(calculatePenaltyRate(overdueDays));
+        
+        // QUAN TRỌNG: Set overdueDays từ hóa đơn gốc, không tính lại từ hóa đơn phạt
+        penaltyBill.setOverdueDays(overdueDays);
+        
+        penaltyBill.setPenaltyAmount(penaltyAmount);
+        penaltyBill.setNotes("Phạt quá hạn cho hóa đơn #" + originalBill.getId() + " - Quá hạn " + overdueDays + " ngày (Tỷ lệ: " + penaltyBill.getPenaltyRate() + "%)");
+        
+        // Tạo chi tiết hóa đơn phạt
+        List<BillDetail> penaltyDetails = new ArrayList<>();
+        BillDetail penaltyDetail = new BillDetail();
+        penaltyDetail.setItemType(BillItemType.LATE_PENALTY);
+        penaltyDetail.setDescription("Phạt quá hạn hóa đơn #" + originalBill.getId() + " - " + overdueDays + " ngày quá hạn (" + penaltyBill.getPenaltyRate() + "%)");
+        penaltyDetail.setItemAmount(penaltyAmount);
+        penaltyDetail.setCreatedDate(Instant.now());
+        penaltyDetail.setBill(penaltyBill);
+        penaltyDetails.add(penaltyDetail);
+        
+        penaltyBill.setBillDetails(penaltyDetails);
+        
+        Bill savedPenaltyBill = billRepository.save(penaltyBill);
+        
+        // 🆕 Xóa hóa đơn gốc khỏi cache cảnh báo khi đã tạo phạt
+        warningSentBills.remove(originalBillId);
+        System.out.println("[" + java.time.LocalDateTime.now() + "] Đã xóa hóa đơn #" + originalBillId + " khỏi cache cảnh báo (đã tạo phạt)");
+        
+        // Gửi thông báo
+        sendPenaltyNotification(savedPenaltyBill);
+        
+        return toResponse(savedPenaltyBill);
+    }
+
+    @Override
+    @Transactional
+    public List<BillResponse> checkAndCreateLatePenalties() {
+        System.out.println("[" + java.time.LocalDateTime.now() + "] Bắt đầu checkAndCreateLatePenalties()");
+        
+        List<Bill> overdueBills = getOverdueBills();
+        List<BillResponse> createdPenalties = new ArrayList<>();
+        
+        System.out.println("[" + java.time.LocalDateTime.now() + "] Kiểm tra " + overdueBills.size() + " hóa đơn quá hạn...");
+        
+        for (Bill overdueBill : overdueBills) {
+            try {
+                System.out.println("[" + java.time.LocalDateTime.now() + "] Xử lý hóa đơn #" + overdueBill.getId() + 
+                    " - Loại: " + overdueBill.getBillType() + " - toDate: " + overdueBill.getToDate());
+                
+                // KIỂM TRA BỔ SUNG: Đảm bảo không tạo phạt cho hóa đơn phạt
+                if (overdueBill.getBillType() == BillType.LATE_PENALTY) {
+                    System.out.println("[" + java.time.LocalDateTime.now() + "] Bỏ qua hóa đơn phạt #" + overdueBill.getId() + " - Không tạo phạt chồng phạt");
+                    continue;
+                }
+                
+                // 🆕 Kiểm tra xem đã có phạt cho hóa đơn này chưa
+                List<Bill> existingPenalties = billRepository.findAll().stream()
+                    .filter(bill -> bill.getOriginalBill() != null && 
+                                   bill.getOriginalBill().getId().equals(overdueBill.getId()) && 
+                                   bill.getBillType() == BillType.LATE_PENALTY)
+                    .toList();
+                
+                if (!existingPenalties.isEmpty()) {
+                    System.out.println("[" + java.time.LocalDateTime.now() + "] Hóa đơn #" + overdueBill.getId() + " đã có phạt, bỏ qua");
+                    continue;
+                }
+                
+                // 🆕 Tính số ngày quá hạn
+                int overdueDays = calculateOverdueDays(overdueBill);
+                
+                // 🆕 LOGIC MỚI: Chỉ tạo phạt từ ngày thứ 8 trở đi
+                if (overdueDays >= 8) {
+                    // Từ ngày thứ 8 trở đi: Tạo phạt + gửi thông báo tạo phạt
+                    System.out.println("[" + java.time.LocalDateTime.now() + "] Hóa đơn #" + overdueBill.getId() + " quá hạn " + overdueDays + " ngày - TẠO PHẠT + THÔNG BÁO");
+                    
+                    // Tạo phạt mới
+                    BillResponse penaltyBill = createLatePenaltyBill(overdueBill.getId());
+                    createdPenalties.add(penaltyBill);
+                    System.out.println("[" + java.time.LocalDateTime.now() + "] Đã tạo phạt #" + penaltyBill.getId() + " cho hóa đơn gốc #" + overdueBill.getId() + " (quá hạn " + overdueDays + " ngày)");
+                } else {
+                    // Dưới 8 ngày: Chưa làm gì (cảnh báo đã được xử lý riêng)
+                    System.out.println("[" + java.time.LocalDateTime.now() + "] Hóa đơn #" + overdueBill.getId() + " quá hạn " + overdueDays + " ngày - chưa đủ điều kiện tạo phạt (cần >= 8 ngày)");
+                }
+                
+            } catch (Exception e) {
+                System.err.println("[" + java.time.LocalDateTime.now() + "] Lỗi khi xử lý hóa đơn #" + overdueBill.getId() + ": " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        
+        System.out.println("[" + java.time.LocalDateTime.now() + "] Hoàn thành: Đã tạo " + createdPenalties.size() + " hóa đơn phạt mới");
+        System.out.println("[" + java.time.LocalDateTime.now() + "] Không có hóa đơn nào cần tạo phạt (cảnh báo đã được xử lý riêng)");
+        return createdPenalties;
+    }
+    
+    // Gửi thông báo cảnh báo hóa đơn quá hạn
+    @Transactional
+    private void sendOverdueWarningNotificationInternal(Bill overdueBill) {
+        try {
+            // Fetch contract với roomUsers để tránh lazy loading
+            Contract contract = contractRepository.findById(overdueBill.getContract().getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy contract"));
+            
+            int overdueDays = calculateOverdueDays(overdueBill);
+            
+            // 1. Gửi thông báo cho người thuê
+            if (contract.getRoomUsers() != null) {
+                for (RoomUser ru : contract.getRoomUsers()) {
+                    if (ru.getUser() != null && Boolean.TRUE.equals(ru.getIsActive())) {
+                        // Gửi notification cảnh báo
+                        try {
+                            NotificationDTO noti = new NotificationDTO();
+                            noti.setRecipientId(ru.getUser().getId());
+                            noti.setTitle("Cảnh báo hóa đơn quá hạn - Phòng " + contract.getRoom().getRoomNumber());
+                            noti.setMessage("Hóa đơn #" + overdueBill.getId() + " đã quá hạn " + overdueDays + " ngày. Số tiền: " + 
+                                overdueBill.getTotalAmount().toString() + " VNĐ. Vui lòng thanh toán ngay để tránh bị phạt.");
+                            noti.setType(NotificationType.BILL_OVERDUE);
+                            noti.setMetadata("{\"billId\":" + overdueBill.getId() + ",\"overdueDays\":" + overdueDays + "}");
+                            notificationService.createAndSend(noti);
+                        } catch (Exception e) {
+                            System.err.println("Lỗi gửi notification cảnh báo cho user " + ru.getUser().getId() + ": " + e.getMessage());
+                        }
+                        
+                        // Gửi email cảnh báo
+                        if (ru.getUser().getEmail() != null) {
+                            try {
+                                String subject = "CẢNH BÁO HÓA ĐƠN QUÁ HẠN - Phòng " + contract.getRoom().getRoomNumber();
+                                String content = buildOverdueWarningEmailContent(overdueBill, overdueDays);
+                                
+                                // Tạo PDF hóa đơn gốc
+                                byte[] pdfBytes = generateBillPdf(overdueBill.getId());
+                                
+                                emailService.sendBillWithAttachment(
+                                    ru.getUser().getEmail(), 
+                                    subject, 
+                                    content, 
+                                    pdfBytes
+                                );
+                                
+                                System.out.println("Đã gửi email cảnh báo quá hạn cho " + ru.getUser().getEmail());
+                            } catch (Exception e) {
+                                System.err.println("Lỗi gửi email cảnh báo cho " + ru.getUser().getEmail() + ": " + e.getMessage());
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 2. 🆕 Gửi thông báo cho landlord
+            sendLandlordOverdueNotification(overdueBill, overdueDays);
+            
+        } catch (Exception e) {
+            System.err.println("Lỗi trong sendOverdueWarningNotificationInternal: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    // Gửi thông báo cho landlord về hóa đơn quá hạn
+    private void sendLandlordOverdueNotification(Bill overdueBill, int overdueDays) {
+        try {
+            User landlord = overdueBill.getRoom().getLandlord();
+            if (landlord != null) {
+                // Gửi notification cho landlord
+                NotificationDTO landlordNoti = new NotificationDTO();
+                landlordNoti.setRecipientId(landlord.getId());
+                landlordNoti.setTitle("Thông báo hóa đơn quá hạn - Phòng " + overdueBill.getRoom().getRoomNumber());
+                landlordNoti.setMessage("Hóa đơn #" + overdueBill.getId() + " của phòng " + overdueBill.getRoom().getRoomNumber() + 
+                    " đã quá hạn " + overdueDays + " ngày. Số tiền: " + overdueBill.getTotalAmount().toString() + " VNĐ. " +
+                    "Hệ thống sẽ tự động tạo phạt nếu không thanh toán.");
+                landlordNoti.setType(NotificationType.BILL_OVERDUE);
+                landlordNoti.setMetadata("{\"billId\":" + overdueBill.getId() + ",\"roomNumber\":\"" + overdueBill.getRoom().getRoomNumber() + "\",\"overdueDays\":" + overdueDays + "}");
+                notificationService.createAndSend(landlordNoti);
+                
+                System.out.println("Đã gửi notification cảnh báo quá hạn cho landlord " + landlord.getUsername());
+                
+                // Gửi email cho landlord
+                if (landlord.getEmail() != null) {
+                    try {
+                        String subject = "THÔNG BÁO HÓA ĐƠN QUÁ HẠN - Phòng " + overdueBill.getRoom().getRoomNumber();
+                        String content = buildLandlordOverdueEmailContent(overdueBill, overdueDays);
+                        
+                        emailService.sendBillWithAttachment(
+                            landlord.getEmail(), 
+                            subject, 
+                            content, 
+                            null // Không đính kèm PDF cho landlord
+                        );
+                        
+                        System.out.println("Đã gửi email cảnh báo quá hạn cho landlord " + landlord.getEmail());
+                    } catch (Exception e) {
+                        System.err.println("Lỗi gửi email cảnh báo cho landlord " + landlord.getEmail() + ": " + e.getMessage());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi gửi thông báo cho landlord: " + e.getMessage());
+        }
+    }
+    
+    // Tạo nội dung email cảnh báo quá hạn
+    private String buildOverdueWarningEmailContent(Bill overdueBill, int overdueDays) {
+        StringBuilder content = new StringBuilder();
+        content.append("<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;'>");
+        content.append("<div style='background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>");
+        
+        // Header
+        content.append("<div style='text-align: center; margin-bottom: 30px;'>");
+        content.append("<h1 style='color: #faad14; margin: 0; font-size: 24px;'>CẢNH BÁO HÓA ĐƠN QUÁ HẠN</h1>");
+        content.append("<div style='width: 60px; height: 3px; background-color: #faad14; margin: 10px auto;'></div>");
+        content.append("</div>");
+        
+        // Thông tin hóa đơn
+        content.append("<div style='background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+        content.append("<h3 style='color: #856404; margin: 0 0 15px 0; font-size: 18px;'>Thông tin hóa đơn</h3>");
+        content.append("<table style='width: 100%; border-collapse: collapse;'>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Phòng:</td><td style='padding: 8px 0; color: #666;'>").append(overdueBill.getRoom().getRoomNumber()).append("</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Mã hóa đơn:</td><td style='padding: 8px 0; color: #666;'>#").append(overdueBill.getId()).append("</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Số ngày quá hạn:</td><td style='padding: 8px 0; color: #faad14; font-weight: bold;'>").append(overdueDays).append(" ngày</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Số tiền cần thanh toán:</td><td style='padding: 8px 0; color: #faad14; font-weight: bold; font-size: 16px;'>").append(formatCurrency(overdueBill.getTotalAmount())).append("</td></tr>");
+        content.append("</table>");
+        content.append("</div>");
+        
+        // Cảnh báo
+        content.append("<div style='background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+        content.append("<h3 style='color: #721c24; margin: 0 0 15px 0; font-size: 18px;'>Cảnh báo quan trọng</h3>");
+        content.append("<ul style='margin: 0; padding-left: 20px; color: #721c24;'>");
+        content.append("<li style='margin-bottom: 8px;'>Hóa đơn đã quá hạn <strong>").append(overdueDays).append(" ngày</strong></li>");
+        content.append("<li style='margin-bottom: 8px;'>Nếu không thanh toán ngay, sẽ bị tính phạt theo quy định</li>");
+        content.append("<li style='margin-bottom: 8px;'>Phạt sẽ tăng dần: Tuần 1 (2%) → Tuần 2 (4%) → Tuần 3 (6%) → ...</li>");
+        content.append("</ul>");
+        content.append("</div>");
+        
+        // Khuyến nghị
+        content.append("<div style='background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+        content.append("<h3 style='color: #0c5460; margin: 0 0 15px 0; font-size: 18px;'>Khuyến nghị</h3>");
+        content.append("<p style='margin: 0; color: #0c5460; font-weight: bold;'>Thanh toán ngay để tránh phạt tăng thêm!</p>");
+        content.append("</div>");
+        
+        // Footer
+        content.append("<div style='text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;'>");
+        content.append("<p style='margin: 0; color: #6c757d; font-size: 14px;'>Trân trọng,<br><strong>Ban quản lý tòa nhà</strong></p>");
+        content.append("</div>");
+        
+        content.append("</div>");
+        content.append("</div>");
+        
+        return content.toString();
+    }
+    
+    // Tạo nội dung email cảnh báo quá hạn cho landlord
+    private String buildLandlordOverdueEmailContent(Bill overdueBill, int overdueDays) {
+        StringBuilder content = new StringBuilder();
+        content.append("<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;'>");
+        content.append("<div style='background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>");
+        
+        // Header
+        content.append("<div style='text-align: center; margin-bottom: 30px;'>");
+        content.append("<h1 style='color: #faad14; margin: 0; font-size: 24px;'>THÔNG BÁO HÓA ĐƠN QUÁ HẠN</h1>");
+        content.append("<div style='width: 60px; height: 3px; background-color: #faad14; margin: 10px auto;'></div>");
+        content.append("</div>");
+        
+        // Thông tin hóa đơn
+        content.append("<div style='background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+        content.append("<h3 style='color: #856404; margin: 0 0 15px 0; font-size: 18px;'>Thông tin hóa đơn</h3>");
+        content.append("<table style='width: 100%; border-collapse: collapse;'>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Phòng:</td><td style='padding: 8px 0; color: #666;'>").append(overdueBill.getRoom().getRoomNumber()).append("</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Mã hóa đơn:</td><td style='padding: 8px 0; color: #666;'>#").append(overdueBill.getId()).append("</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Số ngày quá hạn:</td><td style='padding: 8px 0; color: #faad14; font-weight: bold;'>").append(overdueDays).append(" ngày</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Số tiền:</td><td style='padding: 8px 0; color: #faad14; font-weight: bold; font-size: 16px;'>").append(formatCurrency(overdueBill.getTotalAmount())).append("</td></tr>");
+        content.append("</table>");
+        content.append("</div>");
+        
+        // Thông tin hệ thống
+        content.append("<div style='background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+        content.append("<h3 style='color: #0c5460; margin: 0 0 15px 0; font-size: 18px;'>Thông tin hệ thống</h3>");
+        content.append("<ul style='margin: 0; padding-left: 20px; color: #0c5460;'>");
+        content.append("<li style='margin-bottom: 8px;'>Hóa đơn đã quá hạn <strong>").append(overdueDays).append(" ngày</strong></li>");
+        content.append("<li style='margin-bottom: 8px;'>Hệ thống đã gửi cảnh báo cho người thuê</li>");
+        content.append("<li style='margin-bottom: 8px;'>Nếu không thanh toán, hệ thống sẽ tự động tạo phạt</li>");
+        content.append("</ul>");
+        content.append("</div>");
+        
+        // Hành động
+        content.append("<div style='background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+        content.append("<h3 style='color: #155724; margin: 0 0 15px 0; font-size: 18px;'>Hành động</h3>");
+        content.append("<p style='margin: 0; color: #155724; font-weight: bold;'>Bạn có thể liên hệ người thuê để nhắc nhở thanh toán</p>");
+        content.append("</div>");
+        
+        // Footer
+        content.append("<div style='text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;'>");
+        content.append("<p style='margin: 0; color: #6c757d; font-size: 14px;'>Trân trọng,<br><strong>Hệ thống quản lý tòa nhà</strong></p>");
+        content.append("</div>");
+        
+        content.append("</div>");
+        content.append("</div>");
+        
+        return content.toString();
+    }
+    
+    // Tạo nội dung email phạt cho landlord
+    private String buildLandlordPenaltyEmailContent(Bill penaltyBill, Bill originalBill) {
+        StringBuilder content = new StringBuilder();
+        content.append("<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;'>");
+        content.append("<div style='background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>");
+        
+        // Header
+        content.append("<div style='text-align: center; margin-bottom: 30px;'>");
+        content.append("<h1 style='color: #ff4d4f; margin: 0; font-size: 24px;'>THÔNG BÁO HÓA ĐƠN PHẠT</h1>");
+        content.append("<div style='width: 60px; height: 3px; background-color: #ff4d4f; margin: 10px auto;'></div>");
+        content.append("</div>");
+        
+        // Thông tin hóa đơn
+        content.append("<div style='background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+        content.append("<h3 style='color: #721c24; margin: 0 0 15px 0; font-size: 18px;'>Thông tin hóa đơn phạt</h3>");
+        content.append("<table style='width: 100%; border-collapse: collapse;'>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Phòng:</td><td style='padding: 8px 0; color: #666;'>").append(penaltyBill.getRoom().getRoomNumber()).append("</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Hóa đơn gốc:</td><td style='padding: 8px 0; color: #666;'>#").append(originalBill.getId()).append("</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Hóa đơn phạt:</td><td style='padding: 8px 0; color: #666;'>#").append(penaltyBill.getId()).append("</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Số ngày quá hạn:</td><td style='padding: 8px 0; color: #ff4d4f; font-weight: bold;'>").append(penaltyBill.getOverdueDays()).append(" ngày</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Tỷ lệ phạt:</td><td style='padding: 8px 0; color: #ff4d4f; font-weight: bold;'>").append(penaltyBill.getPenaltyRate()).append("%</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Số tiền phạt:</td><td style='padding: 8px 0; color: #ff4d4f; font-weight: bold; font-size: 16px;'>").append(formatCurrency(penaltyBill.getPenaltyAmount())).append("</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Tổng cộng cần thanh toán:</td><td style='padding: 8px 0; color: #ff4d4f; font-weight: bold; font-size: 16px;'>").append(formatCurrency(originalBill.getTotalAmount().add(penaltyBill.getPenaltyAmount()))).append("</td></tr>");
+        content.append("</table>");
+        content.append("</div>");
+        
+        // Thông tin hệ thống
+        content.append("<div style='background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+        content.append("<h3 style='color: #0c5460; margin: 0 0 15px 0; font-size: 18px;'>Thông tin hệ thống</h3>");
+        content.append("<ul style='margin: 0; padding-left: 20px; color: #0c5460;'>");
+        content.append("<li style='margin-bottom: 8px;'>Hệ thống đã tự động tạo hóa đơn phạt</li>");
+        content.append("<li style='margin-bottom: 8px;'>Người thuê đã được thông báo về hóa đơn phạt</li>");
+        content.append("<li style='margin-bottom: 8px;'>Phạt sẽ tăng dần nếu không thanh toán</li>");
+        content.append("</ul>");
+        content.append("</div>");
+        
+        // Hành động
+        content.append("<div style='background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+        content.append("<h3 style='color: #155724; margin: 0 0 15px 0; font-size: 18px;'>Hành động</h3>");
+        content.append("<p style='margin: 0; color: #155724; font-weight: bold;'>Bạn có thể theo dõi tình trạng thanh toán trong hệ thống</p>");
+        content.append("</div>");
+        
+        // Footer
+        content.append("<div style='text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;'>");
+        content.append("<p style='margin: 0; color: #6c757d; font-size: 14px;'>Trân trọng,<br><strong>Hệ thống quản lý tòa nhà</strong></p>");
+        content.append("</div>");
+        
+        content.append("</div>");
+        content.append("</div>");
+        
+        return content.toString();
+    }
+
+    @Override
+    public BigDecimal calculateLatePenalty(BigDecimal originalAmount, int overdueDays) {
+        BigDecimal penaltyRate = calculatePenaltyRate(overdueDays);
+        return originalAmount.multiply(penaltyRate).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP);
+    }
+
+    @Override
+    public List<Bill> getOverdueBills() {
+        Instant now = Instant.now();
+        // Tính thời điểm 7 ngày trước để tìm hóa đơn có toDate < (now - 7 days)
+        // Điều này tương đương với hóa đơn có (toDate + 7 days) < now
+        Instant sevenDaysAgo = now.minusSeconds(7 * 24 * 60 * 60);
+        
+        System.out.println("Tìm hóa đơn quá hạn - Thời gian hiện tại: " + now);
+        System.out.println("Tìm hóa đơn có toDate < " + sevenDaysAgo + " (từ ngày thứ 7 trở đi)");
+        
+        List<Bill> overdueBills = billRepository.findByStatusFalseAndToDateBefore(sevenDaysAgo);
+        
+        System.out.println("Tìm thấy " + overdueBills.size() + " hóa đơn quá hạn:");
+        for (Bill bill : overdueBills) {
+            int overdueDays = calculateOverdueDays(bill);
+            System.out.println("  - Hóa đơn #" + bill.getId() + " - toDate: " + bill.getToDate() + " - Quá hạn: " + overdueDays + " ngày");
+        }
+        
+        return overdueBills;
+    }
+
+    @Override
+    public List<Bill> getAllPenaltyBills() {
+        return billRepository.findAll().stream()
+            .filter(bill -> bill.getBillType() == BillType.LATE_PENALTY)
+            .toList();
+    }
+
+    @Override
+    public int calculateOverdueDays(Bill bill) {
+        Instant dueDate;
+        
+        // Nếu có dueDate được set cụ thể, sử dụng dueDate
+        if (bill.getDueDate() != null) {
+            dueDate = bill.getDueDate();
+        } else {
+            // Nếu không có dueDate, tính toán: toDate + 7 ngày
+            dueDate = bill.getToDate().plusSeconds(7 * 24 * 60 * 60); // toDate + 7 days
+        }
+        
+        Instant now = Instant.now();
+        
+        if (now.isBefore(dueDate)) {
+            return 0;
+        }
+        
+        long daysDiff = java.time.Duration.between(dueDate, now).toDays();
+        return (int) daysDiff;
+    }
+
+    // Tính toán tỷ lệ phạt dựa trên số ngày quá hạn
+    private BigDecimal calculatePenaltyRate(int overdueDays) {
+        // Logic phạt chuẩn: 
+        // - Tuần đầu tiên (1-7 ngày): 2% 
+        // - Tuần thứ 2 (8-14 ngày): 4%
+        // - Tuần thứ 3 (15-21 ngày): 6%
+        // - Tuần thứ 4 (22-28 ngày): 8%
+        // - Từ tuần thứ 5 trở đi: 10%
+        
+        if (overdueDays <= 0) {
+            return BigDecimal.ZERO;
+        }
+        
+        int weeks = (overdueDays - 1) / 7 + 1; // Làm tròn lên
+        
+        BigDecimal penaltyRate;
+        switch (weeks) {
+            case 1:
+                penaltyRate = BigDecimal.valueOf(2); // 2%
+                break;
+            case 2:
+                penaltyRate = BigDecimal.valueOf(4); // 4%
+                break;
+            case 3:
+                penaltyRate = BigDecimal.valueOf(6); // 6%
+                break;
+            case 4:
+                penaltyRate = BigDecimal.valueOf(8); // 8%
+                break;
+            default:
+                penaltyRate = BigDecimal.valueOf(10); // 10% cho tuần thứ 5 trở đi
+                break;
+        }
+        
+        return penaltyRate;
+    }
+
+    // Helper method để format số tiền VNĐ
+    private String formatCurrency(BigDecimal amount) {
+        if (amount == null) return "0 VNĐ";
+        return amount.stripTrailingZeros().toPlainString() + " VNĐ";
+    }
+
+    // Gửi thông báo và email phạt
+    @Transactional
+    private void sendPenaltyNotification(Bill penaltyBill) {
+        try {
+            // Fetch contract với roomUsers để tránh lazy loading
+            Contract contract = contractRepository.findById(penaltyBill.getContract().getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy contract"));
+            
+            Bill originalBill = penaltyBill.getOriginalBill();
+            
+            // 1. Gửi thông báo cho người thuê
+        if (contract.getRoomUsers() != null) {
+            for (RoomUser ru : contract.getRoomUsers()) {
+                if (ru.getUser() != null && Boolean.TRUE.equals(ru.getIsActive())) {
+                        // Gửi notification trong hệ thống
+                        try {
+                    NotificationDTO noti = new NotificationDTO();
+                    noti.setRecipientId(ru.getUser().getId());
+                            noti.setTitle("Hóa đơn phạt quá hạn - Phòng " + contract.getRoom().getRoomNumber());
+                    noti.setMessage("Bạn có hóa đơn phạt #" + penaltyBill.getId() + " cho hóa đơn #" + 
+                                originalBill.getId() + " - Số tiền phạt: " + 
+                                formatCurrency(penaltyBill.getPenaltyAmount()) + " (" + penaltyBill.getPenaltyRate() + "%). Vui lòng thanh toán sớm để tránh phạt tăng thêm.");
+                    noti.setType(NotificationType.BILL_OVERDUE);
+                            noti.setMetadata("{\"billId\":" + penaltyBill.getId() + ",\"originalBillId\":" + originalBill.getId() + ",\"penaltyAmount\":" + penaltyBill.getPenaltyAmount() + "}");
+                    notificationService.createAndSend(noti);
+                        } catch (Exception e) {
+                            System.err.println("Lỗi gửi notification phạt cho user " + ru.getUser().getId() + ": " + e.getMessage());
+                        }
+                        
+                        // Gửi email phạt
+                        if (ru.getUser().getEmail() != null) {
+                            try {
+                                String subject = "HÓA ĐƠN PHẠT QUÁ HẠN - Phòng " + contract.getRoom().getRoomNumber();
+                                String content = buildPenaltyEmailContent(penaltyBill, originalBill);
+                                
+                                // Tạo PDF hóa đơn phạt
+                                byte[] pdfBytes = generateBillPdf(penaltyBill.getId());
+                                
+                                emailService.sendBillWithAttachment(
+                                    ru.getUser().getEmail(), 
+                                    subject, 
+                                    content, 
+                                    pdfBytes
+                                );
+                                
+                                System.out.println("Đã gửi email phạt cho " + ru.getUser().getEmail());
+                            } catch (Exception e) {
+                                System.err.println("Lỗi gửi email phạt cho " + ru.getUser().getEmail() + ": " + e.getMessage());
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 2. 🆕 Gửi thông báo cho landlord
+            sendLandlordPenaltyNotification(penaltyBill, originalBill);
+            
+        } catch (Exception e) {
+            System.err.println("Lỗi trong sendPenaltyNotification: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    // Gửi thông báo cho landlord về hóa đơn phạt
+    private void sendLandlordPenaltyNotification(Bill penaltyBill, Bill originalBill) {
+        try {
+            User landlord = penaltyBill.getRoom().getLandlord();
+            if (landlord != null) {
+                // Gửi notification cho landlord
+                NotificationDTO landlordNoti = new NotificationDTO();
+                landlordNoti.setRecipientId(landlord.getId());
+                landlordNoti.setTitle("Thông báo hóa đơn phạt - Phòng " + penaltyBill.getRoom().getRoomNumber());
+                landlordNoti.setMessage("Đã tạo hóa đơn phạt #" + penaltyBill.getId() + " cho hóa đơn #" + originalBill.getId() + 
+                    " của phòng " + penaltyBill.getRoom().getRoomNumber() + ". Số tiền phạt: " + 
+                    formatCurrency(penaltyBill.getPenaltyAmount()) + " (" + penaltyBill.getPenaltyRate() + "%).");
+                landlordNoti.setType(NotificationType.BILL_OVERDUE);
+                landlordNoti.setMetadata("{\"billId\":" + penaltyBill.getId() + ",\"originalBillId\":" + originalBill.getId() + ",\"roomNumber\":\"" + penaltyBill.getRoom().getRoomNumber() + "\",\"penaltyAmount\":" + penaltyBill.getPenaltyAmount() + "}");
+                notificationService.createAndSend(landlordNoti);
+                
+                System.out.println("Đã gửi notification phạt cho landlord " + landlord.getUsername());
+                
+                // Gửi email cho landlord
+                if (landlord.getEmail() != null) {
+                    try {
+                        String subject = "THÔNG BÁO HÓA ĐƠN PHẠT - Phòng " + penaltyBill.getRoom().getRoomNumber();
+                        String content = buildLandlordPenaltyEmailContent(penaltyBill, originalBill);
+                        
+                        emailService.sendBillWithAttachment(
+                            landlord.getEmail(), 
+                            subject, 
+                            content, 
+                            null // Không đính kèm PDF cho landlord
+                        );
+                        
+                        System.out.println("Đã gửi email phạt cho landlord " + landlord.getEmail());
+                    } catch (Exception e) {
+                        System.err.println("Lỗi gửi email phạt cho landlord " + landlord.getEmail() + ": " + e.getMessage());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi gửi thông báo phạt cho landlord: " + e.getMessage());
+        }
+    }
+    
+    // Tạo nội dung email phạt
+    private String buildPenaltyEmailContent(Bill penaltyBill, Bill originalBill) {
+        StringBuilder content = new StringBuilder();
+        content.append("<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;'>");
+        content.append("<div style='background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>");
+        
+        // Header
+        content.append("<div style='text-align: center; margin-bottom: 30px;'>");
+        content.append("<h1 style='color: #ff4d4f; margin: 0; font-size: 24px;'>HÓA ĐƠN PHẠT QUÁ HẠN</h1>");
+        content.append("<div style='width: 60px; height: 3px; background-color: #ff4d4f; margin: 10px auto;'></div>");
+        content.append("</div>");
+        
+        // Thông tin hóa đơn
+        content.append("<div style='background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+        content.append("<h3 style='color: #721c24; margin: 0 0 15px 0; font-size: 18px;'>Thông tin hóa đơn phạt</h3>");
+        content.append("<table style='width: 100%; border-collapse: collapse;'>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Phòng:</td><td style='padding: 8px 0; color: #666;'>").append(penaltyBill.getRoom().getRoomNumber()).append("</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Hóa đơn gốc:</td><td style='padding: 8px 0; color: #666;'>#").append(originalBill.getId()).append("</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Hóa đơn phạt:</td><td style='padding: 8px 0; color: #666;'>#").append(penaltyBill.getId()).append("</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Số ngày quá hạn:</td><td style='padding: 8px 0; color: #ff4d4f; font-weight: bold;'>").append(penaltyBill.getOverdueDays()).append(" ngày</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Tỷ lệ phạt:</td><td style='padding: 8px 0; color: #ff4d4f; font-weight: bold;'>").append(penaltyBill.getPenaltyRate()).append("%</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Số tiền phạt:</td><td style='padding: 8px 0; color: #ff4d4f; font-weight: bold; font-size: 16px;'>").append(formatCurrency(penaltyBill.getPenaltyAmount())).append("</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Tổng cộng cần thanh toán:</td><td style='padding: 8px 0; color: #ff4d4f; font-weight: bold; font-size: 16px;'>").append(formatCurrency(originalBill.getTotalAmount().add(penaltyBill.getPenaltyAmount()))).append("</td></tr>");
+        content.append("</table>");
+        content.append("</div>");
+        
+        // Lưu ý quan trọng
+        content.append("<div style='background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+        content.append("<h3 style='color: #856404; margin: 0 0 15px 0; font-size: 18px;'>Lưu ý quan trọng</h3>");
+        content.append("<ul style='margin: 0; padding-left: 20px; color: #856404;'>");
+        content.append("<li style='margin-bottom: 8px;'>Phạt sẽ tăng dần theo thời gian quá hạn</li>");
+        content.append("<li style='margin-bottom: 8px;'>Tuần 1: 2% | Tuần 2: 4% | Tuần 3: 6% | Tuần 4: 8% | Từ tuần 5: 10%</li>");
+        content.append("<li style='margin-bottom: 8px;'>Vui lòng thanh toán sớm để tránh phạt tăng thêm</li>");
+        content.append("</ul>");
+        content.append("</div>");
+        
+        // Khuyến nghị
+        content.append("<div style='background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+        content.append("<h3 style='color: #155724; margin: 0 0 15px 0; font-size: 18px;'>Khuyến nghị</h3>");
+        content.append("<p style='margin: 0; color: #155724; font-weight: bold;'>Thanh toán ngay để tránh phạt tăng thêm!</p>");
+        content.append("</div>");
+        
+        // Footer
+        content.append("<div style='text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;'>");
+        content.append("<p style='margin: 0; color: #6c757d; font-size: 14px;'>Trân trọng,<br><strong>Ban quản lý tòa nhà</strong></p>");
+        content.append("</div>");
+        
+        content.append("</div>");
+        content.append("</div>");
+        
+        return content.toString();
+    }
+
+    @Override
+    public void sendOverdueWarningNotification(Bill bill) {
+        // Gọi method private đã có
+        sendOverdueWarningNotificationInternal(bill);
+    }
+    
+    // 🆕 Method mới: Gửi cảnh báo cho hóa đơn quá hạn 7 ngày (chỉ 1 lần duy nhất)
+    @Override
+    @Transactional
+    public void sendOverdueWarningFor7Days() {
+        System.out.println("[" + java.time.LocalDateTime.now() + "] Bắt đầu gửi cảnh báo cho hóa đơn quá hạn 7 ngày");
+        
+        List<Bill> overdueBills = getOverdueBills();
+        int warningCount = 0;
+        
+        for (Bill overdueBill : overdueBills) {
+            try {
+                // Chỉ xử lý hóa đơn gốc, không phải hóa đơn phạt
+                if (overdueBill.getBillType() == BillType.LATE_PENALTY) {
+                    continue;
+                }
+                
+                int overdueDays = calculateOverdueDays(overdueBill);
+                
+                // Chỉ gửi cảnh báo cho hóa đơn quá hạn đúng 7 ngày
+                if (overdueDays == 7) {
+                    // 🆕 KIỂM TRA: Chỉ gửi cảnh báo 1 lần duy nhất
+                    if (warningSentBills.contains(overdueBill.getId())) {
+                        System.out.println("[" + java.time.LocalDateTime.now() + "] Hóa đơn #" + overdueBill.getId() + " đã được gửi cảnh báo trước đó, bỏ qua");
+                        continue;
+                    }
+                    
+                    System.out.println("[" + java.time.LocalDateTime.now() + "] Gửi cảnh báo cho hóa đơn #" + overdueBill.getId() + " (quá hạn 7 ngày)");
+                    sendOverdueWarningNotificationInternal(overdueBill);
+                    
+                    // 🆕 ĐÁNH DẤU: Đã gửi cảnh báo cho bill này
+                    warningSentBills.add(overdueBill.getId());
+                    warningCount++;
+                    
+                    System.out.println("[" + java.time.LocalDateTime.now() + "] Đã đánh dấu hóa đơn #" + overdueBill.getId() + " là đã gửi cảnh báo");
+                }
+                
+            } catch (Exception e) {
+                System.err.println("[" + java.time.LocalDateTime.now() + "] Lỗi khi gửi cảnh báo cho hóa đơn #" + overdueBill.getId() + ": " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        
+        System.out.println("[" + java.time.LocalDateTime.now() + "] Hoàn thành: Đã gửi " + warningCount + " cảnh báo cho hóa đơn quá hạn 7 ngày");
+    }
+
+    // 🆕 Method để reset cache cảnh báo (dùng khi restart server)
+    public void resetWarningCache() {
+        warningSentBills.clear();
+        System.out.println("[" + java.time.LocalDateTime.now() + "] Đã reset cache cảnh báo hóa đơn quá hạn");
+    }
+    
+    // 🆕 Method để xem cache hiện tại
+    public Set<Long> getWarningCache() {
+        return new HashSet<>(warningSentBills);
+    }
+    
+    @Override
+    public String buildNormalBillEmailContent(Bill bill, String paymentUrl) {
+        StringBuilder content = new StringBuilder();
+        content.append("<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;'>");
+        content.append("<div style='background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>");
+        
+        // Header
+        content.append("<div style='text-align: center; margin-bottom: 30px;'>");
+        content.append("<h1 style='color: #1890ff; margin: 0; font-size: 24px;'>HÓA ĐƠN MỚI</h1>");
+        content.append("<div style='width: 60px; height: 3px; background-color: #1890ff; margin: 10px auto;'></div>");
+        content.append("</div>");
+        
+        // Thông tin hóa đơn
+        content.append("<div style='background-color: #e6f7ff; border: 1px solid #91d5ff; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+        content.append("<h3 style='color: #0050b3; margin: 0 0 15px 0; font-size: 18px;'>Thông tin hóa đơn</h3>");
+        content.append("<table style='width: 100%; border-collapse: collapse;'>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Phòng:</td><td style='padding: 8px 0; color: #666;'>").append(bill.getRoom().getRoomNumber()).append("</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Mã hóa đơn:</td><td style='padding: 8px 0; color: #666;'>#").append(bill.getId()).append("</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Loại hóa đơn:</td><td style='padding: 8px 0; color: #666;'>").append(getBillTypeVietnamese(bill.getBillType())).append("</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Từ ngày:</td><td style='padding: 8px 0; color: #666;'>").append(formatDateTime(bill.getFromDate())).append("</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Đến ngày:</td><td style='padding: 8px 0; color: #666;'>").append(formatDateTime(bill.getToDate())).append("</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Hạn thanh toán:</td><td style='padding: 8px 0; color: #faad14; font-weight: bold;'>").append(formatDateTime(bill.getToDate().plusSeconds(7 * 24 * 60 * 60))).append("</td></tr>");
+        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Số tiền:</td><td style='padding: 8px 0; color: #1890ff; font-weight: bold; font-size: 16px;'>").append(formatCurrency(bill.getTotalAmount())).append("</td></tr>");
+        content.append("</table>");
+        content.append("</div>");
+        
+        // Thông báo
+        content.append("<div style='background-color: #f6ffed; border: 1px solid #b7eb8f; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+        content.append("<h3 style='color: #389e0d; margin: 0 0 15px 0; font-size: 18px;'>Thông báo</h3>");
+        content.append("<p style='margin: 0; color: #389e0d;'>Xin chào, vui lòng xem hóa đơn đính kèm.</p>");
+        content.append("</div>");
+        
+        // Thanh toán
+        if (paymentUrl != null) {
+            content.append("<div style='background-color: #fff7e6; border: 1px solid #ffd591; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+            content.append("<h3 style='color: #d46b08; margin: 0 0 15px 0; font-size: 18px;'>Thanh toán</h3>");
+            content.append("<p style='margin: 0 0 10px 0; color: #d46b08;'>Để thanh toán hóa đơn, vui lòng bấm vào nút bên dưới:</p>");
+            content.append("<div style='text-align: center; margin: 15px 0;'>");
+            content.append("<a href='").append(paymentUrl).append("' style='background-color: #1890ff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;'>Thanh toán ngay</a>");
+            content.append("</div>");
+            content.append("<p style='margin: 10px 0 0 0; color: #d46b08; font-size: 14px;'>Hoặc copy link: <span style='background-color: #f5f5f5; padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;'>").append(paymentUrl).append("</span></p>");
+            content.append("</div>");
+        } else {
+            content.append("<div style='background-color: #fff2f0; border: 1px solid #ffccc7; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+            content.append("<h3 style='color: #cf1322; margin: 0 0 15px 0; font-size: 18px;'>Lưu ý</h3>");
+            content.append("<p style='margin: 0; color: #cf1322;'>Không tạo được link thanh toán tự động. Vui lòng liên hệ quản lý để thanh toán.</p>");
+            content.append("</div>");
+        }
+        
+        // Footer
+        content.append("<div style='text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;'>");
+        content.append("<p style='margin: 0; color: #6c757d; font-size: 14px;'>Trân trọng,<br><strong>Ban quản lý tòa nhà</strong></p>");
+        content.append("</div>");
+        
+        content.append("</div>");
+        content.append("</div>");
+        
+        return content.toString();
+    }
+
+    // Helper method để việt hóa loại hóa đơn
+    private String getBillTypeVietnamese(BillType billType) {
+        switch (billType) {
+            case CONTRACT_TOTAL:
+                return "Tổng hợp đồng";
+            case CONTRACT_INIT:
+                return "Khởi tạo hợp đồng";
+            case OTHER:
+                return "Khác";
+            case CUSTOM:
+                return "Tùy chỉnh";
+            case SERVICE:
+                return "Dịch vụ";
+            case CONTRACT_ROOM_RENT:
+                return "Tiền phòng";
+            case LATE_PENALTY:
+                return "Phạt quá hạn";
+            default:
+                return billType.toString();
+        }
+    }
+
+    // Helper method để format ngày giờ
+    private String formatDateTime(Instant instant) {
+        if (instant == null) return "N/A";
+        
+        java.time.ZoneId zoneId = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
+        java.time.ZonedDateTime zonedDateTime = instant.atZone(zoneId);
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        
+        return zonedDateTime.format(formatter);
+    }
+
+    // Helper method để rút gọn URL
+    private String shortenUrl(String url) {
+        if (url == null || url.length() <= 50) return url;
+        return url.substring(0, 47) + "...";
+    }
+
 }

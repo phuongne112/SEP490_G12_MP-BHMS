@@ -1,8 +1,40 @@
 import React, { useEffect, useState } from "react";
-import { Table, Tag, Button, Space, message, Popconfirm } from "antd";
+import { Table, Tag, Button, Space, message, Popconfirm, Tooltip } from "antd";
+import { EditOutlined } from "@ant-design/icons";
 import { getAllUsers, updateUserStatus } from "../../services/userApi";
 import Access from "../../components/common/Access";
 import { useSelector } from "react-redux";
+
+// Hàm chuyển đổi ngày sang định dạng Việt Nam chuẩn (dd/mm/yyyy)
+const formatDateToVietnamese = (dateString) => {
+  if (!dateString) return "";
+  
+  // Xử lý format "2025-07-28 16:11:04 PM" từ API
+  let date;
+  
+  // Thử parse trực tiếp
+  date = new Date(dateString);
+  
+  // Nếu không hợp lệ, thử xử lý format đặc biệt
+  if (isNaN(date.getTime())) {
+    // Tách phần ngày từ "2025-07-28 16:11:04 PM"
+    const datePart = dateString.split(' ')[0];
+    if (datePart) {
+      date = new Date(datePart);
+    }
+  }
+  
+  // Kiểm tra xem ngày có hợp lệ không
+  if (isNaN(date.getTime())) {
+    return "";
+  }
+  
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}/${month}/${year}`;
+};
 
 // Hàm tạo DSL lọc dữ liệu người dùng
 const buildFilterDSL = (searchTerm, filters) => {
@@ -16,8 +48,8 @@ const buildFilterDSL = (searchTerm, filters) => {
   }
 
   if (filters.role !== undefined && filters.role !== "none") {
-    if (filters.role === "null") {
-      dsl.push("role IS NULL");
+    if (filters.role === "5") {
+      dsl.push("role.id = 5");
     } else {
       dsl.push(`role.id = ${filters.role}`);
     }
@@ -70,7 +102,7 @@ export default function UserTable({
           fullName: item.fullName,
           phoneNumber: item.phoneNumber,
           isActive: item.isActive,
-          createdAt: item.createdDate?.slice(0, 10),
+          createdAt: item.createdDate ? formatDateToVietnamese(item.createdDate) : "",
           status: item.isActive ? "Đang hoạt động" : "Ngừng hoạt động",
           role: {
             roleName: item.role?.roleName || "USER",
@@ -117,36 +149,49 @@ export default function UserTable({
     {
       title: "STT",
       dataIndex: "key",
+      align: "center",
       width: 60,
       render: (_, __, index) => (pagination.current - 1) * pageSize + index + 1,
     },
     {
       title: "Họ và tên",
       dataIndex: "fullName",
+      align: "center",
+      width: 150,
       render: (text) => text || "---",
     },
     {
       title: "Email",
       dataIndex: "email",
+      align: "center",
+      width: 200,
     },
     {
       title: "Tên đăng nhập",
       dataIndex: "username",
+      align: "center",
+      width: 150,
     },
     {
       title: "Số điện thoại",
       dataIndex: "phoneNumber",
+      align: "center",
+      width: 130,
       render: (text) => text || "---",
     },
     {
       title: "Ngày tạo",
       dataIndex: "createdAt",
+      align: "center",
+      width: 120,
     },
     ...(hasStatusPermission
       ? [
           {
             title: "Trạng thái",
             dataIndex: "status",
+            align: "center",
+            width: 140,
             render: (_, record) => (
               <Popconfirm
                 title={`Bạn có chắc muốn ${
@@ -171,6 +216,8 @@ export default function UserTable({
     {
       title: "Vai trò",
       dataIndex: "role",
+      align: "center",
+      width: 120,
       render: (role) => role?.roleName || "USER",
     },
     ...(hasUpdatePermission
@@ -178,6 +225,8 @@ export default function UserTable({
           {
             title: "Thao tác",
             key: "actions",
+            align: "center",
+            width: 120,
             render: (_, record) => {
               const currentUser = JSON.parse(localStorage.getItem("user"));
               const currentRole = currentUser?.role?.roleName?.toUpperCase?.();
@@ -191,8 +240,15 @@ export default function UserTable({
               if (shouldHideEditButton) return null;
 
               return (
-                <Space>
-                  <Button size="middle" onClick={() => onEdit(record)}>
+                <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
+                  <Button
+                    type="default"
+                    icon={<EditOutlined />}
+                    size="small"
+                    style={{ color: "#faad14", borderColor: "#faad14" }}
+                    onClick={() => onEdit(record)}
+                    title="Chỉnh sửa thông tin người dùng"
+                  >
                     Sửa
                   </Button>
                 </Space>
@@ -214,6 +270,9 @@ export default function UserTable({
         pageSize,
         onChange: (page) => fetchData(page),
       }}
+      style={{ background: "#fff", borderRadius: 8, padding: 16 }}
+      scroll={{ x: 1200 }}
+      bordered
     />
   );
 }

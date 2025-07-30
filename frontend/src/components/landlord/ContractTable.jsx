@@ -28,8 +28,7 @@ function ContractHistoryTable({ roomId, onExport }) {
       render: (status) => status === "TERMINATED" ? "Đã chấm dứt" : status === "ACTIVE" ? "Đang hiệu lực" : status === "EXPIRED" ? "Hết hạn" : status },
     { title: "Ngày bắt đầu", dataIndex: "contractStartDate", key: "contractStartDate", render: (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—" },
     { title: "Ngày kết thúc", dataIndex: "contractEndDate", key: "contractEndDate", render: (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—" },
-    { title: "Ngày tạo", dataIndex: "createdDate", key: "createdDate", render: (d) => d ? `${new Date(d).toLocaleDateString("vi-VN")} ${new Date(d).toLocaleTimeString("vi-VN", { hour12: false })}` : "—" },
-    { title: "Ngày cập nhật", dataIndex: "updatedDate", key: "updatedDate", render: (d) => d ? `${new Date(d).toLocaleDateString("vi-VN")} ${new Date(d).toLocaleTimeString("vi-VN", { hour12: false })}` : "—" },
+    { title: "Ngày cập nhật", dataIndex: "createdDate", key: "createdDate", render: (d) => d ? `${new Date(d).toLocaleDateString("vi-VN")} ${new Date(d).toLocaleTimeString("vi-VN", { hour12: false })}` : "—" },
     {
       title: "Tệp PDF",
       key: "pdf",
@@ -216,19 +215,13 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       width: 120
     },
     {
-      title: "Ngày tạo",
+      title: "Ngày cập nhật",
       dataIndex: "createdDate",
       render: (d) => d ? `${new Date(d).toLocaleDateString("vi-VN")} ${new Date(d).toLocaleTimeString("vi-VN", { hour12: false })}` : "—",
       align: "center",
       width: 110
     },
-    {
-      title: "Ngày cập nhật",
-      dataIndex: "updatedDate",
-      render: (d) => d ? `${new Date(d).toLocaleDateString("vi-VN")} ${new Date(d).toLocaleTimeString("vi-VN", { hour12: false })}` : "—",
-      align: "center",
-      width: 110
-    },
+
     {
       title: "Thao tác",
       align: "center",
@@ -236,18 +229,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       render: (_, record) => {
         const isTerminatedOrExpired = record.contractStatus === "TERMINATED" || record.contractStatus === "EXPIRED";
         return (
-          <div
-            className="action-scrollbar"
-            style={{
-              display: 'flex',
-              flexWrap: 'nowrap',
-              gap: 8,
-              justifyContent: 'center',
-              minWidth: 400,
-              maxWidth: 500,
-              overflowX: 'auto'
-            }}
-          >
+          <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
             <Button
               type="primary"
               icon={<FilePdfOutlined />}
@@ -286,7 +268,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
                 Chấm dứt
               </Button>
             </Popconfirm>
-          </div>
+          </Space>
         );
       },
     },
@@ -325,6 +307,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       style={{ background: "#fff", borderRadius: 8, padding: 16 }}
       loading={loading}
       scroll={{ x: 1800 }}
+      bordered
     />
   );
 }

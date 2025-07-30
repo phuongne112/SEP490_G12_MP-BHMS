@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Descriptions, Table, Button, Spin, message, Tag, Layout } from "antd";
-import { getBillDetail, exportBillPdf, createVnPayUrl } from "../../services/billApi";
+import { Card, Descriptions, Table, Button, Spin, message, Tag, Layout, Popconfirm } from "antd";
+import { getBillDetail, exportBillPdf, createVnPayUrl, updateBillPaymentStatus } from "../../services/billApi";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import dayjs from "dayjs";
@@ -15,6 +15,7 @@ export default function LandlordBillDetailPage() {
   const navigate = useNavigate();
   const [bill, setBill] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   useEffect(() => {
     fetchBill();
@@ -61,6 +62,21 @@ export default function LandlordBillDetailPage() {
     }
   };
 
+  const handleUpdatePaymentStatus = async () => {
+    setUpdatingStatus(true);
+    try {
+      await updateBillPaymentStatus(bill.id, true);
+      message.success("Đã cập nhật trạng thái thanh toán thành công!");
+      // Refresh bill data
+      await fetchBill();
+    } catch (error) {
+      message.error("Không thể cập nhật trạng thái thanh toán!");
+      console.error("Error updating payment status:", error);
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   const columns = [
     { title: "Mô tả", dataIndex: "description" },
     { 
@@ -88,6 +104,9 @@ export default function LandlordBillDetailPage() {
         }
         if (type === 'CONTRACT_TOTAL') {
           return <Tag color="geekblue">Tổng hợp đồng</Tag>;
+        }
+        if (type === 'LATE_PENALTY') {
+          return <Tag color="volcano">Phạt quá hạn</Tag>;
         }
         return <Tag>{type}</Tag>;
       }
@@ -159,6 +178,8 @@ export default function LandlordBillDetailPage() {
                         ? "purple"
                         : bill.billType === "CONTRACT_TOTAL"
                         ? "geekblue"
+                        : bill.billType === "LATE_PENALTY"
+                        ? "volcano"
                         : "default"
                     }
                   >
@@ -170,6 +191,8 @@ export default function LandlordBillDetailPage() {
                       ? "Đặt cọc"
                       : bill.billType === "CONTRACT_TOTAL"
                       ? "Tổng hợp đồng"
+                      : bill.billType === "LATE_PENALTY"
+                      ? "Phạt quá hạn"
                       : bill.billType || 'Không xác định'}
                   </Tag>
                 </Descriptions.Item>
@@ -196,6 +219,35 @@ export default function LandlordBillDetailPage() {
                     {bill.status ? "Đã thanh toán" : "Chưa thanh toán"}
                   </Tag>
                 </Descriptions.Item>
+                {bill.billType === 'LATE_PENALTY' && (
+                  <>
+                    <Descriptions.Item label="Hóa đơn gốc">
+                      <Button 
+                        type="link" 
+                        onClick={() => navigate(`/landlord/bills/${bill.originalBillId}`)}
+                        style={{ padding: 0 }}
+                      >
+                        Xem hóa đơn #{bill.originalBillId}
+                      </Button>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Tỷ lệ phạt">
+                      <Tag color="volcano">{bill.penaltyRate}%</Tag>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Số ngày quá hạn">
+                      <Tag color="red">{bill.overdueDays} ngày</Tag>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Số tiền phạt">
+                      <span style={{ color: '#cf1322', fontWeight: 'bold' }}>
+                        {bill.penaltyAmount?.toLocaleString()} ₫
+                      </span>
+                    </Descriptions.Item>
+                    {bill.notes && (
+                      <Descriptions.Item label="Ghi chú" span={2}>
+                        <span style={{ color: '#666' }}>{bill.notes}</span>
+                      </Descriptions.Item>
+                    )}
+                  </>
+                )}
               </Descriptions>
 
               <h3 style={{ marginTop: 24 }}>Chi tiết các khoản</h3>
@@ -211,13 +263,32 @@ export default function LandlordBillDetailPage() {
                 <Button onClick={handleExport} type="primary">Xuất PDF</Button>
 
                 {!bill.status && (
-                  <Button
-                    type="primary"
-                    style={{ marginLeft: 16 }}
-                    onClick={handlePayVnPay}
-                  >
-                    Thanh toán VNPay
-                  </Button>
+                  <>
+                    <Button
+                      type="primary"
+                      style={{ marginLeft: 16 }}
+                      onClick={handlePayVnPay}
+                    >
+                      Thanh toán VNPay
+                    </Button>
+                    
+                    <Popconfirm
+                      title="Xác nhận thanh toán"
+                      description="Bạn có chắc muốn đánh dấu hóa đơn này đã được thanh toán?"
+                      onConfirm={handleUpdatePaymentStatus}
+                      okText="Xác nhận"
+                      cancelText="Hủy"
+                    >
+                      <Button
+                        type="default"
+                        style={{ marginLeft: 16 }}
+                        loading={updatingStatus}
+                        title="Đánh dấu đã thanh toán (cho thanh toán tại văn phòng)"
+                      >
+                        Đã thanh toán
+                      </Button>
+                    </Popconfirm>
+                  </>
                 )}
 
                 <Button style={{ marginLeft: 16 }} onClick={() => navigate(-1)}>

@@ -1,8 +1,40 @@
 import React, { useEffect, useState } from "react";
-import { Table, Button, Space, Tag, Alert } from "antd";
+import { Table, Button, Space, Tag, Alert, Tooltip, Popconfirm } from "antd";
+import { EyeOutlined, DeleteOutlined } from "@ant-design/icons";
 import { getAllNotifications } from "../../services/notificationApi";
 import Access from "../common/Access";
 import { useSelector } from "react-redux";
+
+// Hàm chuyển đổi ngày sang định dạng Việt Nam chuẩn (dd/mm/yyyy)
+const formatDateToVietnamese = (dateString) => {
+  if (!dateString) return "";
+  
+  // Xử lý format "2025-07-28 16:11:04 PM" từ API
+  let date;
+  
+  // Thử parse trực tiếp
+  date = new Date(dateString);
+  
+  // Nếu không hợp lệ, thử xử lý format đặc biệt
+  if (isNaN(date.getTime())) {
+    // Tách phần ngày từ "2025-07-28 16:11:04 PM"
+    const datePart = dateString.split(' ')[0];
+    if (datePart) {
+      date = new Date(datePart);
+    }
+  }
+  
+  // Kiểm tra xem ngày có hợp lệ không
+  if (isNaN(date.getTime())) {
+    return "";
+  }
+  
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}/${month}/${year}`;
+};
 
 // Hàm tạo DSL filter
 const buildFilterDSL = (searchTerm, filters) => {
@@ -68,7 +100,7 @@ export default function NotificationTable({
           return {
             key: item.id || index + 1 + (page - 1) * pageSize,
             ...item,
-            createdAt: item.createdDate?.slice(0, 10),
+                         createdAt: item.createdDate ? formatDateToVietnamese(item.createdDate) : "",
             recipient: user?.fullName || user?.email || "Không xác định",
           };
         })
@@ -92,26 +124,58 @@ export default function NotificationTable({
     {
       title: "STT",
       render: (_, __, index) => (pagination.current - 1) * pageSize + index + 1,
+      align: "center",
       width: 60,
     },
-    { title: "Tiêu đề", dataIndex: "title" },
+    { 
+      title: "Tiêu đề", 
+      dataIndex: "title",
+      align: "center",
+      width: 200,
+    },
     {
       title: "Loại",
-      dataIndex: "type",
-      render: (type) => {
+      dataIndex: "displayType", // Use displayType from backend instead of type
+      align: "center",
+      width: 120,
+      render: (displayType, record) => {
+        // Use displayType from backend if available, otherwise fallback to type
+        if (displayType) {
+          return displayType;
+        }
+        
+        // Fallback: format the original type if no displayType is available
+        const type = record.type;
+        if (!type) return "";
+        
         const label = type
           .toLowerCase()
           .split("_")
           .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
           .join(" ");
-        // Có thể dịch thêm nếu muốn
         return label;
       },
     },
     {
       title: "Trạng thái",
-      dataIndex: "status",
-      render: (status) => {
+      dataIndex: "displayStatus", // Use displayStatus from backend instead of status
+      align: "center",
+      width: 120,
+      render: (displayStatus, record) => {
+        // Use displayStatus from backend if available, otherwise fallback to status
+        if (displayStatus) {
+          const status = record.status;
+          const color =
+            status === "READ"
+              ? "green"
+              : status === "DELIVERED"
+              ? "orange"
+              : "blue";
+          return <Tag color={color}>{displayStatus}</Tag>;
+        }
+        
+        // Fallback: use original status logic
+        const status = record.status;
         const color =
           status === "READ"
             ? "green"
@@ -132,30 +196,50 @@ export default function NotificationTable({
     {
       title: "Người nhận",
       dataIndex: "recipient",
+      align: "center",
+      width: 150,
     },
     {
       title: "Ngày tạo",
       dataIndex: "createdAt",
+      align: "center",
+      width: 120,
     },
     ...(hasDeletePermission || hasViewPermission
       ? [
           {
             title: "Thao tác",
             key: "actions",
+            align: "center",
+            width: 200,
             render: (_, record) => (
-              <Space>
-                <Button size="small" onClick={() => onView(record)}>
+              <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
+                <Button
+                  type="primary"
+                  icon={<EyeOutlined />}
+                  size="small"
+                  onClick={() => onView(record)}
+                  title="Xem chi tiết thông báo"
+                >
                   Xem
                 </Button>
                 {hasDeletePermission && (
                   <Access requiredPermissions={["Delete Notification"]}>
-                    <Button
-                      size="small"
-                      danger
-                      onClick={() => onDelete(record)}
+                    <Popconfirm
+                      title="Xóa thông báo"
+                      description="Bạn có chắc muốn xóa thông báo này?"
+                      onConfirm={() => onDelete(record)}
+                      okText="Xóa"
+                      cancelText="Không"
                     >
-                      Xóa
-                    </Button>
+                      <Button
+                        icon={<DeleteOutlined />}
+                        type="primary"
+                        danger
+                        size="small"
+                        title="Xóa thông báo"
+                      />
+                    </Popconfirm>
                   </Access>
                 )}
               </Space>
@@ -188,6 +272,8 @@ export default function NotificationTable({
           pageSize,
           onChange: (page) => fetchData(page),
         }}
+        style={{ background: "#fff", borderRadius: 8, padding: 16 }}
+        scroll={{ x: 1000 }}
         bordered
         rowKey="id"
       />

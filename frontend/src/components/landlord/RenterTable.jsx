@@ -1,12 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { Table, Spin, Popconfirm, message, Tag } from "antd";
-import { getAllRenters, updateRenterStatus } from "../../services/renterApi";
+import { getAllRenters, updateRenterStatus, getRenterById } from "../../services/renterApi";
 import dayjs from "dayjs";
+import RenterDetailModal from "./RenterDetailModal";
+import "dayjs/locale/vi";
 
+// Đặt locale cho dayjs
+dayjs.locale('vi');
 export default function RenterTable({ search = "", filter = {} }) {
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 5 });
   const [loading, setLoading] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedRenter, setSelectedRenter] = useState(null);
 
   // ✅ Xử lý filter để gửi về BE đúng format
   const buildFilterParams = () => {
@@ -47,10 +53,22 @@ export default function RenterTable({ search = "", filter = {} }) {
         name: item.fullName || item.username,
         room: item.renterRoomInfo?.roomName || "N/A",
         checkInDate: item.renterRoomInfo?.checkInDate
-          ? new Date(item.renterRoomInfo.checkInDate).toLocaleDateString()
+          ? dayjs(item.renterRoomInfo.checkInDate).format("DD/MM/YYYY")
           : "N/A",
         status: (item.renterRoomInfo?.roomName && item.renterRoomInfo?.roomName !== "N/A") ? "Đang thuê" : "Ngừng thuê",
         isActive: item.isActive,
+        // Lưu trữ dữ liệu gốc để hiển thị trong modal
+        fullName: item.fullName,
+        username: item.username,
+        email: item.email,
+        phoneNumber: item.phoneNumber,
+        citizenId: item.citizenId,
+        dateOfBirth: item.dateOfBirth,
+        address: item.address,
+        createdDate: item.createdDate,
+        updatedDate: item.updatedDate,
+        // Dữ liệu gốc từ backend
+        originalData: item
       }));
       setData(formatted);
       // ✅ Nếu có filter FE → dùng phân trang FE, current là page hiện tại
@@ -115,6 +133,28 @@ export default function RenterTable({ search = "", filter = {} }) {
     } catch (err) {
       console.error(err);
       message.error("Cập nhật trạng thái tài khoản thất bại.");
+    }
+  };
+
+  const handleRowClick = async (record) => {
+    try {
+      setLoading(true);
+      const detailedRenter = await getRenterById(record.id);
+      setSelectedRenter({
+        ...record,
+        ...detailedRenter,
+        // Đảm bảo giữ lại dữ liệu đã format từ bảng
+        name: record.name,
+        room: record.room,
+        checkInDate: record.checkInDate,
+        status: record.status
+      });
+      setDetailModalVisible(true);
+    } catch (err) {
+      console.error("❌ Lỗi khi tải thông tin chi tiết người thuê:", err);
+      message.error("Không thể tải thông tin chi tiết người thuê.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -189,6 +229,18 @@ export default function RenterTable({ search = "", filter = {} }) {
         pagination={pagination}
         onChange={handleTableChange}
         locale={{ emptyText: "Không có dữ liệu" }}
+        onRow={(record) => ({
+          onClick: () => handleRowClick(record),
+          style: { cursor: "pointer" }
+        })}
+      />
+      <RenterDetailModal
+        visible={detailModalVisible}
+        onClose={() => setDetailModalVisible(false)}
+        renterData={selectedRenter}
+        style={{ background: "#fff", borderRadius: 8, padding: 16 }}
+        scroll={{ x: 800 }}
+        bordered
       />
     </Spin>
   );

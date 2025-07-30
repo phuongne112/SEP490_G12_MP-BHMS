@@ -22,6 +22,11 @@ export const getAllRentersForAssignFull = () => {
   return axiosClient.get("/renters/for-assign-full");
 };
 
+export const getRenterById = async (id) => {
+  const res = await axiosClient.get(`/renters/${id}`);
+  return res.data;
+};
+
 /**
  * Tạo mới người thuê (renter)
  * @param {object} data - Thông tin người thuê (username, fullName, email, password, phone, dateOfBirth, citizenId, address)

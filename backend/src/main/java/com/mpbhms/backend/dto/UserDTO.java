@@ -25,7 +25,7 @@ public class UserDTO {
     private RenterRoomInfoDTO renterRoomInfo;
     private String fullName;
     private String phoneNumber;
-
+    private UserInfoDTO userInfo;
 
     @Getter
     @Setter
@@ -36,4 +36,20 @@ public class UserDTO {
         private String roleName;
     }
 
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class UserInfoDTO {
+        private String fullName;
+        private String phoneNumber;
+        private String phoneNumber2;
+        private String nationalID;
+        private String permanentAddress;
+        private String birthDate;
+        private String birthPlace;
+        private String nationalIDIssuePlace;
+        private String nationalIDIssueDate;
+        private String gender;
+    }
 }
