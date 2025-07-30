@@ -166,9 +166,16 @@ public class ServiceServiceImpl implements ServiceService {
     public ServicePriceHistoryDTO updateServicePrice(Long serviceId, UpdateServicePriceRequest request) {
         CustomService service = getServiceById(serviceId);
         
-        // Kiểm tra ngày hiệu lực không được trong quá khứ
-        if (request.getEffectiveDate().isBefore(LocalDate.now())) {
+        LocalDate today = LocalDate.now();
+        LocalDate fiveDaysFromNow = today.plusDays(5);
+        
+        // Kiểm tra ngày hiệu lực không được trong quá khứ và phải cách ngày hiện tại ít nhất 5 ngày
+        if (request.getEffectiveDate().isBefore(today)) {
             throw new BusinessException("Ngày hiệu lực không được trong quá khứ");
+        }
+        
+        if (request.getEffectiveDate().isBefore(fiveDaysFromNow)) {
+            throw new BusinessException("Ngày hiệu lực phải cách ngày hiện tại ít nhất 5 ngày");
         }
         
         // Tạo lịch sử giá mới (chưa active)

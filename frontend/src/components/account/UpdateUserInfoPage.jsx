@@ -101,6 +101,16 @@ export default function UpdateUserInfoModal({
   }, [open, isCreate, ocrData]);
 
   const onFinish = async (values) => {
+    // Kiểm tra validation cho ảnh upload
+    if (!frontFile) {
+      message.error("Vui lòng upload ảnh mặt trước CCCD");
+      return;
+    }
+    if (!backFile) {
+      message.error("Vui lòng upload ảnh mặt sau CCCD");
+      return;
+    }
+
     let birthDateInstant = null;
     console.log('Giá trị birthDate khi submit:', values.birthDate);
     if (values.birthDate) {
@@ -183,11 +193,40 @@ export default function UpdateUserInfoModal({
   };
 
   const handleFrontChange = (file) => {
+    // Kiểm tra loại file
+    const isImage = file.type.startsWith('image/');
+    if (!isImage) {
+      message.error('Chỉ được upload file ảnh!');
+      return false;
+    }
+    
+    // Kiểm tra kích thước file (tối đa 5MB)
+    const isLt5M = file.size / 1024 / 1024 < 5;
+    if (!isLt5M) {
+      message.error('Ảnh phải nhỏ hơn 5MB!');
+      return false;
+    }
+    
     setFrontFile(file);
     setFrontPreview(URL.createObjectURL(file));
     return false;
   };
+  
   const handleBackChange = (file) => {
+    // Kiểm tra loại file
+    const isImage = file.type.startsWith('image/');
+    if (!isImage) {
+      message.error('Chỉ được upload file ảnh!');
+      return false;
+    }
+    
+    // Kiểm tra kích thước file (tối đa 5MB)
+    const isLt5M = file.size / 1024 / 1024 < 5;
+    if (!isLt5M) {
+      message.error('Ảnh phải nhỏ hơn 5MB!');
+      return false;
+    }
+    
     setBackFile(file);
     setBackPreview(URL.createObjectURL(file));
     return false;
@@ -266,25 +305,48 @@ export default function UpdateUserInfoModal({
           <Form.Item
             name="fullName"
             label="Họ và tên"
-            rules={[{ required: true, message: "Vui lòng nhập họ và tên" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập họ và tên" },
+              { min: 2, message: "Họ và tên phải có ít nhất 2 ký tự" },
+              { max: 100, message: "Họ và tên không được quá 100 ký tự" },
+              {
+                pattern: /^[a-zA-ZÀ-ỹ\s]+$/,
+                message: "Họ và tên chỉ được chứa chữ cái và khoảng trắng"
+              }
+            ]}
           >
-            <Input />
+            <Input placeholder="Nhập họ và tên đầy đủ" />
           </Form.Item>
           <Form.Item name="phoneNumber" label="Số điện thoại"
-            rules={[{ required: true, message: "Vui lòng nhập số điện thoại" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập số điện thoại" },
+              {
+                pattern: /^0\d{9}$/,
+                message: "Số điện thoại phải có 10 số và bắt đầu bằng 0"
+              }
+            ]}
           >
-            <Input />
+            <Input placeholder="Nhập số điện thoại chính" />
           </Form.Item>
           <Form.Item name="phoneNumber2" label="Số điện thoại phụ"
             rules={[
               { required: true, message: "Vui lòng nhập số điện thoại phụ" },
               {
-                pattern: /^\d{9,11}$/,
-                message: "Số điện thoại phụ phải là số và có 9-11 chữ số"
+                pattern: /^0\d{9}$/,
+                message: "Số điện thoại phụ phải có 10 số và bắt đầu bằng 0"
+              },
+              {
+                validator: (_, value) => {
+                  const phone1 = form.getFieldValue('phoneNumber');
+                  if (value && phone1 && value === phone1) {
+                    return Promise.reject(new Error('Số điện thoại phụ không được trùng với số điện thoại chính'));
+                  }
+                  return Promise.resolve();
+                }
               }
             ]}
           >
-            <Input />
+            <Input placeholder="Nhập số điện thoại phụ" />
           </Form.Item>
           <Form.Item name="gender" label="Giới tính"
             rules={[{ required: true, message: "Vui lòng chọn giới tính" }]}
@@ -304,41 +366,105 @@ export default function UpdateUserInfoModal({
                   if (value.isAfter(dayjs(), 'day')) {
                     return Promise.reject(new Error('Ngày sinh không được lớn hơn ngày hiện tại'));
                   }
+                  // Kiểm tra tuổi tối thiểu (16 tuổi)
+                  const minAge = dayjs().subtract(16, 'year');
+                  if (value.isAfter(minAge)) {
+                    return Promise.reject(new Error('Bạn phải ít nhất 16 tuổi'));
+                  }
+                  // Kiểm tra tuổi tối đa (100 tuổi)
+                  const maxAge = dayjs().subtract(100, 'year');
+                  if (value.isBefore(maxAge)) {
+                    return Promise.reject(new Error('Ngày sinh không hợp lệ'));
+                  }
                   return Promise.resolve();
                 }
               }
             ]}
           >
-            <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+            <DatePicker 
+              style={{ width: "100%" }} 
+              format="DD/MM/YYYY" 
+              placeholder="Chọn ngày sinh"
+              disabledDate={(current) => {
+                const today = dayjs();
+                const minAge = today.subtract(16, 'year');
+                const maxAge = today.subtract(100, 'year');
+                return current && (current.isAfter(today) || current.isAfter(minAge) || current.isBefore(maxAge));
+              }}
+            />
           </Form.Item>
           <Form.Item name="birthPlace" label="Nơi sinh"
-            rules={[{ required: true, message: "Vui lòng nhập nơi sinh" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập nơi sinh" },
+              { min: 2, message: "Nơi sinh phải có ít nhất 2 ký tự" }
+            ]}
           >
-            <Input />
+            <Input placeholder="Nhập nơi sinh" />
           </Form.Item>
           <Form.Item name="nationalID" label="CMND/CCCD"
-            rules={[{ required: true, message: "Vui lòng nhập CMND/CCCD" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập CMND/CCCD" },
+              {
+                pattern: /^[0-9]{9}$|^[0-9]{12}$/,
+                message: "CMND/CCCD phải có 9 hoặc 12 chữ số"
+              }
+            ]}
           >
-            <Input />
+            <Input placeholder="Nhập số CMND hoặc CCCD" />
           </Form.Item>
           <Form.Item name="nationalIDIssuePlace" label="Nơi cấp"
-            rules={[{ required: true, message: "Vui lòng nhập nơi cấp" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập nơi cấp" },
+              { min: 2, message: "Nơi cấp phải có ít nhất 2 ký tự" }
+            ]}
           >
-            <Input />
+            <Input placeholder="Nhập nơi cấp CMND/CCCD" />
           </Form.Item>
           <Form.Item name="nationalIDIssueDate" label="Ngày cấp"
-            rules={[{ required: true, message: "Vui lòng chọn ngày cấp" }]}
+            rules={[
+              { required: true, message: "Vui lòng chọn ngày cấp" },
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  const birthDate = form.getFieldValue('birthDate');
+                  if (value.isBefore(birthDate)) {
+                    return Promise.reject(new Error('Ngày cấp không được trước ngày sinh'));
+                  }
+                  if (value.isAfter(dayjs(), 'day')) {
+                    return Promise.reject(new Error('Ngày cấp không được lớn hơn ngày hiện tại'));
+                  }
+                  return Promise.resolve();
+                }
+              }
+            ]}
           >
-            <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+            <DatePicker 
+              style={{ width: "100%" }} 
+              format="DD/MM/YYYY" 
+              placeholder="Chọn ngày cấp"
+              disabledDate={(current) => {
+                const birthDate = form.getFieldValue('birthDate');
+                const today = dayjs();
+                return current && (current.isBefore(birthDate) || current.isAfter(today));
+              }}
+            />
           </Form.Item>
           <Form.Item name="permanentAddress" label="Địa chỉ thường trú"
-            rules={[{ required: true, message: "Vui lòng nhập địa chỉ thường trú" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập địa chỉ thường trú" },
+              { min: 10, message: "Địa chỉ thường trú phải có ít nhất 10 ký tự" }
+            ]}
           >
-            <Input />
+            <Input.TextArea 
+              placeholder="Nhập địa chỉ thường trú đầy đủ" 
+              rows={3}
+            />
           </Form.Item>
           <Row gutter={16} style={{ marginBottom: 0 }}>
             <Col span={12}>
-              <div style={{ marginBottom: 8, fontWeight: 500 }}>Ảnh mặt trước CCCD</div>
+              <div style={{ marginBottom: 8, fontWeight: 500 }}>
+                Ảnh mặt trước CCCD <span style={{ color: 'red' }}>*</span>
+              </div>
               <Upload.Dragger
                 accept="image/*"
                 beforeUpload={handleFrontChange}
@@ -347,6 +473,7 @@ export default function UpdateUserInfoModal({
                 maxCount={1}
                 disabled={ocrLoading}
                 style={{ background: "#fafafa" }}
+                rules={[{ required: true, message: "Vui lòng upload ảnh mặt trước CCCD" }]}
               >
                 {frontPreview ? (
                   <img src={frontPreview} alt="Ảnh mặt trước" style={{ width: 180, borderRadius: 8, objectFit: "cover" }} />
@@ -359,7 +486,9 @@ export default function UpdateUserInfoModal({
               </Upload.Dragger>
             </Col>
             <Col span={12}>
-              <div style={{ marginBottom: 8, fontWeight: 500 }}>Ảnh mặt sau CCCD</div>
+              <div style={{ marginBottom: 8, fontWeight: 500 }}>
+                Ảnh mặt sau CCCD <span style={{ color: 'red' }}>*</span>
+              </div>
               <Upload.Dragger
                 accept="image/*"
                 beforeUpload={handleBackChange}
@@ -368,6 +497,7 @@ export default function UpdateUserInfoModal({
                 maxCount={1}
                 disabled={ocrLoading}
                 style={{ background: "#fafafa" }}
+                rules={[{ required: true, message: "Vui lòng upload ảnh mặt sau CCCD" }]}
               >
                 {backPreview ? (
                   <img src={backPreview} alt="Ảnh mặt sau" style={{ width: 180, borderRadius: 8, objectFit: "cover" }} />
@@ -402,7 +532,14 @@ export default function UpdateUserInfoModal({
                     ? "Bạn có chắc chắn muốn tạo thông tin cá nhân này không?"
                     : "Bạn có chắc chắn muốn cập nhật thông tin cá nhân này không?"
                 }
-                onConfirm={() => form.submit()}
+                onConfirm={() => {
+                  // Kiểm tra lại validation trước khi submit
+                  form.validateFields().then(() => {
+                    form.submit();
+                  }).catch(() => {
+                    message.error("Vui lòng kiểm tra lại thông tin đã nhập");
+                  });
+                }}
                 okText="Đồng ý"
                 cancelText="Huỷ"
               >
