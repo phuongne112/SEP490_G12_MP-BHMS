@@ -32,6 +32,8 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.PdfWriter;
 import java.io.ByteArrayOutputStream;
@@ -63,6 +65,9 @@ public class BillServiceImpl implements BillService {
     private final RoomRepository roomRepository;
     private final NotificationService notificationService;
     private final EmailService emailService;
+    
+    // Cache để theo dõi các hóa đơn đã gửi cảnh báo ngày thứ 7
+    private final Set<Long> warningSentBills = new HashSet<>();
 
     @Override
     public Bill generateFirstBill(Long contractId) {
@@ -215,11 +220,11 @@ public class BillServiceImpl implements BillService {
     @Override
     public Bill generateBill(Long contractId, LocalDate fromDate, LocalDate toDate, BillType billType) {
         System.out.println(String.format(
-            "\n🏁 GENERATE BILL REQUEST:\n" +
-            "Contract ID: %d\n" +
-            "From Date: %s\n" +
-            "To Date: %s\n" +
-            "Bill Type: %s\n" +
+            "\n🏁 YÊU CẦU TẠO HÓA ĐƠN:\n" +
+            "ID Hợp đồng: %d\n" +
+            "Từ ngày: %s\n" +
+            "Đến ngày: %s\n" +
+            "Loại hóa đơn: %s\n" +
             "================================",
             contractId, fromDate, toDate, billType
         ));
@@ -262,7 +267,7 @@ public class BillServiceImpl implements BillService {
 
         // Phân biệt validation giữa chu kỳ chuẩn và tùy chọn
         boolean isCustomPeriod = isCustomDateRange(fromDate, toDate, contractStart, expectedMonths);
-        System.out.println("🔍 DETECTION RESULT: isCustomPeriod = " + isCustomPeriod);
+        System.out.println("KẾT QUẢ PHÁT HIỆN: isCustomPeriod = " + isCustomPeriod);
         
         if (!isCustomPeriod) {
             // Logic cứng cho chu kỳ chuẩn - giữ nguyên để đảm bảo tính nhất quán
@@ -299,7 +304,7 @@ public class BillServiceImpl implements BillService {
             long daysBetween = ChronoUnit.DAYS.between(fromDate, toDate) + 1;
             months = Math.max(1, (int) Math.round(daysBetween / 30.0)); // Ít nhất 1 tháng
             System.out.println(String.format(
-                "✅ CUSTOM BILLING: %s to %s (%d days) -> %d months (Price: %,.0f × %d = %,.0f VND)",
+                "TÍNH TIỀN TÙY CHỌN: %s đến %s (%d ngày) -> %d tháng (Giá: %,.0f × %d = %,.0f VND)",
                 fromDate, toDate, daysBetween, months, 
                 room.getPricePerMonth(), months, room.getPricePerMonth() * months
             ));
@@ -307,7 +312,7 @@ public class BillServiceImpl implements BillService {
             // Với chu kỳ chuẩn, dùng logic cũ
             months = countMonths(cycle);
             System.out.println(String.format(
-                "✅ STANDARD BILLING: %s cycle -> %d months (Price: %,.0f × %d = %,.0f VND)", 
+                "TÍNH TIỀN CHUẨN: %s chu kỳ -> %d tháng (Giá: %,.0f × %d = %,.0f VND)", 
                 cycle, months, room.getPricePerMonth(), months, room.getPricePerMonth() * months
             ));
         }
@@ -575,7 +580,7 @@ public class BillServiceImpl implements BillService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy room"));
             response.setRoomNumber(room.getRoomNumber());
         } catch (Exception e) {
-            System.err.println("❌ Lỗi khi fetch room cho bill #" + bill.getId() + ": " + e.getMessage());
+            System.err.println("Lỗi khi fetch room cho bill #" + bill.getId() + ": " + e.getMessage());
             response.setRoomNumber("N/A");
         }
         
@@ -877,7 +882,7 @@ public class BillServiceImpl implements BillService {
                 boolean billExists = checkBillExists(contract.getId(), nextPeriodStart, nextPeriodEnd);
                 
                 if (billExists) {
-                    System.out.println("✅ Bill already exists for this period, skipping");
+                    System.out.println("Hóa đơn đã tồn tại cho kỳ này, bỏ qua");
                     continue;
                 }
                 
@@ -885,16 +890,16 @@ public class BillServiceImpl implements BillService {
                 Bill newBill = generateBill(contract.getId(), nextPeriodStart, nextPeriodEnd, BillType.CONTRACT_TOTAL);
                 generatedBills.add(toResponse(newBill));
                 
-                System.out.println("✅ Generated bill #" + newBill.getId() + " - Amount: " + newBill.getTotalAmount() + " VND");
+                System.out.println("Đã tạo hóa đơn #" + newBill.getId() + " - Số tiền: " + newBill.getTotalAmount() + " VND");
                 
             } catch (Exception e) {
-                System.out.println("❌ Error processing contract #" + contract.getId() + ": " + e.getMessage());
+                System.out.println("Lỗi xử lý hợp đồng #" + contract.getId() + ": " + e.getMessage());
                 // Tiếp tục với contracts khác
             }
         }
         
-        System.out.println("\n🏁 BULK GENERATION COMPLETED");
-        System.out.println("📊 Generated " + generatedBills.size() + " new bills");
+        System.out.println("\n🏁 HOÀN THÀNH TẠO HÓA ĐƠN HÀNG LOẠT");
+        System.out.println("Đã tạo " + generatedBills.size() + " hóa đơn mới");
         
         return generatedBills;
     }
@@ -1135,7 +1140,7 @@ public class BillServiceImpl implements BillService {
     @Override
     public long countOverdue() {
         Instant now = Instant.now();
-        Instant sevenDaysAgo = now.minusSeconds(7 * 24 * 60 * 60); // 7 ngày trước
+        Instant sevenDaysAgo = now.minusSeconds(7 * 24 * 60 * 60); // 7 ngày trước (từ ngày thứ 7 trở đi)
         return billRepository.countOverdue(sevenDaysAgo);
     }
 
@@ -1194,6 +1199,13 @@ public class BillServiceImpl implements BillService {
         }
         
         Bill updatedBill = billRepository.save(bill);
+        
+        // 🆕 Xóa khỏi cache cảnh báo nếu bill được thanh toán
+        if (status) {
+            warningSentBills.remove(billId);
+            System.out.println("[" + java.time.LocalDateTime.now() + "] Đã xóa hóa đơn #" + billId + " khỏi cache cảnh báo (đã thanh toán)");
+        }
+        
         return toResponse(updatedBill);
     }
 
@@ -1202,7 +1214,7 @@ public class BillServiceImpl implements BillService {
         Bill originalBill = billRepository.findById(originalBillId)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy hóa đơn gốc với ID: " + originalBillId));
         
-        // ⚠️ KIỂM TRA QUAN TRỌNG: Không cho phép tạo phạt cho hóa đơn phạt
+        // KIỂM TRA QUAN TRỌNG: Không cho phép tạo phạt cho hóa đơn phạt
         if (originalBill.getBillType() == BillType.LATE_PENALTY) {
             throw new BusinessException("Không thể tạo phạt cho hóa đơn phạt. Chỉ có thể tạo phạt cho hóa đơn gốc.");
         }
@@ -1218,7 +1230,7 @@ public class BillServiceImpl implements BillService {
             throw new BusinessException("Hóa đơn chưa quá hạn");
         }
         
-        System.out.println("📊 Tạo phạt cho hóa đơn #" + originalBill.getId() + " - Quá hạn: " + overdueDays + " ngày");
+        System.out.println("Tạo phạt cho hóa đơn #" + originalBill.getId() + " - Quá hạn: " + overdueDays + " ngày");
         
         // 🆕 LOGIC MỚI: Xóa hóa đơn phạt cũ nếu có và tạo hóa đơn phạt mới với tỷ lệ cao hơn
         if (billRepository.existsByOriginalBillAndBillType(originalBill, BillType.LATE_PENALTY)) {
@@ -1230,7 +1242,7 @@ public class BillServiceImpl implements BillService {
                 .collect(Collectors.toList());
             
             for (Bill existingPenaltyBill : existingPenaltyBills) {
-                System.out.println("🔄 Xóa hóa đơn phạt cũ #" + existingPenaltyBill.getId() + " để tạo phạt mới với tỷ lệ cao hơn");
+                System.out.println("Xóa hóa đơn phạt cũ #" + existingPenaltyBill.getId() + " để tạo phạt mới với tỷ lệ cao hơn");
                 billRepository.delete(existingPenaltyBill);
             }
         }
@@ -1252,7 +1264,7 @@ public class BillServiceImpl implements BillService {
         penaltyBill.setOriginalBill(originalBill);
         penaltyBill.setPenaltyRate(calculatePenaltyRate(overdueDays));
         
-        // ⚠️ QUAN TRỌNG: Set overdueDays từ hóa đơn gốc, không tính lại từ hóa đơn phạt
+        // QUAN TRỌNG: Set overdueDays từ hóa đơn gốc, không tính lại từ hóa đơn phạt
         penaltyBill.setOverdueDays(overdueDays);
         
         penaltyBill.setPenaltyAmount(penaltyAmount);
@@ -1272,6 +1284,10 @@ public class BillServiceImpl implements BillService {
         
         Bill savedPenaltyBill = billRepository.save(penaltyBill);
         
+        // 🆕 Xóa hóa đơn gốc khỏi cache cảnh báo khi đã tạo phạt
+        warningSentBills.remove(originalBillId);
+        System.out.println("[" + java.time.LocalDateTime.now() + "] Đã xóa hóa đơn #" + originalBillId + " khỏi cache cảnh báo (đã tạo phạt)");
+        
         // Gửi thông báo
         sendPenaltyNotification(savedPenaltyBill);
         
@@ -1281,21 +1297,21 @@ public class BillServiceImpl implements BillService {
     @Override
     @Transactional
     public List<BillResponse> checkAndCreateLatePenalties() {
-        System.out.println("🔍 [" + java.time.LocalDateTime.now() + "] Bắt đầu checkAndCreateLatePenalties()");
+        System.out.println("[" + java.time.LocalDateTime.now() + "] Bắt đầu checkAndCreateLatePenalties()");
         
         List<Bill> overdueBills = getOverdueBills();
         List<BillResponse> createdPenalties = new ArrayList<>();
         
-        System.out.println("🔍 [" + java.time.LocalDateTime.now() + "] Kiểm tra " + overdueBills.size() + " hóa đơn quá hạn...");
+        System.out.println("[" + java.time.LocalDateTime.now() + "] Kiểm tra " + overdueBills.size() + " hóa đơn quá hạn...");
         
         for (Bill overdueBill : overdueBills) {
             try {
-                System.out.println("🔍 [" + java.time.LocalDateTime.now() + "] Xử lý hóa đơn #" + overdueBill.getId() + 
+                System.out.println("[" + java.time.LocalDateTime.now() + "] Xử lý hóa đơn #" + overdueBill.getId() + 
                     " - Loại: " + overdueBill.getBillType() + " - toDate: " + overdueBill.getToDate());
                 
-                // ⚠️ KIỂM TRA BỔ SUNG: Đảm bảo không tạo phạt cho hóa đơn phạt
+                // KIỂM TRA BỔ SUNG: Đảm bảo không tạo phạt cho hóa đơn phạt
                 if (overdueBill.getBillType() == BillType.LATE_PENALTY) {
-                    System.out.println("⚠️ [" + java.time.LocalDateTime.now() + "] Bỏ qua hóa đơn phạt #" + overdueBill.getId() + " - Không tạo phạt chồng phạt");
+                    System.out.println("[" + java.time.LocalDateTime.now() + "] Bỏ qua hóa đơn phạt #" + overdueBill.getId() + " - Không tạo phạt chồng phạt");
                     continue;
                 }
                 
@@ -1307,27 +1323,35 @@ public class BillServiceImpl implements BillService {
                     .toList();
                 
                 if (!existingPenalties.isEmpty()) {
-                    System.out.println("ℹ️ [" + java.time.LocalDateTime.now() + "] Hóa đơn #" + overdueBill.getId() + " đã có phạt, bỏ qua");
+                    System.out.println("[" + java.time.LocalDateTime.now() + "] Hóa đơn #" + overdueBill.getId() + " đã có phạt, bỏ qua");
                     continue;
                 }
                 
-                // 🆕 Gửi thông báo cảnh báo quá hạn trước khi tạo phạt
-                System.out.println("📧 [" + java.time.LocalDateTime.now() + "] Gửi cảnh báo cho hóa đơn #" + overdueBill.getId());
-                sendOverdueWarningNotificationInternal(overdueBill);
+                // 🆕 Tính số ngày quá hạn
+                int overdueDays = calculateOverdueDays(overdueBill);
                 
-                // 🆕 Tạo phạt mới chỉ khi chưa có
-                System.out.println("✅ [" + java.time.LocalDateTime.now() + "] Tạo phạt mới cho hóa đơn #" + overdueBill.getId() + " (Loại: " + overdueBill.getBillType() + ")");
+                // 🆕 LOGIC MỚI: Chỉ tạo phạt từ ngày thứ 8 trở đi
+                if (overdueDays >= 8) {
+                    // Từ ngày thứ 8 trở đi: Tạo phạt + gửi thông báo tạo phạt
+                    System.out.println("[" + java.time.LocalDateTime.now() + "] Hóa đơn #" + overdueBill.getId() + " quá hạn " + overdueDays + " ngày - TẠO PHẠT + THÔNG BÁO");
+                    
+                    // Tạo phạt mới
                     BillResponse penaltyBill = createLatePenaltyBill(overdueBill.getId());
                     createdPenalties.add(penaltyBill);
-                System.out.println("✅ [" + java.time.LocalDateTime.now() + "] Đã tạo phạt #" + penaltyBill.getId() + " cho hóa đơn gốc #" + overdueBill.getId());
+                    System.out.println("[" + java.time.LocalDateTime.now() + "] Đã tạo phạt #" + penaltyBill.getId() + " cho hóa đơn gốc #" + overdueBill.getId() + " (quá hạn " + overdueDays + " ngày)");
+                } else {
+                    // Dưới 8 ngày: Chưa làm gì (cảnh báo đã được xử lý riêng)
+                    System.out.println("[" + java.time.LocalDateTime.now() + "] Hóa đơn #" + overdueBill.getId() + " quá hạn " + overdueDays + " ngày - chưa đủ điều kiện tạo phạt (cần >= 8 ngày)");
+                }
                 
             } catch (Exception e) {
-                System.err.println("❌ [" + java.time.LocalDateTime.now() + "] Lỗi khi tạo phạt cho hóa đơn #" + overdueBill.getId() + ": " + e.getMessage());
+                System.err.println("[" + java.time.LocalDateTime.now() + "] Lỗi khi xử lý hóa đơn #" + overdueBill.getId() + ": " + e.getMessage());
                 e.printStackTrace();
             }
         }
         
-        System.out.println("🎯 [" + java.time.LocalDateTime.now() + "] Hoàn thành: Đã tạo " + createdPenalties.size() + " hóa đơn phạt mới");
+        System.out.println("[" + java.time.LocalDateTime.now() + "] Hoàn thành: Đã tạo " + createdPenalties.size() + " hóa đơn phạt mới");
+        System.out.println("[" + java.time.LocalDateTime.now() + "] Không có hóa đơn nào cần tạo phạt (cảnh báo đã được xử lý riêng)");
         return createdPenalties;
     }
     
@@ -1349,20 +1373,20 @@ public class BillServiceImpl implements BillService {
                         try {
                             NotificationDTO noti = new NotificationDTO();
                             noti.setRecipientId(ru.getUser().getId());
-                            noti.setTitle("⚠️ Cảnh báo hóa đơn quá hạn - Phòng " + contract.getRoom().getRoomNumber());
+                            noti.setTitle("Cảnh báo hóa đơn quá hạn - Phòng " + contract.getRoom().getRoomNumber());
                             noti.setMessage("Hóa đơn #" + overdueBill.getId() + " đã quá hạn " + overdueDays + " ngày. Số tiền: " + 
                                 overdueBill.getTotalAmount().toString() + " VNĐ. Vui lòng thanh toán ngay để tránh bị phạt.");
                             noti.setType(NotificationType.BILL_OVERDUE);
                             noti.setMetadata("{\"billId\":" + overdueBill.getId() + ",\"overdueDays\":" + overdueDays + "}");
                             notificationService.createAndSend(noti);
                         } catch (Exception e) {
-                            System.err.println("❌ Lỗi gửi notification cảnh báo cho user " + ru.getUser().getId() + ": " + e.getMessage());
+                            System.err.println("Lỗi gửi notification cảnh báo cho user " + ru.getUser().getId() + ": " + e.getMessage());
                         }
                         
                         // Gửi email cảnh báo
                         if (ru.getUser().getEmail() != null) {
                             try {
-                                String subject = "⚠️ CẢNH BÁO HÓA ĐƠN QUÁ HẠN - Phòng " + contract.getRoom().getRoomNumber();
+                                String subject = "CẢNH BÁO HÓA ĐƠN QUÁ HẠN - Phòng " + contract.getRoom().getRoomNumber();
                                 String content = buildOverdueWarningEmailContent(overdueBill, overdueDays);
                                 
                                 // Tạo PDF hóa đơn gốc
@@ -1375,9 +1399,9 @@ public class BillServiceImpl implements BillService {
                                     pdfBytes
                                 );
                                 
-                                System.out.println("✅ Đã gửi email cảnh báo quá hạn cho " + ru.getUser().getEmail());
+                                System.out.println("Đã gửi email cảnh báo quá hạn cho " + ru.getUser().getEmail());
                             } catch (Exception e) {
-                                System.err.println("❌ Lỗi gửi email cảnh báo cho " + ru.getUser().getEmail() + ": " + e.getMessage());
+                                System.err.println("Lỗi gửi email cảnh báo cho " + ru.getUser().getEmail() + ": " + e.getMessage());
                             }
                         }
                     }
@@ -1388,7 +1412,7 @@ public class BillServiceImpl implements BillService {
             sendLandlordOverdueNotification(overdueBill, overdueDays);
             
         } catch (Exception e) {
-            System.err.println("❌ Lỗi trong sendOverdueWarningNotificationInternal: " + e.getMessage());
+            System.err.println("Lỗi trong sendOverdueWarningNotificationInternal: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -1401,7 +1425,7 @@ public class BillServiceImpl implements BillService {
                 // Gửi notification cho landlord
                 NotificationDTO landlordNoti = new NotificationDTO();
                 landlordNoti.setRecipientId(landlord.getId());
-                landlordNoti.setTitle("⚠️ Thông báo hóa đơn quá hạn - Phòng " + overdueBill.getRoom().getRoomNumber());
+                landlordNoti.setTitle("Thông báo hóa đơn quá hạn - Phòng " + overdueBill.getRoom().getRoomNumber());
                 landlordNoti.setMessage("Hóa đơn #" + overdueBill.getId() + " của phòng " + overdueBill.getRoom().getRoomNumber() + 
                     " đã quá hạn " + overdueDays + " ngày. Số tiền: " + overdueBill.getTotalAmount().toString() + " VNĐ. " +
                     "Hệ thống sẽ tự động tạo phạt nếu không thanh toán.");
@@ -1409,12 +1433,12 @@ public class BillServiceImpl implements BillService {
                 landlordNoti.setMetadata("{\"billId\":" + overdueBill.getId() + ",\"roomNumber\":\"" + overdueBill.getRoom().getRoomNumber() + "\",\"overdueDays\":" + overdueDays + "}");
                 notificationService.createAndSend(landlordNoti);
                 
-                System.out.println("✅ Đã gửi notification cảnh báo quá hạn cho landlord " + landlord.getUsername());
+                System.out.println("Đã gửi notification cảnh báo quá hạn cho landlord " + landlord.getUsername());
                 
                 // Gửi email cho landlord
                 if (landlord.getEmail() != null) {
                     try {
-                        String subject = "⚠️ THÔNG BÁO HÓA ĐƠN QUÁ HẠN - Phòng " + overdueBill.getRoom().getRoomNumber();
+                        String subject = "THÔNG BÁO HÓA ĐƠN QUÁ HẠN - Phòng " + overdueBill.getRoom().getRoomNumber();
                         String content = buildLandlordOverdueEmailContent(overdueBill, overdueDays);
                         
                         emailService.sendBillWithAttachment(
@@ -1424,14 +1448,14 @@ public class BillServiceImpl implements BillService {
                             null // Không đính kèm PDF cho landlord
                         );
                         
-                        System.out.println("✅ Đã gửi email cảnh báo quá hạn cho landlord " + landlord.getEmail());
+                        System.out.println("Đã gửi email cảnh báo quá hạn cho landlord " + landlord.getEmail());
                     } catch (Exception e) {
-                        System.err.println("❌ Lỗi gửi email cảnh báo cho landlord " + landlord.getEmail() + ": " + e.getMessage());
+                        System.err.println("Lỗi gửi email cảnh báo cho landlord " + landlord.getEmail() + ": " + e.getMessage());
                     }
                 }
             }
         } catch (Exception e) {
-            System.err.println("❌ Lỗi gửi thông báo cho landlord: " + e.getMessage());
+            System.err.println("Lỗi gửi thông báo cho landlord: " + e.getMessage());
         }
     }
     
@@ -1601,12 +1625,12 @@ public class BillServiceImpl implements BillService {
         // Điều này tương đương với hóa đơn có (toDate + 7 days) < now
         Instant sevenDaysAgo = now.minusSeconds(7 * 24 * 60 * 60);
         
-        System.out.println("🔍 Tìm hóa đơn quá hạn - Thời gian hiện tại: " + now);
-        System.out.println("🔍 Tìm hóa đơn có toDate < " + sevenDaysAgo);
+        System.out.println("Tìm hóa đơn quá hạn - Thời gian hiện tại: " + now);
+        System.out.println("Tìm hóa đơn có toDate < " + sevenDaysAgo + " (từ ngày thứ 7 trở đi)");
         
         List<Bill> overdueBills = billRepository.findByStatusFalseAndToDateBefore(sevenDaysAgo);
         
-        System.out.println("📊 Tìm thấy " + overdueBills.size() + " hóa đơn quá hạn:");
+        System.out.println("Tìm thấy " + overdueBills.size() + " hóa đơn quá hạn:");
         for (Bill bill : overdueBills) {
             int overdueDays = calculateOverdueDays(bill);
             System.out.println("  - Hóa đơn #" + bill.getId() + " - toDate: " + bill.getToDate() + " - Quá hạn: " + overdueDays + " ngày");
@@ -1713,7 +1737,7 @@ public class BillServiceImpl implements BillService {
                             noti.setMetadata("{\"billId\":" + penaltyBill.getId() + ",\"originalBillId\":" + originalBill.getId() + ",\"penaltyAmount\":" + penaltyBill.getPenaltyAmount() + "}");
                     notificationService.createAndSend(noti);
                         } catch (Exception e) {
-                            System.err.println("❌ Lỗi gửi notification phạt cho user " + ru.getUser().getId() + ": " + e.getMessage());
+                            System.err.println("Lỗi gửi notification phạt cho user " + ru.getUser().getId() + ": " + e.getMessage());
                         }
                         
                         // Gửi email phạt
@@ -1732,9 +1756,9 @@ public class BillServiceImpl implements BillService {
                                     pdfBytes
                                 );
                                 
-                                System.out.println("✅ Đã gửi email phạt cho " + ru.getUser().getEmail());
+                                System.out.println("Đã gửi email phạt cho " + ru.getUser().getEmail());
                             } catch (Exception e) {
-                                System.err.println("❌ Lỗi gửi email phạt cho " + ru.getUser().getEmail() + ": " + e.getMessage());
+                                System.err.println("Lỗi gửi email phạt cho " + ru.getUser().getEmail() + ": " + e.getMessage());
                             }
                         }
                     }
@@ -1745,7 +1769,7 @@ public class BillServiceImpl implements BillService {
             sendLandlordPenaltyNotification(penaltyBill, originalBill);
             
         } catch (Exception e) {
-            System.err.println("❌ Lỗi trong sendPenaltyNotification: " + e.getMessage());
+            System.err.println("Lỗi trong sendPenaltyNotification: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -1766,7 +1790,7 @@ public class BillServiceImpl implements BillService {
                 landlordNoti.setMetadata("{\"billId\":" + penaltyBill.getId() + ",\"originalBillId\":" + originalBill.getId() + ",\"roomNumber\":\"" + penaltyBill.getRoom().getRoomNumber() + "\",\"penaltyAmount\":" + penaltyBill.getPenaltyAmount() + "}");
                 notificationService.createAndSend(landlordNoti);
                 
-                System.out.println("✅ Đã gửi notification phạt cho landlord " + landlord.getUsername());
+                System.out.println("Đã gửi notification phạt cho landlord " + landlord.getUsername());
                 
                 // Gửi email cho landlord
                 if (landlord.getEmail() != null) {
@@ -1781,14 +1805,14 @@ public class BillServiceImpl implements BillService {
                             null // Không đính kèm PDF cho landlord
                         );
                         
-                        System.out.println("✅ Đã gửi email phạt cho landlord " + landlord.getEmail());
+                        System.out.println("Đã gửi email phạt cho landlord " + landlord.getEmail());
                     } catch (Exception e) {
-                        System.err.println("❌ Lỗi gửi email phạt cho landlord " + landlord.getEmail() + ": " + e.getMessage());
+                        System.err.println("Lỗi gửi email phạt cho landlord " + landlord.getEmail() + ": " + e.getMessage());
                     }
                 }
             }
         } catch (Exception e) {
-            System.err.println("❌ Lỗi gửi thông báo phạt cho landlord: " + e.getMessage());
+            System.err.println("Lỗi gửi thông báo phạt cho landlord: " + e.getMessage());
         }
     }
     
@@ -1850,7 +1874,63 @@ public class BillServiceImpl implements BillService {
         // Gọi method private đã có
         sendOverdueWarningNotificationInternal(bill);
     }
+    
+    // 🆕 Method mới: Gửi cảnh báo cho hóa đơn quá hạn 7 ngày (chỉ 1 lần duy nhất)
+    @Override
+    @Transactional
+    public void sendOverdueWarningFor7Days() {
+        System.out.println("[" + java.time.LocalDateTime.now() + "] Bắt đầu gửi cảnh báo cho hóa đơn quá hạn 7 ngày");
+        
+        List<Bill> overdueBills = getOverdueBills();
+        int warningCount = 0;
+        
+        for (Bill overdueBill : overdueBills) {
+            try {
+                // Chỉ xử lý hóa đơn gốc, không phải hóa đơn phạt
+                if (overdueBill.getBillType() == BillType.LATE_PENALTY) {
+                    continue;
+                }
+                
+                int overdueDays = calculateOverdueDays(overdueBill);
+                
+                // Chỉ gửi cảnh báo cho hóa đơn quá hạn đúng 7 ngày
+                if (overdueDays == 7) {
+                    // 🆕 KIỂM TRA: Chỉ gửi cảnh báo 1 lần duy nhất
+                    if (warningSentBills.contains(overdueBill.getId())) {
+                        System.out.println("[" + java.time.LocalDateTime.now() + "] Hóa đơn #" + overdueBill.getId() + " đã được gửi cảnh báo trước đó, bỏ qua");
+                        continue;
+                    }
+                    
+                    System.out.println("[" + java.time.LocalDateTime.now() + "] Gửi cảnh báo cho hóa đơn #" + overdueBill.getId() + " (quá hạn 7 ngày)");
+                    sendOverdueWarningNotificationInternal(overdueBill);
+                    
+                    // 🆕 ĐÁNH DẤU: Đã gửi cảnh báo cho bill này
+                    warningSentBills.add(overdueBill.getId());
+                    warningCount++;
+                    
+                    System.out.println("[" + java.time.LocalDateTime.now() + "] Đã đánh dấu hóa đơn #" + overdueBill.getId() + " là đã gửi cảnh báo");
+                }
+                
+            } catch (Exception e) {
+                System.err.println("[" + java.time.LocalDateTime.now() + "] Lỗi khi gửi cảnh báo cho hóa đơn #" + overdueBill.getId() + ": " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        
+        System.out.println("[" + java.time.LocalDateTime.now() + "] Hoàn thành: Đã gửi " + warningCount + " cảnh báo cho hóa đơn quá hạn 7 ngày");
+    }
 
+    // 🆕 Method để reset cache cảnh báo (dùng khi restart server)
+    public void resetWarningCache() {
+        warningSentBills.clear();
+        System.out.println("[" + java.time.LocalDateTime.now() + "] Đã reset cache cảnh báo hóa đơn quá hạn");
+    }
+    
+    // 🆕 Method để xem cache hiện tại
+    public Set<Long> getWarningCache() {
+        return new HashSet<>(warningSentBills);
+    }
+    
     @Override
     public String buildNormalBillEmailContent(Bill bill, String paymentUrl) {
         StringBuilder content = new StringBuilder();

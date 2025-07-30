@@ -67,6 +67,9 @@ public interface BillService {
     // Gửi thông báo cảnh báo hóa đơn quá hạn
     void sendOverdueWarningNotification(Bill bill);
     
+    // 🆕 Gửi cảnh báo cho hóa đơn quá hạn 7 ngày
+    void sendOverdueWarningFor7Days();
+    
     // Lấy tất cả hóa đơn phạt
     List<Bill> getAllPenaltyBills();
     
