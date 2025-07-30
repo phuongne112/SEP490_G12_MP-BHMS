@@ -14,18 +14,35 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     // Lấy tất cả lịch hẹn của các phòng thuộc landlord
     List<Schedule> findByRoom_Landlord_Id(Long landlordId);
 
-    // Phân trang, search, filter status, filter thời gian
-    @Query("SELECT s FROM Schedule s WHERE " +
-            "(:landlordId IS NULL OR s.room.landlord.id = :landlordId) AND " +
-            "(:search IS NULL OR LOWER(s.fullName) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
-            "(:status IS NULL OR s.status = :status) AND " +
-            "(:from IS NULL OR s.appointmentTime >= :from) AND " +
-            "(:to IS NULL OR s.appointmentTime <= :to)")
+    // Phân trang, search, filter status, filter thời gian, filter giờ
+    @Query(value = "SELECT s.* FROM schedules s " +
+            "INNER JOIN rooms r ON s.room_id = r.id " +
+            "INNER JOIN users u ON r.landlord_id = u.id " +
+            "WHERE (:landlordId IS NULL OR u.id = :landlordId) " +
+            "AND (:search IS NULL OR LOWER(s.full_name) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            "AND (:status IS NULL OR s.status = :status) " +
+            "AND (:from IS NULL OR s.appointment_time >= :from) " +
+            "AND (:to IS NULL OR s.appointment_time <= :to) " +
+            "AND (:hourFrom IS NULL OR HOUR(CONVERT_TZ(s.appointment_time, '+00:00', '+07:00')) >= :hourFrom) " +
+            "AND (:hourTo IS NULL OR HOUR(CONVERT_TZ(s.appointment_time, '+00:00', '+07:00')) <= :hourTo)",
+            countQuery = "SELECT COUNT(*) FROM schedules s " +
+            "INNER JOIN rooms r ON s.room_id = r.id " +
+            "INNER JOIN users u ON r.landlord_id = u.id " +
+            "WHERE (:landlordId IS NULL OR u.id = :landlordId) " +
+            "AND (:search IS NULL OR LOWER(s.full_name) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            "AND (:status IS NULL OR s.status = :status) " +
+            "AND (:from IS NULL OR s.appointment_time >= :from) " +
+            "AND (:to IS NULL OR s.appointment_time <= :to) " +
+            "AND (:hourFrom IS NULL OR HOUR(CONVERT_TZ(s.appointment_time, '+00:00', '+07:00')) >= :hourFrom) " +
+            "AND (:hourTo IS NULL OR HOUR(CONVERT_TZ(s.appointment_time, '+00:00', '+07:00')) <= :hourTo)",
+            nativeQuery = true)
     Page<Schedule> searchAndFilter(@Param("landlordId") Long landlordId,
                                    @Param("search") String search,
-                                   @Param("status") com.mpbhms.backend.enums.ScheduleStatus status,
+                                   @Param("status") String status,
                                    @Param("from") java.time.Instant from,
                                    @Param("to") java.time.Instant to,
+                                   @Param("hourFrom") Integer hourFrom,
+                                   @Param("hourTo") Integer hourTo,
                                    Pageable pageable);
 
     List<Schedule> findByRenter_Id(Long renterId);

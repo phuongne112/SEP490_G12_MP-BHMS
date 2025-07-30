@@ -56,7 +56,7 @@ public class ScheduleControllerTest {
 
     @Test
     public void testGetAllSchedules() throws Exception {
-        Mockito.when(scheduleService.searchAndFilter(any(), any(), any(), any(), any(), anyInt(), anyInt()))
+        Mockito.when(scheduleService.searchAndFilter(any(), any(), any(), any(), any(), any(), any(), anyInt(), anyInt()))
                 .thenReturn(new ResultPaginationDTO());
 
         mockMvc.perform(get("/mpbhms/schedules"))

@@ -30,10 +30,12 @@ public class ScheduleController {
             @RequestParam(required = false) ScheduleStatus status,
             @RequestParam(required = false) Instant from,
             @RequestParam(required = false) Instant to,
+            @RequestParam(required = false) Integer hourFrom,
+            @RequestParam(required = false) Integer hourTo,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int pageSize
     ) {
-        return ResponseEntity.ok(scheduleService.searchAndFilter(landlordId, search, status, from, to, page, pageSize));
+        return ResponseEntity.ok(scheduleService.searchAndFilter(landlordId, search, status, from, to, hourFrom, hourTo, page, pageSize));
     }
 
     @GetMapping("/landlord")

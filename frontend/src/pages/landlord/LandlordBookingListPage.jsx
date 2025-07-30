@@ -26,6 +26,69 @@ const statusOptions = [
   { value: "CANCELLED", label: "Đã hủy" },
 ];
 
+const hourOptions = [
+  { value: null, label: "Tất cả" },
+  { value: 0, label: "00:00" },
+  { value: 1, label: "01:00" },
+  { value: 2, label: "02:00" },
+  { value: 3, label: "03:00" },
+  { value: 4, label: "04:00" },
+  { value: 5, label: "05:00" },
+  { value: 6, label: "06:00" },
+  { value: 7, label: "07:00" },
+  { value: 8, label: "08:00" },
+  { value: 9, label: "09:00" },
+  { value: 10, label: "10:00" },
+  { value: 11, label: "11:00" },
+  { value: 12, label: "12:00" },
+  { value: 13, label: "13:00" },
+  { value: 14, label: "14:00" },
+  { value: 15, label: "15:00" },
+  { value: 16, label: "16:00" },
+  { value: 17, label: "17:00" },
+  { value: 18, label: "18:00" },
+  { value: 19, label: "19:00" },
+  { value: 20, label: "20:00" },
+  { value: 21, label: "21:00" },
+  { value: 22, label: "22:00" },
+  { value: 23, label: "23:00" },
+];
+
+// Custom Hour Range Picker Component
+const HourRangePicker = ({ value, onChange, style }) => {
+  const [fromHour, toHour] = value || [null, null];
+
+  const handleFromChange = (hour) => {
+    onChange([hour, toHour]);
+  };
+
+  const handleToChange = (hour) => {
+    onChange([fromHour, hour]);
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, ...style }}>
+      <Select
+        value={fromHour}
+        onChange={handleFromChange}
+        options={hourOptions}
+        style={{ width: 100 }}
+        placeholder="Từ"
+        allowClear
+      />
+      <span style={{ color: '#666' }}>~</span>
+      <Select
+        value={toHour}
+        onChange={handleToChange}
+        options={hourOptions}
+        style={{ width: 100 }}
+        placeholder="Đến"
+        allowClear
+      />
+    </div>
+  );
+};
+
 export default function LandlordBookingListPage() {
   const [data, setData] = useState([]);
   const [search, setSearch] = useState("");
@@ -36,9 +99,11 @@ export default function LandlordBookingListPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState("");
   const [filterDate, setFilterDate] = useState([]);
+  const [filterHourRange, setFilterHourRange] = useState([null, null]);
   const [total, setTotal] = useState(0);
   const [pendingFilterStatus, setPendingFilterStatus] = useState("");
   const [pendingFilterDate, setPendingFilterDate] = useState([]);
+  const [pendingFilterHourRange, setPendingFilterHourRange] = useState([null, null]);
 
   const fetchData = () => {
     if (user?.id) {
@@ -49,6 +114,8 @@ export default function LandlordBookingListPage() {
         status: filterStatus || undefined,
         from: filterDate.length === 2 ? filterDate[0].startOf("day").toISOString() : undefined,
         to: filterDate.length === 2 ? filterDate[1].endOf("day").toISOString() : undefined,
+        hourFrom: filterHourRange[0] || undefined,
+        hourTo: filterHourRange[1] || undefined,
         page: currentPage - 1,
         pageSize: pageSize,
       };
@@ -65,7 +132,7 @@ export default function LandlordBookingListPage() {
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line
-  }, [user, search, filterStatus, filterDate, currentPage, pageSize]);
+  }, [user, search, filterStatus, filterDate, filterHourRange, currentPage, pageSize]);
 
   const handleConfirm = async (record) => {
     try {
@@ -245,12 +312,20 @@ export default function LandlordBookingListPage() {
                           style={{ width: 220 }}
                         />
                       </Form.Item>
+                      <Form.Item label="Hour Range">
+                        <HourRangePicker
+                          value={pendingFilterHourRange}
+                          onChange={setPendingFilterHourRange}
+                          style={{ width: 220 }}
+                        />
+                      </Form.Item>
                       <Button
                         type="primary"
                         block
                         onClick={() => {
                           setFilterStatus(pendingFilterStatus);
                           setFilterDate(pendingFilterDate);
+                          setFilterHourRange(pendingFilterHourRange);
                           setCurrentPage(1);
                           setFilterOpen(false);
                         }}
@@ -267,6 +342,7 @@ export default function LandlordBookingListPage() {
                     if (open) {
                       setPendingFilterStatus(filterStatus);
                       setPendingFilterDate(filterDate);
+                      setPendingFilterHourRange(filterHourRange);
                     }
                   }}
                   placement="bottomRight"
