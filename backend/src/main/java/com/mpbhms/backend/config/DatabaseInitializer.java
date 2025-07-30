@@ -355,7 +355,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             landlordRole.setRoleName("LANDLORD");
             List<Permission> landlordPermission = new ArrayList<>(permissionRepository.findAll()
                     .stream()
-                    .filter(p -> List.of("Room","ContractTemplate","Renter","RoomUser","Bill","Ocr","Contract","Service","Schedule","User","Asset","ElectricReading").contains(p.getModule())) // hoặc theo API cụ thể
+                    .filter(p -> List.of("Room","ContractTemplate","Renter","RoomUser","Bill","Ocr","Contract","Service","Schedule","User","Asset","ElectricReading","RoomAsset","AssetInventory").contains(p.getModule())) // hoặc theo API cụ thể
                     .toList());
             // Đảm bảo LANDLORD có quyền xem booking (schedule)
             if (getAllSchedules != null && !landlordPermission.contains(getAllSchedules)) {
@@ -382,6 +382,17 @@ public class DatabaseInitializer implements CommandLineRunner {
             Permission dashboardStats = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/dashboard-stats", "GET");
             if (dashboardStats != null && !landlordPermission.contains(dashboardStats)) {
                 landlordPermission.add(dashboardStats);
+            }
+            
+            // Đảm bảo LANDLORD có quyền quản lý tài sản (checkin/checkout)
+            Permission landlordCheckinAsset = permissionRepository.findByModuleAndApiPathAndMethod("Asset", "/mpbhms/assets/checkin", "POST");
+            if (landlordCheckinAsset != null && !landlordPermission.contains(landlordCheckinAsset)) {
+                landlordPermission.add(landlordCheckinAsset);
+            }
+            
+            Permission landlordCheckoutAsset = permissionRepository.findByModuleAndApiPathAndMethod("Asset", "/mpbhms/assets/checkout", "POST");
+            if (landlordCheckoutAsset != null && !landlordPermission.contains(landlordCheckoutAsset)) {
+                landlordPermission.add(landlordCheckoutAsset);
             }
             landlordRole.setPermissionEntities(landlordPermission);
             roleRepository.save(landlordRole);
