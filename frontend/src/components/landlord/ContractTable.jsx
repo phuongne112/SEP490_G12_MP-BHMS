@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Table, Button, Popconfirm, Statistic, Space, Spin, Tag } from "antd";
-import { FilePdfOutlined, EditOutlined, HistoryOutlined, ReloadOutlined, StopOutlined } from "@ant-design/icons";
+import { FilePdfOutlined, EditOutlined, HistoryOutlined, ReloadOutlined, StopOutlined, EyeOutlined } from "@ant-design/icons";
 import { getContractHistoryByRoom } from "../../services/contractApi";
 
 const paymentCycleVN = {
@@ -68,7 +68,7 @@ function ContractHistoryTable({ roomId, onExport }) {
   );
 }
 
-export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate, onRenew, onViewAmendments, onTerminate, loading, onFilter, pageSize = 5, currentPage = 1, total = 0, onPageChange }) {
+export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate, onRenew, onViewAmendments, onTerminate, onViewDetail, loading, onFilter, pageSize = 5, currentPage = 1, total = 0, onPageChange }) {
   const columns = [
     {
       title: "Mã hợp đồng",
@@ -230,6 +230,15 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
         const isTerminatedOrExpired = record.contractStatus === "TERMINATED" || record.contractStatus === "EXPIRED";
         return (
           <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
+            <Button
+              type="primary"
+              icon={<EyeOutlined />}
+              onClick={() => onViewDetail && onViewDetail(record)}
+              size="small"
+              title="Xem chi tiết"
+            >
+              Chi tiết
+            </Button>
             <Button
               type="primary"
               icon={<FilePdfOutlined />}

@@ -1097,21 +1097,175 @@ export default function LandlordContractListPage() {
               </div>
             )}
           </Modal>
-          <Modal open={detailModalOpen} onCancel={() => setDetailModalOpen(false)} footer={null} title="Chi tiết hợp đồng">
+          <Modal 
+            open={detailModalOpen} 
+            onCancel={() => setDetailModalOpen(false)} 
+            footer={null} 
+            title={
+              <div style={{ fontSize: '18px', fontWeight: 600, color: '#262626' }}>
+                📋 Chi tiết hợp đồng
+              </div>
+            }
+            width={700}
+          >
             {detailContract ? (
-              <>
-                <div><b>Mã hợp đồng:</b> {detailContract.contractNumber || detailContract.id}</div>
-                <div><b>Phòng:</b> {detailContract.roomNumber}</div>
-                <div><b>Ngày bắt đầu:</b> {detailContract.contractStartDate ? new Date(detailContract.contractStartDate).toLocaleDateString("vi-VN") : ''}</div>
-                <div><b>Ngày kết thúc:</b> {detailContract.contractEndDate ? new Date(detailContract.contractEndDate).toLocaleDateString("vi-VN") : ''}</div>
-                <div style={{ margin: '16px 0 8px 0', fontWeight: 500 }}>Danh sách điều khoản:</div>
-                <ul style={{ marginLeft: 16 }}>
-                  {detailContract.terms && detailContract.terms.length > 0 ? detailContract.terms.map((term, idx) => (
-                    <li key={idx}>{term}</li>
-                  )) : <li>Không có điều khoản cụ thể.</li>}
-                </ul>
-              </>
-            ) : null}
+              <div style={{ padding: '16px 0' }}>
+                {/* Thông tin cơ bản */}
+                <div style={{ 
+                  background: '#f8f9fa', 
+                  padding: '16px', 
+                  borderRadius: '8px', 
+                  marginBottom: '20px',
+                  border: '1px solid #e9ecef'
+                }}>
+                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#1890ff' }}>
+                    📄 Thông tin cơ bản
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div><b>Mã hợp đồng:</b> <span style={{ color: '#1890ff', fontWeight: 500 }}>{detailContract.contractNumber || `#${detailContract.id}`}</span></div>
+                    <div><b>Phòng:</b> <span style={{ color: '#52c41a', fontWeight: 500 }}>{detailContract.roomNumber || detailContract.room?.roomNumber}</span></div>
+                    <div><b>Trạng thái:</b> 
+                      <span style={{ 
+                        color: detailContract.contractStatus === 'ACTIVE' ? '#52c41a' : 
+                               detailContract.contractStatus === 'TERMINATED' ? '#ff4d4f' : '#faad14',
+                        fontWeight: 500,
+                        marginLeft: '8px'
+                      }}>
+                        {detailContract.contractStatus === "TERMINATED" ? "Đã chấm dứt" : 
+                         detailContract.contractStatus === "ACTIVE" ? "Đang hiệu lực" : 
+                         detailContract.contractStatus === "EXPIRED" ? "Hết hạn" : detailContract.contractStatus}
+                      </span>
+                    </div>
+                    <div><b>Chu kỳ thanh toán:</b> <span style={{ color: '#722ed1', fontWeight: 500 }}>
+                      {detailContract.paymentCycle === 'MONTHLY' ? 'Hàng tháng' : 
+                       detailContract.paymentCycle === 'QUARTERLY' ? 'Hàng quý' : 
+                       detailContract.paymentCycle === 'YEARLY' ? 'Hàng năm' : detailContract.paymentCycle}
+                    </span></div>
+                  </div>
+                </div>
+
+                {/* Thông tin thời gian */}
+                <div style={{ 
+                  background: '#fff7e6', 
+                  padding: '16px', 
+                  borderRadius: '8px', 
+                  marginBottom: '20px',
+                  border: '1px solid #ffd591'
+                }}>
+                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#d46b08' }}>
+                    📅 Thông tin thời gian
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div><b>Ngày bắt đầu:</b> <span style={{ color: '#52c41a', fontWeight: 500 }}>
+                      {detailContract.contractStartDate ? new Date(detailContract.contractStartDate).toLocaleDateString("vi-VN") : 'Chưa có'}
+                    </span></div>
+                    <div><b>Ngày kết thúc:</b> <span style={{ color: '#ff4d4f', fontWeight: 500 }}>
+                      {detailContract.contractEndDate ? new Date(detailContract.contractEndDate).toLocaleDateString("vi-VN") : 'Chưa có'}
+                    </span></div>
+                    <div><b>Ngày tạo:</b> <span style={{ color: '#666', fontWeight: 500 }}>
+                      {detailContract.createdDate ? new Date(detailContract.createdDate).toLocaleDateString("vi-VN") : 'Chưa có'}
+                    </span></div>
+                    <div><b>Ngày cập nhật:</b> <span style={{ color: '#666', fontWeight: 500 }}>
+                      {detailContract.updatedDate ? new Date(detailContract.updatedDate).toLocaleDateString("vi-VN") : 'Chưa có'}
+                    </span></div>
+                  </div>
+                </div>
+
+                {/* Thông tin tài chính */}
+                <div style={{ 
+                  background: '#f6ffed', 
+                  padding: '16px', 
+                  borderRadius: '8px', 
+                  marginBottom: '20px',
+                  border: '1px solid #b7eb8f'
+                }}>
+                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#52c41a' }}>
+                    💰 Thông tin tài chính
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div><b>Tiền thuê:</b> <span style={{ color: '#52c41a', fontWeight: 600, fontSize: '16px' }}>
+                      {detailContract.rentAmount ? detailContract.rentAmount.toLocaleString() + " VND" : 'Chưa có'}
+                    </span></div>
+                    <div><b>Tiền cọc:</b> <span style={{ color: '#faad14', fontWeight: 600, fontSize: '16px' }}>
+                      {detailContract.depositAmount ? detailContract.depositAmount.toLocaleString() + " VND" : 'Chưa có'}
+                    </span></div>
+                  </div>
+                </div>
+
+                {/* Thông tin người thuê */}
+                <div style={{ 
+                  background: '#e6f7ff', 
+                  padding: '16px', 
+                  borderRadius: '8px', 
+                  marginBottom: '20px',
+                  border: '1px solid #91d5ff'
+                }}>
+                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#1890ff' }}>
+                    👥 Thông tin người thuê
+                  </div>
+                  {detailContract.roomUsers && detailContract.roomUsers.length > 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      {detailContract.roomUsers.map((user, idx) => (
+                        <div key={idx} style={{ 
+                          padding: '8px 12px', 
+                          background: 'white', 
+                          borderRadius: '6px',
+                          border: '1px solid #d9d9d9'
+                        }}>
+                          <div><b>Tên:</b> {user.fullName || 'Không rõ'}</div>
+                          <div><b>SĐT:</b> {user.phoneNumber || 'Không có'}</div>
+                          <div><b>Email:</b> {user.email || 'Không có'}</div>
+                          <div><b>Trạng thái:</b> 
+                            <span style={{ 
+                              color: user.isActive !== false ? '#52c41a' : '#ff4d4f',
+                              fontWeight: 500,
+                              marginLeft: '4px'
+                            }}>
+                              {user.isActive !== false ? 'Đang thuê' : 'Đã rời'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ color: '#666', fontStyle: 'italic' }}>Chưa có người thuê</div>
+                  )}
+                </div>
+
+                {/* Điều khoản hợp đồng */}
+                <div style={{ 
+                  background: '#fff2e8', 
+                  padding: '16px', 
+                  borderRadius: '8px',
+                  border: '1px solid #ffbb96'
+                }}>
+                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#fa541c' }}>
+                    📋 Điều khoản hợp đồng
+                  </div>
+                  {detailContract.terms && detailContract.terms.length > 0 ? (
+                    <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                      {detailContract.terms.map((term, idx) => (
+                        <li key={idx} style={{ 
+                          marginBottom: '8px', 
+                          padding: '8px 12px', 
+                          background: 'white', 
+                          borderRadius: '6px',
+                          border: '1px solid #ffd6c7'
+                        }}>
+                          {term}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div style={{ color: '#666', fontStyle: 'italic' }}>Không có điều khoản cụ thể.</div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                Không tìm thấy thông tin hợp đồng
+              </div>
+            )}
           </Modal>
           <Modal
             open={terminateModalOpen}
