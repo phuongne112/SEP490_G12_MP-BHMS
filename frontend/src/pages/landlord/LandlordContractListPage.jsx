@@ -289,7 +289,8 @@ export default function LandlordContractListPage() {
   
       message.success("Đã gửi yêu cầu gia hạn, chờ người thuê duyệt");
       setRenewModalOpen(false);
-      fetchRoomsAndLatestContracts();
+      // Auto refresh trang
+      window.location.reload();
     } catch (e) {
       console.error("Lỗi khi gửi yêu cầu gia hạn:", e);
       const errorMsg = e.response?.data || e.message || "Gửi yêu cầu gia hạn thất bại";
@@ -316,7 +317,8 @@ export default function LandlordContractListPage() {
       message.success("Đã gửi yêu cầu kết thúc hợp đồng, chờ các bên phê duyệt.");
       setTerminateModalOpen(false);
       setTerminateReason("");
-      fetchRoomsAndLatestContracts();
+      // Auto refresh trang
+      window.location.reload();
     } catch {
       message.error("Gửi yêu cầu thất bại!");
     } finally {
@@ -394,10 +396,44 @@ export default function LandlordContractListPage() {
       return;
     }
 
-    // Lọc bỏ điều khoản trống
+    // Validate điều khoản không được trùng nhau
     const validTerms = updateTerms
       .map(term => term?.trim())
       .filter(term => term && term.length >= 10);
+    
+    const duplicateTerms = [];
+    const seenTerms = new Set();
+    
+    validTerms.forEach((term, index) => {
+      const normalizedTerm = term.toLowerCase().trim();
+      if (seenTerms.has(normalizedTerm)) {
+        duplicateTerms.push(index + 1);
+      } else {
+        seenTerms.add(normalizedTerm);
+      }
+    });
+    
+    if (duplicateTerms.length > 0) {
+      message.error(`Điều khoản ${duplicateTerms.join(', ')} bị trùng lặp. Vui lòng kiểm tra lại!`);
+      return;
+    }
+
+    // Kiểm tra xem có thay đổi gì không
+    const hasChanges = 
+      updateRentAmount !== updateContract.rentAmount ||
+      updateDeposit !== updateContract.depositAmount ||
+      updatePaymentCycle !== updateContract.paymentCycle ||
+      updateEndDate?.toISOString() !== updateContract.contractEndDate ||
+      updateTerms.length > 0 ||
+      updateRenters.length !== (updateContract.roomUsers?.filter(u => u.isActive !== false).length || 0);
+
+    if (!hasChanges) {
+      message.warning("Không có thay đổi nào được thực hiện. Vui lòng cập nhật ít nhất một thông tin.");
+      return;
+    }
+
+    // Lọc bỏ điều khoản trống (đã được validate ở trên)
+    const finalValidTerms = validTerms;
 
     setUpdating(true);
     try {
@@ -407,16 +443,18 @@ export default function LandlordContractListPage() {
         newEndDate: updateEndDate?.toISOString(),
         newRentAmount: updateRentAmount ? parseFloat(updateRentAmount) : null,
         newDepositAmount: updateDeposit ? parseFloat(updateDeposit) : null,
-        newTerms: validTerms.length > 0 ? validTerms : null,
+        newTerms: finalValidTerms, // Luôn gửi mảng (có thể rỗng) thay vì null
         requiresTenantApproval: true,
-        renterIds: updateRenters
+        renterIds: updateRenters,
+        paymentCycle: updatePaymentCycle
       };
       
       await updateRoomUserContract(request);
       message.success("Yêu cầu cập nhật hợp đồng đã được gửi!");
       setUpdateModalOpen(false);
       resetUpdateForm();
-      fetchRoomsAndLatestContracts(currentPage, pageSize);
+      // Auto refresh trang
+      window.location.reload();
     } catch (err) {
       console.error("Error updating contract:", err);
       message.error(err.response?.data?.message || "Cập nhật hợp đồng thất bại!");
@@ -459,12 +497,8 @@ export default function LandlordContractListPage() {
         duration: 3
       });
       
-      // Refresh amendments list after a short delay
-      setTimeout(() => {
-        if (currentAmendmentContractId) {
-          handleViewAmendments(currentAmendmentContractId);
-        }
-      }, 300);
+      // Auto refresh trang
+      window.location.reload();
     } catch (e) {
       console.error('Approval error:', e);
       message.error({
@@ -501,12 +535,8 @@ export default function LandlordContractListPage() {
       setRejectingId(null);
       setRejectReason("");
       
-      // Cập nhật lại danh sách amendment after delay
-      setTimeout(() => {
-        if (currentAmendmentContractId) {
-          handleViewAmendments(currentAmendmentContractId);
-        }
-      }, 300);
+      // Auto refresh trang
+      window.location.reload();
     } catch (e) {
       console.error('Rejection error:', e);
       message.error({
@@ -683,19 +713,24 @@ export default function LandlordContractListPage() {
               paddingTop: 12,
               fontSize: 14
             }}>
-              <div style={{ color: '#666' }}>
-                Hiển thị
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 8,
+                color: '#666'
+              }}>
+                <span>Hiển thị</span>
                 <Select
-                  style={{ width: 120, margin: "0 8px" }}
                   value={pageSize}
                   onChange={value => {
                     setPageSize(value);
                     setCurrentPage(1);
                     fetchRoomsAndLatestContracts(1, value);
                   }}
-                  options={pageSizeOptions.map((v) => ({ value: v, label: `${v} / trang` }))}
+                  style={{ width: 100 }}
+                  options={pageSizeOptions.map((v) => ({ value: v, label: `${v}` }))}
                 />
-                mục
+                <span>mục</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                 {lastUpdated && (
@@ -759,7 +794,23 @@ export default function LandlordContractListPage() {
               />
             </div>
           </Modal>
-          <Modal open={updateModalOpen} onCancel={() => setUpdateModalOpen(false)} onOk={doUpdateContract} okText="Cập nhật hợp đồng" confirmLoading={updating} title="Cập nhật hợp đồng">
+          <Modal 
+            open={updateModalOpen} 
+            onCancel={() => setUpdateModalOpen(false)} 
+            onOk={doUpdateContract} 
+            okText="Gửi yêu cầu cập nhật" 
+            confirmLoading={updating} 
+            title={
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 600 }}>Cập nhật hợp đồng</div>
+                {updateContract && (
+                  <div style={{ fontSize: '12px', color: '#666', marginTop: 4 }}>
+                    Phòng: {updateContract.room?.roomNumber} • Số hợp đồng: {updateContract.contractNumber || updateContract.id}
+                  </div>
+                )}
+              </div>
+            }
+          >
             <div style={{ marginBottom: 8 }}>Lý do cập nhật:</div>
             <Input.TextArea value={updateReason} onChange={e => setUpdateReason(e.target.value)} rows={2} style={{ marginBottom: 12 }} />
             <div style={{ marginBottom: 8 }}>Ngày kết thúc mới:</div>
@@ -802,7 +853,14 @@ export default function LandlordContractListPage() {
             </div>
 
             <ul style={{ margin: '8px 0 8px 16px', padding: 0 }}>
-              {updateTerms.length === 0 && <li style={{ color: '#8c8c8c', fontStyle: 'italic' }}>Chưa có điều khoản bổ sung</li>}
+              {updateTerms.length === 0 && (
+                <li style={{ color: '#8c8c8c', fontStyle: 'italic' }}>
+                  {updateContract?.terms && updateContract.terms.length > 0 
+                    ? 'Điều khoản hiện tại sẽ được giữ nguyên' 
+                    : 'Chưa có điều khoản bổ sung'
+                  }
+                </li>
+              )}
               {updateTerms.map((term, idx) => (
                 <li key={idx} style={{ marginBottom: 8, display: 'flex', alignItems: 'flex-start', border: '1px solid #f0f0f0', borderRadius: 4, padding: 8 }}>
                   <span style={{ minWidth: '20px', fontSize: '12px', color: '#666', marginTop: 4 }}>{idx + 1}.</span>
@@ -883,16 +941,28 @@ export default function LandlordContractListPage() {
             </div>
             
             {/* Thống kê điều khoản */}
-            <div style={{ fontSize: '12px', color: '#666', marginBottom: 16, textAlign: 'center' }}>
+            <div style={{ fontSize: '12px', color: '#666', marginBottom: 16, textAlign: 'center', padding: '8px', backgroundColor: '#f9f9f9', borderRadius: 4 }}>
               📋 Tổng cộng: <strong>{updateTerms.length}</strong> điều khoản • 
-              Hợp lệ: <strong>{updateTerms.filter(t => t && t.trim().length >= 10).length}</strong> • 
-              Cần sửa: <strong>{updateTerms.filter(t => !t || t.trim().length < 10).length}</strong>
+              Hợp lệ: <strong style={{ color: '#52c41a' }}>{updateTerms.filter(t => t && t.trim().length >= 10).length}</strong> • 
+              Cần sửa: <strong style={{ color: updateTerms.filter(t => !t || t.trim().length < 10).length > 0 ? '#ff4d4f' : '#666' }}>
+                {updateTerms.filter(t => !t || t.trim().length < 10).length}
+              </strong>
+              {updateTerms.length === 0 && updateContract?.terms && updateContract.terms.length > 0 && (
+                <span style={{ color: '#1890ff' }}> • Giữ nguyên {updateContract.terms.length} điều khoản hiện tại</span>
+              )}
             </div>
             <div style={{ marginBottom: 8 }}>
               Người thuê trong hợp đồng mới ({updateRenters.length}/{maxCount}):
             </div>
             <ul style={{ margin: '8px 0 8px 16px', padding: 0 }}>
-              {updateRenters.length === 0 && <li>Chưa có người thuê</li>}
+              {updateRenters.length === 0 && (
+                <li style={{ color: '#8c8c8c', fontStyle: 'italic' }}>
+                  {updateContract?.roomUsers && updateContract.roomUsers.filter(u => u.isActive !== false).length > 0 
+                    ? 'Người thuê hiện tại sẽ được giữ nguyên' 
+                    : 'Chưa có người thuê'
+                  }
+                </li>
+              )}
               {updateRenters.map(id => {
                 const user = allRenters.find(r => r.id === id);
                 return (
@@ -936,10 +1006,13 @@ export default function LandlordContractListPage() {
                   }))}
               />
             )}
-            <div style={{ color: '#888', fontSize: 12, marginTop: 8 }}>
-              * Nếu bạn xóa người thuê hiện tại, họ sẽ bị loại khỏi hợp đồng mới.<br/>
-              * Nếu bạn thêm người thuê mới, họ sẽ được thêm vào hợp đồng mới.<br/>
-              * Số lượng người thuê tối đa: {maxCount}
+            <div style={{ color: '#888', fontSize: 12, marginTop: 8, padding: '8px', backgroundColor: '#f0f8ff', borderRadius: 4, border: '1px solid #d6e4ff' }}>
+              <div style={{ fontWeight: 500, marginBottom: 4, color: '#1890ff' }}>ℹ️ Lưu ý quan trọng:</div>
+              • Nếu bạn xóa người thuê hiện tại, họ sẽ bị loại khỏi hợp đồng mới.<br/>
+              • Nếu bạn thêm người thuê mới, họ sẽ được thêm vào hợp đồng mới.<br/>
+              • Nếu bạn xóa tất cả điều khoản, hợp đồng mới sẽ không có điều khoản nào.<br/>
+              • Nếu bạn không thay đổi điều khoản, điều khoản hiện tại sẽ được giữ nguyên.<br/>
+              • Số lượng người thuê tối đa: <strong>{maxCount}</strong>
             </div>
           </Modal>
           <Modal open={amendmentsModalOpen} onCancel={() => { setAmendmentsModalOpen(false); setAmendmentsPage(1); }} footer={null} title="Yêu cầu thay đổi hợp đồng">
