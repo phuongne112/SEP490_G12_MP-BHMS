@@ -1,19 +1,26 @@
 package com.mpbhms.backend.service.impl;
 
 import com.mpbhms.backend.dto.Meta;
+import com.mpbhms.backend.dto.NotificationDTO;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
 import com.mpbhms.backend.dto.ServiceDTO;
 import com.mpbhms.backend.dto.ServicePriceHistoryDTO;
 import com.mpbhms.backend.dto.UpdateServicePriceRequest;
+import com.mpbhms.backend.entity.Contract;
 import com.mpbhms.backend.entity.CustomService;
+import com.mpbhms.backend.entity.RoomUser;
 import com.mpbhms.backend.entity.ServicePriceHistory;
+import com.mpbhms.backend.enums.ContractStatus;
+import com.mpbhms.backend.enums.NotificationType;
 import com.mpbhms.backend.exception.BusinessException;
 import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.exception.NotFoundException;
-import com.mpbhms.backend.repository.ServiceRepository;
+import com.mpbhms.backend.repository.ContractRepository;
 import com.mpbhms.backend.repository.ServicePriceHistoryRepository;
 import com.mpbhms.backend.repository.ServiceReadingRepository;
+import com.mpbhms.backend.repository.ServiceRepository;
 import com.mpbhms.backend.entity.ServiceReading;
+import com.mpbhms.backend.service.NotificationService;
 import com.mpbhms.backend.service.ServiceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -35,6 +42,8 @@ public class ServiceServiceImpl implements ServiceService {
     private final ServiceRepository serviceRepository;
     private final ServiceReadingRepository serviceReadingRepository;
     private final ServicePriceHistoryRepository servicePriceHistoryRepository;
+    private final ContractRepository contractRepository;
+    private final NotificationService notificationService;
 
     @Override
     public List<ServiceDTO> getAllServices() {
@@ -175,6 +184,10 @@ public class ServiceServiceImpl implements ServiceService {
         // Giá sẽ được cập nhật khi đến ngày hiệu lực thông qua job tự động
         
         ServicePriceHistory savedHistory = servicePriceHistoryRepository.save(priceHistory);
+        
+        // Gửi thông báo cho tất cả người thuê về việc sắp thay đổi giá dịch vụ
+        sendServicePriceChangeNotification(service, savedHistory);
+        
         return convertToServicePriceHistoryDTO(savedHistory);
     }
 
@@ -229,5 +242,52 @@ public class ServiceServiceImpl implements ServiceService {
         dto.setIsActive(history.getIsActive());
         dto.setCreatedAt(history.getCreatedDate().atZone(java.time.ZoneId.systemDefault()).toLocalDate());
         return dto;
+    }
+
+    /**
+     * Gửi thông báo cho tất cả người thuê về việc sắp thay đổi giá dịch vụ
+     */
+    private void sendServicePriceChangeNotification(CustomService service, ServicePriceHistory newPrice) {
+        try {
+            // Tìm tất cả hợp đồng đang active
+            List<Contract> activeContracts = contractRepository.findByContractStatus(ContractStatus.ACTIVE);
+            
+            for (Contract contract : activeContracts) {
+                if (contract.getRoomUsers() != null) {
+                    for (RoomUser roomUser : contract.getRoomUsers()) {
+                        if (roomUser.getUser() != null && Boolean.TRUE.equals(roomUser.getIsActive())) {
+                            try {
+                                NotificationDTO notification = new NotificationDTO();
+                                notification.setRecipientId(roomUser.getUser().getId());
+                                notification.setTitle("Thông báo thay đổi giá dịch vụ: " + service.getServiceName());
+                                notification.setMessage(String.format(
+                                    "Giá dịch vụ %s sẽ được cập nhật thành %s VNĐ/%s từ ngày %s. " +
+                                    "Lý do: %s",
+                                    service.getServiceName(),
+                                    newPrice.getUnitPrice().toString(),
+                                    service.getUnit(),
+                                    newPrice.getEffectiveDate().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                                    newPrice.getReason() != null ? newPrice.getReason() : "Không có lý do"
+                                ));
+                                notification.setType(NotificationType.SERVICE_UPDATE);
+                                notification.setMetadata(String.format(
+                                    "{\"serviceId\":%d,\"serviceName\":\"%s\",\"newPrice\":%s,\"effectiveDate\":\"%s\"}",
+                                    service.getId(),
+                                    service.getServiceName(),
+                                    newPrice.getUnitPrice().toString(),
+                                    newPrice.getEffectiveDate().toString()
+                                ));
+                                
+                                notificationService.createAndSend(notification);
+                            } catch (Exception e) {
+                                System.err.println("Lỗi gửi thông báo thay đổi giá dịch vụ cho user " + roomUser.getUser().getId() + ": " + e.getMessage());
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi khi gửi thông báo thay đổi giá dịch vụ: " + e.getMessage());
+        }
     }
 } 

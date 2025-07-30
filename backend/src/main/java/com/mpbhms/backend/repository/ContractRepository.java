@@ -27,4 +27,7 @@ public interface ContractRepository extends JpaRepository<Contract, Long>, JpaSp
         org.springframework.data.domain.Pageable pageable);
 
     List<Contract> findByRoomIdAndContractStatus(Long roomId, com.mpbhms.backend.enums.ContractStatus contractStatus);
+    
+    // Tìm tất cả hợp đồng đang active
+    List<Contract> findByContractStatus(com.mpbhms.backend.enums.ContractStatus contractStatus);
 }
