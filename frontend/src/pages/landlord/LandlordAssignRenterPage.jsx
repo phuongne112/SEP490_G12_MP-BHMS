@@ -209,7 +209,7 @@ export default function LandlordAssignRenterPage() {
         }),
         contractStartDate: values.contractStartDate.toISOString(),
         contractEndDate: endDateToUse.toISOString(),
-        depositAmount: parseFloat(values.depositAmount) || 0,
+        depositAmount: values.depositAmount,
         paymentCycle: values.paymentCycle
       };
       await axiosClient.post("/room-users/add-many", requestData);
@@ -648,11 +648,7 @@ export default function LandlordAssignRenterPage() {
                     <InputNumber
                       style={{ width: "100%" }}
                       formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                      parser={value => {
-                        // Loại bỏ tất cả ký tự không phải số
-                        const cleanValue = value.replace(/[^\d]/g, '');
-                        return cleanValue ? parseInt(cleanValue, 10) : 0;
-                      }}
+                      parser={value => value.replace(/\$\s?|(,*)/g, '')}
                       min={0}
                       max={room.pricePerMonth * 12} // Tối đa 12 tháng
                       placeholder="Nhập số tiền đặt cọc hoặc chọn preset"
