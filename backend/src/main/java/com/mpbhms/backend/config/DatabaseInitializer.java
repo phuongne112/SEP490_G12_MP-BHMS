@@ -593,25 +593,22 @@ public class DatabaseInitializer implements CommandLineRunner {
         .header { 
             text-align: center; 
             margin-bottom: 30px;
-            border-bottom: 2px solid #333;
+            border-bottom: 1px solid #333;
             padding-bottom: 20px;
         }
         .title { 
-            font-size: 24px; 
+            font-size: 20px; 
             font-weight: bold; 
-            color: #d32f2f;
             margin: 20px 0;
+            text-align: center;
         }
         .section { 
             margin: 20px 0; 
         }
         .section-title { 
-            font-size: 16px; 
+            font-size: 14px; 
             font-weight: bold; 
-            color: #1976d2;
             margin: 15px 0 10px 0;
-            border-left: 4px solid #1976d2;
-            padding-left: 10px;
         }
         .info-table {
             width: 100%;
@@ -640,13 +637,6 @@ public class DatabaseInitializer implements CommandLineRunner {
             display: inline-block;
             vertical-align: top;
         }
-        .legal-note {
-            background-color: #f9f9f9;
-            border-left: 4px solid #ff9800;
-            padding: 15px;
-            margin: 20px 0;
-            font-style: italic;
-        }
         ul {
             margin: 10px 0;
             padding-left: 25px;
@@ -658,24 +648,15 @@ public class DatabaseInitializer implements CommandLineRunner {
 </head>
 <body>
     <div class="header">
-        <div style="font-weight: bold; font-size: 16px;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+        <div style="font-weight: bold; font-size: 18px;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
         <div style="font-weight: bold; font-size: 16px;">Độc lập - Tự do - Hạnh phúc</div>
-        <div style="margin: 15px 0;">═══════════════════════════════════════════</div>
     </div>
 
-    <div class="title" style="text-align: center;">HỢP ĐỒNG THUÊ PHÒNG TRỌ</div>
+    <div class="title">HỢP ĐỒNG THUÊ PHÒNG TRỌ</div>
     
     <div style="text-align: center; margin-bottom: 20px;">
-        <strong>Số hợp đồng: {{contract.contractNumber}}</strong><br />
+        <strong>Số hợp đồng: {{contractNumber}}</strong><br />
         <em>Ký {{startDate}}</em>
-    </div>
-
-    <div class="legal-note">
-        <strong>Căn cứ pháp lý:</strong><br />
-        - Bộ luật Dân sự năm 2015;<br />
-        - Luật Nhà ở năm 2014;<br />
-        - Nghị định số 99/2015/NĐ-CP ngày 20/10/2015 của Chính phủ;<br />
-        - Các quy định pháp luật có liên quan và thỏa thuận của các bên.
     </div>
 
     <p>Hôm nay, <strong>{{startDate}}</strong>, tại <strong>{{room.roomNumber}}</strong>, chúng tôi gồm các bên:</p>
@@ -685,19 +666,19 @@ public class DatabaseInitializer implements CommandLineRunner {
         <table class="info-table">
             <tr>
                 <td class="label">Họ và tên:</td>
-                <td>{{landlord.userInfo.fullName}}</td>
+                <td>{{landlord.fullName}}</td>
             </tr>
             <tr>
                 <td class="label">Số điện thoại:</td>
-                <td>{{landlord.userInfo.phoneNumber}}</td>
+                <td>{{landlord.phoneNumber}}</td>
             </tr>
             <tr>
                 <td class="label">CCCD/CMND:</td>
-                <td>{{landlord.userInfo.nationalID}}</td>
+                <td>{{landlord.nationalID}}</td>
             </tr>
             <tr>
                 <td class="label">Địa chỉ thường trú:</td>
-                <td>{{landlord.userInfo.permanentAddress}}</td>
+                <td>{{landlord.permanentAddress}}</td>
             </tr>
         </table>
     </div>
@@ -716,11 +697,11 @@ public class DatabaseInitializer implements CommandLineRunner {
             </tr>
             <tr>
                 <td class="label">CCCD/CMND:</td>
-                <td>{{identityNumber}}</td>
+                <td>{{nationalID}}</td>
             </tr>
             <tr>
                 <td class="label">Địa chỉ thường trú:</td>
-                <td>{{address}}</td>
+                <td>{{permanentAddress}}</td>
             </tr>
         </table>
         {{/each}}
@@ -752,10 +733,6 @@ public class DatabaseInitializer implements CommandLineRunner {
                 <td class="label">Tình trạng phòng:</td>
                 <td>Bàn giao theo hiện trạng</td>
             </tr>
-            <tr>
-                <td class="label">Trang thiết bị:</td>
-                <td>Theo biên bản bàn giao tài sản</td>
-            </tr>
         </table>
     </div>
 
@@ -778,15 +755,15 @@ public class DatabaseInitializer implements CommandLineRunner {
         <table class="info-table">
             <tr>
                 <td class="label">Giá thuê phòng:</td>
-                <td>{{contract.rentAmount}} VNĐ/tháng</td>
+                <td>{{rentAmount}} VNĐ/tháng</td>
             </tr>
             <tr>
                 <td class="label">Tiền đặt cọc:</td>
-                <td>{{contract.depositAmount}} VNĐ (hoàn trả khi kết thúc hợp đồng, không vi phạm)</td>
+                <td>{{depositAmount}} VNĐ</td>
             </tr>
             <tr>
                 <td class="label">Chu kỳ thanh toán:</td>
-                <td>{{contract.paymentCycle}}</td>
+                <td>{{paymentCycle}}</td>
             </tr>
             <tr>
                 <td class="label">Hạn thanh toán:</td>
@@ -810,14 +787,13 @@ public class DatabaseInitializer implements CommandLineRunner {
             <li>Yêu cầu Bên B thanh toán đầy đủ, đúng hạn các khoản tiền theo hợp đồng</li>
             <li>Yêu cầu Bên B bồi thường thiệt hại do vi phạm hợp đồng gây ra</li>
             <li>Đơn phương chấm dứt hợp đồng nếu Bên B vi phạm nghiêm trọng</li>
-            <li>Kiểm tra tình hình sử dụng phòng trọ (báo trước 24 giờ)</li>
         </ul>
         <p><strong>4.2. Nghĩa vụ của Bên A:</strong></p>
         <ul>
             <li>Bàn giao phòng trọ đúng tình trạng thỏa thuận</li>
             <li>Bảo đảm quyền sử dụng ổn định của Bên B trong thời hạn hợp đồng</li>
             <li>Bảo trì, sửa chữa phòng trọ theo thỏa thuận</li>
-            <li>Hoàn trả tiền đặt cọc khi kết thúc hợp đồng (trừ các khoản vi phạm)</li>
+            <li>Hoàn trả tiền đặt cọc khi kết thúc hợp đồng</li>
         </ul>
     </div>
 
@@ -860,18 +836,16 @@ public class DatabaseInitializer implements CommandLineRunner {
     </div>
     {{/if}}
 
-    <div class="legal-note">
-        <strong>Điều cuối:</strong> Hợp đồng này được lập thành 02 (hai) bản có giá trị pháp lý như nhau, mỗi bên giữ 01 bản. 
-        Hợp đồng có hiệu lực kể từ ngày ký và chấm dứt theo đúng thỏa thuận.
-    </div>
+    <p style="margin-top: 30px;"><strong>Điều cuối:</strong> Hợp đồng này được lập thành 02 (hai) bản có giá trị pháp lý như nhau, mỗi bên giữ 01 bản. 
+    Hợp đồng có hiệu lực kể từ ngày ký và chấm dứt theo đúng thỏa thuận.</p>
 
-    <div class="signature-section">
-        <div class="signature-box" style="margin-right: 10%;">
+    <div class="signature-section" style="display: flex; justify-content: space-between; margin-top: 30px;">
+        <div class="signature-box" style="flex: 1; margin-right: 20px;">
             <div style="font-weight: bold; margin-bottom: 10px;">BÊN CHO THUÊ (BÊN A)</div>
             <div style="font-style: italic; margin-bottom: 60px;">(Ký và ghi rõ họ tên)</div>
-            <div style="font-weight: bold;">{{landlord.userInfo.fullName}}</div>
+            <div style="font-weight: bold;">{{landlord.fullName}}</div>
         </div>
-        <div class="signature-box">
+        <div class="signature-box" style="flex: 1; margin-left: 20px;">
             <div style="font-weight: bold; margin-bottom: 10px;">BÊN THUÊ PHÒNG (BÊN B)</div>
             <div style="font-style: italic; margin-bottom: 60px;">(Ký và ghi rõ họ tên)</div>
             <div style="font-weight: bold;">
