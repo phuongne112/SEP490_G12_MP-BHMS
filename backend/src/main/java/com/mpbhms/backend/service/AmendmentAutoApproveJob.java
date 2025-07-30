@@ -53,7 +53,7 @@ public class AmendmentAutoApproveJob {
                                             setRecipientId(ru.getUser().getId());
                                             setTitle("Yêu cầu sửa đổi hợp đồng đã được tự động duyệt");
                                             setMessage("Yêu cầu sửa đổi hợp đồng #" + am.getContract().getId() + " đã được hệ thống tự động duyệt do quá hạn chờ xác nhận.");
-                                            setType(com.mpbhms.backend.enums.NotificationType.CUSTOM);
+                                            setType(com.mpbhms.backend.enums.NotificationType.CONTRACT_AMENDMENT);
                                         }});
                                     } catch (Exception e) {
                                         logger.error("[AutoApprove] Error sending notification to user {}: {}", ru.getUser().getId(), e.getMessage());
@@ -68,7 +68,7 @@ public class AmendmentAutoApproveJob {
                                         setRecipientId(am.getContract().getRoom().getLandlord().getId());
                                         setTitle("Yêu cầu sửa đổi hợp đồng đã được tự động duyệt");
                                         setMessage("Yêu cầu sửa đổi hợp đồng #" + am.getContract().getId() + " đã được hệ thống tự động duyệt do quá hạn chờ xác nhận.");
-                                        setType(com.mpbhms.backend.enums.NotificationType.CUSTOM);
+                                        setType(com.mpbhms.backend.enums.NotificationType.CONTRACT_AMENDMENT);
                                     }});
                                 } catch (Exception e) {
                                     logger.error("[AutoApprove] Error sending notification to landlord {}: {}", am.getContract().getRoom().getLandlord().getId(), e.getMessage());

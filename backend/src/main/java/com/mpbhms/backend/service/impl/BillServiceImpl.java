@@ -1171,7 +1171,7 @@ public class BillServiceImpl implements BillService {
                     noti.setMessage("Bạn có hóa đơn mới #" + bill.getId() + " từ " +
                         bill.getFromDate().atZone(java.time.ZoneId.systemDefault()).toLocalDate() + " đến " +
                         bill.getToDate().atZone(java.time.ZoneId.systemDefault()).toLocalDate() + ". Vui lòng kiểm tra và thanh toán.");
-                    noti.setType(NotificationType.CUSTOM); // Có thể thêm mới BILL nếu muốn
+                    noti.setType(NotificationType.BILL_CREATED); // Use specific bill notification type
                     noti.setMetadata("{\"billId\":" + bill.getId() + "}");
                     notificationService.createAndSend(noti);
                 }

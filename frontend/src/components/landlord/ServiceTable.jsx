@@ -94,7 +94,6 @@ export default function ServiceTable({ services, pagination, loading, onEdit, on
       ),
     },
   ];
-
   return (
     <Table
       dataSource={services.map((s) => ({ ...s, key: s.id }))}

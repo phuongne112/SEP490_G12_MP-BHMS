@@ -10,6 +10,7 @@ import java.util.List;
 
 public interface NotificationService {
     Notification createAndSend(NotificationDTO request);
+    List<Notification> createAndSendMultiple(NotificationDTO request);
     List<Notification> getUserNotifications(String email);
     void markAsRead(Long notificationId);
     void deleteNotification(Long notificationId);

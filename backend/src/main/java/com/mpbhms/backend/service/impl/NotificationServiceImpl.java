@@ -62,6 +62,39 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    public List<Notification> createAndSendMultiple(NotificationDTO request) {
+        if (request.getRecipientIds() == null || request.getRecipientIds().isEmpty()) {
+            throw new IllegalArgumentException("Recipient IDs list cannot be null or empty");
+        }
+
+        List<Notification> notifications = new java.util.ArrayList<>();
+        
+        for (Long recipientId : request.getRecipientIds()) {
+            Notification notification = new Notification();
+            notification.setTitle(request.getTitle() != null ? request.getTitle() : "Thông báo mới");
+            notification.setMessage(request.getMessage() != null ? request.getMessage() : "Bạn có một thông báo mới từ hệ thống.");
+            notification.setType(request.getType());
+            notification.setRecipientId(recipientId);
+            notification.setMetadata(request.getMetadata());
+            notification.setStatus(NotificationStatus.SENT);
+
+            Notification saved = notificationRepository.save(notification);
+            notifications.add(saved);
+
+            // Gửi WebSocket cho từng người nhận
+            userRepository.findById(recipientId).ifPresent(user -> {
+                messagingTemplate.convertAndSendToUser(
+                        user.getUsername(),
+                        "/queue/notifications",
+                        saved
+                );
+            });
+        }
+
+        return notifications;
+    }
+
+    @Override
     public List<Notification> getUserNotifications(String email) {
         Long userId = userRepository.findByEmail(email).getId();
         return notificationRepository.findByRecipientIdOrderByCreatedDateDesc(userId);
@@ -96,11 +129,31 @@ public class NotificationServiceImpl implements NotificationService {
         meta.setPages(page.getTotalPages());
         meta.setTotal(page.getTotalElements());
 
+        // Convert entities to DTOs with displayType
+        List<NotificationDTO> dtos = page.getContent().stream()
+                .map(this::convertToDTO)
+                .toList();
+
         ResultPaginationDTO result = new ResultPaginationDTO();
         result.setMeta(meta);
-        result.setResult(page.getContent());
+        result.setResult(dtos);
 
         return result;
+    }
+
+    private NotificationDTO convertToDTO(Notification notification) {
+        NotificationDTO dto = new NotificationDTO();
+        dto.setId(notification.getId());
+        dto.setTitle(notification.getTitle());
+        dto.setMessage(notification.getMessage());
+        dto.setType(notification.getType());
+        dto.setDisplayType(notification.getType() != null ? notification.getType().getDisplayName() : null);
+        dto.setRecipientId(notification.getRecipientId());
+        dto.setMetadata(notification.getMetadata());
+        dto.setCreatedDate(notification.getCreatedDate());
+        dto.setStatus(notification.getStatus());
+        dto.setDisplayStatus(notification.getStatus() != null ? notification.getStatus().getDisplayName() : null);
+        return dto;
     }
 
 

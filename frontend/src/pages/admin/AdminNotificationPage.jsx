@@ -24,6 +24,7 @@ import NotificationFilterPopover from "../../components/admin/NotificationFilter
 import Access from "../../components/common/Access";
 import {
   sendNotification,
+  sendMultipleNotifications,
   deleteNotification,
 } from "../../services/notificationApi";
 import { getAllUsers } from "../../services/userApi";
@@ -66,9 +67,27 @@ const formatDateToVietnamese = (dateString) => {
 // Hàm dịch loại thông báo
 const translateNotificationType = (type) => {
   const typeMap = {
+    'RENT_REMINDER': 'Nhắc nhở tiền phòng',
+    'MAINTENANCE': 'Bảo trì',
+    'BOOKING_STATUS': 'Trạng thái đặt phòng',
     'ANNOUNCEMENT': 'Thông báo chung',
     'PAYMENT_SUCCESS': 'Thanh toán thành công',
     'PAYMENT_FAILED': 'Thanh toán thất bại',
+    'CONTRACT_EXPIRED': 'Hợp đồng hết hạn',
+    'CONTRACT_RENEWED': 'Hợp đồng gia hạn',
+    'SCHEDULE': 'Lịch trình',
+    'BILL_CREATED': 'Hóa đơn mới',
+    'BILL_PAID': 'Hóa đơn đã thanh toán',
+    'BILL_OVERDUE': 'Hóa đơn quá hạn',
+    'CONTRACT_AMENDMENT': 'Sửa đổi hợp đồng',
+    'CONTRACT_TERMINATED': 'Hợp đồng chấm dứt',
+    'ROOM_BOOKING': 'Đặt phòng',
+    'ROOM_BOOKING_ACCEPTED': 'Đặt phòng được chấp nhận',
+    'ROOM_BOOKING_REJECTED': 'Đặt phòng bị từ chối',
+    'ROOM_BOOKING_CANCELLED': 'Đặt phòng bị hủy',
+    'SERVICE_UPDATE': 'Cập nhật dịch vụ',
+    'USER_UPDATE': 'Cập nhật người dùng',
+    'SYSTEM_MAINTENANCE': 'Bảo trì hệ thống',
     'CUSTOM': 'Tùy chỉnh'
   };
   return typeMap[type] || type;
@@ -105,6 +124,9 @@ export default function AdminNotificationPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [sendMode, setSendMode] = useState("role");
   const [userList, setUserList] = useState([]);
+  const [selectedUsers, setSelectedUsers] = useState([]); // Thêm state cho danh sách người được chọn
+  const [userSearchTerm, setUserSearchTerm] = useState(""); // Thêm state cho search user
+  const [isSubmitting, setIsSubmitting] = useState(false); // Thêm state cho loading
   const [total, setTotal] = useState(0);
   const user = useSelector((state) => state.account.user);
   let currentUserId = Number(localStorage.getItem("userId"));
@@ -283,6 +305,7 @@ export default function AdminNotificationPage() {
               setIsCreateModalOpen(false);
               createForm.resetFields();
               setSendMode("role");
+              setSelectedUsers([]); // Reset selected users when closing modal
             }}
             footer={null}
             width={600}
@@ -292,6 +315,7 @@ export default function AdminNotificationPage() {
               form={createForm}
               initialValues={{ mode: "role" }}
               onFinish={async (values) => {
+                setIsSubmitting(true);
                 try {
                   const payloadBase = {
                     title: values.label,
@@ -302,11 +326,20 @@ export default function AdminNotificationPage() {
                   };
 
                   if (values.mode === "individual") {
+                    // Gửi cho nhiều người dùng được chọn
+                    const recipientIds = values.recipientIds || [];
+                    if (recipientIds.length === 0) {
+                      message.error("Vui lòng chọn ít nhất một người dùng!");
+                      setIsSubmitting(false);
+                      return;
+                    }
+                    
+                    // Sử dụng API mới để gửi cho nhiều người dùng
                     const payload = {
                       ...payloadBase,
-                      recipientId: values.recipientId,
+                      recipientIds: recipientIds,
                     };
-                    await sendNotification(payload);
+                    await sendMultipleNotifications(payload);
                   } else {
                     const filteredUserList = userList.filter(user => Number(user.id) !== Number(currentUserId));
                     console.log("currentUserId:", currentUserId);
@@ -327,10 +360,13 @@ export default function AdminNotificationPage() {
                   setIsCreateModalOpen(false);
                   createForm.resetFields();
                   setSendMode("role");
+                  setSelectedUsers([]); // Reset selected users
                   setRefreshKey((prev) => prev + 1);
                 } catch (err) {
                   console.error("Send notification failed:", err);
                   message.error("Gửi thông báo thất bại");
+                } finally {
+                  setIsSubmitting(false);
                 }
               }}
             >
@@ -344,11 +380,12 @@ export default function AdminNotificationPage() {
                     <Select
                       onChange={(value) => {
                         setSendMode(value);
-                        createForm.setFieldsValue({ recipientId: undefined });
+                        createForm.setFieldsValue({ recipientIds: undefined });
+                        setSelectedUsers([]); // Reset selected users when changing mode
                       }}
                     >
                       <Option value="role">Theo vai trò (Tất cả người dùng)</Option>
-                      <Option value="individual">To Individual</Option>
+                      <Option value="individual">Chọn người dùng cụ thể</Option>
                     </Select>
                   </Form.Item>
                 </Col>
@@ -356,18 +393,105 @@ export default function AdminNotificationPage() {
                 {sendMode === "individual" && (
                   <Col span={24}>
                     <Form.Item
-                      name="recipientId"
+                      name="recipientIds"
                       label="Gửi đến người dùng"
-                      rules={[{ required: true }]}
+                      rules={[{ required: true, message: "Vui lòng chọn ít nhất một người dùng!" }]}
+                      extra="Bạn có thể tìm kiếm theo tên, email hoặc username. Chọn nhiều người dùng bằng cách click vào từng người."
                     >
-                      <Select placeholder="Chọn người dùng">
+                      <Select
+                        mode="multiple"
+                        placeholder="Tìm kiếm và chọn người dùng..."
+                        showSearch
+                        filterOption={(input, option) => {
+                          const user = userList.find(u => u.id === option.value);
+                          if (!user) return false;
+                          const searchText = input.toLowerCase();
+                          return (
+                            (user.fullName && user.fullName.toLowerCase().includes(searchText)) ||
+                            (user.email && user.email.toLowerCase().includes(searchText)) ||
+                            (user.username && user.username.toLowerCase().includes(searchText))
+                          );
+                        }}
+                        optionFilterProp="children"
+                        onChange={(values) => {
+                          const selectedUserObjects = values.map(id => 
+                            userList.find(user => user.id === id)
+                          ).filter(Boolean);
+                          setSelectedUsers(selectedUserObjects);
+                        }}
+                        style={{ width: '100%' }}
+                      >
                         {userList.map((user) => (
                           <Option key={user.id} value={user.id}>
-                            {user.fullName || user.email}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div>
+                                <div style={{ fontWeight: '500' }}>
+                                  {user.fullName || 'Chưa có tên'}
+                                </div>
+                                <div style={{ fontSize: '12px', color: '#666' }}>
+                                  {user.email}
+                                </div>
+                              </div>
+                              {user.role && (
+                                <span style={{ fontSize: '11px', color: '#999', backgroundColor: '#f0f0f0', padding: '2px 6px', borderRadius: '3px' }}>
+                                  {user.role.name}
+                                </span>
+                              )}
+                            </div>
                           </Option>
                         ))}
                       </Select>
                     </Form.Item>
+                    
+                    {/* Hiển thị danh sách người được chọn */}
+                    {selectedUsers.length > 0 && (
+                      <div style={{ marginTop: '8px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: '#1890ff' }}>
+                          Đã chọn {selectedUsers.length} người dùng:
+                        </div>
+                        <div style={{ 
+                          maxHeight: '120px', 
+                          overflowY: 'auto', 
+                          border: '1px solid #d9d9d9', 
+                          borderRadius: '6px', 
+                          padding: '8px',
+                          backgroundColor: '#fafafa'
+                        }}>
+                          {selectedUsers.map((user, index) => (
+                            <div key={user.id} style={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between', 
+                              alignItems: 'center',
+                              padding: '4px 0',
+                              borderBottom: index < selectedUsers.length - 1 ? '1px solid #f0f0f0' : 'none'
+                            }}>
+                              <div>
+                                <div style={{ fontSize: '13px', fontWeight: '500' }}>
+                                  {user.fullName || 'Chưa có tên'}
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#666' }}>
+                                  {user.email}
+                                </div>
+                              </div>
+                              <Button
+                                type="text"
+                                size="small"
+                                danger
+                                onClick={() => {
+                                  const newSelectedUsers = selectedUsers.filter(u => u.id !== user.id);
+                                  setSelectedUsers(newSelectedUsers);
+                                  const newValues = newSelectedUsers.map(u => u.id);
+                                  createForm.setFieldsValue({ recipientIds: newValues });
+                                }}
+                                style={{ padding: '0 4px' }}
+                              >
+                                ×
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </Col>
                 )}
 
@@ -378,12 +502,27 @@ export default function AdminNotificationPage() {
                     rules={[{ required: true }]}
                   >
                     <Select placeholder="Chọn loại">
-                      <Option value="RENT_REMINDER">Rent Reminder</Option>
-                      <Option value="MAINTENANCE">Maintenance</Option>
+                      <Option value="RENT_REMINDER">Nhắc nhở tiền phòng</Option>
+                      <Option value="MAINTENANCE">Bảo trì</Option>
                       <Option value="BOOKING_STATUS">Trạng thái đặt phòng</Option>
                       <Option value="ANNOUNCEMENT">Thông báo chung</Option>
                       <Option value="PAYMENT_SUCCESS">Thanh toán thành công</Option>
                       <Option value="PAYMENT_FAILED">Thanh toán thất bại</Option>
+                      <Option value="CONTRACT_EXPIRED">Hợp đồng hết hạn</Option>
+                      <Option value="CONTRACT_RENEWED">Hợp đồng gia hạn</Option>
+                      <Option value="SCHEDULE">Lịch trình</Option>
+                      <Option value="BILL_CREATED">Hóa đơn mới</Option>
+                      <Option value="BILL_PAID">Hóa đơn đã thanh toán</Option>
+                      <Option value="BILL_OVERDUE">Hóa đơn quá hạn</Option>
+                      <Option value="CONTRACT_AMENDMENT">Sửa đổi hợp đồng</Option>
+                      <Option value="CONTRACT_TERMINATED">Hợp đồng chấm dứt</Option>
+                      <Option value="ROOM_BOOKING">Đặt phòng</Option>
+                      <Option value="ROOM_BOOKING_ACCEPTED">Đặt phòng được chấp nhận</Option>
+                      <Option value="ROOM_BOOKING_REJECTED">Đặt phòng bị từ chối</Option>
+                      <Option value="ROOM_BOOKING_CANCELLED">Đặt phòng bị hủy</Option>
+                      <Option value="SERVICE_UPDATE">Cập nhật dịch vụ</Option>
+                      <Option value="USER_UPDATE">Cập nhật người dùng</Option>
+                      <Option value="SYSTEM_MAINTENANCE">Bảo trì hệ thống</Option>
                       <Option value="CUSTOM">Tùy chỉnh</Option>
                     </Select>
                   </Form.Item>
@@ -415,7 +554,7 @@ export default function AdminNotificationPage() {
                 </Col>
               </Row>
 
-              <Button type="primary" htmlType="submit" block>
+              <Button type="primary" htmlType="submit" block loading={isSubmitting}>
                 Tạo và gửi
               </Button>
             </Form>
@@ -441,10 +580,10 @@ export default function AdminNotificationPage() {
                   <strong>Nội dung:</strong> {selectedNotification.message}
                 </p>
                 <p>
-                  <strong>Loại:</strong> {translateNotificationType(selectedNotification.type)}
+                  <strong>Loại:</strong> {selectedNotification.displayType || translateNotificationType(selectedNotification.type)}
                 </p>
                 <p>
-                  <strong>Trạng thái:</strong> {translateNotificationStatus(selectedNotification.status)}
+                  <strong>Trạng thái:</strong> {selectedNotification.displayStatus || translateNotificationStatus(selectedNotification.status)}
                 </p>
                 <p>
                   <strong>Ngày tạo:</strong>{" "}
