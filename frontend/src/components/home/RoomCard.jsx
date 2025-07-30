@@ -1,11 +1,6 @@
 import React from "react";
 import { Card, Typography, Space, Tag } from "antd";
-import {
-  CheckCircleOutlined,
-  ExclamationCircleOutlined,
-  RestOutlined,
-  ThunderboltOutlined,
-} from "@ant-design/icons";
+
 import image1 from "../../assets/RoomImage/image1.png";
 import image2 from "../../assets/RoomImage/image2.png";
 
@@ -17,25 +12,57 @@ const getStatusTag = (status) => {
   switch (status) {
     case "Available":
       return (
-        <Tag icon={<CheckCircleOutlined />} color="success">
+        <Tag
+          color="green"
+          style={{ 
+            fontSize: 14, 
+            padding: "4px 12px", 
+            borderRadius: 6,
+            fontWeight: 400
+          }}
+        >
           Có sẵn
         </Tag>
       );
     case "Occupied":
       return (
-        <Tag icon={<RestOutlined />} color="error">
+        <Tag
+          color="red"
+          style={{ 
+            fontSize: 14, 
+            padding: "4px 12px", 
+            borderRadius: 6,
+            fontWeight: 400
+          }}
+        >
           Đã thuê
         </Tag>
       );
     case "Maintenance":
       return (
-        <Tag icon={<ThunderboltOutlined />} color="warning">
+        <Tag
+          color="orange"
+          style={{ 
+            fontSize: 14, 
+            padding: "4px 12px", 
+            borderRadius: 6,
+            fontWeight: 400
+          }}
+        >
           Bảo trì
         </Tag>
       );
     default:
       return (
-        <Tag icon={<ExclamationCircleOutlined />} color="default">
+        <Tag
+          color="default"
+          style={{ 
+            fontSize: 14, 
+            padding: "4px 12px", 
+            borderRadius: 6,
+            fontWeight: 400
+          }}
+        >
           Không xác định
         </Tag>
       );
@@ -71,7 +98,8 @@ export default function RoomCard({ room, onClick }) {
         style={{
           borderRadius: 12,
           overflow: "hidden",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          border: "1px solid #f0f0f0"
         }}
         bodyStyle={{ padding: 0 }}
       >
@@ -101,35 +129,58 @@ export default function RoomCard({ room, onClick }) {
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
+              fontWeight: 600
             }}
           >
-            {room.roomNumber}
+            Phòng {room.roomNumber}
           </Title>
-          {room.building && (
-            <div style={{ color: '#888', fontSize: 15, marginBottom: 4 }}>
-              🏢 Tòa: <b>{room.building}</b>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ 
+              fontWeight: 700, 
+              color: '#52c41a', 
+              fontSize: 18, 
+              marginBottom: 4 
+            }}>
+              {room.pricePerMonth?.toLocaleString()} VND/tháng
             </div>
-          )}
-
-          <Text type="secondary" style={{ display: "block", marginBottom: 12 }}>
-            📏 {room.area} m²
-          </Text>
-
-          <div style={{ fontWeight: 700, color: '#d4380d', fontSize: 20, marginBottom: 8 }}>
-            💰 {room.pricePerMonth?.toLocaleString("vi-VN")} <span style={{ fontWeight: 400, fontSize: 15 }}>VND/tháng</span>
+            <div style={{ 
+              color: '#666', 
+              fontSize: 15, 
+              fontWeight: 500 
+            }}>
+              {room.area} m²
+            </div>
           </div>
 
-          <Space direction="vertical" style={{ width: "100%", marginTop: 16 }}>
-            <Space size="large">
-              <Text type="secondary">🛏️ {room.numberOfBedrooms} Phòng ngủ</Text>
-              <Text type="secondary">🛁 {room.numberOfBathrooms} Phòng tắm</Text>
-            </Space>
-            <Text type="secondary">
-              🛋️ Nội thất: {" "}
-              <Text strong style={{ color: hasAssets ? "#52c41a" : "#bfbfbf" }}>
+          <Space direction="vertical" size="small" style={{ width: "100%", marginTop: 16 }}>
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "space-between", 
+              padding: "8px 0",
+              borderBottom: "1px solid #f5f5f5"
+            }}>
+              <Text style={{ fontWeight: 400 }}>Phòng ngủ:</Text>
+              <Text style={{ fontWeight: 400 }}>{room.numberOfBedrooms}</Text>
+            </div>
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "space-between", 
+              padding: "8px 0",
+              borderBottom: "1px solid #f5f5f5"
+            }}>
+              <Text style={{ fontWeight: 400 }}>Phòng tắm:</Text>
+              <Text style={{ fontWeight: 400 }}>{room.numberOfBathrooms}</Text>
+            </div>
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "space-between", 
+              padding: "8px 0"
+            }}>
+              <Text style={{ fontWeight: 400 }}>Nội thất:</Text>
+              <Text style={{ fontWeight: 400, color: hasAssets ? "#52c41a" : "#bfbfbf" }}>
                 {hasAssets ? "Có" : "Không"}
               </Text>
-            </Text>
+            </div>
           </Space>
         </div>
       </Card>
