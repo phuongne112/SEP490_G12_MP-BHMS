@@ -57,11 +57,10 @@ const QUICK_FILTERS = [
   }
 ];
 
-const FilterSection = ({ title, icon, children }) => (
+const FilterSection = ({ title, children }) => (
   <div style={{ marginBottom: 20 }}>
-    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
-      <span style={{ color: '#1890ff', marginRight: 8, fontSize: 16 }}>{icon}</span>
-      <Text strong style={{ fontSize: 15 }}>{title}</Text>
+    <div style={{ marginBottom: 12 }}>
+      <Text strong style={{ fontSize: 15, color: '#333' }}>{title}</Text>
     </div>
     {children}
   </div>
@@ -256,10 +255,9 @@ export default function HomePage() {
       <div style={{ width: "95%", maxWidth: 1400, margin: "24px auto" }}>
         <Card style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', border: 'none' }}>
           <div style={{ textAlign: 'center' }}>
-            <Title level={4} style={{ color: 'white', marginBottom: 8 }}>
-              <FilterOutlined style={{ marginRight: 8 }} />
-              Tìm phòng nhanh
-            </Title>
+                      <Title level={4} style={{ color: 'white', marginBottom: 8 }}>
+            Tìm phòng nhanh
+          </Title>
             <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>
               Chọn loại phòng phù hợp với ngân sách
             </Text>
@@ -347,7 +345,7 @@ export default function HomePage() {
           </div>
 
           {/* Price Filter */}
-          <FilterSection title="Khoảng giá" icon={<DollarOutlined />}>
+          <FilterSection title="Khoảng giá">
             <Slider
               range
               min={0}
@@ -364,7 +362,7 @@ export default function HomePage() {
           </FilterSection>
 
           {/* Area Filter */}
-          <FilterSection title="Diện tích (m²)" icon={<AreaChartOutlined />}>
+          <FilterSection title="Diện tích (m²)">
             <Slider 
               range 
               min={15} 
@@ -376,7 +374,7 @@ export default function HomePage() {
           </FilterSection>
 
           {/* Status Filter */}
-          <FilterSection title="Trạng thái" icon={<HomeOutlined />}>
+          <FilterSection title="Trạng thái">
             <Select
               value={status}
               onChange={setStatus}
@@ -396,7 +394,7 @@ export default function HomePage() {
           </FilterSection>
 
           {/* Room Details */}
-          <FilterSection title="Chi tiết phòng" icon={<HomeOutlined />}>
+          <FilterSection title="Chi tiết phòng">
             <div style={{ marginBottom: 12 }}>
               <Text style={{ fontSize: 13, color: '#666' }}>Phòng ngủ: {bedrooms[0]} - {bedrooms[1]}</Text>
               <Slider
@@ -420,7 +418,7 @@ export default function HomePage() {
           </FilterSection>
 
           {/* Furniture */}
-          <FilterSection title="Nội thất" icon={<StarOutlined />}>
+          <FilterSection title="Nội thất">
             <Select
               value={hasAsset}
               onChange={setHasAsset}
@@ -437,7 +435,7 @@ export default function HomePage() {
           </FilterSection>
 
           {/* Building */}
-          <FilterSection title="Tòa nhà" icon={<EnvironmentOutlined />}>
+          <FilterSection title="Tòa nhà">
             <Select
               value={building}
               onChange={setBuilding}
@@ -450,7 +448,7 @@ export default function HomePage() {
               <Option value="">Tất cả tòa nhà</Option>
               {buildingOptions.map((b) => (
                 <Option key={b} value={b}>
-                  🏢 {b}
+                  {b}
                 </Option>
               ))}
             </Select>
@@ -464,7 +462,6 @@ export default function HomePage() {
               type="primary" 
               block 
               size="large"
-              icon={<FilterOutlined />}
               onClick={handleApplyFilter}
             >
               Áp dụng bộ lọc
@@ -472,7 +469,6 @@ export default function HomePage() {
             
             <Button 
               block
-              icon={<ClearOutlined />} 
               onClick={handleClearFilter}
             >
               Xóa tất cả bộ lọc

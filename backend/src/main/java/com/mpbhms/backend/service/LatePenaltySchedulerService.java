@@ -28,6 +28,11 @@ public class LatePenaltySchedulerService {
         System.out.println("🔄 [" + java.time.LocalDateTime.now() + "] Bắt đầu job kiểm tra và tạo phạt quá hạn tự động...");
         
         try {
+            // 🆕 LOGIC MỚI: Tách biệt cảnh báo và tạo phạt
+            // 1. Gửi cảnh báo cho hóa đơn quá hạn 7 ngày
+            billService.sendOverdueWarningFor7Days();
+            
+            // 2. Tạo phạt cho hóa đơn quá hạn từ 8 ngày trở đi
             List<BillResponse> createdPenalties = billService.checkAndCreateLatePenalties();
             
             if (!createdPenalties.isEmpty()) {

@@ -43,7 +43,7 @@ public interface BillRepository extends JpaRepository<Bill, Long>, JpaSpecificat
     long countByStatusFalse();
     // Đếm số hóa đơn đã thanh toán
     long countByStatusTrue();
-    // Đếm số hóa đơn quá hạn (chưa thanh toán và toDate + 7 ngày < hiện tại)
+    // Đếm số hóa đơn quá hạn (chưa thanh toán và toDate + 7 ngày < hiện tại - từ ngày thứ 7 trở đi)
     @Query("SELECT COUNT(b) FROM Bill b WHERE b.status = false AND b.toDate < :sevenDaysAgo")
     long countOverdue(@Param("sevenDaysAgo") Instant sevenDaysAgo);
 

@@ -189,7 +189,7 @@ public class ContractServiceImpl implements ContractService {
         map.put("room", room);
 
         // Thông tin hợp đồng
-        map.put("contractNumber", contract.getContractNumber() != null ? contract.getContractNumber() : contract.getId());
+        map.put("contractNumber", contract.getContractNumber() != null ? contract.getContractNumber() : String.format("HD-%s-%05d", java.time.LocalDate.now().getYear(), contract.getId()));
         // Format tiền tệ kiểu Việt Nam
         java.text.NumberFormat currencyFormat = java.text.NumberFormat.getInstance(new java.util.Locale("vi", "VN"));
         map.put("rentAmount", contract.getRentAmount() != null ? currencyFormat.format(contract.getRentAmount()) : "0");
@@ -375,7 +375,7 @@ public class ContractServiceImpl implements ContractService {
             document.add(contractTitle);
 
             // Số hợp đồng và ngày ký
-            String contractNumber = contract.getContractNumber() != null ? contract.getContractNumber() : "HD" + String.format("%06d", contract.getId());
+            String contractNumber = contract.getContractNumber() != null ? contract.getContractNumber() : String.format("HD-%s-%05d", java.time.LocalDate.now().getYear(), contract.getId());
             Paragraph contractInfo = new Paragraph("Số hợp đồng: " + contractNumber, smallBold);
             contractInfo.setAlignment(Element.ALIGN_CENTER);
             contractInfo.setSpacingAfter(5f);
@@ -1058,7 +1058,7 @@ public class ContractServiceImpl implements ContractService {
                 // Gửi thông báo cho người thuê
                 sendExpirationNotifications(contract);
                 
-                logger.info("Processed expired contract: {}", contract.getId());
+                logger.info("Đã xử lý hợp đồng hết hạn: {}", contract.getId());
             } catch (Exception e) {
                 logger.error("Error processing expired contract {}: {}", contract.getId(), e.getMessage());
             }
@@ -1127,7 +1127,7 @@ public class ContractServiceImpl implements ContractService {
                     // Notification for contract expiration
                     NotificationDTO notification = new NotificationDTO();
                     notification.setRecipientId(roomUser.getUser().getId());
-                    notification.setTitle("Contract has expired");
+                    notification.setTitle("Hợp đồng đã hết hạn");
                     notification.setMessage(String.format(
                         "Contract for room %s has expired on %s. Please contact the landlord to renew.",
                         contract.getRoom().getRoomNumber(),
@@ -1213,15 +1213,36 @@ public class ContractServiceImpl implements ContractService {
         if (!contract.getRoom().getLandlord().getId().equals(currentUserId)) {
             throw new RuntimeException("Chỉ chủ phòng mới được cập nhật hợp đồng");
         }
+
+        // Kiểm tra xem có thay đổi quan trọng không (tiền thuê, tiền cọc, ngày kết thúc, người thuê)
+        boolean hasSignificantChanges = request.getNewRentAmount() != null || 
+                                       request.getNewDepositAmount() != null || 
+                                       request.getNewEndDate() != null || 
+                                       (request.getRenterIds() != null && !request.getRenterIds().isEmpty());
+
+        // Nếu chỉ thay đổi chu kỳ thanh toán hoặc điều khoản, cập nhật trực tiếp
+        if (!hasSignificantChanges) {
+            // Cập nhật chu kỳ thanh toán nếu có
+            if (request.getPaymentCycle() != null) {
+                contract.setPaymentCycle(request.getPaymentCycle());
+            }
+            
+            // Cập nhật điều khoản (có thể là mảng rỗng để xóa tất cả)
+            updateContractTerms(contract, request.getNewTerms());
+            
+            contractRepository.save(contract);
+            return;
+        }
+
+        // Nếu có thay đổi quan trọng, tạo amendment
         java.util.List<Long> renterIds = contract.getRoomUsers().stream()
             .filter(RoomUser::getIsActive)
             .map(ru -> ru.getUser().getId())
             .collect(java.util.stream.Collectors.toList());
 
-        // Tạo 1 amendment tổng hợp
         ContractAmendment amendment = new ContractAmendment();
         amendment.setContract(contract);
-        amendment.setAmendmentType(ContractAmendment.AmendmentType.OTHER); // hoặc loại phù hợp
+        amendment.setAmendmentType(ContractAmendment.AmendmentType.OTHER);
         amendment.setOldValue("multi");
         amendment.setNewValue("multi");
         amendment.setReason(request.getReasonForUpdate());
@@ -1229,12 +1250,13 @@ public class ContractServiceImpl implements ContractService {
         amendment.setRequiresApproval(request.getRequiresTenantApproval());
         amendment.setPendingApprovals(renterIds);
         amendment.setApprovedBy(new ArrayList<>());
-        amendment.setApprovedByLandlord(false); // Landlord cũng phải bấm nút duyệt
+        amendment.setApprovedByLandlord(false);
         amendment.setNewRentAmount(request.getNewRentAmount());
         amendment.setNewDepositAmount(request.getNewDepositAmount());
         amendment.setNewEndDate(request.getNewEndDate());
         amendment.setNewTerms(request.getNewTerms());
         amendment.setNewRenterIds(request.getRenterIds());
+        amendment.setNewPaymentCycle(request.getPaymentCycle());
         contractAmendmentRepository.save(amendment);
 
         sendContractUpdateNotifications(contract, request);
@@ -1359,11 +1381,14 @@ public class ContractServiceImpl implements ContractService {
 
         Contract newContract = new Contract();
         newContract.setRoom(contract.getRoom());
-        newContract.setContractStartDate(Instant.now());
+        newContract.setContractStartDate(contract.getContractStartDate()); // Giữ nguyên ngày bắt đầu từ hợp đồng cũ
         newContract.setContractStatus(ContractStatus.ACTIVE);
-        newContract.setPaymentCycle(contract.getPaymentCycle());
+        newContract.setPaymentCycle(
+            amendment.getNewPaymentCycle() != null ? amendment.getNewPaymentCycle() : contract.getPaymentCycle()
+        );
         newContract.setDepositAmount(
-            amendment.getNewDepositAmount() != null ? amendment.getNewDepositAmount() : contract.getDepositAmount()
+            amendment.getNewDepositAmount() != null ? 
+                java.math.BigDecimal.valueOf(amendment.getNewDepositAmount()) : contract.getDepositAmount()
         );
         newContract.setRentAmount(
             amendment.getNewRentAmount() != null ? amendment.getNewRentAmount() : contract.getRentAmount()
@@ -1377,38 +1402,71 @@ public class ContractServiceImpl implements ContractService {
         );
         contractRepository.save(newContract);
 
-        // Thêm điều khoản mới cho hợp đồng mới
-        if (amendment.getNewTerms() != null && !amendment.getNewTerms().isEmpty()) {
-            for (String termContent : amendment.getNewTerms()) {
+        // Xử lý điều khoản cho hợp đồng mới
+        if (amendment.getNewTerms() != null) {
+            // Nếu có danh sách điều khoản mới (có thể rỗng), sử dụng danh sách này
+            for (int i = 0; i < amendment.getNewTerms().size(); i++) {
+                String termContent = amendment.getNewTerms().get(i);
                 ContractTerm term = new ContractTerm();
                 term.setContract(newContract);
                 term.setContent(termContent);
-                term.setCreatedAt(java.time.Instant.now());
+                term.setTermOrder(i + 1);
+                term.setCreatedBy(getCurrentUsername());
+                term.setUpdatedBy(getCurrentUsername());
+                term.setTermCategory(ContractTerm.TermCategory.GENERAL);
+                term.setIsMandatory(false);
                 contractTermRepository.save(term);
             }
         } else {
-            // Copy các điều khoản từ hợp đồng cũ nếu không có điều khoản mới
+            // Nếu không có danh sách điều khoản mới, copy từ hợp đồng cũ
             if (contract.getTerms() != null) {
                 for (ContractTerm oldTerm : contract.getTerms()) {
                     ContractTerm newTerm = new ContractTerm();
                     newTerm.setContract(newContract);
                     newTerm.setContent(oldTerm.getContent());
-                    newTerm.setCreatedAt(java.time.Instant.now());
+                    newTerm.setTermOrder(oldTerm.getTermOrder());
+                    newTerm.setCreatedBy(oldTerm.getCreatedBy());
+                    newTerm.setUpdatedBy(getCurrentUsername());
+                    newTerm.setTermCategory(oldTerm.getTermCategory());
+                    newTerm.setIsMandatory(oldTerm.getIsMandatory());
                     contractTermRepository.save(newTerm);
                 }
             }
         }
 
-        // Copy ContractRenterInfo từ hợp đồng cũ sang hợp đồng mới
-        java.util.List<ContractRenterInfo> oldRenterInfos = contractRenterInfoRepository.findByContractId(contract.getId());
-        for (ContractRenterInfo oldInfo : oldRenterInfos) {
-            ContractRenterInfo newInfo = new ContractRenterInfo();
-            newInfo.setContract(newContract);
-            newInfo.setFullName(oldInfo.getFullName());
-            newInfo.setPhoneNumber(oldInfo.getPhoneNumber());
-            newInfo.setNationalID(oldInfo.getNationalID());
-            newInfo.setPermanentAddress(oldInfo.getPermanentAddress());
-            contractRenterInfoRepository.save(newInfo);
+        // Cập nhật ContractRenterInfo dựa trên người thuê mới
+        if (amendment.getNewRenterIds() != null) {
+            // Xóa thông tin người thuê cũ
+            java.util.List<ContractRenterInfo> oldRenterInfos = contractRenterInfoRepository.findByContractId(contract.getId());
+            for (ContractRenterInfo oldInfo : oldRenterInfos) {
+                contractRenterInfoRepository.delete(oldInfo);
+            }
+            
+            // Thêm thông tin người thuê mới (có thể rỗng để xóa tất cả)
+            for (Long userId : amendment.getNewRenterIds()) {
+                User user = userRepository.findById(userId).orElse(null);
+                if (user != null && user.getUserInfo() != null) {
+                    ContractRenterInfo newInfo = new ContractRenterInfo();
+                    newInfo.setContract(newContract);
+                    newInfo.setFullName(user.getUserInfo().getFullName());
+                    newInfo.setPhoneNumber(user.getUserInfo().getPhoneNumber());
+                    newInfo.setNationalID(user.getUserInfo().getNationalID());
+                    newInfo.setPermanentAddress(user.getUserInfo().getPermanentAddress());
+                    contractRenterInfoRepository.save(newInfo);
+                }
+            }
+        } else {
+            // Copy ContractRenterInfo từ hợp đồng cũ sang hợp đồng mới
+            java.util.List<ContractRenterInfo> oldRenterInfos = contractRenterInfoRepository.findByContractId(contract.getId());
+            for (ContractRenterInfo oldInfo : oldRenterInfos) {
+                ContractRenterInfo newInfo = new ContractRenterInfo();
+                newInfo.setContract(newContract);
+                newInfo.setFullName(oldInfo.getFullName());
+                newInfo.setPhoneNumber(oldInfo.getPhoneNumber());
+                newInfo.setNationalID(oldInfo.getNationalID());
+                newInfo.setPermanentAddress(oldInfo.getPermanentAddress());
+                contractRenterInfoRepository.save(newInfo);
+            }
         }
 
         // Copy ContractLandlordInfo từ hợp đồng cũ sang hợp đồng mới
@@ -1424,12 +1482,37 @@ public class ContractServiceImpl implements ContractService {
             contractLandlordInfoRepository.save(newInfo);
         }
 
-        // Di chuyển tất cả RoomUser sang hợp đồng mới
-        if (contract.getRoomUsers() != null) {
-            for (RoomUser roomUser : contract.getRoomUsers()) {
-                if (roomUser.getIsActive()) {
-                    roomUser.setContract(newContract);
+        // Cập nhật RoomUser dựa trên amendment
+        if (amendment.getNewRenterIds() != null) {
+            // Nếu có danh sách người thuê mới (có thể rỗng), cập nhật theo danh sách mới
+            // Trước tiên, xóa tất cả RoomUser cũ khỏi hợp đồng mới
+            if (contract.getRoomUsers() != null) {
+                for (RoomUser roomUser : contract.getRoomUsers()) {
+                    roomUser.setContract(null);
                     roomUserRepository.save(roomUser);
+                }
+            }
+            
+            // Thêm người thuê mới vào hợp đồng mới (có thể rỗng để xóa tất cả)
+            for (Long userId : amendment.getNewRenterIds()) {
+                // Tìm RoomUser theo userId và kiểm tra xem có thuộc phòng này không
+                java.util.List<RoomUser> roomUsers = roomUserRepository.findByUserIdAndIsActiveTrue(userId);
+                for (RoomUser roomUser : roomUsers) {
+                    if (roomUser.getRoom() != null && roomUser.getRoom().getId().equals(contract.getRoom().getId())) {
+                        roomUser.setContract(newContract);
+                        roomUserRepository.save(roomUser);
+                        break; // Chỉ lấy RoomUser đầu tiên tìm thấy cho phòng này
+                    }
+                }
+            }
+        } else {
+            // Nếu không có danh sách người thuê mới, di chuyển tất cả RoomUser hiện tại
+            if (contract.getRoomUsers() != null) {
+                for (RoomUser roomUser : contract.getRoomUsers()) {
+                    if (roomUser.getIsActive()) {
+                        roomUser.setContract(newContract);
+                        roomUserRepository.save(roomUser);
+                    }
                 }
             }
         }
@@ -1437,8 +1520,27 @@ public class ContractServiceImpl implements ContractService {
 
     // Thêm hàm sinh số hợp đồng mới
     private String generateNewContractNumber() {
-        // Ví dụ: CTR-2024-xxx (tăng tự động hoặc random)
-        return "CTR-" + java.time.Year.now() + "-" + System.currentTimeMillis();
+        // Đồng bộ với format HD-YYYY-XXXXX
+        String year = java.time.LocalDate.now().getYear() + "";
+        // Tìm số hợp đồng lớn nhất trong năm hiện tại để tăng dần
+        java.util.List<Contract> contractsThisYear = contractRepository.findAll().stream()
+            .filter(c -> c.getContractNumber() != null && c.getContractNumber().startsWith("HD-" + year + "-"))
+            .toList();
+        
+        int maxNumber = 0;
+        for (Contract contract : contractsThisYear) {
+            try {
+                String[] parts = contract.getContractNumber().split("-");
+                if (parts.length >= 3) {
+                    int number = Integer.parseInt(parts[2]);
+                    maxNumber = Math.max(maxNumber, number);
+                }
+            } catch (NumberFormatException ignored) {
+                // Bỏ qua nếu không parse được số
+            }
+        }
+        
+        return String.format("HD-%s-%05d", year, maxNumber + 1);
     }
     
     /**

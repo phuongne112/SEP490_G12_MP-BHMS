@@ -100,10 +100,17 @@ public class RoomUserServiceImpl implements RoomUserService {
         contract.setRoom(roomWithServices);
         contract.setContractStartDate(request.getContractStartDate());
         contract.setContractEndDate(request.getContractEndDate());
-        contract.setDepositAmount(request.getDepositAmount());
+        contract.setDepositAmount(request.getDepositAmount() != null ? 
+            java.math.BigDecimal.valueOf(request.getDepositAmount()) : null);
         contract.setRentAmount(roomWithServices.getPricePerMonth());
         contract.setPaymentCycle(PaymentCycle.valueOf(request.getPaymentCycle()));
         contract.setContractStatus(ContractStatus.ACTIVE);
+        contract = contractRepository.save(contract);
+        
+        // Sinh số hợp đồng tự động
+        String year = java.time.LocalDate.now().getYear() + "";
+        String contractNumber = String.format("HD-%s-%05d", year, contract.getId());
+        contract.setContractNumber(contractNumber);
         contract = contractRepository.save(contract);
 
         // Tạo RoomUser và gán hợp đồng cho từng người dùng
@@ -195,6 +202,12 @@ public class RoomUserServiceImpl implements RoomUserService {
             newContract.setRentAmount(contract.getRentAmount());
             newContract.setPaymentCycle(contract.getPaymentCycle());
             newContract.setContractStatus(ContractStatus.ACTIVE);
+            newContract = contractRepository.save(newContract);
+            
+            // Sinh số hợp đồng tự động
+            String year = java.time.LocalDate.now().getYear() + "";
+            String contractNumber = String.format("HD-%s-%05d", year, newContract.getId());
+            newContract.setContractNumber(contractNumber);
             newContract = contractRepository.save(newContract);
             
             // Cập nhật contract cho những người ở lại

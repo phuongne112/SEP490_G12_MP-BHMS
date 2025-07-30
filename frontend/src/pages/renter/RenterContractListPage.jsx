@@ -1,11 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { Layout, Button, Modal, List, message, Table } from "antd";
+import { Layout, Button, Modal, List, message, Table, DatePicker } from "antd";
 import PageHeader from "../../components/common/PageHeader";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import dayjs from "dayjs";
+import "dayjs/locale/vi";
+import locale from "antd/locale/vi_VN";
 import { getRenterContracts } from "../../services/contractApi";
 import { getContractAmendments, approveAmendment, renewContract } from "../../services/roomUserApi";
 import { useSelector } from "react-redux";
+
+// Cấu hình dayjs để sử dụng locale tiếng Việt
+dayjs.locale('vi');
 
 const { Sider, Content } = Layout;
 
@@ -57,10 +62,8 @@ export default function RenterContractListPage() {
     try {
       await approveAmendment(amendmentId, false); // false = renter duyệt
       message.success('Phê duyệt thành công!');
-      // Optimistic update - immediately update local state
-      setAmendments(prev => prev.map(item =>
-        item.id === amendmentId ? { ...item, status: 'APPROVED' } : item
-      ));
+      // Auto refresh trang
+      window.location.reload();
     } catch (e) {
       message.error('Phê duyệt thất bại!');
     }
@@ -82,7 +85,8 @@ export default function RenterContractListPage() {
       await renewContract(selectedRenewContract.id, renewEndDate);
       message.success('Đã gửi yêu cầu gia hạn, chờ chủ nhà duyệt!');
       setRenewModalOpen(false);
-      fetchContracts();
+      // Auto refresh trang
+      window.location.reload();
     } catch (e) {
       message.error('Gửi yêu cầu gia hạn thất bại!');
     } finally {
@@ -91,13 +95,13 @@ export default function RenterContractListPage() {
   };
 
   const columns = [
-    { title: "Contract ID", dataIndex: "id", key: "id" },
-    { title: "Room", dataIndex: "roomNumber", key: "roomNumber" },
-    { title: "Start Date", dataIndex: "contractStartDate", key: "contractStartDate", render: d => dayjs(d).format("DD/MM/YYYY") },
-    { title: "End Date", dataIndex: "contractEndDate", key: "contractEndDate", render: d => dayjs(d).format("DD/MM/YYYY") },
-    {
-      title: "Actions",
-      key: "actions",
+    { title: "Mã hợp đồng", dataIndex: "id", key: "id" },
+    { title: "Phòng", dataIndex: "roomNumber", key: "roomNumber" },
+    { title: "Ngày bắt đầu", dataIndex: "contractStartDate", key: "contractStartDate", render: d => dayjs(d).format("DD/MM/YYYY") },
+    { title: "Ngày kết thúc", dataIndex: "contractEndDate", key: "contractEndDate", render: d => dayjs(d).format("DD/MM/YYYY") },
+          {
+        title: "Thao tác",
+        key: "actions",
       render: (_, record) => (
         <>
           <Button onClick={() => handleViewAmendments(record)} style={{ marginRight: 8 }}>Lịch sử thay đổi</Button>
@@ -181,35 +185,38 @@ export default function RenterContractListPage() {
             />
           </Modal>
 
-          {/* Modal yêu cầu gia hạn */}
-          <Modal
-            open={renewModalOpen}
-            onCancel={() => setRenewModalOpen(false)}
-            onOk={handleSendRenewRequest}
-            okText="Gửi yêu cầu"
-            confirmLoading={renewingContract}
-            title="Yêu cầu gia hạn hợp đồng"
-          >
-            <div style={{ marginBottom: 12 }}>
-              <b>Ngày kết thúc mới:</b>
-              <input
-                type="date"
-                value={renewEndDate || ''}
-                onChange={e => setRenewEndDate(e.target.value)}
-                style={{ marginLeft: 8 }}
-              />
-            </div>
-            <div>
-              <b>Lý do gia hạn:</b>
-              <textarea
-                value={renewReason}
-                onChange={e => setRenewReason(e.target.value)}
-                rows={3}
-                style={{ width: '100%', marginTop: 4 }}
-                placeholder="Nhập lý do hoặc mong muốn gia hạn (không bắt buộc)"
-              />
-            </div>
-          </Modal>
+                     {/* Modal yêu cầu gia hạn */}
+           <Modal
+             open={renewModalOpen}
+             onCancel={() => setRenewModalOpen(false)}
+             onOk={handleSendRenewRequest}
+             okText="Gửi yêu cầu"
+             confirmLoading={renewingContract}
+             title="Yêu cầu gia hạn hợp đồng"
+             locale={locale}
+           >
+             <div style={{ marginBottom: 12 }}>
+               <b>Ngày kết thúc mới:</b>
+               <DatePicker
+                 value={renewEndDate ? dayjs(renewEndDate) : null}
+                 onChange={(date) => setRenewEndDate(date ? date.format('YYYY-MM-DD') : null)}
+                 style={{ marginLeft: 8, width: 200 }}
+                 placeholder="Chọn ngày kết thúc mới"
+                 format="DD/MM/YYYY"
+                 locale={locale}
+               />
+             </div>
+             <div>
+               <b>Lý do gia hạn:</b>
+               <textarea
+                 value={renewReason}
+                 onChange={e => setRenewReason(e.target.value)}
+                 rows={3}
+                 style={{ width: '100%', marginTop: 4 }}
+                 placeholder="Nhập lý do hoặc mong muốn gia hạn (không bắt buộc)"
+               />
+             </div>
+           </Modal>
         </Content>
       </Layout>
     </Layout>

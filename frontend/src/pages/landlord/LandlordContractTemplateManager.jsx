@@ -253,10 +253,14 @@ export default function LandlordContractTemplateManager() {
             <Button 
               type="primary" 
               onClick={() => setEditing({})} 
+              size="large"
               style={{ 
                 marginBottom: 16, 
-                width: isMobile ? '100%' : 'auto',
-                height: isMobile ? '40px' : 'auto'
+                width: isMobile ? '100%' : '180px',
+                height: isMobile ? '48px' : '48px',
+                fontSize: '16px',
+                fontWeight: '500',
+                borderRadius: '8px'
               }}
             >
               Thêm mẫu hợp đồng

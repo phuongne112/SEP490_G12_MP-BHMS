@@ -135,7 +135,7 @@ export default function LandlordBillListPage() {
 
   const navigate = useNavigate();
 
-  // Kiểm tra hóa đơn quá hạn
+  // Kiểm tra hóa đơn quá hạn (từ ngày thứ 7 trở đi)
   const checkOverdue = (bill) => {
     if (bill.status) return false; // Đã thanh toán thì không quá hạn
     
@@ -153,7 +153,7 @@ export default function LandlordBillListPage() {
       toDate = dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A");
     }
     
-    // Logic đơn giản: toDate + 7 ngày là hạn thanh toán
+    // Logic mới: toDate + 7 ngày là hạn thanh toán (ngày thứ 7)
     const actualDueDate = dueDate || (toDate ? toDate.add(7, 'day') : null);
     
     return actualDueDate && today.isAfter(actualDueDate, 'day');
@@ -203,7 +203,7 @@ export default function LandlordBillListPage() {
     }
   };
 
-  // Xử lý hóa đơn quá hạn - Chỉ gửi email cảnh báo
+  // Xử lý hóa đơn quá hạn - Gửi email cảnh báo (ngày thứ 7)
   const handleOverdueBill = async (bill) => {
     // Set loading state
     setEmailLoading(prev => ({ ...prev, [bill.id]: true }));
@@ -215,9 +215,9 @@ export default function LandlordBillListPage() {
         return;
       }
 
-      // Chỉ gửi cảnh báo quá hạn
+      // Gửi cảnh báo quá hạn (ngày thứ 7)
       await sendBillToRenter(bill.id);
-      message.success(`Đã gửi email cảnh báo cho hóa đơn #${bill.id}`);
+      message.success(`Đã gửi email cảnh báo cho hóa đơn #${bill.id} (ngày thứ 7)`);
       
       // Đánh dấu đã gửi hôm nay
       markEmailSentToday(bill.id);
@@ -232,11 +232,11 @@ export default function LandlordBillListPage() {
     }
   };
 
-  // Xử lý hàng loạt hóa đơn quá hạn - Logic thống nhất
+  // Xử lý hàng loạt hóa đơn quá hạn - Gửi cảnh báo cho hóa đơn từ ngày thứ 7
   const handleBulkOverdue = async () => {
     setBulkPenaltyLoading(true);
     try {
-      // Gửi cảnh báo cho tất cả hóa đơn quá hạn
+      // Gửi cảnh báo cho tất cả hóa đơn quá hạn (từ ngày thứ 7)
       let successCount = 0;
       for (const bill of overdueBills) {
         try {
@@ -248,7 +248,7 @@ export default function LandlordBillListPage() {
       }
       
       if (successCount > 0) {
-        message.success(`✅ Đã gửi cảnh báo cho ${successCount}/${overdueBills.length} hóa đơn quá hạn`);
+        message.success(`✅ Đã gửi cảnh báo cho ${successCount}/${overdueBills.length} hóa đơn quá hạn (từ ngày thứ 7)`);
       } else {
         message.warning("⚠️ Không thể gửi cảnh báo cho hóa đơn nào");
       }
@@ -439,6 +439,7 @@ export default function LandlordBillListPage() {
     }
   };
   
+  // Chạy job kiểm tra và tạo phạt tự động (chỉ tạo phạt từ ngày thứ 8 trở đi)
   const handleRunLatePenaltyCheck = async () => {
     try {
       const result = await runLatePenaltyCheck();
@@ -623,7 +624,11 @@ export default function LandlordBillListPage() {
             <Popover
               content={
                 isOverdue
-                  ? `Gửi email cho hóa đơn quá hạn ${overdueDays} ngày (1 lần/ngày)`
+                  ? overdueDays === 7 
+                    ? `Gửi email cảnh báo hết hạn (ngày thứ 7) - 1 lần/ngày`
+                    : overdueDays >= 8
+                      ? `Hóa đơn quá hạn ${overdueDays} ngày - Tự động tạo phạt từ ngày thứ 8`
+                      : `Gửi email cho hóa đơn quá hạn ${overdueDays} ngày (1 lần/ngày)`
                   : record.status
                     ? 'Chỉ gửi email cho hóa đơn chưa thanh toán'
                     : isEmailSentToday(record.id)
@@ -645,29 +650,29 @@ export default function LandlordBillListPage() {
                   borderColor: isOverdue ? '#ff4d4f' : undefined
                 }}
               >
-                {isOverdue ? "Gửi email" : (isMobile ? "Email" : (isEmailSentToday(record.id) ? "Đã gửi hôm nay" : "Gửi email"))}
+                {isOverdue ? (overdueDays === 7 ? "Cảnh báo" : "Gửi email") : (isMobile ? "Email" : (isEmailSentToday(record.id) ? "Đã gửi hôm nay" : "Gửi email"))}
               </Button>
             </Popover>
             
-            {/* 4. Nút "Tạo phạt" - Ẩn đi vì hệ thống đã tự động tạo phạt */}
-            {/* {isOverdue && !record.status && record.billType !== 'LATE_PENALTY' && (
-              <Popover
-                content={`Tạo hóa đơn phạt cho hóa đơn quá hạn ${overdueDays} ngày`}
-                placement="top"
-              >
-                <Button 
-                  type="default"
-                  icon={<ExclamationCircleOutlined />}
-                  onClick={() => handleCreatePenalty(record)}
-                  size="small"
-                  danger
-                  loading={penaltyLoading[record.id]}
-                  style={{ minWidth: '80px' }}
-                >
-                  Tạo phạt
-                </Button>
-              </Popover>
-            )} */}
+                         {/* 4. Nút "Tạo phạt" - Ẩn hoàn toàn vì hệ thống tự động tạo phạt từ ngày thứ 8 */}
+             {/* {isOverdue && overdueDays >= 8 && !record.status && record.billType !== 'LATE_PENALTY' && (
+               <Popover
+                 content={`Tạo hóa đơn phạt cho hóa đơn quá hạn ${overdueDays} ngày (từ ngày thứ 8)`}
+                 placement="top"
+               >
+                 <Button 
+                   type="default"
+                   icon={<ExclamationCircleOutlined />}
+                   onClick={() => handleCreatePenalty(record)}
+                   size="small"
+                   danger
+                   loading={penaltyLoading[record.id]}
+                   style={{ minWidth: '80px' }}
+                 >
+                   Tạo phạt
+                 </Button>
+               </Popover>
+             )} */}
             
             {/* 6. Nút "Xóa" - Luôn hiển thị (cuối cùng) */}
             <Popconfirm
@@ -782,8 +787,25 @@ export default function LandlordBillListPage() {
               fontSize: isMobile ? 12 : 14,
               gap: isMobile ? 8 : 0
             }}>
-              <div style={{ color: '#666' }}>
-                Hiển thị 5 mục mỗi trang
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 8,
+                color: '#666'
+              }}>
+                <span>Hiển thị</span>
+                <Select
+                  value={pageSize}
+                  onChange={handlePageSizeChange}
+                  style={{ width: 100 }}
+                  options={[
+                    { label: '5', value: 5 },
+                    { label: '10', value: 10 },
+                    { label: '20', value: 20 },
+                    { label: '50', value: 50 }
+                  ]}
+                />
+                <span>mục</span>
               </div>
               <div style={{ fontWeight: 500, color: "#1890ff" }}>
                 Tổng: {total} hóa đơn
