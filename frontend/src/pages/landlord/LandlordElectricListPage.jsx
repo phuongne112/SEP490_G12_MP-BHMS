@@ -180,10 +180,10 @@ export default function LandlordElectricListPage() {
     try {
       if (enable) {
         await enableAutoScan();
-        message.success("Đã bật auto scan thành công!");
+        message.success("Đã bật tự động quét thành công!");
       } else {
         await disableAutoScan();
-        message.success("Đã tắt auto scan thành công!");
+        message.success("Đã tắt tự động quét thành công!");
       }
       fetchAutoScanStatus();
     } catch {
@@ -253,7 +253,7 @@ export default function LandlordElectricListPage() {
     },
   ];
 
-  // Thêm polling tự động reload dữ liệu khi auto scan ON
+  // Thêm polling tự động reload dữ liệu khi tự động quét BẬT
   useEffect(() => {
     let interval = null;
     if (autoScanStatus === "Auto scan ON") {
@@ -355,7 +355,7 @@ export default function LandlordElectricListPage() {
               gap: 16
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontWeight: 500 }}>Auto Scan:</span>
+                <span style={{ fontWeight: 500 }}>Tự động quét:</span>
                 <Button
                   loading={autoScanLoading}
                   type={autoScanStatus === "Auto scan ON" ? "primary" : "default"}
@@ -371,7 +371,7 @@ export default function LandlordElectricListPage() {
                   fontSize: 12,
                   fontWeight: 500
                 }}>
-                  {autoScanStatus}
+                  {autoScanStatus === "Auto scan ON" ? "Tự động quét BẬT" : "Tự động quét TẮT"}
                 </span>
               </div>
               
