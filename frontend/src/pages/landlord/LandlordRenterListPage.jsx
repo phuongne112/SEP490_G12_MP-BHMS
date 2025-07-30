@@ -203,16 +203,20 @@ export default function LandlordRenterListPage() {
               fontSize: isMobile ? 12 : 14,
               gap: isMobile ? 8 : 0
             }}>
-              <div style={{ color: '#666' }}>
-                Hiển thị
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 8,
+                color: '#666'
+              }}>
+                <span>Hiển thị</span>
                 <Select
-                  style={{ width: isMobile ? 100 : 120, margin: "0 8px" }}
                   value={pageSize}
                   onChange={handlePageSizeChange}
-                  options={pageSizeOptions.map((v) => ({ value: v, label: `${v} / trang` }))}
-                  size={isMobile ? "small" : "middle"}
+                  style={{ width: 100 }}
+                  options={pageSizeOptions.map((v) => ({ value: v, label: `${v}` }))}
                 />
-                mục
+                <span>mục</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                 <span style={{ fontWeight: 500, color: "#1890ff" }}>
