@@ -34,14 +34,7 @@ export const toggleRoomActiveStatus = async (roomId) => {
   return response.data;
 };
 
-/**
- * Người thuê rời khỏi phòng
- * @param {number} roomUserId - ID của RoomUser cần xóa
- */
-export const leaveRoom = async (roomUserId) => {
-  const response = await axiosClient.post(`/room-users/leave/${roomUserId}`);
-  return response.data;
-};
+
 
 /**
  * Lấy danh sách phòng có người thuê

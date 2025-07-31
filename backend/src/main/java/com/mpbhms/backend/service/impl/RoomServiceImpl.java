@@ -267,6 +267,7 @@ public class RoomServiceImpl implements RoomService {
                     rudto.setUserId(ru.getUser() != null ? ru.getUser().getId() : null);
                     rudto.setFullName(ru.getUser() != null && ru.getUser().getUserInfo() != null ? ru.getUser().getUserInfo().getFullName() : null);
                     rudto.setPhoneNumber(ru.getUser() != null && ru.getUser().getUserInfo() != null ? ru.getUser().getUserInfo().getPhoneNumber() : null);
+                    rudto.setEmail(ru.getUser() != null ? ru.getUser().getEmail() : null);
                     rudto.setJoinedAt(ru.getJoinedAt());
                     rudto.setIsActive(ru.getIsActive());
                     return rudto;
