@@ -19,7 +19,7 @@ import RenterRoute from "./RenterRoute";
 import GuestRoute from "./GuestRoute";
 import LandlordRenterListPage from "../pages/landlord/LandlordRenterListPage";
 import LandlordRoomListPage from "../pages/landlord/LandlordRoomListPage";
-import LandlordAddRoomPage from "../pages/landlord/LandlordAddRoomPage";
+
 
 import LandlordServiceListPage from "../pages/landlord/LandlordServiceListPage";
 import LandlordElectricListPage from "../pages/landlord/LandlordElectricListPage";
@@ -125,14 +125,7 @@ export default function AppRouter() {
           </AdminRoute>
         }
       />
-      <Route
-        path="/admin/rooms/add"
-        element={
-          <AdminRoute>
-            <LandlordAddRoomPage />
-          </AdminRoute>
-        }
-      />
+
       <Route
         path="/admin/rooms/:id/edit"
         element={
@@ -170,7 +163,6 @@ export default function AppRouter() {
         <Route path="dashboard" element={<LandlordDashboardPage />} />
         <Route path="renters" element={<LandlordRenterListPage />} />
         <Route path="rooms" element={<LandlordRoomListPage />} />
-        <Route path="rooms/add" element={<LandlordAddRoomPage />} />
 
         <Route path="services" element={<LandlordServiceListPage />} />
         <Route path="electric" element={<LandlordElectricListPage />} />
