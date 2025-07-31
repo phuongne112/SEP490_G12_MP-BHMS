@@ -631,18 +631,26 @@ export default function LandlordServiceListPage() {
                    title: "Trạng thái",
                    dataIndex: "isActive",
                    key: "isActive",
-                   render: (isActive, record) => {
-                     const today = new Date();
-                     const effectiveDate = record.effectiveDate ? new Date(record.effectiveDate) : null;
-                     
-                     if (isActive) {
-                       return <Tag color="green">Đang áp dụng</Tag>;
-                     } else if (effectiveDate && effectiveDate > today) {
-                       return <Tag color="orange">Chờ áp dụng</Tag>;
-                     } else {
-                       return <Tag color="red">Không áp dụng</Tag>;
-                     }
-                   },
+                                       render: (isActive, record, index) => {
+                      const today = new Date();
+                      const effectiveDate = record.effectiveDate ? new Date(record.effectiveDate) : null;
+                      
+                      if (isActive) {
+                        return <Tag color="green">Đang áp dụng</Tag>;
+                      } else {
+                        // Tìm mục không active có ngày hiệu lực mới nhất từ priceHistory state
+                        const nonActiveRecords = priceHistory.filter(item => !item.isActive);
+                        const latestNonActive = nonActiveRecords.length > 0 ? nonActiveRecords[0] : null;
+                        
+                        if (latestNonActive && record.id === latestNonActive.id && effectiveDate && effectiveDate > today) {
+                          // Mới nhất thay đổi và chưa đến ngày hiệu lực
+                          return <Tag color="orange">Chờ áp dụng</Tag>;
+                        } else {
+                          // Các thay đổi giá trước đó
+                          return <Tag color="red">Đã hủy</Tag>;
+                        }
+                      }
+                    },
                  },
                  {
                    title: "Thao tác",
