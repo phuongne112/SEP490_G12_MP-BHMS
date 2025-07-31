@@ -14,6 +14,7 @@ import {
   terminateContract,
   updateContract as updateRoomUserContract,
   getContractAmendments,
+  getContractAmendmentsByStatus,
   processExpiredContracts,
   approveAmendment,
   requestTerminateContract,
@@ -85,13 +86,15 @@ export default function LandlordContractListPage() {
   const [terminateModalOpen, setTerminateModalOpen] = useState(false);
   const [terminateContractId, setTerminateContractId] = useState(null);
   const [amendmentsPage, setAmendmentsPage] = useState(1);
-  const amendmentsPageSize = 5;
+  const amendmentsPageSize = 3;
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectLoading, setRejectLoading] = useState(false);
   const [currentAmendmentContractId, setCurrentAmendmentContractId] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [showAllAmendments, setShowAllAmendments] = useState(false);
+  const [allAmendments, setAllAmendments] = useState([]); // Lưu tất cả amendments
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [previousContractIds, setPreviousContractIds] = useState(new Set());
 
@@ -467,14 +470,44 @@ export default function LandlordContractListPage() {
     setAmendments([]);
     setAmendmentsModalOpen(true);
     setAmendmentsPage(1); // Reset page when opening amendments modal
+    setShowAllAmendments(false); // Reset to default view
     setCurrentAmendmentContractId(contractId); // Track current contract ID
     try {
-      const res = await getContractAmendments(contractId);
-      setAmendments(res.data || []);
+      // Luôn load tất cả amendments trước
+      const allRes = await getContractAmendments(contractId);
+      const allAmendmentsData = allRes.data || [];
+      setAllAmendments(allAmendmentsData); // Lưu tất cả amendments
+      console.log('Loaded all amendments:', allAmendmentsData);
+      
+      // Kiểm tra có pending amendments không
+      const hasPending = allAmendmentsData.some(a => a.status === 'PENDING');
+      
+      if (hasPending) {
+        // Nếu có pending, chỉ hiển thị pending
+        const pendingAmendments = allAmendmentsData.filter(a => a.status === 'PENDING');
+        setAmendments(pendingAmendments);
+        console.log('Filtered to pending only:', pendingAmendments);
+      } else {
+        // Nếu không có pending, hiển thị tất cả
+        setAmendments(allAmendmentsData);
+        console.log('Showing all amendments:', allAmendmentsData);
+      }
     } catch (e) {
       console.error('Failed to load amendments:', e);
       setAmendments([]);
+      setAllAmendments([]);
       // Don't show error message here as it's just a refresh operation
+    }
+  };
+
+  const loadAmendmentsByStatus = async (contractId, status) => {
+    try {
+      const res = await getContractAmendmentsByStatus(contractId, status);
+      console.log(`Loaded ${status} amendments:`, res.data);
+      return res.data || [];
+    } catch (e) {
+      console.error(`Failed to load ${status} amendments:`, e);
+      return [];
     }
   };
 
@@ -622,9 +655,14 @@ export default function LandlordContractListPage() {
   // Hàm map loại amendment sang tiếng Việt
   const getAmendmentTypeText = (type) => {
     switch (type) {
+      case 'RENT_INCREASE': return 'Tăng tiền thuê';
+      case 'DEPOSIT_CHANGE': return 'Thay đổi tiền cọc';
+      case 'TERMS_UPDATE': return 'Cập nhật điều khoản';
+      case 'DURATION_EXTENSION': return 'Gia hạn hợp đồng';
+      case 'RENTER_CHANGE': return 'Thay đổi người thuê';
+      case 'PAYMENT_CYCLE_CHANGE': return 'Thay đổi chu kỳ thanh toán';
+      case 'TERMINATION': return 'Chấm dứt hợp đồng';
       case 'OTHER': return 'Khác';
-      case 'TERMINATION': return 'Chấm dứt';
-      case 'DURATION_EXTENSION': return 'Gia hạn';
       default: return type;
     }
   };
@@ -636,6 +674,24 @@ export default function LandlordContractListPage() {
       case 'APPROVED': return 'Đã duyệt';
       default: return status;
     }
+  };
+
+  const formatAmendmentValue = (value) => {
+    if (!value) return value;
+    
+    // Format số tiền
+    const formatMoney = (text) => {
+      // Tìm và format các số tiền trong text
+      return text.replace(/(\d+(?:\.\d+)?(?:E\d+)?)\s*(?:VND|₫)/gi, (match, number) => {
+        const num = parseFloat(number);
+        if (!isNaN(num)) {
+          return num.toLocaleString('vi-VN') + ' VND';
+        }
+        return match;
+      });
+    };
+    
+    return formatMoney(value);
   };
 
   // Polling cập nhật động trạng thái phê duyệt khi modal mở
@@ -1016,70 +1072,414 @@ export default function LandlordContractListPage() {
             </div>
           </Modal>
           <Modal open={amendmentsModalOpen} onCancel={() => { setAmendmentsModalOpen(false); setAmendmentsPage(1); }} footer={null} title="Yêu cầu thay đổi hợp đồng">
-            <div style={{ fontWeight: 600, color: '#d46b08', marginBottom: 4 }}>
-              Lý do thay đổi:
+            {/* Hiển thị amendments */}
+            {(() => {
+              console.log('Amendments debug:', {
+                total: amendments.length,
+                pending: amendments.filter(a => a.status === 'PENDING').length,
+                approved: amendments.filter(a => a.status === 'APPROVED').length,
+                rejected: amendments.filter(a => a.status === 'REJECTED').length,
+                showAll: showAllAmendments
+              });
+              
+              return (
+                <>
+                  {/* Thông báo về chế độ hiển thị */}
+                  <div style={{ 
+                    marginBottom: 16, 
+                    padding: 8, 
+                    backgroundColor: '#f8f9fa', 
+                    border: '1px solid #dee2e6', 
+                    borderRadius: 4,
+                    fontSize: 13
+                  }}>
+                    <span style={{ color: '#6c757d' }}>
+                      {!showAllAmendments && amendments.some(a => a.status === 'PENDING') 
+                        ? 'Đang hiển thị các yêu cầu chờ duyệt'
+                        : 'Đang hiển thị lịch sử đã xử lý (đã duyệt, từ chối)'
+                      }
+                    </span>
             </div>
+                  
+                  {!showAllAmendments && !amendments.some(a => a.status === 'PENDING') && amendments.length > 0 && (
+                    <div style={{ 
+                      marginBottom: 16, 
+                      padding: 12, 
+                      backgroundColor: '#f6ffed', 
+                      border: '1px solid #b7eb8f', 
+                      borderRadius: 6,
+                      fontSize: 14
+                    }}>
+                      <div style={{ fontWeight: 600, color: '#52c41a', marginBottom: 4 }}>
+                        Chế độ hiển thị:
+                      </div>
+                      <div style={{ color: '#666' }}>
+                        Không có yêu cầu chờ duyệt → Hiển thị <strong>lịch sử đã xử lý</strong> (đã duyệt, từ chối)
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Nút chuyển đổi chế độ hiển thị */}
+                  <div style={{ 
+                    marginBottom: 16, 
+                    display: 'flex', 
+                    gap: 8, 
+                    justifyContent: 'center' 
+                  }}>
+                    <Button
+                      type={showAllAmendments ? "primary" : "default"}
+                      onClick={async () => {
+                        const newShowAll = !showAllAmendments;
+                        setShowAllAmendments(newShowAll);
+                        setAmendmentsPage(1); // Reset page khi chuyển đổi
+                        
+                        // Gọi API để lấy data theo status
+                        if (newShowAll) {
+                          // Gọi API để lấy tất cả trừ pending
+                          try {
+                            const res = await getContractAmendmentsByStatus(currentAmendmentContractId, 'APPROVED');
+                            const approvedAmendments = res.data || [];
+                            const rejectedRes = await getContractAmendmentsByStatus(currentAmendmentContractId, 'REJECTED');
+                            const rejectedAmendments = rejectedRes.data || [];
+                            const allNonPending = [...approvedAmendments, ...rejectedAmendments];
+                            setAmendments(allNonPending);
+                            console.log('Showing approved and rejected amendments:', allNonPending);
+                          } catch (e) {
+                            console.error('Failed to load non-pending amendments:', e);
+                            message.error('Lỗi khi tải dữ liệu');
+                          }
+                        } else {
+                          // Gọi API để lấy chỉ pending
+                          try {
+                            const res = await getContractAmendmentsByStatus(currentAmendmentContractId, 'PENDING');
+                            setAmendments(res.data || []);
+                            console.log('Showing pending amendments only:', res.data);
+                          } catch (e) {
+                            console.error('Failed to load pending amendments:', e);
+                            message.error('Lỗi khi tải dữ liệu');
+                          }
+                        }
+                      }}
+                      size="small"
+                    >
+                      {showAllAmendments ? "Chỉ hiển thị chờ duyệt" : "Hiển thị đã duyệt/từ chối"}
+                    </Button>
+                    
+
+                  </div>
+                  
+
+                  
             <List
               dataSource={amendments.slice((amendmentsPage-1)*amendmentsPageSize, amendmentsPage*amendmentsPageSize)}
               renderItem={item => (
-                <List.Item
-                  style={{ flexDirection: 'column', alignItems: 'flex-start', padding: 16, borderBottom: '1px solid #f0f0f0' }}
-                  actions={[]}
-                >
-                  <div style={{ width: '100%' }}>
-                    {/* Giao diện gộp gọn, dễ nhìn */}
-                    <div style={{ marginBottom: 8 }}>
-                      <b>Lý do thay đổi:</b> {item.reason || <span style={{ color: '#888' }}>Không có lý do</span>}
+                      <List.Item>
+                        <div style={{ 
+                          width: '100%',
+                          padding: 16, 
+                          border: '1px solid #dee2e6', 
+                          borderRadius: 6, 
+                          backgroundColor: '#fff',
+                          marginBottom: 12
+                        }}>
+                          {/* Header với loại và trạng thái */}
+                          <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center',
+                            marginBottom: 12,
+                            paddingBottom: 8,
+                            borderBottom: '1px solid #f0f0f0'
+                          }}>
+                            <div style={{ fontSize: 15, fontWeight: 600, color: '#495057' }}>
+                              Loại: {getAmendmentTypeText(item.amendmentType)}
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 8 }}>
-                      <div><b>Loại:</b> {getAmendmentTypeText(item.amendmentType)}</div>
-                      <div><b>Trạng thái:</b> {getAmendmentStatusText(item.status)}</div>
-                      <div><b>Ngày tạo:</b> {item.createdDate ? new Date(item.createdDate).toLocaleDateString("vi-VN") : 'Không có'}</div>
+                            <div style={{ 
+                              padding: '4px 8px', 
+                              borderRadius: 4, 
+                              fontSize: 12,
+                              fontWeight: 500,
+                              backgroundColor: item.status === 'APPROVED' ? '#28a745' : 
+                                               item.status === 'REJECTED' ? '#dc3545' : '#ffc107',
+                              color: '#fff',
+                              border: item.status === 'APPROVED' ? '1px solid #28a745' : 
+                                      item.status === 'REJECTED' ? '1px solid #dc3545' : '1px solid #ffc107'
+                            }}>
+                              {getAmendmentStatusText(item.status)}
                     </div>
-                    {/* Hiển thị trạng thái amendment */}
-                    <div style={{ marginTop: 8 }}>
-                      {item.status === 'APPROVED' && (
-                        <Tag color="green">Đã duyệt</Tag>
-                      )}
-                      {item.status === 'REJECTED' && (
-                        <Tag color="red">Đã từ chối</Tag>
-                      )}
-                      {item.status === 'PENDING' && (
-                        <Tag color="orange">Chờ duyệt</Tag>
-                      )}
-                      {item.rejectedBy && item.rejectedBy.length > 0 && (
-                        <Tag color="red">Có người từ chối</Tag>
-                      )}
                     </div>
                     
-                    {/* Hiển thị lý do từ chối khi có */}
-                    {item.status === 'REJECTED' && item.reason && (
-                      <div style={{ marginTop: 12, padding: 12, backgroundColor: '#fff2f0', border: '1px solid #ffccc7', borderRadius: 6 }}>
-                        <div style={{ fontWeight: 600, color: '#cf1322', marginBottom: 4 }}>
-                          🚫 Lý do từ chối:
+                          {/* Lý do thay đổi */}
+                          <div style={{ marginBottom: 16 }}>
+                            <div style={{ 
+                              fontWeight: 600, 
+                              color: '#495057', 
+                              marginBottom: 6,
+                              fontSize: 13
+                            }}>
+                              Lý do thay đổi:
                         </div>
-                        <div style={{ color: '#8c8c8c', fontStyle: 'italic', lineHeight: 1.4 }}>
-                          "{item.reason}"
+                            <div style={{ 
+                              fontSize: 13, 
+                              color: '#333',
+                              padding: '8px 12px',
+                              backgroundColor: '#f8f9fa',
+                              borderRadius: 6,
+                              border: '1px solid #e9ecef'
+                            }}>
+                              {item.reason || <span style={{ color: '#888', fontStyle: 'italic' }}>Không có lý do</span>}
+                            </div>
+                          </div>
+
+                          {/* Hiển thị chi tiết thay đổi */}
+                          {(item.oldValue || item.newValue) && (
+                            <div style={{ 
+                              marginBottom: 16, 
+                              padding: 12, 
+                              backgroundColor: '#f8f9fa', 
+                              border: '1px solid #dee2e6', 
+                              borderRadius: 6
+                            }}>
+                              <div style={{ 
+                                fontWeight: 600, 
+                                color: '#495057', 
+                                marginBottom: 8,
+                                fontSize: 13
+                              }}>
+                                Thay đổi:
+                              </div>
+                              
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+                                {(() => {
+                                  const oldLines = (item.oldValue || '').split(';').filter(line => line.trim());
+                                  const newLines = (item.newValue || '').split(';').filter(line => line.trim());
+                                  
+                                  // Tạo map để so sánh từng phần
+                                  const oldMap = {};
+                                  const newMap = {};
+                                  
+                                  // Xử lý điều khoản trước - gộp tất cả thành 1 key
+                                  let oldTerms = '';
+                                  let newTerms = '';
+                                  
+                                  oldLines.forEach(line => {
+                                    const key = line.split(':')[0]?.trim();
+                                    if (key && key.includes('Điều khoản')) {
+                                      oldTerms = line.trim();
+                                    } else if (key) {
+                                      oldMap[key] = line.trim();
+                                    }
+                                  });
+                                  
+                                  newLines.forEach(line => {
+                                    const key = line.split(':')[0]?.trim();
+                                    if (key && key.includes('Điều khoản')) {
+                                      newTerms = line.trim();
+                                    } else if (key) {
+                                      newMap[key] = line.trim();
+                                    }
+                                  });
+                                  
+                                  // Gộp tất cả điều khoản vào một key duy nhất
+                                  if (oldTerms || newTerms) {
+                                    oldMap['Điều khoản'] = oldTerms;
+                                    newMap['Điều khoản'] = newTerms;
+                                  }
+                                  
+                                  // Lấy tất cả keys
+                                  const allKeys = [...new Set([...Object.keys(oldMap), ...Object.keys(newMap)])];
+                                  
+                                  // Chỉ hiển thị những phần có thay đổi
+                                  const filteredKeys = allKeys.filter(key => {
+                                    const oldValue = oldMap[key] || '';
+                                    const newValue = newMap[key] || '';
+                                    
+                                    // Nếu là số tiền, so sánh giá trị số
+                                    if (key.includes('Tiền') || key.includes('tiền')) {
+                                      const oldNum = parseFloat(oldValue.replace(/[^\d.-]/g, ''));
+                                      const newNum = parseFloat(newValue.replace(/[^\d.-]/g, ''));
+                                      return !isNaN(oldNum) && !isNaN(newNum) && oldNum !== newNum;
+                                    } else if (key.includes('Điều khoản') || key.includes('điều khoản')) {
+                                      // Xử lý đặc biệt cho điều khoản
+                                      const oldClean = oldValue.replace(/^Điều khoản:\s*/, '').trim();
+                                      const newClean = newValue.replace(/^Điều khoản:\s*/, '').trim();
+                                      
+                                      // Chuẩn hóa "Không có điều khoản" và "Không có"
+                                      const normalizeTerms = (str) => {
+                                        if (str === 'Không có điều khoản' || str === 'Không có' || str === '') {
+                                          return 'Không có điều khoản';
+                                        }
+                                        return str;
+                                      };
+                                      
+                                      const normalizedOld = normalizeTerms(oldClean);
+                                      const normalizedNew = normalizeTerms(newClean);
+                                      
+                                      // Chỉ hiển thị nếu thực sự khác nhau
+                                      return normalizedOld !== normalizedNew;
+                                    } else {
+                                      // So sánh chuỗi thông thường
+                                      return oldValue !== newValue;
+                                    }
+                                  });
+                                  
+                                  // Loại bỏ các key trùng lặp về mặt ngữ nghĩa
+                                  const uniqueKeys = [];
+                                  const seenNormalized = new Set();
+                                  
+                                  filteredKeys.forEach(key => {
+                                    const oldValue = oldMap[key] || '';
+                                    const newValue = newMap[key] || '';
+                                    
+                                    if (key.includes('Điều khoản') || key.includes('điều khoản')) {
+                                      const oldClean = oldValue.replace(/^Điều khoản:\s*/, '').trim();
+                                      const newClean = newValue.replace(/^Điều khoản:\s*/, '').trim();
+                                      
+                                      const normalizeTerms = (str) => {
+                                        if (str === 'Không có điều khoản' || str === 'Không có' || str === '') {
+                                          return 'Không có điều khoản';
+                                        }
+                                        return str;
+                                      };
+                                      
+                                      const normalizedOld = normalizeTerms(oldClean);
+                                      const normalizedNew = normalizeTerms(newClean);
+                                      const normalizedPair = `${normalizedOld}->${normalizedNew}`;
+                                      
+                                      if (!seenNormalized.has(normalizedPair)) {
+                                        seenNormalized.add(normalizedPair);
+                                        uniqueKeys.push(key);
+                                      }
+                                    } else {
+                                      uniqueKeys.push(key);
+                                    }
+                                  });
+                                  
+                                  return uniqueKeys
+                                    .map((key, index) => {
+                                      const oldValue = oldMap[key] || 'Không có';
+                                      const newValue = newMap[key] || 'Không có';
+                                      
+                                      return (
+                                        <div key={index} style={{ 
+                                          display: 'flex', 
+                                          alignItems: 'center', 
+                                          gap: 8,
+                                          padding: '6px 0'
+                                        }}>
+                                          <div style={{ 
+                                            flex: 1,
+                                            padding: '6px 8px', 
+                                            backgroundColor: '#fff', 
+                                            border: '1px solid #dc3545', 
+                                            borderRadius: 4,
+                                            minHeight: '32px',
+                                            display: 'flex',
+                                            alignItems: 'center'
+                                          }}>
+                                            <span style={{ 
+                                              color: '#dc3545', 
+                                              fontWeight: 400,
+                                              fontSize: 12,
+                                              lineHeight: 1.3
+                                            }}>
+                                              {formatAmendmentValue(oldValue)}
+                                            </span>
+                                          </div>
+                                          <span style={{ 
+                                            color: '#6c757d', 
+                                            fontSize: 14, 
+                                            fontWeight: 400,
+                                            padding: '0 6px'
+                                          }}>→</span>
+                                          <div style={{ 
+                                            flex: 1,
+                                            padding: '6px 8px', 
+                                            backgroundColor: '#fff', 
+                                            border: '1px solid #28a745', 
+                                            borderRadius: 4,
+                                            minHeight: '32px',
+                                            display: 'flex',
+                                            alignItems: 'center'
+                                          }}>
+                                            <span style={{ 
+                                              color: '#28a745', 
+                                              fontWeight: 400,
+                                              fontSize: 12,
+                                              lineHeight: 1.3
+                                            }}>
+                                              {formatAmendmentValue(newValue)}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      );
+                                    });
+                                })()}
                         </div>
                       </div>
                     )}
-                    {/* Chỉ hiển thị nút duyệt/từ chối khi: PENDING + landlord chưa duyệt + chưa ai từ chối */}
+
+                          {/* Ngày tạo */}
+                          <div style={{ 
+                            fontSize: 13, 
+                            color: '#6c757d',
+                            marginBottom: 16,
+                            padding: '8px 12px',
+                            backgroundColor: '#f8f9fa',
+                            borderRadius: 6,
+                            border: '1px solid #e9ecef'
+                          }}>
+                            Ngày tạo: {item.createdDate ? new Date(item.createdDate).toLocaleDateString("vi-VN") : 'Không có'}
+                          </div>
+
+                          {/* Buttons cho PENDING */}
                     {item.status === 'PENDING' && !item.approvedByLandlord && (!item.rejectedBy || item.rejectedBy.length === 0) && (
-                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                            <div style={{ display: 'flex', gap: 12 }}>
                         <Button
                           type="primary"
+                                size="middle"
                           onClick={() => handleApproveAmendment(item.id, true)}
+                                style={{ flex: 1, height: 40 }}
                         >
                           Duyệt
                         </Button>
                         <Button
                           danger
+                                size="middle"
                           onClick={() => handleRejectAmendment(item.id)}
+                                style={{ flex: 1, height: 40 }}
                         >
                           Từ chối
                         </Button>
                       </div>
                     )}
+
+                          {/* Lý do từ chối cho REJECTED */}
+                          {item.status === 'REJECTED' && item.reason && (
+                            <div style={{ 
+                              marginTop: 12,
+                              padding: 8,
+                              backgroundColor: '#f8f9fa',
+                              border: '1px solid #dee2e6',
+                              borderRadius: 4
+                            }}>
+                              <div style={{ 
+                                fontWeight: 600, 
+                                color: '#495057',
+                                fontSize: 13,
+                                marginBottom: 4
+                              }}>
+                                Lý do từ chối:
+                              </div>
+                              <div style={{ 
+                                fontSize: 12, 
+                                color: '#6c757d',
+                                fontStyle: 'italic'
+                              }}>
+                                {item.reason}
+                              </div>
+                            </div>
+                          )}
                   </div>
                 </List.Item>
               )}
@@ -1096,119 +1496,106 @@ export default function LandlordContractListPage() {
                 />
               </div>
             )}
+                </>
+              );
+            })()}
           </Modal>
           <Modal 
             open={detailModalOpen} 
             onCancel={() => setDetailModalOpen(false)} 
             footer={null} 
-            title={
-              <div style={{ fontSize: '18px', fontWeight: 600, color: '#262626' }}>
-                📋 Chi tiết hợp đồng
-              </div>
-            }
+            title="Chi tiết hợp đồng"
             width={700}
           >
             {detailContract ? (
               <div style={{ padding: '16px 0' }}>
                 {/* Thông tin cơ bản */}
                 <div style={{ 
-                  background: '#f8f9fa', 
                   padding: '16px', 
                   borderRadius: '8px', 
                   marginBottom: '20px',
-                  border: '1px solid #e9ecef'
+                  border: '1px solid #d9d9d9'
                 }}>
-                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#1890ff' }}>
-                    📄 Thông tin cơ bản
+                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px' }}>
+                    Thông tin cơ bản
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div><b>Mã hợp đồng:</b> <span style={{ color: '#1890ff', fontWeight: 500 }}>{detailContract.contractNumber || `#${detailContract.id}`}</span></div>
-                    <div><b>Phòng:</b> <span style={{ color: '#52c41a', fontWeight: 500 }}>{detailContract.roomNumber || detailContract.room?.roomNumber}</span></div>
+                    <div><b>Mã hợp đồng:</b> {detailContract.contractNumber || `#${detailContract.id}`}</div>
+                    <div><b>Phòng:</b> {detailContract.roomNumber || detailContract.room?.roomNumber}</div>
                     <div><b>Trạng thái:</b> 
-                      <span style={{ 
-                        color: detailContract.contractStatus === 'ACTIVE' ? '#52c41a' : 
-                               detailContract.contractStatus === 'TERMINATED' ? '#ff4d4f' : '#faad14',
-                        fontWeight: 500,
-                        marginLeft: '8px'
-                      }}>
-                        {detailContract.contractStatus === "TERMINATED" ? "Đã chấm dứt" : 
-                         detailContract.contractStatus === "ACTIVE" ? "Đang hiệu lực" : 
-                         detailContract.contractStatus === "EXPIRED" ? "Hết hạn" : detailContract.contractStatus}
-                      </span>
+                      {detailContract.contractStatus === "TERMINATED" ? "Đã chấm dứt" : 
+                       detailContract.contractStatus === "ACTIVE" ? "Đang hiệu lực" : 
+                       detailContract.contractStatus === "EXPIRED" ? "Hết hạn" : detailContract.contractStatus}
                     </div>
-                    <div><b>Chu kỳ thanh toán:</b> <span style={{ color: '#722ed1', fontWeight: 500 }}>
+                    <div><b>Chu kỳ thanh toán:</b> 
                       {detailContract.paymentCycle === 'MONTHLY' ? 'Hàng tháng' : 
                        detailContract.paymentCycle === 'QUARTERLY' ? 'Hàng quý' : 
                        detailContract.paymentCycle === 'YEARLY' ? 'Hàng năm' : detailContract.paymentCycle}
-                    </span></div>
+                    </div>
                   </div>
                 </div>
 
                 {/* Thông tin thời gian */}
                 <div style={{ 
-                  background: '#fff7e6', 
                   padding: '16px', 
                   borderRadius: '8px', 
                   marginBottom: '20px',
-                  border: '1px solid #ffd591'
+                  border: '1px solid #d9d9d9'
                 }}>
-                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#d46b08' }}>
-                    📅 Thông tin thời gian
+                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px' }}>
+                    Thông tin thời gian
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div><b>Ngày bắt đầu:</b> <span style={{ color: '#52c41a', fontWeight: 500 }}>
+                    <div><b>Ngày bắt đầu:</b> 
                       {detailContract.contractStartDate ? new Date(detailContract.contractStartDate).toLocaleDateString("vi-VN") : 'Chưa có'}
-                    </span></div>
-                    <div><b>Ngày kết thúc:</b> <span style={{ color: '#ff4d4f', fontWeight: 500 }}>
+                    </div>
+                    <div><b>Ngày kết thúc:</b> 
                       {detailContract.contractEndDate ? new Date(detailContract.contractEndDate).toLocaleDateString("vi-VN") : 'Chưa có'}
-                    </span></div>
-                    <div><b>Ngày tạo:</b> <span style={{ color: '#666', fontWeight: 500 }}>
+                    </div>
+                    <div><b>Ngày tạo:</b> 
                       {detailContract.createdDate ? new Date(detailContract.createdDate).toLocaleDateString("vi-VN") : 'Chưa có'}
-                    </span></div>
-                    <div><b>Ngày cập nhật:</b> <span style={{ color: '#666', fontWeight: 500 }}>
+                    </div>
+                    <div><b>Ngày cập nhật:</b> 
                       {detailContract.updatedDate ? new Date(detailContract.updatedDate).toLocaleDateString("vi-VN") : 'Chưa có'}
-                    </span></div>
+                    </div>
                   </div>
                 </div>
 
                 {/* Thông tin tài chính */}
                 <div style={{ 
-                  background: '#f6ffed', 
                   padding: '16px', 
                   borderRadius: '8px', 
                   marginBottom: '20px',
-                  border: '1px solid #b7eb8f'
+                  border: '1px solid #d9d9d9'
                 }}>
-                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#52c41a' }}>
-                    💰 Thông tin tài chính
+                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px' }}>
+                    Thông tin tài chính
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div><b>Tiền thuê:</b> <span style={{ color: '#52c41a', fontWeight: 600, fontSize: '16px' }}>
+                    <div><b>Tiền thuê:</b> 
                       {detailContract.rentAmount ? detailContract.rentAmount.toLocaleString() + " VND" : 'Chưa có'}
-                    </span></div>
-                    <div><b>Tiền cọc:</b> <span style={{ color: '#faad14', fontWeight: 600, fontSize: '16px' }}>
+                    </div>
+                    <div><b>Tiền cọc:</b> 
                       {detailContract.depositAmount ? detailContract.depositAmount.toLocaleString() + " VND" : 'Chưa có'}
-                    </span></div>
+                    </div>
                   </div>
                 </div>
 
                 {/* Thông tin người thuê */}
                 <div style={{ 
-                  background: '#e6f7ff', 
                   padding: '16px', 
                   borderRadius: '8px', 
                   marginBottom: '20px',
-                  border: '1px solid #91d5ff'
+                  border: '1px solid #d9d9d9'
                 }}>
-                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#1890ff' }}>
-                    👥 Thông tin người thuê
+                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px' }}>
+                    Thông tin người thuê
                   </div>
                   {detailContract.roomUsers && detailContract.roomUsers.length > 0 ? (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       {detailContract.roomUsers.map((user, idx) => (
                         <div key={idx} style={{ 
                           padding: '8px 12px', 
-                          background: 'white', 
                           borderRadius: '6px',
                           border: '1px solid #d9d9d9'
                         }}>
@@ -1216,31 +1603,24 @@ export default function LandlordContractListPage() {
                           <div><b>SĐT:</b> {user.phoneNumber || 'Không có'}</div>
                           <div><b>Email:</b> {user.email || 'Không có'}</div>
                           <div><b>Trạng thái:</b> 
-                            <span style={{ 
-                              color: user.isActive !== false ? '#52c41a' : '#ff4d4f',
-                              fontWeight: 500,
-                              marginLeft: '4px'
-                            }}>
-                              {user.isActive !== false ? 'Đang thuê' : 'Đã rời'}
-                            </span>
+                            {user.isActive !== false ? 'Đang thuê' : 'Đã rời'}
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div style={{ color: '#666', fontStyle: 'italic' }}>Chưa có người thuê</div>
+                    <div style={{ fontStyle: 'italic' }}>Chưa có người thuê</div>
                   )}
                 </div>
 
                 {/* Điều khoản hợp đồng */}
                 <div style={{ 
-                  background: '#fff2e8', 
                   padding: '16px', 
                   borderRadius: '8px',
-                  border: '1px solid #ffbb96'
+                  border: '1px solid #d9d9d9'
                 }}>
-                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#fa541c' }}>
-                    📋 Điều khoản hợp đồng
+                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px' }}>
+                    Điều khoản hợp đồng
                   </div>
                   {detailContract.terms && detailContract.terms.length > 0 ? (
                     <ul style={{ margin: 0, paddingLeft: '20px' }}>
@@ -1248,21 +1628,20 @@ export default function LandlordContractListPage() {
                         <li key={idx} style={{ 
                           marginBottom: '8px', 
                           padding: '8px 12px', 
-                          background: 'white', 
                           borderRadius: '6px',
-                          border: '1px solid #ffd6c7'
+                          border: '1px solid #d9d9d9'
                         }}>
                           {term}
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <div style={{ color: '#666', fontStyle: 'italic' }}>Không có điều khoản cụ thể.</div>
+                    <div style={{ fontStyle: 'italic' }}>Không có điều khoản cụ thể.</div>
                   )}
                 </div>
               </div>
             ) : (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              <div style={{ textAlign: 'center', padding: '40px' }}>
                 Không tìm thấy thông tin hợp đồng
               </div>
             )}
