@@ -29,7 +29,7 @@ import LandlordAssignRenterPage from "../pages/landlord/LandlordAssignRenterPage
 import RoomDetailPage from "../pages/RoomDetailPage";
 import LandlordEditRoomPage from "../pages/landlord/LandlordEditRoomPage";
 import LandlordBillListPage from "../pages/landlord/LandlordBillListPage";
-import LandlordBillCreatePage from "../pages/landlord/LandlordBillCreatePage";
+
 import LandlordBillDetailPage from "../pages/landlord/LandlordBillDetailPage";
 import LandlordBookAppointmentPage from "../pages/landlord/LandlordBookAppointmentPage";
 
@@ -178,7 +178,7 @@ export default function AppRouter() {
         <Route path="rooms/:roomId/assign" element={<LandlordAssignRenterPage />} />
         <Route path="rooms/:id/edit" element={<LandlordEditRoomPage />} />
         <Route path="bills" element={<LandlordBillListPage />} />
-        <Route path="bills/create" element={<LandlordBillCreatePage />} />
+
         <Route path="bills/:id" element={<LandlordBillDetailPage />} />
 
         <Route path="assets" element={<LandlordAssetListPage />} />
