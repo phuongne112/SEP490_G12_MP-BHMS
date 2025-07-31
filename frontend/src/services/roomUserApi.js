@@ -19,6 +19,10 @@ export const getContractAmendments = (contractId) => {
   return axiosClient.get(`/room-users/contract-amendments/${contractId}`);
 };
 
+export const getContractAmendmentsByStatus = (contractId, status) => {
+  return axiosClient.get(`/room-users/contract-amendments/${contractId}/status/${status}`);
+};
+
 export const processExpiredContracts = () => {
   return axiosClient.post(`/room-users/process-expired-contracts`);
 };

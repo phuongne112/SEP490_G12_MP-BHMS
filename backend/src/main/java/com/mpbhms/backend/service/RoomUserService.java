@@ -8,7 +8,6 @@ import com.mpbhms.backend.entity.Room;
 
 public interface RoomUserService {
     void addUsersToRoom(AddUsersToRoomRequest request);
-    void leaveRoom(Long roomUserId);
     Room getCurrentRenterRoom();
     /**
      * Lấy thông tin phòng chi tiết của người đang đăng nhập
