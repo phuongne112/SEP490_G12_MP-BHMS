@@ -20,7 +20,7 @@ import GuestRoute from "./GuestRoute";
 import LandlordRenterListPage from "../pages/landlord/LandlordRenterListPage";
 import LandlordRoomListPage from "../pages/landlord/LandlordRoomListPage";
 import LandlordAddRoomPage from "../pages/landlord/LandlordAddRoomPage";
-import LandlordAddRenterPage from "../pages/landlord/LandlordAddRenterPage";
+
 import LandlordServiceListPage from "../pages/landlord/LandlordServiceListPage";
 import LandlordElectricListPage from "../pages/landlord/LandlordElectricListPage";
 import LandlordContractListPage from "../pages/landlord/LandlordContractListPage";
@@ -171,7 +171,7 @@ export default function AppRouter() {
         <Route path="renters" element={<LandlordRenterListPage />} />
         <Route path="rooms" element={<LandlordRoomListPage />} />
         <Route path="rooms/add" element={<LandlordAddRoomPage />} />
-        <Route path="renters/add" element={<LandlordAddRenterPage />} />
+
         <Route path="services" element={<LandlordServiceListPage />} />
         <Route path="electric" element={<LandlordElectricListPage />} />
         <Route path="contract" element={<LandlordContractListPage />} />
