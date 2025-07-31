@@ -135,10 +135,11 @@ export default function LandlordServiceListPage() {
     const service = services.find(s => s.id === id);
     if (service) {
       setSelectedServiceForPrice(service);
-      const nextMonth = dayjs().add(1, 'month').startOf('month');
+      // Thay đổi: set ngày mặc định là 5 ngày từ hiện tại thay vì tháng tiếp theo
+      const fiveDaysFromNow = dayjs().add(5, 'day');
       priceForm.setFieldsValue({
         newUnitPrice: service.price,
-        effectiveDate: nextMonth,
+        effectiveDate: fiveDaysFromNow,
         reason: '',
       });
       setIsPriceModalOpen(true);
@@ -254,7 +255,9 @@ export default function LandlordServiceListPage() {
       }
     } catch (error) {
       console.error("Error updating price:", error);
-      message.error(error.message || "Cập nhật giá thất bại");
+      // Hiển thị thông báo lỗi từ backend nếu có
+      const errorMessage = error.response?.data?.message || error.message || "Cập nhật giá thất bại";
+      message.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -555,6 +558,7 @@ export default function LandlordServiceListPage() {
               <div style={{ color: '#666', fontSize: 13 }}>
                 • Giá mới sẽ được lưu vào lịch sử và chỉ áp dụng từ ngày hiệu lực<br/>
                 • Giá hiện tại vẫn được sử dụng cho đến ngày hiệu lực<br/>
+                • Ngày hiệu lực phải cách ngày hiện tại ít nhất 5 ngày (để đảm bảo người thuê có đủ thời gian chuẩn bị)<br/>
                 • Bạn có thể xem trạng thái trong "Lịch sử giá"
               </div>
             </div>
@@ -562,8 +566,23 @@ export default function LandlordServiceListPage() {
               <Form.Item label="Giá mới (VND/đơn vị)" name="newUnitPrice" rules={[{ required: true, message: "Vui lòng nhập giá mới" }]}>
                 <InputNumber style={{ width: "100%" }} placeholder="Nhập giá mới" min={0} />
               </Form.Item>
-              <Form.Item label="Ngày hiệu lực" name="effectiveDate" rules={[{ required: true, message: "Vui lòng chọn ngày hiệu lực" }]}>
-                <DatePicker style={{ width: "100%" }} placeholder="Chọn ngày hiệu lực" />
+              <Form.Item 
+                label="Ngày hiệu lực" 
+                name="effectiveDate" 
+                rules={[{ required: true, message: "Vui lòng chọn ngày hiệu lực" }]}
+                extra="Ngày hiệu lực phải cách ngày hiện tại ít nhất 5 ngày"
+              >
+                <DatePicker 
+                  style={{ width: "100%" }} 
+                  placeholder="Chọn ngày hiệu lực" 
+                  disabledDate={(current) => {
+                    // Không cho chọn ngày trong quá khứ và chỉ cho chọn từ 5 ngày trở đi
+                    const today = dayjs().startOf('day');
+                    const fiveDaysFromNow = dayjs().add(5, 'day').startOf('day');
+                    return current && (current.isBefore(today) || current.isBefore(fiveDaysFromNow));
+                  }}
+                  format="DD/MM/YYYY"
+                />
               </Form.Item>
               <Form.Item label="Lý do thay đổi" name="reason">
                 <Input.TextArea placeholder="Nhập lý do thay đổi giá (tùy chọn)" rows={3} />
@@ -612,18 +631,26 @@ export default function LandlordServiceListPage() {
                    title: "Trạng thái",
                    dataIndex: "isActive",
                    key: "isActive",
-                   render: (isActive, record) => {
-                     const today = new Date();
-                     const effectiveDate = record.effectiveDate ? new Date(record.effectiveDate) : null;
-                     
-                     if (isActive) {
-                       return <Tag color="green">Đang áp dụng</Tag>;
-                     } else if (effectiveDate && effectiveDate > today) {
-                       return <Tag color="orange">Chờ áp dụng</Tag>;
-                     } else {
-                       return <Tag color="red">Không áp dụng</Tag>;
-                     }
-                   },
+                                       render: (isActive, record, index) => {
+                      const today = new Date();
+                      const effectiveDate = record.effectiveDate ? new Date(record.effectiveDate) : null;
+                      
+                      if (isActive) {
+                        return <Tag color="green">Đang áp dụng</Tag>;
+                      } else {
+                        // Tìm mục không active có ngày hiệu lực mới nhất từ priceHistory state
+                        const nonActiveRecords = priceHistory.filter(item => !item.isActive);
+                        const latestNonActive = nonActiveRecords.length > 0 ? nonActiveRecords[0] : null;
+                        
+                        if (latestNonActive && record.id === latestNonActive.id && effectiveDate && effectiveDate > today) {
+                          // Mới nhất thay đổi và chưa đến ngày hiệu lực
+                          return <Tag color="orange">Chờ áp dụng</Tag>;
+                        } else {
+                          // Các thay đổi giá trước đó
+                          return <Tag color="red">Đã hủy</Tag>;
+                        }
+                      }
+                    },
                  },
                  {
                    title: "Thao tác",

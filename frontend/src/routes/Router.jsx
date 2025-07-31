@@ -19,8 +19,8 @@ import RenterRoute from "./RenterRoute";
 import GuestRoute from "./GuestRoute";
 import LandlordRenterListPage from "../pages/landlord/LandlordRenterListPage";
 import LandlordRoomListPage from "../pages/landlord/LandlordRoomListPage";
-import LandlordAddRoomPage from "../pages/landlord/LandlordAddRoomPage";
-import LandlordAddRenterPage from "../pages/landlord/LandlordAddRenterPage";
+
+
 import LandlordServiceListPage from "../pages/landlord/LandlordServiceListPage";
 import LandlordElectricListPage from "../pages/landlord/LandlordElectricListPage";
 import LandlordContractListPage from "../pages/landlord/LandlordContractListPage";
@@ -29,7 +29,7 @@ import LandlordAssignRenterPage from "../pages/landlord/LandlordAssignRenterPage
 import RoomDetailPage from "../pages/RoomDetailPage";
 import LandlordEditRoomPage from "../pages/landlord/LandlordEditRoomPage";
 import LandlordBillListPage from "../pages/landlord/LandlordBillListPage";
-import LandlordBillCreatePage from "../pages/landlord/LandlordBillCreatePage";
+
 import LandlordBillDetailPage from "../pages/landlord/LandlordBillDetailPage";
 import LandlordBookAppointmentPage from "../pages/landlord/LandlordBookAppointmentPage";
 
@@ -125,14 +125,7 @@ export default function AppRouter() {
           </AdminRoute>
         }
       />
-      <Route
-        path="/admin/rooms/add"
-        element={
-          <AdminRoute>
-            <LandlordAddRoomPage />
-          </AdminRoute>
-        }
-      />
+
       <Route
         path="/admin/rooms/:id/edit"
         element={
@@ -170,15 +163,14 @@ export default function AppRouter() {
         <Route path="dashboard" element={<LandlordDashboardPage />} />
         <Route path="renters" element={<LandlordRenterListPage />} />
         <Route path="rooms" element={<LandlordRoomListPage />} />
-        <Route path="rooms/add" element={<LandlordAddRoomPage />} />
-        <Route path="renters/add" element={<LandlordAddRenterPage />} />
+
         <Route path="services" element={<LandlordServiceListPage />} />
         <Route path="electric" element={<LandlordElectricListPage />} />
         <Route path="contract" element={<LandlordContractListPage />} />
         <Route path="rooms/:roomId/assign" element={<LandlordAssignRenterPage />} />
         <Route path="rooms/:id/edit" element={<LandlordEditRoomPage />} />
         <Route path="bills" element={<LandlordBillListPage />} />
-        <Route path="bills/create" element={<LandlordBillCreatePage />} />
+
         <Route path="bills/:id" element={<LandlordBillDetailPage />} />
 
         <Route path="assets" element={<LandlordAssetListPage />} />
