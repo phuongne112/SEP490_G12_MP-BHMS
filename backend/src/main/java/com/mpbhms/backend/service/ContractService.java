@@ -58,6 +58,11 @@ public interface ContractService {
      */
     java.util.List<com.mpbhms.backend.entity.ContractAmendment> getContractAmendments(Long contractId);
 
+    /**
+     * Lấy lịch sử thay đổi hợp đồng theo status
+     */
+    java.util.List<com.mpbhms.backend.entity.ContractAmendment> getContractAmendmentsByStatus(Long contractId, String status);
+
     java.util.List<com.mpbhms.backend.dto.ContractDTO> getContractsByRenterId(Long renterId);
 
     void terminateContract(Long contractId);

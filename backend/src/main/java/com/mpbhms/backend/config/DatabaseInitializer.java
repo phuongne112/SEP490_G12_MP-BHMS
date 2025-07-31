@@ -97,7 +97,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("View Permissions", "/mpbhms/permissions", "GET", "Permission"));
             //Room User
             permissions.add(new Permission("Assign user to Room", "/mpbhms/room-users/add-many", "POST", "RoomUser"));
-            permissions.add(new Permission("Leave Room", "/mpbhms/room-users/leave/{roomUserId}", "POST", "RoomUser"));
+    
             permissions.add(new Permission("Process Expired Contracts", "/mpbhms/room-users/process-expired-contracts", "POST", "RoomUser"));
             permissions.add(new Permission("Renew Contract", "/mpbhms/room-users/renew-contract/{contractId}", "POST", "RoomUser"));
             permissions.add(new Permission("Get Expiring Contracts", "/mpbhms/room-users/expiring-contracts", "GET", "RoomUser"));
@@ -106,6 +106,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Approve Amendment", "/mpbhms/room-users/approve-amendment/{amendmentId}", "POST", "RoomUser"));
             permissions.add(new Permission("Reject Amendment", "/mpbhms/room-users/reject-amendment/{amendmentId}", "POST", "RoomUser"));
             permissions.add(new Permission("Get Contract Amendments", "/mpbhms/room-users/contract-amendments/{contractId}", "GET", "RoomUser"));
+            permissions.add(new Permission("Get Contract Amendments By Status", "/mpbhms/room-users/contract-amendments/{contractId}/status/{status}", "GET", "RoomUser"));
             permissions.add(new Permission("Get My Room", "/mpbhms/room-users/my-room", "GET", "RoomUser"));
             //Contract
             permissions.add(new Permission("Export contract", "/mpbhms/contracts/{id}/export", "GET", "Contract"));
@@ -275,6 +276,12 @@ public class DatabaseInitializer implements CommandLineRunner {
 
             Permission getContractAmendments = permissionRepository.findByModuleAndApiPathAndMethod("RoomUser", "/mpbhms/room-users/contract-amendments/{contractId}", "GET");
             if (getContractAmendments != null) renterPermission.add(getContractAmendments);
+            
+            Permission getContractAmendmentsByStatus = permissionRepository.findByModuleAndApiPathAndMethod("RoomUser", "/mpbhms/room-users/contract-amendments/{contractId}/status/{status}", "GET");
+            if (getContractAmendmentsByStatus != null) renterPermission.add(getContractAmendmentsByStatus);
+            
+            Permission renewContract = permissionRepository.findByModuleAndApiPathAndMethod("RoomUser", "/mpbhms/room-users/renew-contract/{contractId}", "POST");
+            if (renewContract != null) renterPermission.add(renewContract);
             // Asset
             Permission viewAssets = permissionRepository.findByModuleAndApiPathAndMethod("Asset", "/mpbhms/assets", "GET");
             if (viewAssets != null) renterPermission.add(viewAssets);

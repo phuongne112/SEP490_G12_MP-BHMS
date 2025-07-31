@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Card, Descriptions, Tag, Spin, Typography, Button, message, Row, Col, Modal, List, DatePicker, Alert, Badge, Statistic, Timeline, Divider } from "antd";
+import { Card, Descriptions, Tag, Spin, Typography, Button, message, Row, Col, Modal, List, DatePicker, Alert, Badge, Statistic, Timeline, Divider, Pagination } from "antd";
 import { FileTextOutlined, HistoryOutlined, ReloadOutlined, BellOutlined, InfoCircleOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import dayjs from "dayjs";
 import { getRenterContracts, exportContractPdf } from "../../services/contractApi";
 import { getPersonalInfo } from "../../services/userApi";
-import { getContractAmendments, approveAmendment, rejectAmendment, renewContract } from "../../services/roomUserApi";
+import { getContractAmendments, approveAmendment, rejectAmendment, renewContract, getContractAmendmentsByStatus } from "../../services/roomUserApi";
 import { useSelector } from "react-redux";
 
 const { Title, Text } = Typography;
@@ -35,6 +35,8 @@ export default function RenterContractPage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [hasNewChanges, setHasNewChanges] = useState(false);
   const [previousContractId, setPreviousContractId] = useState(null);
+  const [amendmentsPage, setAmendmentsPage] = useState(1);
+  const amendmentsPageSize = 3;
   const user = useSelector((state) => state.account.user);
 
   const fetchData = useCallback(async (showRefreshIndicator = false) => {
@@ -136,17 +138,61 @@ export default function RenterContractPage() {
     }
   };
 
+  const getAmendmentTypeText = (type) => {
+    switch (type) {
+      case 'RENT_INCREASE': return 'Tăng tiền thuê';
+      case 'DEPOSIT_CHANGE': return 'Thay đổi tiền cọc';
+      case 'TERMS_UPDATE': return 'Cập nhật điều khoản';
+      case 'DURATION_EXTENSION': return 'Gia hạn hợp đồng';
+      case 'RENTER_CHANGE': return 'Thay đổi người thuê';
+      case 'TERMINATION': return 'Chấm dứt hợp đồng';
+      case 'OTHER': return 'Khác';
+      default: return type;
+    }
+  };
+
+  const getAmendmentStatusText = (status) => {
+    switch (status) {
+      case 'REJECTED': return 'Đã từ chối';
+      case 'PENDING': return 'Chờ duyệt';
+      case 'APPROVED': return 'Đã duyệt';
+      default: return status;
+    }
+  };
+
+  const formatAmendmentValue = (value) => {
+    if (!value) return value;
+    
+    // Format số tiền
+    const formatMoney = (text) => {
+      // Tìm và format các số tiền trong text
+      return text.replace(/(\d+(?:\.\d+)?(?:E\d+)?)\s*(?:VND|₫)/gi, (match, number) => {
+        const num = parseFloat(number);
+        if (!isNaN(num)) {
+          return num.toLocaleString('vi-VN') + ' VND';
+        }
+        return match;
+      });
+    };
+    
+    return formatMoney(value);
+  };
+
   const handleViewAmendments = async () => {
     if (!contract?.id) return;
+    setAmendments([]);
     setAmendmentsModalOpen(true);
+    setAmendmentsPage(1); // Reset page when opening amendments modal
     setAmendmentLoading(true);
     try {
       const res = await getContractAmendments(contract.id);
       setAmendments(res.data || res);
-    } catch {
+    } catch (e) {
+      console.error('Failed to load amendments:', e);
       setAmendments([]);
-    }
+    } finally {
     setAmendmentLoading(false);
+    }
   };
 
   const handleApproveAmendment = async (amendmentId) => {
@@ -637,95 +683,352 @@ export default function RenterContractPage() {
         {/* Amendment History Modal */}
         <Modal
           open={amendmentsModalOpen}
-          onCancel={() => setAmendmentsModalOpen(false)}
+          onCancel={() => { setAmendmentsModalOpen(false); setAmendmentsPage(1); }} 
           footer={null}
-          title="Lịch sử thay đổi hợp đồng"
-          width={700}
+          title="Yêu cầu thay đổi hợp đồng"
         >
-          {amendmentLoading ? (
-            <div style={{ textAlign: 'center', padding: 40 }}>
-              <Spin size="large" />
-            </div>
-          ) : (
-            <List
-              dataSource={amendments}
-              renderItem={item => {
-                const isMyTurn = user && item.status === 'PENDING' && item.pendingApprovals?.includes(user.id) && !(item.approvedBy || []).includes(user.id) && !(item.rejectedBy || []).includes(user.id);
+          {/* Hiển thị amendments */}
+          {(() => {
+            console.log('Amendments debug:', {
+              total: amendments.length,
+              pending: amendments.filter(a => a.status === 'PENDING').length,
+              approved: amendments.filter(a => a.status === 'APPROVED').length,
+              rejected: amendments.filter(a => a.status === 'REJECTED').length
+            });
+            
                 return (
-                  <List.Item
-                    actions={[
-                      isMyTurn && (
-                        <div key="actions" style={{ display: 'flex', gap: 8 }}>
-                          <Button
-                            type="primary"
-                            size="small"
-                            loading={approvingId === item.id}
-                            onClick={() => handleApproveAmendment(item.id)}
-                            disabled={approvingId && approvingId !== item.id}
-                          >
-                            Duyệt
-                          </Button>
-                          <Button
-                            danger
-                            size="small"
-                            loading={rejectingId === item.id && rejectModalOpen}
-                            onClick={() => handleRejectAmendment(item.id)}
-                            disabled={rejectingId && rejectingId !== item.id}
-                          >
-                            Từ chối
-                          </Button>
+              <>
+
+                
+                <List
+                  dataSource={amendments.slice((amendmentsPage-1)*amendmentsPageSize, amendmentsPage*amendmentsPageSize)}
+                  renderItem={item => (
+                    <List.Item>
+                      <div style={{ 
+                        width: '100%',
+                        padding: 16, 
+                        border: '1px solid #dee2e6', 
+                        borderRadius: 6, 
+                        backgroundColor: '#fff',
+                        marginBottom: 12
+                      }}>
+                        {/* Header với loại và trạng thái */}
+                        <div style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center',
+                          marginBottom: 12,
+                          paddingBottom: 8,
+                          borderBottom: '1px solid #f0f0f0'
+                        }}>
+                          <div style={{ fontSize: 15, fontWeight: 600, color: '#495057' }}>
+                            Loại: {getAmendmentTypeText(item.amendmentType)}
                         </div>
-                      )
-                    ]}
-                  >
-                    <div style={{ width: '100%' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ color: '#222', fontSize: 15, fontWeight: 500, marginBottom: 4 }}>
-                            {item.reason}
+                          <div style={{ 
+                            padding: '4px 8px', 
+                            borderRadius: 4, 
+                            fontSize: 12,
+                            fontWeight: 500,
+                            backgroundColor: item.status === 'APPROVED' ? '#28a745' : 
+                                             item.status === 'REJECTED' ? '#dc3545' : '#ffc107',
+                            color: '#fff',
+                            border: item.status === 'APPROVED' ? '1px solid #28a745' : 
+                                    item.status === 'REJECTED' ? '1px solid #dc3545' : '1px solid #ffc107'
+                          }}>
+                            {getAmendmentStatusText(item.status)}
                           </div>
-                          <div style={{ color: '#666', fontSize: 12 }}>
-                            Ngày tạo: {item.createdDate ? dayjs(item.createdDate).format("DD/MM/YYYY HH:mm") : 'Không có'}
                           </div>
+                        
+                        {/* Lý do thay đổi */}
+                        <div style={{ marginBottom: 16 }}>
+                          <div style={{ 
+                            fontWeight: 600, 
+                            color: '#495057', 
+                            marginBottom: 6,
+                            fontSize: 13
+                          }}>
+                            Lý do thay đổi:
+                          </div>
+                          <div style={{ 
+                            fontSize: 13, 
+                            color: '#333',
+                            padding: '8px 12px',
+                            backgroundColor: '#f8f9fa',
+                            borderRadius: 6,
+                            border: '1px solid #e9ecef'
+                          }}>
+                            {item.reason || <span style={{ color: '#888', fontStyle: 'italic' }}>Không có lý do</span>}
                         </div>
-                        <Tag color={
-                          item.status === 'APPROVED' ? 'green' :
-                          item.status === 'REJECTED' ? 'red' :
-                          item.status === 'PENDING' ? 'orange' : 'default'
-                        }>
-                          {item.status === 'APPROVED' ? 'Đã duyệt' :
-                           item.status === 'REJECTED' ? 'Đã từ chối' :
-                           item.status === 'PENDING' ? 'Chờ duyệt' : item.status}
-                        </Tag>
                       </div>
-                      {/* Hiển thị lý do từ chối khi có */}
-                      {item.status === 'REJECTED' && item.reason && (
-                        <div style={{ marginTop: 12, padding: 12, backgroundColor: '#fff2f0', border: '1px solid #ffccc7', borderRadius: 6 }}>
-                          <div style={{ fontWeight: 600, color: '#cf1322', marginBottom: 4 }}>
-                            🚫 Lý do từ chối:
+
+                      {/* Hiển thị chi tiết thay đổi */}
+                      {(item.oldValue || item.newValue) && (
+                          <div style={{ 
+                            marginBottom: 16, 
+                            padding: 12, 
+                            backgroundColor: '#f8f9fa', 
+                            border: '1px solid #dee2e6', 
+                            borderRadius: 6
+                          }}>
+                            <div style={{ 
+                              fontWeight: 600, 
+                              color: '#495057', 
+                              marginBottom: 8,
+                              fontSize: 13
+                            }}>
+                              Thay đổi:
                           </div>
-                          <div style={{ color: '#8c8c8c', fontStyle: 'italic', lineHeight: 1.4 }}>
-                            "{item.reason}"
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+                              {(() => {
+                                const oldLines = (item.oldValue || '').split(';').filter(line => line.trim());
+                                const newLines = (item.newValue || '').split(';').filter(line => line.trim());
+                                
+                                // Tạo map để so sánh từng phần
+                                const oldMap = {};
+                                const newMap = {};
+                                
+                                // Xử lý điều khoản trước - gộp tất cả thành 1 key
+                                let oldTerms = '';
+                                let newTerms = '';
+                                
+                                oldLines.forEach(line => {
+                                  const key = line.split(':')[0]?.trim();
+                                  if (key && key.includes('Điều khoản')) {
+                                    oldTerms = line.trim();
+                                  } else if (key) {
+                                    oldMap[key] = line.trim();
+                                  }
+                                });
+                                
+                                newLines.forEach(line => {
+                                  const key = line.split(':')[0]?.trim();
+                                  if (key && key.includes('Điều khoản')) {
+                                    newTerms = line.trim();
+                                  } else if (key) {
+                                    newMap[key] = line.trim();
+                                  }
+                                });
+                                
+                                // Gộp tất cả điều khoản vào một key duy nhất
+                                if (oldTerms || newTerms) {
+                                  oldMap['Điều khoản'] = oldTerms;
+                                  newMap['Điều khoản'] = newTerms;
+                                }
+                                
+                                // Lấy tất cả keys
+                                const allKeys = [...new Set([...Object.keys(oldMap), ...Object.keys(newMap)])];
+                                
+                                // Chỉ hiển thị những phần có thay đổi
+                                const filteredKeys = allKeys.filter(key => {
+                                  const oldValue = oldMap[key] || '';
+                                  const newValue = newMap[key] || '';
+                                  
+                                  // Nếu là số tiền, so sánh giá trị số
+                                  if (key.includes('Tiền') || key.includes('tiền')) {
+                                    const oldNum = parseFloat(oldValue.replace(/[^\d.-]/g, ''));
+                                    const newNum = parseFloat(newValue.replace(/[^\d.-]/g, ''));
+                                    return !isNaN(oldNum) && !isNaN(newNum) && oldNum !== newNum;
+                                  } else if (key.includes('Điều khoản') || key.includes('điều khoản')) {
+                                    // Xử lý đặc biệt cho điều khoản
+                                    const oldClean = oldValue.replace(/^Điều khoản:\s*/, '').trim();
+                                    const newClean = newValue.replace(/^Điều khoản:\s*/, '').trim();
+                                    
+                                    // Chuẩn hóa "Không có điều khoản" và "Không có"
+                                    const normalizeTerms = (str) => {
+                                      if (str === 'Không có điều khoản' || str === 'Không có' || str === '') {
+                                        return 'Không có điều khoản';
+                                      }
+                                      return str;
+                                    };
+                                    
+                                    const normalizedOld = normalizeTerms(oldClean);
+                                    const normalizedNew = normalizeTerms(newClean);
+                                    
+                                    // Chỉ hiển thị nếu thực sự khác nhau
+                                    return normalizedOld !== normalizedNew;
+                                  } else {
+                                    // So sánh chuỗi thông thường
+                                    return oldValue !== newValue;
+                                  }
+                                });
+                                
+                                // Loại bỏ các key trùng lặp về mặt ngữ nghĩa
+                                const uniqueKeys = [];
+                                const seenNormalized = new Set();
+                                
+                                filteredKeys.forEach(key => {
+                                  const oldValue = oldMap[key] || '';
+                                  const newValue = newMap[key] || '';
+                                  
+                                  if (key.includes('Điều khoản') || key.includes('điều khoản')) {
+                                    const oldClean = oldValue.replace(/^Điều khoản:\s*/, '').trim();
+                                    const newClean = newValue.replace(/^Điều khoản:\s*/, '').trim();
+                                    
+                                    const normalizeTerms = (str) => {
+                                      if (str === 'Không có điều khoản' || str === 'Không có' || str === '') {
+                                        return 'Không có điều khoản';
+                                      }
+                                      return str;
+                                    };
+                                    
+                                    const normalizedOld = normalizeTerms(oldClean);
+                                    const normalizedNew = normalizeTerms(newClean);
+                                    const normalizedPair = `${normalizedOld}->${normalizedNew}`;
+                                    
+                                    if (!seenNormalized.has(normalizedPair)) {
+                                      seenNormalized.add(normalizedPair);
+                                      uniqueKeys.push(key);
+                                    }
+                                  } else {
+                                    uniqueKeys.push(key);
+                                  }
+                                });
+                                
+                                return uniqueKeys
+                                  .map((key, index) => {
+                                    const oldValue = oldMap[key] || 'Không có';
+                                    const newValue = newMap[key] || 'Không có';
+                                    
+                                    return (
+                                      <div key={index} style={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: 8,
+                                        padding: '6px 0'
+                                      }}>
+                                        <div style={{ 
+                                          flex: 1,
+                                          padding: '6px 8px', 
+                                          backgroundColor: '#fff', 
+                                          border: '1px solid #dc3545', 
+                                          borderRadius: 4,
+                                          minHeight: '32px',
+                                          display: 'flex',
+                                          alignItems: 'center'
+                                        }}>
+                                          <span style={{ 
+                                            color: '#dc3545', 
+                                            fontWeight: 400,
+                                            fontSize: 12,
+                                            lineHeight: 1.3
+                                          }}>
+                                            {formatAmendmentValue(oldValue)}
+                            </span>
+                          </div>
+                                        <span style={{ 
+                                          color: '#6c757d', 
+                                          fontSize: 14, 
+                                          fontWeight: 400,
+                                          padding: '0 6px'
+                                        }}>→</span>
+                                        <div style={{ 
+                                          flex: 1,
+                                          padding: '6px 8px', 
+                                          backgroundColor: '#fff', 
+                                          border: '1px solid #28a745', 
+                                          borderRadius: 4,
+                                          minHeight: '32px',
+                                          display: 'flex',
+                                          alignItems: 'center'
+                                        }}>
+                                          <span style={{ 
+                                            color: '#28a745', 
+                                            fontWeight: 400,
+                                            fontSize: 12,
+                                            lineHeight: 1.3
+                                          }}>
+                                            {formatAmendmentValue(newValue)}
+                            </span>
+                                        </div>
+                                      </div>
+                                    );
+                                  });
+                              })()}
                           </div>
                         </div>
                       )}
-                      
-                      {isMyTurn && (
-                        <Alert
-                          message="Cần phê duyệt của bạn"
-                          type="warning"
-                          size="small"
-                          showIcon
-                          style={{ marginTop: 8 }}
-                        />
+
+                        {/* Ngày tạo */}
+                        <div style={{ 
+                          fontSize: 13, 
+                          color: '#6c757d',
+                          marginBottom: 16,
+                          padding: '8px 12px',
+                          backgroundColor: '#f8f9fa',
+                          borderRadius: 6,
+                          border: '1px solid #e9ecef'
+                        }}>
+                          Ngày tạo: {item.createdDate ? new Date(item.createdDate).toLocaleDateString("vi-VN") : 'Không có'}
+                        </div>
+
+                        {/* Buttons cho PENDING */}
+                        {item.status === 'PENDING' && !item.approvedByLandlord && (!item.rejectedBy || item.rejectedBy.length === 0) && (
+                          <div style={{ display: 'flex', gap: 12 }}>
+                            <Button
+                              type="primary"
+                              size="middle"
+                              onClick={() => handleApproveAmendment(item.id, true)}
+                              style={{ flex: 1, height: 40 }}
+                            >
+                              Duyệt
+                            </Button>
+                            <Button
+                              danger
+                              size="middle"
+                              onClick={() => handleRejectAmendment(item.id)}
+                              style={{ flex: 1, height: 40 }}
+                            >
+                              Từ chối
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* Lý do từ chối cho REJECTED */}
+                      {item.status === 'REJECTED' && item.reason && (
+                          <div style={{ 
+                            marginTop: 12,
+                            padding: 8,
+                            backgroundColor: '#f8f9fa',
+                            border: '1px solid #dee2e6',
+                            borderRadius: 4
+                          }}>
+                            <div style={{ 
+                              fontWeight: 600, 
+                              color: '#495057',
+                              fontSize: 13,
+                              marginBottom: 4
+                            }}>
+                              Lý do từ chối:
+                          </div>
+                            <div style={{ 
+                              fontSize: 12, 
+                              color: '#6c757d',
+                              fontStyle: 'italic'
+                            }}>
+                              {item.reason}
+                          </div>
+                        </div>
                       )}
                     </div>
                   </List.Item>
-                );
-              }}
-              locale={{ emptyText: "Không có thay đổi nào" }}
-            />
-          )}
+                  )}
+                  locale={{ emptyText: "Không có yêu cầu thay đổi" }}
+                />
+                {amendments.length > amendmentsPageSize && (
+                  <div style={{ textAlign: 'center', marginTop: 16 }}>
+                    <Pagination
+                      current={amendmentsPage}
+                      pageSize={amendmentsPageSize}
+                      total={amendments.length}
+                      onChange={setAmendmentsPage}
+                      showSizeChanger={false}
+                    />
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </Modal>
 
         {/* Renewal Request Modal */}

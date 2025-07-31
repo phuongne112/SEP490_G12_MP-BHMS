@@ -53,17 +53,7 @@ public class RoomUserController {
         }
     }
 
-    @PostMapping("/leave/{roomUserId}")
-    public ResponseEntity<?> leaveRoom(@PathVariable Long roomUserId) {
-        try {
-            roomUserService.leaveRoom(roomUserId);
-            return ResponseEntity.ok("Đã rời phòng thành công.");
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Có lỗi xảy ra: " + e.getMessage());
-        }
-    }
+
     
     /**
      * Xử lý hợp đồng hết hạn (manual trigger)
@@ -176,6 +166,36 @@ public class RoomUserController {
                 dto.setPendingApprovals(am.getPendingApprovals());
                 dto.setApprovedBy(am.getApprovedBy());
                 dto.setRejectedBy(am.getRejectedBy()); // Bổ sung rejectedBy
+                return dto;
+            }).toList();
+            return ResponseEntity.ok(dtos);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Có lỗi xảy ra: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Lấy lịch sử thay đổi hợp đồng theo status
+     */
+    @GetMapping("/contract-amendments/{contractId}/status/{status}")
+    public ResponseEntity<?> getContractAmendmentsByStatus(@PathVariable Long contractId, @PathVariable String status) {
+        try {
+            java.util.List<com.mpbhms.backend.entity.ContractAmendment> amendments = 
+                contractService.getContractAmendmentsByStatus(contractId, status);
+            java.util.List<ContractAmendmentDTO> dtos = amendments.stream().map(am -> {
+                ContractAmendmentDTO dto = new ContractAmendmentDTO();
+                dto.setId(am.getId());
+                dto.setAmendmentType(am.getAmendmentType() != null ? am.getAmendmentType().name() : null);
+                dto.setOldValue(am.getOldValue());
+                dto.setNewValue(am.getNewValue());
+                dto.setReason(am.getReason());
+                dto.setStatus(am.getStatus() != null ? am.getStatus().name() : null);
+                dto.setApprovedByLandlord(am.getApprovedByLandlord());
+                dto.setApprovedByTenants(am.getApprovedByTenants());
+                dto.setCreatedDate(am.getCreatedDate());
+                dto.setPendingApprovals(am.getPendingApprovals());
+                dto.setApprovedBy(am.getApprovedBy());
+                dto.setRejectedBy(am.getRejectedBy());
                 return dto;
             }).toList();
             return ResponseEntity.ok(dtos);

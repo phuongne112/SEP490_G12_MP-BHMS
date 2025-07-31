@@ -37,12 +37,9 @@ public class RoomUser {
     private String addedBy; // ví dụ: quản lý nào thêm
 
     private Boolean isActive = true;
-    private Instant leftAt;
 
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }
-    public Instant getLeftAt() { return leftAt; }
-    public void setLeftAt(Instant leftAt) { this.leftAt = leftAt; }
 
     // Các field mở rộng khác nếu cần: trạng thái thuê, thời gian rời đi, ...
 }

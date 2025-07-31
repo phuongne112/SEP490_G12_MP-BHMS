@@ -8,6 +8,7 @@ public class RoomUserDTO {
     private Long userId;
     private String fullName;
     private String phoneNumber;
+    private String email;
     private Instant joinedAt;
     private Boolean isActive;
 } 
