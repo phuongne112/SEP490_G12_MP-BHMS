@@ -229,15 +229,24 @@ export default function RenterContractListPage() {
     {
       title: "Thao tác",
       key: "actions",
+      align: "center",
+      width: 300,
       render: (_, record) => (
-        <>
-          <Button onClick={() => handleViewAmendments(record)} style={{ marginRight: 8 }}>Lịch sử thay đổi</Button>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          gap: '8px',
+          flexWrap: 'nowrap',
+          width: '100%'
+        }}>
+          <Button onClick={() => handleViewAmendments(record)}>Lịch sử thay đổi</Button>
           {(record.status === 'ACTIVE' || dayjs(record.contractEndDate).diff(dayjs(), 'day') < 30) && (
             <Button type="primary" onClick={() => openRenewModal(record)}>
               Yêu cầu gia hạn
             </Button>
           )}
-        </>
+        </div>
       )
     }
   ];
@@ -622,6 +631,9 @@ export default function RenterContractListPage() {
                           {item.createdDate ? dayjs(item.createdDate).format('DD/MM/YYYY') : 'Không có'}
                         </div>
                       </div>
+
+                      {/* Debug info - chỉ hiển thị trong development */}
+                      
 
                       {/* Lý do từ chối cho REJECTED */}
                       {item.status === 'REJECTED' && (

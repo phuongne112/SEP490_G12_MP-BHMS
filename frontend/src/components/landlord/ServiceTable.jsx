@@ -45,9 +45,17 @@ export default function ServiceTable({ services, pagination, loading, onEdit, on
       title: "Thao tác",
       key: "actions",
       align: "center",
-      width: 400,
+      width: 450,
       render: (_, record) => (
-        <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          gap: '8px',
+          flexWrap: 'nowrap',
+          width: '100%',
+          minWidth: '430px'
+        }}>
           <Button
             type="default"
             icon={<EditOutlined />}
@@ -90,7 +98,7 @@ export default function ServiceTable({ services, pagination, loading, onEdit, on
               size="small"
             />
           </Popconfirm>
-        </Space>
+        </div>
       ),
     },
   ];

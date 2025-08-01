@@ -225,11 +225,19 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
     {
       title: "Thao tác",
       align: "center",
-      width: 400,
+      width: 500,
       render: (_, record) => {
         const isTerminatedOrExpired = record.contractStatus === "TERMINATED" || record.contractStatus === "EXPIRED";
         return (
-          <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            gap: '8px',
+            flexWrap: 'nowrap',
+            width: '100%',
+            minWidth: '480px'
+          }}>
             <Button
               type="primary"
               icon={<EyeOutlined />}
@@ -277,7 +285,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
                 Chấm dứt
               </Button>
             </Popconfirm>
-          </Space>
+          </div>
         );
       },
     },
