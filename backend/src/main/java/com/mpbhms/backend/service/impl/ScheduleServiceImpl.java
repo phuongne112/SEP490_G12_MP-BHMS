@@ -78,22 +78,16 @@ public class ScheduleServiceImpl implements ScheduleService {
             throw new RuntimeException("Phòng này đã có đủ người xem vào thời gian này (tối đa 4 người). Vui lòng chọn thời gian khác.");
         }
         
-        // Luật 3: Tối đa 3 lịch hẹn mỗi ngày
-        java.time.Instant appointmentTime = request.getAppointmentTime();
-        java.time.LocalDate appointmentDate = appointmentTime.atZone(java.time.ZoneId.systemDefault()).toLocalDate();
-        java.time.Instant startOfDay = appointmentDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
-        java.time.Instant endOfDay = appointmentDate.plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+        // Luật 3: Tối đa 3 lịch hẹn tổng cộng cho mỗi người dùng
+        long totalUserAppointments = scheduleRepository.countTotalAppointmentsByEmail(request.getEmail());
         
-        long userAppointmentsInDay = scheduleRepository.countAppointmentsByEmailInTimeRange(
-            request.getEmail(), startOfDay, endOfDay);
-        
-        if (userAppointmentsInDay >= 3) {
-            throw new RuntimeException("Bạn đã đặt 3 lịch hẹn vào ngày " + appointmentDate + ". Vui lòng thử lại vào ngày khác.");
+        if (totalUserAppointments >= 3) {
+            throw new RuntimeException("Bạn đã đặt tối đa 3 lịch hẹn. Vui lòng hủy một lịch hẹn cũ trước khi đặt lịch hẹn mới.");
         }
         
         // Luật 4: Các lịch hẹn phải cách nhau ít nhất 30 phút
-        java.time.Instant thirtyMinutesBefore = appointmentTime.minusSeconds(30 * 60); // 30 phút trước
-        java.time.Instant thirtyMinutesAfter = appointmentTime.plusSeconds(30 * 60);   // 30 phút sau
+        java.time.Instant thirtyMinutesBefore = request.getAppointmentTime().minusSeconds(30 * 60); // 30 phút trước
+        java.time.Instant thirtyMinutesAfter = request.getAppointmentTime().plusSeconds(30 * 60);   // 30 phút sau
         
         List<Schedule> nearbyAppointments = scheduleRepository.findAppointmentsInTimeRange(
             request.getRoomId(), thirtyMinutesBefore, thirtyMinutesAfter);
@@ -191,7 +185,7 @@ public class ScheduleServiceImpl implements ScheduleService {
                 throw new RuntimeException("Phòng này đã có đủ người xem vào thời gian này (tối đa 4 người). Vui lòng chọn thời gian khác.");
             }
             
-            // Luật 4: Các lịch hẹn phải cách nhau ít nhất 30 phút (loại trừ lịch hẹn hiện tại)
+            // Luật 3: Các lịch hẹn phải cách nhau ít nhất 30 phút (loại trừ lịch hẹn hiện tại)
             java.time.Instant thirtyMinutesBefore = request.getAppointmentTime().minusSeconds(30 * 60); // 30 phút trước
             java.time.Instant thirtyMinutesAfter = request.getAppointmentTime().plusSeconds(30 * 60);   // 30 phút sau
             
@@ -205,6 +199,18 @@ public class ScheduleServiceImpl implements ScheduleService {
             
             if (!nearbyAppointments.isEmpty()) {
                 throw new RuntimeException("Phòng này đã có lịch hẹn trong khoảng 30 phút trước hoặc sau thời gian này. Vui lòng chọn thời gian khác (cách nhau ít nhất 30 phút).");
+            }
+            
+            // Luật 4: Tối đa 3 lịch hẹn tổng cộng cho mỗi người dùng (loại trừ lịch hẹn hiện tại)
+            long totalUserAppointments = scheduleRepository.countTotalAppointmentsByEmail(request.getEmail());
+            
+            // Nếu lịch hẹn hiện tại không được tính trong tổng số, thì cần trừ đi 1
+            if (schedule.getEmail().equals(request.getEmail())) {
+                totalUserAppointments = totalUserAppointments - 1;
+            }
+            
+            if (totalUserAppointments >= 3) {
+                throw new RuntimeException("Bạn đã đặt tối đa 3 lịch hẹn. Vui lòng hủy một lịch hẹn cũ trước khi đặt lịch hẹn mới.");
             }
         }
         
