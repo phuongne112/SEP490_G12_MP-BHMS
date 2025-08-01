@@ -7,7 +7,7 @@ import "dayjs/locale/vi";
 
 // Đặt locale cho dayjs
 dayjs.locale('vi');
-export default function RenterTable({ search = "", filter = {} }) {
+export default function RenterTable({ search = "", filter = {}, refreshKey = 0 }) {
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 5 });
   const [loading, setLoading] = useState(false);
@@ -97,7 +97,7 @@ export default function RenterTable({ search = "", filter = {} }) {
     setPagination((p) => ({ ...p, current: 1 }));
     fetchData(1, pagination.pageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, filter]);
+  }, [search, filter, refreshKey]);
 
   const handleTableChange = (newPagination) => {
     fetchData(newPagination.current, newPagination.pageSize);
