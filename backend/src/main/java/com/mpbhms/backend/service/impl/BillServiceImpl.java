@@ -49,6 +49,8 @@ import com.lowagie.text.FontFactory;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfWriter;
+import com.lowagie.text.pdf.draw.LineSeparator;
+import java.awt.Color;
 import java.util.stream.Collectors;
 import com.mpbhms.backend.service.EmailService;
 import org.springframework.transaction.annotation.Transactional;
@@ -957,165 +959,175 @@ public class BillServiceImpl implements BillService {
         Bill bill = billRepository.findById(billId)
             .orElseThrow(() -> new NotFoundException("Không tìm thấy hóa đơn"));
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Document document = new Document(PageSize.A4, 50, 50, 50, 50);
+        Document document = new Document(PageSize.A4, 40, 40, 60, 40);
         try {
             // Load Arial font from resources
             InputStream fontStream = getClass().getClassLoader().getResourceAsStream("fonts/arial.ttf");
             if (fontStream == null) throw new RuntimeException("Không tìm thấy font Arial");
             byte[] fontBytes = fontStream.readAllBytes();
             BaseFont baseFont = BaseFont.createFont("arial.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED, BaseFont.CACHED, fontBytes, null);
+            
+            // Simple, clean fonts
             Font titleFont = new Font(baseFont, 18, Font.BOLD);
-            Font headerFont = new Font(baseFont, 14, Font.BOLD);
-            Font normalFont = new Font(baseFont, 12, Font.NORMAL);
-            Font smallBold = new Font(baseFont, 12, Font.BOLD);
+            Font headerFont = new Font(baseFont, 12, Font.BOLD);
+            Font normalFont = new Font(baseFont, 10, Font.NORMAL);
+            Font smallFont = new Font(baseFont, 9, Font.NORMAL);
 
             PdfWriter.getInstance(document, baos);
             document.open();
 
             DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneId.systemDefault());
-            DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
             NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
 
-            // Việt hóa loại hóa đơn
-            String billTypeVN;
-            switch (String.valueOf(bill.getBillType())) {
-                case "CONTRACT_TOTAL":
-                    billTypeVN = "Tổng hợp đồng"; break;
-                case "CONTRACT_ROOM_RENT":
-                    billTypeVN = "Tiền phòng hợp đồng"; break;
-                case "CONTRACT_SERVICE":
-                    billTypeVN = "Dịch vụ hợp đồng"; break;
-                case "REGULAR":
-                    billTypeVN = "Tiền phòng"; break;
-                case "SERVICE":
-                    billTypeVN = "Dịch vụ"; break;
-                case "DEPOSIT":
-                    billTypeVN = "Đặt cọc"; break;
-                case "CUSTOM":
-                    billTypeVN = "Tùy chỉnh"; break;
-                default:
-                    billTypeVN = String.valueOf(bill.getBillType());
-            }
-            // Việt hóa chu kỳ thanh toán
-            String paymentCycleVN = null;
-            if (bill.getContract() != null) {
-                switch (String.valueOf(bill.getContract().getPaymentCycle())) {
-                    case "MONTHLY":
-                        paymentCycleVN = "Hàng tháng"; break;
-                    case "QUARTERLY":
-                        paymentCycleVN = "Hàng quý"; break;
-                    case "YEARLY":
-                        paymentCycleVN = "Hàng năm"; break;
-                    default:
-                        paymentCycleVN = String.valueOf(bill.getContract().getPaymentCycle());
-                }
-            }
-
-            // Header
-            Paragraph header = new Paragraph("HÓA ĐƠN THANH TOÁN", titleFont);
-            header.setAlignment(Element.ALIGN_CENTER);
-            header.setSpacingAfter(20f);
-            document.add(header);
-
-            // Thông tin hóa đơn (bảng)
+            // Simple header
+            Paragraph title = new Paragraph("HÓA ĐƠN THANH TOÁN", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            title.setSpacingAfter(20f);
+            document.add(title);
+            
+            // Invoice info
             PdfPTable infoTable = new PdfPTable(2);
             infoTable.setWidthPercentage(100);
-            infoTable.setSpacingAfter(10f);
-            infoTable.addCell(new PdfPCell(new Phrase("Mã hóa đơn:", smallBold)));
-            infoTable.addCell(new PdfPCell(new Phrase(String.valueOf(bill.getId()), normalFont)));
-            infoTable.addCell(new PdfPCell(new Phrase("Loại hóa đơn:", smallBold)));
-            infoTable.addCell(new PdfPCell(new Phrase(billTypeVN, normalFont)));
-            infoTable.addCell(new PdfPCell(new Phrase("Ngày lập:", smallBold)));
-            infoTable.addCell(new PdfPCell(new Phrase(dateTimeFormatter.format(bill.getBillDate().atZone(ZoneId.systemDefault())), normalFont)));
-            document.add(new Paragraph("THÔNG TIN HÓA ĐƠN:", headerFont));
+            infoTable.setSpacingAfter(20f);
+            
+            // Left side - Invoice details
+            infoTable.addCell(new PdfPCell(new Phrase("Số hóa đơn: " + String.format("%06d", bill.getId()), normalFont)));
+            infoTable.addCell(new PdfPCell(new Phrase("Ngày: " + dateFormatter.format(bill.getBillDate().atZone(ZoneId.systemDefault())), normalFont)));
+            
             document.add(infoTable);
 
-            // Thông tin phòng (bảng)
-            PdfPTable roomTable = new PdfPTable(2);
-            roomTable.setWidthPercentage(100);
-            roomTable.setSpacingAfter(10f);
-            roomTable.addCell(new PdfPCell(new Phrase("Số phòng:", smallBold)));
-            roomTable.addCell(new PdfPCell(new Phrase(bill.getRoom().getRoomNumber(), normalFont)));
-            if (bill.getRoom().getBuilding() != null && !bill.getRoom().getBuilding().isEmpty()) {
-                roomTable.addCell(new PdfPCell(new Phrase("Tòa nhà:", smallBold)));
-                roomTable.addCell(new PdfPCell(new Phrase(bill.getRoom().getBuilding(), normalFont)));
-            }
-            document.add(new Paragraph("THÔNG TIN PHÒNG:", headerFont));
-            document.add(roomTable);
-
-            // Thông tin hợp đồng (bảng)
-            if (bill.getContract() != null) {
-                PdfPTable contractTable = new PdfPTable(2);
-                contractTable.setWidthPercentage(100);
-                contractTable.setSpacingAfter(10f);
-                contractTable.addCell(new PdfPCell(new Phrase("Mã hợp đồng:", smallBold)));
-                contractTable.addCell(new PdfPCell(new Phrase(String.valueOf(bill.getContract().getId()), normalFont)));
-                contractTable.addCell(new PdfPCell(new Phrase("Chu kỳ thanh toán:", smallBold)));
-                contractTable.addCell(new PdfPCell(new Phrase(paymentCycleVN, normalFont)));
-                document.add(new Paragraph("THÔNG TIN HỢP ĐỒNG:", headerFont));
-                document.add(contractTable);
-            }
-
-            // Thông tin người thuê (bảng)
+            // Customer and Room Information
+            PdfPTable customerRoomTable = new PdfPTable(2);
+            customerRoomTable.setWidthPercentage(100);
+            customerRoomTable.setSpacingAfter(20f);
+            
+            // Customer Info
+            PdfPCell customerCell = new PdfPCell();
+            customerCell.setBorder(Rectangle.NO_BORDER);
+            customerCell.setVerticalAlignment(Element.ALIGN_TOP);
+            
+            Paragraph customerTitle = new Paragraph("Thông tin khách hàng:", headerFont);
+            customerCell.addElement(customerTitle);
+            
             if (bill.getContract() != null && bill.getContract().getRoomUsers() != null) {
-                PdfPTable renterTable = new PdfPTable(2);
-                renterTable.setWidthPercentage(100);
-                renterTable.setSpacingAfter(10f);
-                renterTable.addCell(new PdfPCell(new Phrase("Họ tên", smallBold)));
-                renterTable.addCell(new PdfPCell(new Phrase("Số điện thoại", smallBold)));
                 for (RoomUser roomUser : bill.getContract().getRoomUsers()) {
                     if (roomUser.getUser() != null && roomUser.getUser().getUserInfo() != null) {
-                        renterTable.addCell(new PdfPCell(new Phrase(roomUser.getUser().getUserInfo().getFullName(), normalFont)));
-                        renterTable.addCell(new PdfPCell(new Phrase(roomUser.getUser().getUserInfo().getPhoneNumber(), normalFont)));
+                        customerCell.addElement(new Paragraph("Họ tên: " + roomUser.getUser().getUserInfo().getFullName(), normalFont));
+                        customerCell.addElement(new Paragraph("SĐT: " + roomUser.getUser().getUserInfo().getPhoneNumber(), normalFont));
+                        if (roomUser.getUser().getEmail() != null) {
+                            customerCell.addElement(new Paragraph("Email: " + roomUser.getUser().getEmail(), normalFont));
+                        }
+                        break;
                     }
                 }
-                document.add(new Paragraph("NGƯỜI THUÊ:", headerFont));
-                document.add(renterTable);
             }
+            
+            // Room Info
+            PdfPCell roomCell = new PdfPCell();
+            roomCell.setBorder(Rectangle.NO_BORDER);
+            roomCell.setVerticalAlignment(Element.ALIGN_TOP);
+            
+            Paragraph roomTitle = new Paragraph("Thông tin phòng:", headerFont);
+            roomCell.addElement(roomTitle);
+            roomCell.addElement(new Paragraph("Số phòng: " + bill.getRoom().getRoomNumber(), normalFont));
+            if (bill.getRoom().getBuilding() != null && !bill.getRoom().getBuilding().isEmpty()) {
+                roomCell.addElement(new Paragraph("Tòa nhà: " + bill.getRoom().getBuilding(), normalFont));
+            }
+            if (bill.getContract() != null) {
+                roomCell.addElement(new Paragraph("Hợp đồng: #" + bill.getContract().getId(), normalFont));
+            }
+            
+            customerRoomTable.addCell(customerCell);
+            customerRoomTable.addCell(roomCell);
+            document.add(customerRoomTable);
 
-            // Thời gian tính tiền (bảng)
-            PdfPTable timeTable = new PdfPTable(2);
-            timeTable.setWidthPercentage(100);
-            timeTable.setSpacingAfter(10f);
-            timeTable.addCell(new PdfPCell(new Phrase("Từ ngày:", smallBold)));
-            timeTable.addCell(new PdfPCell(new Phrase(dateFormatter.format(bill.getFromDate().atZone(ZoneId.systemDefault())), normalFont)));
-            timeTable.addCell(new PdfPCell(new Phrase("Đến ngày:", smallBold)));
-            timeTable.addCell(new PdfPCell(new Phrase(dateFormatter.format(bill.getToDate().atZone(ZoneId.systemDefault())), normalFont)));
-            document.add(new Paragraph("THỜI GIAN TÍNH TIỀN:", headerFont));
-            document.add(timeTable);
+            // Billing Period
+            Paragraph periodTitle = new Paragraph("Thời gian tính tiền:", headerFont);
+            periodTitle.setSpacingAfter(5f);
+            document.add(periodTitle);
+            
+            PdfPTable periodTable = new PdfPTable(2);
+            periodTable.setWidthPercentage(100);
+            periodTable.setSpacingAfter(20f);
+            periodTable.addCell(new PdfPCell(new Phrase("Từ ngày: " + dateFormatter.format(bill.getFromDate().atZone(ZoneId.systemDefault())), normalFont)));
+            periodTable.addCell(new PdfPCell(new Phrase("Đến ngày: " + dateFormatter.format(bill.getToDate().atZone(ZoneId.systemDefault())), normalFont)));
+            document.add(periodTable);
 
-            // Chi tiết hóa đơn (bảng)
-            document.add(new Paragraph("CHI TIẾT HÓA ĐƠN:", headerFont));
+            // Invoice Details
+            Paragraph detailsTitle = new Paragraph("Chi tiết hóa đơn:", headerFont);
+            detailsTitle.setSpacingAfter(10f);
+            document.add(detailsTitle);
+            
             PdfPTable detailTable = new PdfPTable(4);
             detailTable.setWidthPercentage(100);
-            detailTable.setSpacingAfter(10f);
-            detailTable.addCell(new PdfPCell(new Phrase("Diễn giải", smallBold)));
-            detailTable.addCell(new PdfPCell(new Phrase("Số lượng", smallBold)));
-            detailTable.addCell(new PdfPCell(new Phrase("Đơn giá", smallBold)));
-            detailTable.addCell(new PdfPCell(new Phrase("Thành tiền", smallBold)));
+            detailTable.setSpacingAfter(20f);
+            
+            // Header row
+            detailTable.addCell(new PdfPCell(new Phrase("Diễn giải", headerFont)));
+            detailTable.addCell(new PdfPCell(new Phrase("Số lượng", headerFont)));
+            detailTable.addCell(new PdfPCell(new Phrase("Đơn giá", headerFont)));
+            detailTable.addCell(new PdfPCell(new Phrase("Thành tiền", headerFont)));
+            
             BigDecimal totalAmount = BigDecimal.ZERO;
             for (BillDetail detail : bill.getBillDetails()) {
                 detailTable.addCell(new PdfPCell(new Phrase(detail.getDescription(), normalFont)));
-                detailTable.addCell(new PdfPCell(new Phrase(detail.getConsumedUnits() != null ? detail.getConsumedUnits().toString() : "-", normalFont)));
-                detailTable.addCell(new PdfPCell(new Phrase(detail.getUnitPriceAtBill() != null ? currencyFormat.format(detail.getUnitPriceAtBill()) : "-", normalFont)));
-                detailTable.addCell(new PdfPCell(new Phrase(detail.getItemAmount() != null ? currencyFormat.format(detail.getItemAmount()) : "-", normalFont)));
+                
+                String quantity = detail.getConsumedUnits() != null ? detail.getConsumedUnits().toString() : "1";
+                detailTable.addCell(new PdfPCell(new Phrase(quantity, normalFont)));
+                
+                String unitPrice = detail.getUnitPriceAtBill() != null ? currencyFormat.format(detail.getUnitPriceAtBill()) : "-";
+                detailTable.addCell(new PdfPCell(new Phrase(unitPrice, normalFont)));
+                
+                String amount = detail.getItemAmount() != null ? currencyFormat.format(detail.getItemAmount()) : "-";
+                detailTable.addCell(new PdfPCell(new Phrase(amount, normalFont)));
+                
                 if (detail.getItemAmount() != null) {
                     totalAmount = totalAmount.add(detail.getItemAmount());
                 }
             }
             document.add(detailTable);
 
-            // Tổng tiền và trạng thái
+            // Total
             PdfPTable totalTable = new PdfPTable(2);
-            totalTable.setWidthPercentage(60);
+            totalTable.setWidthPercentage(40);
             totalTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
-            totalTable.setSpacingAfter(10f);
-            totalTable.addCell(new PdfPCell(new Phrase("TỔNG CỘNG:", smallBold)));
-            totalTable.addCell(new PdfPCell(new Phrase(currencyFormat.format(totalAmount), smallBold)));
-            String status = bill.getStatus() ? "ĐÃ THANH TOÁN" : "CHƯA THANH TOÁN";
-            totalTable.addCell(new PdfPCell(new Phrase("Trạng thái:", smallBold)));
-            totalTable.addCell(new PdfPCell(new Phrase(status, smallBold)));
+            totalTable.setSpacingAfter(20f);
+            
+            totalTable.addCell(new PdfPCell(new Phrase("Tổng cộng:", headerFont)));
+            totalTable.addCell(new PdfPCell(new Phrase(currencyFormat.format(totalAmount), headerFont)));
+            
             document.add(totalTable);
+
+            // Status
+            String status = bill.getStatus() ? "Đã thanh toán" : "Chưa thanh toán";
+            Paragraph statusText = new Paragraph("Trạng thái: " + status, normalFont);
+            statusText.setSpacingAfter(20f);
+            document.add(statusText);
+
+            // Payment Information (only if not paid)
+            if (!bill.getStatus()) {
+                Paragraph paymentTitle = new Paragraph("Thông tin thanh toán:", headerFont);
+                paymentTitle.setSpacingAfter(10f);
+                document.add(paymentTitle);
+                
+                PdfPTable paymentTable = new PdfPTable(2);
+                paymentTable.setWidthPercentage(100);
+                paymentTable.setSpacingAfter(20f);
+                
+                paymentTable.addCell(new PdfPCell(new Phrase("Phương thức thanh toán:", normalFont)));
+                paymentTable.addCell(new PdfPCell(new Phrase("VNPay / Tiền mặt", normalFont)));
+                
+                paymentTable.addCell(new PdfPCell(new Phrase("Hạn thanh toán:", normalFont)));
+                paymentTable.addCell(new PdfPCell(new Phrase("Ngay sau khi nhận hóa đơn", normalFont)));
+                
+                document.add(paymentTable);
+            }
+
+            // Simple footer
+            Paragraph footer = new Paragraph("Cảm ơn quý khách đã sử dụng dịch vụ!", smallFont);
+            footer.setAlignment(Element.ALIGN_CENTER);
+            footer.setSpacingAfter(10f);
+            document.add(footer);
 
             document.close();
         } catch (Exception e) {

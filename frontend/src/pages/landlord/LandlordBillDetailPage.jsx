@@ -36,13 +36,27 @@ export default function LandlordBillDetailPage() {
   const handleExport = async () => {
     try {
       const data = await exportBillPdf(bill.id);
+      
+      // Generate professional filename with room name and bill date range
+      const fromDate = dayjs(bill.fromDate).format('YYYY-MM-DD');
+      const toDate = bill.toDate && dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").isValid() 
+        ? dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").format('YYYY-MM-DD')
+        : getFallbackToDate(bill) 
+        ? dayjs(getFallbackToDate(bill)).format('YYYY-MM-DD')
+        : 'Unknown';
+      const roomName = bill.roomNumber || 'Unknown';
+      const filename = `HoaDon_${roomName}_${fromDate}_${toDate}.pdf`;
+      
       const url = window.URL.createObjectURL(new Blob([data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `bill_${bill.id}.pdf`);
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      
+      // Clean up the URL object
+      window.URL.revokeObjectURL(url);
     } catch (err) {
       message.error("Xuất hóa đơn thất bại");
     }
