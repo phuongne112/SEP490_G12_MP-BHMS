@@ -51,6 +51,7 @@ export default function LandlordRenterListPage() {
   const [userLoading, setUserLoading] = useState(false);
   const [grantLoading, setGrantLoading] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [ocrDateOfBirth, setOcrDateOfBirth] = useState(null);
 
   useEffect(() => {
@@ -152,6 +153,8 @@ export default function LandlordRenterListPage() {
           });
           message.success("Cấp quyền renter thành công!");
           fetchUsersWithoutRole();
+          // Cập nhật danh sách người thuê sau khi cấp quyền
+          setRefreshKey(prev => prev + 1);
         } catch (err) {
           message.error("Cấp quyền thất bại!");
         }
@@ -326,7 +329,9 @@ export default function LandlordRenterListPage() {
       setFrontPreview(null);
       setBackPreview(null);
       setAddModalOpen(false);
-      setFilter({ ...filter }); // reload bảng
+      
+      // Cập nhật danh sách người thuê ngay lập tức
+      setRefreshKey(prev => prev + 1); // Trigger refresh RenterTable
     } catch (err) {
       // Nếu backend trả về lỗi dạng data object, set lỗi cho từng trường
       const fieldErrors = err.response?.data?.data;
@@ -457,7 +462,7 @@ export default function LandlordRenterListPage() {
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             overflow: 'hidden'
           }}>
-            <RenterTable search={searchText} filter={filter} />
+            <RenterTable search={searchText} filter={filter} refreshKey={refreshKey} />
           </div>
 
           <Modal
