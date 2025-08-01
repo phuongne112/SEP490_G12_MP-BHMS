@@ -495,19 +495,45 @@ export default function LandlordBillListPage() {
     }
   };
 
-  const handleExport = async (id) => {
+  const handleExport = async (bill) => {
     try {
-      const data = await exportBillPdf(id);
+      // Show loading message
+      const loadingKey = 'export-loading';
+      message.loading({ content: 'Đang tạo hóa đơn PDF...', key: loadingKey, duration: 0 });
+      
+      const data = await exportBillPdf(bill.id);
+      
+      // Generate professional filename with room name and bill date range
+      const fromDate = dayjs(bill.fromDate).format('YYYY-MM-DD');
+      const toDate = bill.toDate && dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").isValid() 
+        ? dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").format('YYYY-MM-DD')
+        : 'Unknown';
+      const roomName = bill.roomNumber || 'Unknown';
+      const filename = `HoaDon_${roomName}_${fromDate}_${toDate}.pdf`;
+      
       const url = window.URL.createObjectURL(new Blob([data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `bill_${id}.pdf`);
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
-      message.success("Xuất hóa đơn thành công");
+      
+      // Clean up the URL object
+      window.URL.revokeObjectURL(url);
+      
+      message.success({ 
+        content: `Đã xuất hóa đơn thành công: ${filename}`, 
+        key: loadingKey,
+        duration: 4 
+      });
     } catch (err) {
-      message.error("Xuất hóa đơn thất bại");
+      message.error({ 
+        content: "Xuất hóa đơn thất bại. Vui lòng thử lại sau.", 
+        key: 'export-loading',
+        duration: 4 
+      });
+      console.error('Export error:', err);
     }
   };
 
@@ -985,18 +1011,25 @@ export default function LandlordBillListPage() {
               Xem
             </Button>
             
-            {/* 2. Nút "Xuất PDF" - Chỉ hiển thị trên desktop */}
-            {!isMobile && (
+            {/* 2. Nút "Xuất PDF" - Hiển thị trên cả desktop và mobile */}
+            <Popover
+              content="Tải xuống hóa đơn dạng PDF"
+              placement="top"
+            >
               <Button 
-                type="default"
+                type="primary"
                 icon={<DownloadOutlined />}
-                onClick={() => handleExport(record.id)}
+                onClick={() => handleExport(record)}
                 size="small"
-                style={{ minWidth: '80px' }}
+                style={{ 
+                  minWidth: isMobile ? '60px' : '90px',
+                  background: '#52c41a',
+                  borderColor: '#52c41a'
+                }}
               >
-                Xuất PDF
+                {isMobile ? 'PDF' : 'Xuất PDF'}
               </Button>
-            )}
+            </Popover>
             
             {/* 3. Nút "Quá hạn/Gửi Email" - Nút thông minh tự động hóa */}
             <Popover
