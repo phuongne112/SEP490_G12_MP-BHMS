@@ -1134,7 +1134,7 @@ public class ContractServiceImpl implements ContractService {
                         java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
                             .format(contract.getContractEndDate().atZone(java.time.ZoneId.systemDefault()))
                     ));
-                    notification.setType(com.mpbhms.backend.enums.NotificationType.CONTRACT_EXPIRED);
+                    notification.setType(com.mpbhms.backend.enums.NotificationType.ANNOUNCEMENT);
                     
                     try {
                         notificationService.createAndSend(notification);
@@ -1162,7 +1162,7 @@ public class ContractServiceImpl implements ContractService {
                         java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
                             .format(contract.getContractEndDate().atZone(java.time.ZoneId.systemDefault()))
                     ));
-                    notification.setType(com.mpbhms.backend.enums.NotificationType.CONTRACT_RENEWED);
+                    notification.setType(com.mpbhms.backend.enums.NotificationType.ANNOUNCEMENT);
                     
                     try {
                         notificationService.createAndSend(notification);
@@ -1184,7 +1184,7 @@ public class ContractServiceImpl implements ContractService {
                 java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
                     .format(contract.getContractEndDate().atZone(java.time.ZoneId.systemDefault()))
             ));
-            notification.setType(com.mpbhms.backend.enums.NotificationType.CONTRACT_RENEWED);
+            notification.setType(com.mpbhms.backend.enums.NotificationType.ANNOUNCEMENT);
             
             try {
                 notificationService.createAndSend(notification);

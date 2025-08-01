@@ -71,20 +71,6 @@ const translateNotificationType = (type) => {
     'MAINTENANCE': 'Bảo trì',
     'BOOKING_STATUS': 'Trạng thái đặt phòng',
     'ANNOUNCEMENT': 'Thông báo chung',
-    'PAYMENT_SUCCESS': 'Thanh toán thành công',
-    'PAYMENT_FAILED': 'Thanh toán thất bại',
-    'CONTRACT_EXPIRED': 'Hợp đồng hết hạn',
-    'CONTRACT_RENEWED': 'Hợp đồng gia hạn',
-    'SCHEDULE': 'Lịch trình',
-    'BILL_CREATED': 'Hóa đơn mới',
-    'BILL_PAID': 'Hóa đơn đã thanh toán',
-    'BILL_OVERDUE': 'Hóa đơn quá hạn',
-    'CONTRACT_AMENDMENT': 'Sửa đổi hợp đồng',
-    'CONTRACT_TERMINATED': 'Hợp đồng chấm dứt',
-    'ROOM_BOOKING': 'Đặt phòng',
-    'ROOM_BOOKING_ACCEPTED': 'Đặt phòng được chấp nhận',
-    'ROOM_BOOKING_REJECTED': 'Đặt phòng bị từ chối',
-    'ROOM_BOOKING_CANCELLED': 'Đặt phòng bị hủy',
     'SERVICE_UPDATE': 'Cập nhật dịch vụ',
     'USER_UPDATE': 'Cập nhật người dùng',
     'SYSTEM_MAINTENANCE': 'Bảo trì hệ thống',
@@ -506,20 +492,6 @@ export default function AdminNotificationPage() {
                       <Option value="MAINTENANCE">Bảo trì</Option>
                       <Option value="BOOKING_STATUS">Trạng thái đặt phòng</Option>
                       <Option value="ANNOUNCEMENT">Thông báo chung</Option>
-                      <Option value="PAYMENT_SUCCESS">Thanh toán thành công</Option>
-                      <Option value="PAYMENT_FAILED">Thanh toán thất bại</Option>
-                      <Option value="CONTRACT_EXPIRED">Hợp đồng hết hạn</Option>
-                      <Option value="CONTRACT_RENEWED">Hợp đồng gia hạn</Option>
-                      <Option value="SCHEDULE">Lịch trình</Option>
-                      <Option value="BILL_CREATED">Hóa đơn mới</Option>
-                      <Option value="BILL_PAID">Hóa đơn đã thanh toán</Option>
-                      <Option value="BILL_OVERDUE">Hóa đơn quá hạn</Option>
-                      <Option value="CONTRACT_AMENDMENT">Sửa đổi hợp đồng</Option>
-                      <Option value="CONTRACT_TERMINATED">Hợp đồng chấm dứt</Option>
-                      <Option value="ROOM_BOOKING">Đặt phòng</Option>
-                      <Option value="ROOM_BOOKING_ACCEPTED">Đặt phòng được chấp nhận</Option>
-                      <Option value="ROOM_BOOKING_REJECTED">Đặt phòng bị từ chối</Option>
-                      <Option value="ROOM_BOOKING_CANCELLED">Đặt phòng bị hủy</Option>
                       <Option value="SERVICE_UPDATE">Cập nhật dịch vụ</Option>
                       <Option value="USER_UPDATE">Cập nhật người dùng</Option>
                       <Option value="SYSTEM_MAINTENANCE">Bảo trì hệ thống</Option>

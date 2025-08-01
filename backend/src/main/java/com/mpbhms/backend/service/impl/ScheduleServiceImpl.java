@@ -115,7 +115,7 @@ public class ScheduleServiceImpl implements ScheduleService {
             noti.setRecipientId(room.getLandlord().getId());
             noti.setTitle("Lịch hẹn mới");
             noti.setMessage("Bạn vừa nhận được một lịch hẹn mới từ " + request.getFullName() + " cho phòng " + room.getRoomNumber() + ". Vui lòng kiểm tra và xác nhận lịch hẹn này.");
-            noti.setType(NotificationType.SCHEDULE);
+            noti.setType(NotificationType.BOOKING_STATUS);
             notificationService.createAndSend(noti);
         }
         return toDTO(schedule);

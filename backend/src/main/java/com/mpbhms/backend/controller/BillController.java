@@ -207,7 +207,7 @@ public class BillController {
                     notification.setTitle("Hóa đơn mới - Phòng " + bill.getRoom().getRoomNumber());
                     notification.setMessage("Bạn có hóa đơn mới #" + bill.getId() + " - Số tiền: " + 
                         bill.getTotalAmount().toString() + " VNĐ. Vui lòng kiểm tra email để xem chi tiết.");
-                    notification.setType(NotificationType.BILL_OVERDUE);
+                    notification.setType(NotificationType.ANNOUNCEMENT);
                     notification.setMetadata("{\"billId\":" + bill.getId() + ",\"roomNumber\":\"" + bill.getRoom().getRoomNumber() + "\"}");
                     notificationService.createAndSend(notification);
                     notificationsSent++;
