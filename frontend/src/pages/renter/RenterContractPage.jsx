@@ -1113,7 +1113,7 @@ export default function RenterContractPage() {
         >
           <Alert
             message="Bạn đang từ chối thay đổi hợp đồng"
-            description="Vui lòng nhập lý do cụ thể để landlord hiểu và có thể điều chỉnh đề xuất."
+            description="Vui lòng nhập lý do cụ thể để chủ nhà hiểu và có thể điều chỉnh đề xuất."
             type="warning"
             showIcon
             style={{ marginBottom: 16 }}
