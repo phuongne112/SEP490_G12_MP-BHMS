@@ -42,41 +42,148 @@ export default function UpdateUserInfoModal({
     if (!open) return;
 
     if (ocrData) {
-      // Nếu có dữ liệu OCR, tự động điền vào form
-      let birthDateValue = null;
-      if (ocrData.birthDate) {
-        let raw = ocrData.birthDate.replace(" PM", "").replace(" AM", "").replace(" ", "T");
-        const tryFormats = [
-          "YYYY-MM-DDTHH:mm:ss",
-          "YYYY-MM-DD HH:mm:ss",
-          "YYYY-MM-DD",
-          "DD/MM/YYYY",
-          "DD-MM-YYYY"
-        ];
-        for (const fmt of tryFormats) {
-          const d = dayjs(raw, fmt, true);
-          if (d.isValid()) {
-            birthDateValue = d;
-            break;
+      // Nếu có dữ liệu OCR, lấy thông tin hiện tại từ database trước
+      setInitialLoading(true);
+      getPersonalInfo()
+        .then((res) => {
+          const existingData = res?.data || res;
+          
+          // Xử lý ngày sinh từ OCR
+          let birthDateValue = null;
+          if (ocrData.birthDate) {
+            let raw = ocrData.birthDate.replace(" PM", "").replace(" AM", "").replace(" ", "T");
+            const tryFormats = [
+              "YYYY-MM-DDTHH:mm:ss",
+              "YYYY-MM-DD HH:mm:ss",
+              "YYYY-MM-DD",
+              "DD/MM/YYYY",
+              "DD-MM-YYYY"
+            ];
+            for (const fmt of tryFormats) {
+              const d = dayjs(raw, fmt, true);
+              if (d.isValid()) {
+                birthDateValue = d;
+                break;
+              }
+            }
           }
-        }
-      }
-      form.setFieldsValue({
-        fullName: ocrData.fullName,
-        nationalID: ocrData.nationalID,
-        birthDate: birthDateValue,
-        gender: ocrData.gender,
-        birthPlace: ocrData.birthPlace,
-        permanentAddress: ocrData.permanentAddress,
-        nationalIDIssuePlace: ocrData.nationalIDIssuePlace,
-      });
-      setInitialLoading(false);
+          
+          // Xử lý ngày cấp từ OCR
+          let issueDateValue = null;
+          if (ocrData.issueDate) {
+            let raw = ocrData.issueDate.replace(" PM", "").replace(" AM", "").replace(" ", "T");
+            const tryFormats = [
+              "YYYY-MM-DDTHH:mm:ss",
+              "YYYY-MM-DD HH:mm:ss",
+              "YYYY-MM-DD",
+              "DD/MM/YYYY",
+              "DD-MM-YYYY"
+            ];
+            for (const fmt of tryFormats) {
+              const d = dayjs(raw, fmt, true);
+              if (d.isValid()) {
+                issueDateValue = d;
+                break;
+              }
+            }
+          }
+          
+          // Kết hợp thông tin từ OCR và database, ưu tiên OCR nếu có
+          form.setFieldsValue({
+            fullName: ocrData.fullName || existingData.fullName || "",
+            phoneNumber: existingData.phoneNumber || "",
+            phoneNumber2: existingData.phoneNumber2 || "",
+            nationalID: ocrData.nationalID || existingData.nationalID || "",
+            birthDate: birthDateValue || (existingData.birthDate ? dayjs(existingData.birthDate) : null),
+            gender: ocrData.gender || existingData.gender || "",
+            birthPlace: ocrData.birthPlace || existingData.birthPlace || "",
+            permanentAddress: ocrData.permanentAddress || existingData.permanentAddress || "",
+            nationalIDIssuePlace: ocrData.nationalIDIssuePlace || existingData.nationalIDIssuePlace || "",
+            nationalIDIssueDate: issueDateValue || (existingData.nationalIDIssueDate ? dayjs(existingData.nationalIDIssueDate) : null),
+          });
+        })
+        .catch(() => {
+          // Nếu không lấy được thông tin từ database, chỉ điền OCR
+          let birthDateValue = null;
+          if (ocrData.birthDate) {
+            let raw = ocrData.birthDate.replace(" PM", "").replace(" AM", "").replace(" ", "T");
+            const tryFormats = [
+              "YYYY-MM-DDTHH:mm:ss",
+              "YYYY-MM-DD HH:mm:ss",
+              "YYYY-MM-DD",
+              "DD/MM/YYYY",
+              "DD-MM-YYYY"
+            ];
+            for (const fmt of tryFormats) {
+              const d = dayjs(raw, fmt, true);
+              if (d.isValid()) {
+                birthDateValue = d;
+                break;
+              }
+            }
+          }
+          
+          let issueDateValue = null;
+          if (ocrData.issueDate) {
+            let raw = ocrData.issueDate.replace(" PM", "").replace(" AM", "").replace(" ", "T");
+            const tryFormats = [
+              "YYYY-MM-DDTHH:mm:ss",
+              "YYYY-MM-DD HH:mm:ss",
+              "YYYY-MM-DD",
+              "DD/MM/YYYY",
+              "DD-MM-YYYY"
+            ];
+            for (const fmt of tryFormats) {
+              const d = dayjs(raw, fmt, true);
+              if (d.isValid()) {
+                issueDateValue = d;
+                break;
+              }
+            }
+          }
+          
+          form.setFieldsValue({
+            fullName: ocrData.fullName || "",
+            phoneNumber: "",
+            phoneNumber2: "",
+            nationalID: ocrData.nationalID || "",
+            birthDate: birthDateValue,
+            gender: ocrData.gender || "",
+            birthPlace: ocrData.birthPlace || "",
+            permanentAddress: ocrData.permanentAddress || "",
+            nationalIDIssuePlace: ocrData.nationalIDIssuePlace || "",
+            nationalIDIssueDate: issueDateValue,
+          });
+        })
+        .finally(() => setInitialLoading(false));
       return;
     }
 
     if (isCreate) {
-      form.resetFields();
-      setInitialLoading(false);
+      // Khi tạo mới, vẫn thử lấy thông tin hiện tại để điền sẵn
+      setInitialLoading(true);
+      getPersonalInfo()
+        .then((res) => {
+          const data = res?.data || res;
+          // Điền thông tin đã có sẵn, để trống các trường chưa có
+          form.setFieldsValue({
+            fullName: data.fullName || "",
+            phoneNumber: data.phoneNumber || "",
+            phoneNumber2: data.phoneNumber2 || "",
+            gender: data.gender || "",
+            birthDate: data.birthDate ? dayjs(data.birthDate) : null,
+            birthPlace: data.birthPlace || "",
+            nationalID: data.nationalID || "",
+            nationalIDIssuePlace: data.nationalIDIssuePlace || "",
+            nationalIDIssueDate: data.nationalIDIssueDate ? dayjs(data.nationalIDIssueDate) : null,
+            permanentAddress: data.permanentAddress || "",
+          });
+        })
+        .catch(() => {
+          // Nếu không có thông tin, để form trống
+          form.resetFields();
+        })
+        .finally(() => setInitialLoading(false));
     } else {
       setInitialLoading(true);
       getPersonalInfo()

@@ -235,14 +235,28 @@ export default function LandlordRenterListPage() {
         }
       }
       
-             // Tạo object để set vào form với debug
+             // Xử lý giới tính từ OCR
+       let genderValue = "OTHER";
+       if (ocrData.gender) {
+         const genderText = ocrData.gender.toLowerCase().trim();
+         if (genderText === "nam") {
+           genderValue = "MALE";
+         } else if (genderText === "nữ" || genderText === "nu") {
+           genderValue = "FEMALE";
+         }
+       }
+       
+       // Tạo object để set vào form với debug
        const formData = {
          fullName: ocrData.fullName || ocrData.fullNameMRZ,
          citizenId: ocrData.nationalID,
          dateOfBirth: birthDateValue,
          address: ocrData.permanentAddress,
-         // Thêm ngày cấp nếu form có trường này
-         ...(issueDateValue && { issueDate: issueDateValue }),
+         birthPlace: ocrData.birthPlace,
+         nationalIDIssuePlace: ocrData.nationalIDIssuePlace,
+         nationalIDIssueDate: issueDateValue,
+         permanentAddress: ocrData.permanentAddress,
+         gender: genderValue,
        };
        
        // Set state để force update DatePicker
@@ -318,6 +332,11 @@ export default function LandlordRenterListPage() {
         dateOfBirth: values.dateOfBirth ? values.dateOfBirth.format("YYYY-MM-DD") : undefined,
         citizenId: values.citizenId,
         address: values.address,
+        birthPlace: values.birthPlace,
+        nationalIDIssuePlace: values.nationalIDIssuePlace,
+        nationalIDIssueDate: values.nationalIDIssueDate ? values.nationalIDIssueDate.format("YYYY-MM-DD") : undefined,
+        permanentAddress: values.permanentAddress,
+        gender: values.gender,
         isActive: values.isActive,
       };
       
@@ -567,11 +586,44 @@ export default function LandlordRenterListPage() {
                               <Input placeholder="Nhập số CCCD/CMND" />
                             </Form.Item>
                           </Col>
+                          <Col span={12}>
+                            <Form.Item label="Nơi sinh" name="birthPlace">
+                              <Input placeholder="Nhập nơi sinh" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item label="Nơi cấp CCCD" name="nationalIDIssuePlace">
+                              <Input placeholder="Nhập nơi cấp CCCD" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item label="Ngày cấp CCCD" name="nationalIDIssueDate">
+                              <DatePicker 
+                                placeholder="Chọn ngày cấp CCCD" 
+                                format="DD/MM/YYYY"
+                                style={{ width: '100%' }}
+                              />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item label="Giới tính" name="gender">
+                              <Select placeholder="Chọn giới tính">
+                                <Select.Option value="MALE">Nam</Select.Option>
+                                <Select.Option value="FEMALE">Nữ</Select.Option>
+                                <Select.Option value="OTHER">Khác</Select.Option>
+                              </Select>
+                            </Form.Item>
+                          </Col>
                           <Col span={24}>
                             <Form.Item label="Địa chỉ thường trú" name="address" rules={[
                               { required: true, message: "Vui lòng nhập địa chỉ thường trú" }
                             ]}>
                               <Input placeholder="Nhập địa chỉ thường trú" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={24}>
+                            <Form.Item label="Địa chỉ thường trú (OCR)" name="permanentAddress">
+                              <Input placeholder="Địa chỉ từ OCR" />
                             </Form.Item>
                           </Col>
                           <Col span={12}>

@@ -65,10 +65,24 @@ public class OcrCccdService {
                 Matcher m = Pattern.compile("\\d{2}/\\d{2}/\\d{4}").matcher(next + " " + line);
                 if (m.find()) info.put("birthDate", m.group());
             }
-            if (line.matches(".*Giới tính.*")) {
+            // Cải thiện logic tìm giới tính
+            if (line.matches(".*Giới tính.*") || line.matches(".*Sex.*") || line.matches(".*Gender.*")) {
                 String next = (i + 1 < lines.size()) ? lines.get(i + 1) : "";
-                if (next.toLowerCase().contains("nam")) info.put("gender", "Nam");
-                else if (next.toLowerCase().contains("nữ")) info.put("gender", "Nữ");
+                String currentLine = line.toLowerCase();
+                String nextLine = next.toLowerCase();
+                
+                // Tìm trong dòng hiện tại
+                if (currentLine.contains("nam") || currentLine.contains("male")) {
+                    info.put("gender", "Nam");
+                } else if (currentLine.contains("nữ") || currentLine.contains("female")) {
+                    info.put("gender", "Nữ");
+                }
+                // Tìm trong dòng tiếp theo
+                else if (nextLine.contains("nam") || nextLine.contains("male")) {
+                    info.put("gender", "Nam");
+                } else if (nextLine.contains("nữ") || nextLine.contains("female")) {
+                    info.put("gender", "Nữ");
+                }
             }
             if (line.matches(".*Quê quán.*")) {
                 String next = (i + 1 < lines.size()) ? lines.get(i + 1) : "";
@@ -301,6 +315,32 @@ public class OcrCccdService {
         
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
+            
+            // Cải thiện logic tìm nơi cấp CCCD
+            if (line.matches(".*Cục.*Cảnh sát.*") || line.matches(".*Police.*") || 
+                line.matches(".*cấp.*") || line.matches(".*issued.*") || 
+                line.matches(".*Nơi cấp.*") || line.matches(".*Place of issue.*")) {
+                
+                String issuePlace = line.trim();
+                System.out.println("=== DEBUG: Tìm thấy dòng có thể chứa nơi cấp: " + line + " ===");
+                
+                // Loại bỏ các từ không cần thiết và lấy phần sau dấu :
+                if (issuePlace.contains(":")) {
+                    String[] parts = issuePlace.split(":");
+                    if (parts.length > 1) {
+                        issuePlace = parts[1].trim();
+                    }
+                }
+                
+                // Loại bỏ các từ khóa không cần thiết
+                issuePlace = issuePlace.replaceAll(".*cấp.*", "").trim();
+                issuePlace = issuePlace.replaceAll(".*issued.*", "").trim();
+                
+                if (!issuePlace.isEmpty() && issuePlace.length() > 2) {
+                    info.put("nationalIDIssuePlace", issuePlace);
+                    System.out.println("=== DEBUG: Đã tìm thấy nơi cấp: " + issuePlace + " ===");
+                }
+            }
             
             // Tìm ngày cấp từ mặt sau CCCD
             if (line.matches(".*Ngày.*tháng.*năm.*") || line.matches(".*Date.*month.*year.*")) {
