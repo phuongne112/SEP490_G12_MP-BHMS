@@ -334,8 +334,18 @@ export default function LandlordServiceListPage() {
     {
       title: "Thao tác",
       key: "actions",
+      align: "center",
+      width: 450,
       render: (_, record) => (
-        <Space>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          gap: '8px',
+          flexWrap: 'nowrap',
+          width: '100%',
+          minWidth: '430px'
+        }}>
           <Button 
             type="primary" 
             icon={<EditOutlined />} 
@@ -373,7 +383,7 @@ export default function LandlordServiceListPage() {
               size="small"
             />
           </Popconfirm>
-        </Space>
+        </div>
       ),
     },
   ];

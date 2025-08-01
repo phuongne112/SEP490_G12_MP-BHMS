@@ -174,7 +174,8 @@ export default function LandlordContractListPage() {
           latestContract: latestContract ? { 
             ...latestContract, 
             roomId: room.id, 
-            roomNumber: room.roomNumber 
+            roomNumber: room.roomNumber,
+            roomUsers: room.roomUsers // Include room users from room data
           } : null
         };
       })
@@ -1432,27 +1433,38 @@ export default function LandlordContractListPage() {
                             Ngày tạo: {item.createdDate ? new Date(item.createdDate).toLocaleDateString("vi-VN") : 'Không có'}
                           </div>
 
+                          {/* Debug info - chỉ hiển thị trong development */}
+                          
+
                           {/* Buttons cho PENDING */}
-                    {item.status === 'PENDING' && !item.approvedByLandlord && (!item.rejectedBy || item.rejectedBy.length === 0) && (
-                            <div style={{ display: 'flex', gap: 12 }}>
-                        <Button
-                          type="primary"
-                                size="middle"
-                          onClick={() => handleApproveAmendment(item.id, true)}
-                                style={{ flex: 1, height: 40 }}
-                        >
-                          Duyệt
-                        </Button>
-                        <Button
-                          danger
-                                size="middle"
-                          onClick={() => handleRejectAmendment(item.id)}
-                                style={{ flex: 1, height: 40 }}
-                        >
-                          Từ chối
-                        </Button>
-                      </div>
-                    )}
+                          {(() => {
+                            // Kiểm tra xem landlord có thể duyệt không
+                            const canLandlordApprove = user && 
+                              item.status === 'PENDING' && 
+                              !item.approvedByLandlord && 
+                              !(item.rejectedBy || []).includes(user.id);
+                            
+                            return canLandlordApprove ? (
+                              <div style={{ display: 'flex', gap: 12 }}>
+                                <Button
+                                  type="primary"
+                                  size="middle"
+                                  onClick={() => handleApproveAmendment(item.id, true)}
+                                  style={{ flex: 1, height: 40 }}
+                                >
+                                  Duyệt
+                                </Button>
+                                <Button
+                                  danger
+                                  size="middle"
+                                  onClick={() => handleRejectAmendment(item.id)}
+                                  style={{ flex: 1, height: 40 }}
+                                >
+                                  Từ chối
+                                </Button>
+                              </div>
+                            ) : null;
+                          })()}
 
                           {/* Lý do từ chối cho REJECTED */}
                           {item.status === 'REJECTED' && item.reason && (
@@ -1593,7 +1605,7 @@ export default function LandlordContractListPage() {
                   </div>
                   {detailContract.roomUsers && detailContract.roomUsers.length > 0 ? (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      {detailContract.roomUsers.map((user, idx) => (
+                                              {detailContract.roomUsers.map((user, idx) => (
                         <div key={idx} style={{ 
                           padding: '8px 12px', 
                           borderRadius: '6px',

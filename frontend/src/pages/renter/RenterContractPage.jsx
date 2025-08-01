@@ -207,12 +207,18 @@ export default function RenterContractPage() {
         key: `approve-${amendmentId}`,
         duration: 3
       });
-      // Refresh amendments data instead of optimistic update
-      setTimeout(async () => {
+      
+      // Refresh amendments data immediately
+      try {
         const res = await getContractAmendments(contract.id);
         setAmendments(res.data || res);
-      }, 300);
-    } catch {
+      } catch (refreshError) {
+        console.error('Error refreshing amendments:', refreshError);
+        // Fallback: reload the page if refresh fails
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Approval error:', error);
       message.error({
         content: "Phê duyệt thất bại!",
         key: `approve-error-${amendmentId}`,
@@ -579,6 +585,9 @@ export default function RenterContractPage() {
                     </Descriptions.Item>
                     <Descriptions.Item label="Số điện thoại">
                       <Text>{renterInfo?.phoneNumber}</Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Email">
+                      <Text>{contract?.roomUsers?.[0]?.email || renterInfo?.email || 'Chưa cập nhật'}</Text>
                     </Descriptions.Item>
                     <Descriptions.Item label="CCCD/CMND">
                       <Text>{renterInfo?.nationalID || 'Chưa cập nhật'}</Text>
@@ -962,27 +971,40 @@ export default function RenterContractPage() {
                           Ngày tạo: {item.createdDate ? new Date(item.createdDate).toLocaleDateString("vi-VN") : 'Không có'}
                         </div>
 
+
+
                         {/* Buttons cho PENDING */}
-                        {item.status === 'PENDING' && !item.approvedByLandlord && (!item.rejectedBy || item.rejectedBy.length === 0) && (
-                          <div style={{ display: 'flex', gap: 12 }}>
-                            <Button
-                              type="primary"
-                              size="middle"
-                              onClick={() => handleApproveAmendment(item.id, true)}
-                              style={{ flex: 1, height: 40 }}
-                            >
-                              Duyệt
-                            </Button>
-                            <Button
-                              danger
-                              size="middle"
-                              onClick={() => handleRejectAmendment(item.id)}
-                              style={{ flex: 1, height: 40 }}
-                            >
-                              Từ chối
-                            </Button>
-                          </div>
-                        )}
+                        {(() => {
+                          // Kiểm tra xem người dùng hiện tại có thể duyệt không
+                          const currentUserId = user?.id;
+                          const isMyTurn = currentUserId && 
+                            item.status === 'PENDING' && 
+                            item.pendingApprovals?.includes(currentUserId) && 
+                            !item.approvedBy?.includes(currentUserId) && 
+                            !(item.rejectedBy || []).includes(currentUserId);
+                          
+                          return isMyTurn ? (
+                            <div style={{ display: 'flex', gap: 12 }}>
+                              <Button
+                                type="primary"
+                                size="middle"
+                                onClick={() => handleApproveAmendment(item.id)}
+                                style={{ flex: 1, height: 40 }}
+                                loading={approvingId === item.id}
+                              >
+                                Duyệt
+                              </Button>
+                              <Button
+                                danger
+                                size="middle"
+                                onClick={() => handleRejectAmendment(item.id)}
+                                style={{ flex: 1, height: 40 }}
+                              >
+                                Từ chối
+                              </Button>
+                            </div>
+                          ) : null;
+                        })()}
 
                         {/* Lý do từ chối cho REJECTED */}
                       {item.status === 'REJECTED' && item.reason && (

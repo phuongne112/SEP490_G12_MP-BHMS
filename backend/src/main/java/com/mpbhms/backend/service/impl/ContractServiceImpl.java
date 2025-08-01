@@ -1009,6 +1009,7 @@ public class ContractServiceImpl implements ContractService {
                 com.mpbhms.backend.dto.RoomUserDTO rudto = new com.mpbhms.backend.dto.RoomUserDTO();
                 if (ru.getUser() != null) {
                     rudto.setUserId(ru.getUser().getId());
+                    rudto.setEmail(ru.getUser().getEmail());
                     if (ru.getUser().getUserInfo() != null) {
                         rudto.setFullName(ru.getUser().getUserInfo().getFullName());
                         rudto.setPhoneNumber(ru.getUser().getUserInfo().getPhoneNumber());
