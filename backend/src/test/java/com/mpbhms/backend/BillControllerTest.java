@@ -13,6 +13,7 @@ import com.mpbhms.backend.exception.GlobalExceptionHandler;
 import com.mpbhms.backend.exception.NotFoundException;
 import com.mpbhms.backend.service.BillService;
 import com.mpbhms.backend.service.EmailService;
+import com.mpbhms.backend.service.NotificationService;
 import com.mpbhms.backend.service.VnPayService;
 import com.mpbhms.backend.util.SecurityUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,6 +59,9 @@ public class BillControllerTest {
 
         @Mock
         private VnPayService vnPayService;
+        @Mock
+        private NotificationService notificationService;
+
 
         private ObjectMapper objectMapper;
 
@@ -65,7 +69,7 @@ public class BillControllerTest {
         void setUp() {
                 objectMapper = new ObjectMapper();
                 mockMvc = MockMvcBuilders
-                                .standaloneSetup(new BillController(billService, emailService, vnPayService))
+                                .standaloneSetup(new BillController(billService, emailService, vnPayService, notificationService))
                                 .setControllerAdvice(new GlobalExceptionHandler())
                                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
                                 .build();

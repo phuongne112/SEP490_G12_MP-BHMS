@@ -129,15 +129,27 @@ public class ServiceControllerTest {
         request.setUnit("kWh");
         request.setUnitPrice(BigDecimal.valueOf(3000));
         request.setServiceType(ServiceType.ELECTRICITY);
+
+
+        CustomService existing = new CustomService();
+        existing.setId(3L);
+        existing.setUnitPrice(BigDecimal.valueOf(2000));
+
+        when(serviceService.getServiceById(3L)).thenReturn(existing);
+
         CustomService updated = new CustomService();
         updated.setId(3L);
+        updated.setUnitPrice(BigDecimal.valueOf(3000));
+
         when(serviceService.updateService(any(CustomService.class))).thenReturn(updated);
+
         mockMvc.perform(put("/mpbhms/services/{id}", 3L)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(3L));
     }
+
 
     @Test
     public void testDeleteService_Success() throws Exception {
