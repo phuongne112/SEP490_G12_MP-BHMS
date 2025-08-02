@@ -80,4 +80,8 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     @Query("SELECT s FROM Schedule s WHERE s.room.id = :roomId AND s.status IN ('PENDING', 'ACCEPTED') AND " +
            "s.appointmentTime BETWEEN :startTime AND :endTime ORDER BY s.appointmentTime")
     List<Schedule> findAppointmentsInTimeRange(@Param("roomId") Long roomId, @Param("startTime") java.time.Instant startTime, @Param("endTime") java.time.Instant endTime);
+    
+    // Đếm tổng số lịch hẹn của một người dùng (email) - để giới hạn tối đa 3 lịch hẹn
+    @Query("SELECT COUNT(s) FROM Schedule s WHERE s.email = :email AND s.status IN ('PENDING', 'ACCEPTED')")
+    long countTotalAppointmentsByEmail(@Param("email") String email);
 } 

@@ -193,6 +193,28 @@ export default function LandlordServiceListPage() {
        let serviceData;
 
        if (editingService) {
+         // Kiểm tra xem có thay đổi nào không
+         const hasChanges = 
+           values.name !== editingService.name ||
+           values.type !== editingService.type ||
+           values.unit !== editingService.unit;
+         
+         if (!hasChanges) {
+           message.info("Không có thay đổi nào được phát hiện.");
+           setIsSubmitting(false);
+           return;
+         }
+         
+         // Kiểm tra tên dịch vụ trùng lặp khi sửa (trừ chính nó)
+         if (values.name !== editingService.name) {
+           const existingService = services.find(s => s.name === values.name && s.id !== editingService.id);
+           if (existingService) {
+             message.error(`Tên dịch vụ "${values.name}" đã tồn tại. Vui lòng chọn tên khác.`);
+             setIsSubmitting(false);
+             return;
+           }
+         }
+         
          // Khi chỉnh sửa: chỉ gửi thông tin dịch vụ (không bao gồm giá)
          serviceData = {
            serviceName: values.name,
@@ -200,6 +222,14 @@ export default function LandlordServiceListPage() {
            unit: values.unit,
          };
        } else {
+         // Kiểm tra tên dịch vụ trùng lặp khi tạo mới
+         const existingService = services.find(s => s.name === values.name);
+         if (existingService) {
+           message.error(`Tên dịch vụ "${values.name}" đã tồn tại. Vui lòng chọn tên khác.`);
+           setIsSubmitting(false);
+           return;
+         }
+         
          // Khi tạo mới: gửi đầy đủ thông tin bao gồm giá
          serviceData = {
            serviceName: values.name,
@@ -235,6 +265,13 @@ export default function LandlordServiceListPage() {
   const handleUpdatePriceSubmit = async (values) => {
     setIsSubmitting(true);
     try {
+      // Kiểm tra xem có thay đổi giá không
+      if (values.newUnitPrice === selectedServiceForPrice.price) {
+        message.info("Giá mới giống với giá hiện tại. Không cần cập nhật.");
+        setIsSubmitting(false);
+        return;
+      }
+      
       const priceData = {
         newUnitPrice: values.newUnitPrice,
         effectiveDate: values.effectiveDate.format('YYYY-MM-DD'),

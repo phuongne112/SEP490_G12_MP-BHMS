@@ -117,7 +117,7 @@ public class RoomServiceImpl implements RoomService {
         room.setBuilding(request.getBuilding());
         Long landlordId = SecurityUtil.getCurrentUserId();
         room.setLandlord(userRepository.findById(landlordId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy chủ phòng (landlord)")));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chủ phòng")));
         List<RoomImage> imageEntities = new ArrayList<>();
         if (images != null && images.length > 0) {
             File uploadDirectory = new File(uploadDir);

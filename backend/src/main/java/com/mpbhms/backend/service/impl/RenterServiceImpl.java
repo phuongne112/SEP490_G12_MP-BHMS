@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import com.mpbhms.backend.enums.Gender;
 
 @Service
 @RequiredArgsConstructor
@@ -148,6 +149,29 @@ public class RenterServiceImpl implements RenterService {
         info.setPhoneNumber(dto.getPhone());
         info.setPhoneNumber2(dto.getPhoneNumber2());
         info.setNationalID(dto.getCitizenId());
+        
+        // Thêm các trường từ OCR
+        if (dto.getDateOfBirth() != null) {
+            info.setBirthDate(java.time.LocalDate.parse(dto.getDateOfBirth()));
+        }
+        info.setBirthPlace(dto.getBirthPlace());
+        info.setNationalIDIssuePlace(dto.getNationalIDIssuePlace());
+        if (dto.getNationalIDIssueDate() != null) {
+            info.setNationalIDIssueDate(java.time.LocalDate.parse(dto.getNationalIDIssueDate()));
+        }
+        info.setPermanentAddress(dto.getPermanentAddress());
+        if (dto.getGender() != null) {
+            // Chuyển đổi từ MALE/FEMALE/OTHER sang Male/Female/Other
+            String genderStr = dto.getGender().toUpperCase();
+            if ("MALE".equals(genderStr)) {
+                info.setGender(Gender.Male);
+            } else if ("FEMALE".equals(genderStr)) {
+                info.setGender(Gender.Female);
+            } else if ("OTHER".equals(genderStr)) {
+                info.setGender(Gender.Other);
+            }
+        }
+        
         info.setUser(user);
 
         user.setUserInfo(info);

@@ -76,6 +76,10 @@ public class ServiceServiceImpl implements ServiceService {
 
     @Override
     public CustomService createService(CustomService service) {
+        // Kiểm tra tên dịch vụ trùng lặp
+        if (serviceRepository.existsByServiceName(service.getServiceName())) {
+            throw new BusinessException("Tên dịch vụ '" + service.getServiceName() + "' đã tồn tại. Vui lòng chọn tên khác.");
+        }
         return serviceRepository.save(service);
     }
 
@@ -87,6 +91,14 @@ public class ServiceServiceImpl implements ServiceService {
         
         if (!serviceRepository.existsById(service.getId())) {
             throw new NotFoundException("Không tìm thấy dịch vụ với ID: " + service.getId());
+        }
+        
+        // Kiểm tra tên dịch vụ trùng lặp (trừ chính nó)
+        CustomService existingService = serviceRepository.findById(service.getId()).orElse(null);
+        if (existingService != null && !existingService.getServiceName().equals(service.getServiceName())) {
+            if (serviceRepository.existsByServiceName(service.getServiceName())) {
+                throw new BusinessException("Tên dịch vụ '" + service.getServiceName() + "' đã tồn tại. Vui lòng chọn tên khác.");
+            }
         }
         
         return serviceRepository.save(service);

@@ -31,5 +31,14 @@ public class CreateUserRequest {
     private Boolean isActive;
 
     private String citizenId;
+    
+    // Thêm các trường cho OCR
+    private String dateOfBirth;
+    private String address;
+    private String birthPlace;
+    private String nationalIDIssuePlace;
+    private String nationalIDIssueDate;
+    private String permanentAddress;
+    private String gender;
 }
 

@@ -386,7 +386,7 @@ export default function LandlordBookAppointmentPage(props) {
                     <div style={{ fontWeight: "bold", marginBottom: 4 }}>📋 Lưu ý khi đặt lịch:</div>
                     <div>• Có thể cùng xem phòng với người khác (tối đa 4 người cùng lúc)</div>
                     <div>• Không thể đặt lịch trùng thời gian với lịch hẹn khác của bạn</div>
-                    <div>• Tối đa 3 lịch hẹn mỗi ngày</div>
+                    <div>• Tối đa 3 lịch hẹn tổng cộng cho mỗi người dùng</div>
                     <div>• Các lịch hẹn phải cách nhau ít nhất 30 phút</div>
                   </div>
 
@@ -691,7 +691,7 @@ export default function LandlordBookAppointmentPage(props) {
                         <div style={{ fontWeight: "bold", marginBottom: 4 }}>📋 Lưu ý khi đặt lịch:</div>
                         <div>• Có thể cùng xem phòng với người khác (tối đa 4 người cùng lúc)</div>
                         <div>• Không thể đặt lịch trùng thời gian với lịch hẹn khác của bạn</div>
-                        <div>• Tối đa 3 lịch hẹn mỗi ngày</div>
+                        <div>• Tối đa 3 lịch hẹn tổng cộng cho mỗi người dùng</div>
                         <div>• Các lịch hẹn phải cách nhau ít nhất 30 phút</div>
                       </div>
 

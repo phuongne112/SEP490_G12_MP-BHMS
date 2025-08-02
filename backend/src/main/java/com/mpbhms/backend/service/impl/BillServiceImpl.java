@@ -1188,7 +1188,7 @@ public class BillServiceImpl implements BillService {
                     noti.setMessage("Bạn có hóa đơn mới #" + bill.getId() + " từ " +
                         bill.getFromDate().atZone(java.time.ZoneId.systemDefault()).toLocalDate() + " đến " +
                         bill.getToDate().atZone(java.time.ZoneId.systemDefault()).toLocalDate() + ". Vui lòng kiểm tra và thanh toán.");
-                    noti.setType(NotificationType.BILL_CREATED); // Use specific bill notification type
+                    noti.setType(NotificationType.ANNOUNCEMENT); // Use general announcement for bill creation
                     noti.setMetadata("{\"billId\":" + bill.getId() + "}");
                     notificationService.createAndSend(noti);
                 }
@@ -1388,7 +1388,7 @@ public class BillServiceImpl implements BillService {
                             noti.setTitle("Cảnh báo hóa đơn quá hạn - Phòng " + contract.getRoom().getRoomNumber());
                             noti.setMessage("Hóa đơn #" + overdueBill.getId() + " đã quá hạn " + overdueDays + " ngày. Số tiền: " + 
                                 overdueBill.getTotalAmount().toString() + " VNĐ. Vui lòng thanh toán ngay để tránh bị phạt.");
-                            noti.setType(NotificationType.BILL_OVERDUE);
+                            noti.setType(NotificationType.RENT_REMINDER);
                             noti.setMetadata("{\"billId\":" + overdueBill.getId() + ",\"overdueDays\":" + overdueDays + "}");
                             notificationService.createAndSend(noti);
                         } catch (Exception e) {
@@ -1441,7 +1441,7 @@ public class BillServiceImpl implements BillService {
                 landlordNoti.setMessage("Hóa đơn #" + overdueBill.getId() + " của phòng " + overdueBill.getRoom().getRoomNumber() + 
                     " đã quá hạn " + overdueDays + " ngày. Số tiền: " + overdueBill.getTotalAmount().toString() + " VNĐ. " +
                     "Hệ thống sẽ tự động tạo phạt nếu không thanh toán.");
-                landlordNoti.setType(NotificationType.BILL_OVERDUE);
+                landlordNoti.setType(NotificationType.RENT_REMINDER);
                 landlordNoti.setMetadata("{\"billId\":" + overdueBill.getId() + ",\"roomNumber\":\"" + overdueBill.getRoom().getRoomNumber() + "\",\"overdueDays\":" + overdueDays + "}");
                 notificationService.createAndSend(landlordNoti);
                 
@@ -1745,7 +1745,7 @@ public class BillServiceImpl implements BillService {
                     noti.setMessage("Bạn có hóa đơn phạt #" + penaltyBill.getId() + " cho hóa đơn #" + 
                                 originalBill.getId() + " - Số tiền phạt: " + 
                                 formatCurrency(penaltyBill.getPenaltyAmount()) + " (" + penaltyBill.getPenaltyRate() + "%). Vui lòng thanh toán sớm để tránh phạt tăng thêm.");
-                    noti.setType(NotificationType.BILL_OVERDUE);
+                    noti.setType(NotificationType.RENT_REMINDER);
                             noti.setMetadata("{\"billId\":" + penaltyBill.getId() + ",\"originalBillId\":" + originalBill.getId() + ",\"penaltyAmount\":" + penaltyBill.getPenaltyAmount() + "}");
                     notificationService.createAndSend(noti);
                         } catch (Exception e) {
@@ -1798,7 +1798,7 @@ public class BillServiceImpl implements BillService {
                 landlordNoti.setMessage("Đã tạo hóa đơn phạt #" + penaltyBill.getId() + " cho hóa đơn #" + originalBill.getId() + 
                     " của phòng " + penaltyBill.getRoom().getRoomNumber() + ". Số tiền phạt: " + 
                     formatCurrency(penaltyBill.getPenaltyAmount()) + " (" + penaltyBill.getPenaltyRate() + "%).");
-                landlordNoti.setType(NotificationType.BILL_OVERDUE);
+                landlordNoti.setType(NotificationType.RENT_REMINDER);
                 landlordNoti.setMetadata("{\"billId\":" + penaltyBill.getId() + ",\"originalBillId\":" + originalBill.getId() + ",\"roomNumber\":\"" + penaltyBill.getRoom().getRoomNumber() + "\",\"penaltyAmount\":" + penaltyBill.getPenaltyAmount() + "}");
                 notificationService.createAndSend(landlordNoti);
                 
