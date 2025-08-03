@@ -184,9 +184,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Delete Asset", "/mpbhms/assets/{id}", "DELETE", "Asset"));
             permissions.add(new Permission("View Assets", "/mpbhms/assets", "GET", "Asset"));
             permissions.add(new Permission("Get Asset by ID", "/mpbhms/assets/{id}", "GET", "Asset"));
-            permissions.add(new Permission("Assign Asset To Room", "/mpbhms/assets/{assetId}/assign-room", "POST", "Asset"));
-            // Asset check-in/check-out (nếu có API riêng)
-            permissions.add(new Permission("Check-in/Check-out Asset", "/mpbhms/assets/checkin", "POST", "Asset"));
+            permissions.add(new Permission("Assign Asset To Room", "/mpbhms/assets/{assetId}/assign-room", "POST", "Asset"));       
             //Electric Reading
             permissions.add(new Permission("Create Electric Reading", "/mpbhms/electric-readings", "POST", "ElectricReading"));
             permissions.add(new Permission("Update Electric Reading", "/mpbhms/electric-readings/{id}", "PUT", "ElectricReading"));
@@ -194,7 +192,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("View Electric Readings", "/mpbhms/electric-readings", "GET", "ElectricReading"));
             permissions.add(new Permission("Get Electric Reading by ID", "/mpbhms/electric-readings/{id}", "GET", "ElectricReading"));
             //Asset-Inventory
-            permissions.add(new Permission("Asset Checkin", "/mpbhms/asset-inventory/checkin", "POST", "AssetInventory"));
+            permissions.add(new Permission("Asset Checkin/Checkout", "/mpbhms/asset-inventory/checkin", "POST", "AssetInventory"));
             permissions.add(new Permission("Asset List By Room Contract", "/mpbhms/asset-inventory/by-room-contract", "GET", "AssetInventory"));
             permissions.add(new Permission("Asset List By Room ", "/mpbhms/asset-inventory/by-room", "GET", "AssetInventory"));
             //Payment
@@ -291,6 +289,14 @@ public class DatabaseInitializer implements CommandLineRunner {
             if (checkinAsset != null) renterPermission.add(checkinAsset);
             Permission checkoutAsset = permissionRepository.findByModuleAndApiPathAndMethod("Asset", "/mpbhms/assets/checkout", "POST");
             if (checkoutAsset != null) renterPermission.add(checkoutAsset);
+            // AssetInventory
+            Permission assetCheckinCheckout = permissionRepository.findByModuleAndApiPathAndMethod("AssetInventory", "/mpbhms/asset-inventory/checkin", "POST");
+            if (assetCheckinCheckout != null) renterPermission.add(assetCheckinCheckout);
+            Permission assetListByRoomContract = permissionRepository.findByModuleAndApiPathAndMethod("AssetInventory", "/mpbhms/asset-inventory/by-room-contract", "GET");
+            if (assetListByRoomContract != null) renterPermission.add(assetListByRoomContract);
+            // RoomAsset
+            Permission getAssetsByRoomNumber = permissionRepository.findByModuleAndApiPathAndMethod("RoomAsset", "/mpbhms/room-assets/by-room-number", "GET");
+            if (getAssetsByRoomNumber != null) renterPermission.add(getAssetsByRoomNumber);
             // Bill
             Permission getBills = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills", "GET");
             if (getBills != null) renterPermission.add(getBills);
