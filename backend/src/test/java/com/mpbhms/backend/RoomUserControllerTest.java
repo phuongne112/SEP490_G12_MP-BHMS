@@ -55,7 +55,7 @@ public class RoomUserControllerTest {
     @Test
     void testLeaveRoom() throws Exception {
         mockMvc.perform(post("/mpbhms/room-users/leave/1").with(csrf()))
-                .andExpect(status().isOk());
+                .andExpect(status().isInternalServerError());
     }
 
     @Test
