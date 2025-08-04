@@ -255,7 +255,6 @@ export default function LandlordRenterListPage() {
          birthPlace: ocrData.birthPlace,
          nationalIDIssuePlace: ocrData.nationalIDIssuePlace,
          nationalIDIssueDate: issueDateValue,
-         permanentAddress: ocrData.permanentAddress,
          gender: genderValue,
        };
        
@@ -335,7 +334,6 @@ export default function LandlordRenterListPage() {
         birthPlace: values.birthPlace,
         nationalIDIssuePlace: values.nationalIDIssuePlace,
         nationalIDIssueDate: values.nationalIDIssueDate ? values.nationalIDIssueDate.format("YYYY-MM-DD") : undefined,
-        permanentAddress: values.permanentAddress,
         gender: values.gender,
         isActive: values.isActive,
       };
@@ -619,11 +617,6 @@ export default function LandlordRenterListPage() {
                               { required: true, message: "Vui lòng nhập địa chỉ thường trú" }
                             ]}>
                               <Input placeholder="Nhập địa chỉ thường trú" />
-                            </Form.Item>
-                          </Col>
-                          <Col span={24}>
-                            <Form.Item label="Địa chỉ thường trú (OCR)" name="permanentAddress">
-                              <Input placeholder="Địa chỉ từ OCR" />
                             </Form.Item>
                           </Col>
                           <Col span={12}>
