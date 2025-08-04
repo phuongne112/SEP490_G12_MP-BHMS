@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Pagination, Input, Button, Space, Popover, message, Form, InputNumber, Select, Upload, Switch, Modal, Card, Row, Col } from "antd";
+import { Layout, Pagination, Input, Button, Space, Popover, message, Form, InputNumber, Select, Upload, Switch, Modal, Card, Row, Col, Drawer } from "antd";
 import {
   SearchOutlined,
   PlusOutlined,
   FilterOutlined,
+  MenuOutlined,
 } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import RoomTable from "../../components/landlord/RoomTable";
@@ -64,6 +65,7 @@ const mockRooms = [
 export default function LandlordRoomListPage() {
   const isMobile = useMediaQuery({ maxWidth: 768 });
   const isTablet = useMediaQuery({ minWidth: 769, maxWidth: 1024 });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState({
@@ -238,265 +240,404 @@ export default function LandlordRoomListPage() {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh", flexDirection: isMobile ? "column" : "row" }}>
-      {!isMobile && (
-        <Sider width={220}>
-          {user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
-            <AdminSidebar />
-          ) : (
-            <LandlordSidebar />
-          )}
-        </Sider>
-      )}
-
-      <Layout>
-        <Content
-          style={{
-            padding: isMobile ? "16px" : "24px",
-            paddingTop: isMobile ? "16px" : "32px",
-            background: "#fff",
-            borderRadius: 8,
-          }}
-        >
-          {/* ✅ Header: Page Title + Search + Filter + Add */}
+    <div style={{ width: '100%', minHeight: '100vh' }}>
+      <style>
+        {`
+          @media (max-width: 768px) {
+            .ant-layout-sider {
+              display: none !important;
+            }
+          }
+        `}
+      </style>
+      <div style={{ display: "flex", minHeight: "100vh" }}>
+        {/* Desktop Sidebar - chỉ hiển thị trên desktop */}
+        {!isMobile && (
           <div
             style={{
-              marginBottom: 16,
-              display: "flex",
-              flexDirection: isMobile ? "column" : "row",
-              justifyContent: "space-between",
-              alignItems: isMobile ? "stretch" : "center",
-              gap: isMobile ? 12 : 0,
+              width: 220,
+              background: "#001529",
+              position: "fixed",
+              height: "100vh",
+              zIndex: 1000,
             }}
           >
-            <PageHeader title="Danh sách phòng" style={{ marginBottom: isMobile ? 0 : 0 }} />
-            <Space direction={isMobile ? "vertical" : "horizontal"} style={{ width: isMobile ? "100%" : "auto" }}>
-              <Input
-                placeholder="Tìm phòng..."
-                allowClear
-                prefix={<SearchOutlined />}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onPressEnter={handleSearch}
-                style={{ width: isMobile ? "100%" : 200 }}
-              />
-              <Popover
-                content={<RoomFilterPopover onFilter={handleFilter} />}
-                trigger="click"
-                placement="bottomRight"
-              >
-                <Button icon={<FilterOutlined />} style={{ width: isMobile ? "100%" : "auto" }}>
-                  Bộ lọc
-                </Button>
-              </Popover>
-              <Button 
-                type="primary" 
-                icon={<PlusOutlined />}
-                onClick={handleAddRoomModalOpen}
-                style={{ width: isMobile ? "100%" : "auto" }}
-              >
-                Thêm phòng
-              </Button>
-            </Space>
+            {user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
+              <AdminSidebar />
+            ) : (
+              <LandlordSidebar />
+            )}
           </div>
+        )}
 
-          {/* ✅ Room cards */}
-          <RoomTable rooms={rooms} loading={loading} onRoomsUpdate={fetchRooms} />
-
-          {/* ✅ Pagination */}
-          <div style={{ marginTop: 24, textAlign: "center" }}>
-            <Pagination
-              current={currentPage}
-              pageSize={pageSize}
-              total={total}
-              onChange={(page) => setCurrentPage(page)}
-              size={isMobile ? "small" : "default"}
-              showSizeChanger={!isMobile}
-              showQuickJumper={!isMobile}
-            />
-          </div>
-
-          {/* Add Room Modal */}
-          <Modal
-            title="Thêm phòng mới"
-            open={addRoomModalVisible}
-            onCancel={handleAddRoomModalClose}
-            footer={null}
-            width={1000}
-            destroyOnClose
-          >
-            <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-              <div style={{ display: "flex", gap: 24, flexWrap: 'wrap', alignItems: 'stretch', justifyContent: 'center' }}>
-                <Card title="Thông tin phòng" style={{ flex: 1, minWidth: '500px', textAlign: 'left', minHeight: '450px' }}>
-                  <div style={{ padding: '8px 0' }}>
-                    <Form
-                      layout="vertical"
-                      form={addRoomForm}
-                      onFinish={handleAddRoomFinish}
-                      initialValues={{
-                        area: 20,
-                        price: 1000000,
-                        numberOfBedrooms: 1,
-                        numberOfBathrooms: 1,
-                        roomStatus: "Available",
-                        isActive: true,
-                      }}
-                    >
-                      <Row gutter={16}>
-                        <Col span={12}>
-                          <Form.Item
-                            name="building"
-                            label="Tòa"
-                            rules={[{ required: true, message: "Vui lòng nhập tên tòa" }]}
-                          >
-                            <Select placeholder="Chọn tòa">
-                              <Option value="A">A</Option>
-                              <Option value="B">B</Option>
-                            </Select>
-                          </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                          <Form.Item
-                            name="roomNumberSuffix"
-                            label="Số phòng"
-                            rules={[
-                              { required: true, message: "Vui lòng nhập số phòng (chỉ gồm số)" },
-                              { pattern: /^\d+$/, message: "Số phòng chỉ được phép là số" }
-                            ]}
-                          >
-                            <InputNumber placeholder="Ví dụ: 101" style={{ width: '100%' }} min={1} step={1} stringMode={false} />
-                          </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                          <Form.Item
-                            name="area"
-                            label="Diện tích (m²)"
-                            rules={[{ required: true, message: "Vui lòng nhập diện tích" }]}
-                          >
-                            <InputNumber min={1} max={1000} style={{ width: "100%" }} />
-                          </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                          <Form.Item
-                            name="price"
-                            label="Giá (VND/tháng)"
-                            rules={[{ required: true, message: "Vui lòng nhập giá" }]}
-                          >
-                            <InputNumber
-                              min={0}
-                              style={{ width: "100%" }}
-                              formatter={(val) => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
-                              parser={(val) => val.replace(/\./g, "")}
-                            />
-                          </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                          <Form.Item
-                            name="roomStatus"
-                            label="Trạng thái phòng"
-                            rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
-                          >
-                            <Select>
-                              <Option value="Available">Còn trống</Option>
-                              <Option value="Inactive">Ngừng hoạt động</Option>
-                              <Option value="Occupied">Đã thuê</Option>
-                              <Option value="Maintenance">Bảo trì</Option>
-                            </Select>
-                          </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                          <Form.Item
-                            name="numberOfBedrooms"
-                            label="Số phòng ngủ"
-                            rules={[{ required: true, message: "Vui lòng nhập số phòng ngủ" }]}
-                          >
-                            <InputNumber min={1} max={10} style={{ width: "100%" }} />
-                          </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                          <Form.Item
-                            name="numberOfBathrooms"
-                            label="Số phòng tắm"
-                            rules={[{ required: true, message: "Vui lòng nhập số phòng tắm" }]}
-                          >
-                            <InputNumber min={1} max={10} style={{ width: "100%" }} />
-                          </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                          <Form.Item
-                            name="maxOccupants"
-                            label="Số người tối đa"
-                            rules={[{ required: true, message: "Vui lòng nhập số người tối đa" }]}
-                          >
-                            <InputNumber min={1} max={20} style={{ width: "100%" }} />
-                          </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                          <Form.Item
-                            name="isActive"
-                            label="Trạng thái hoạt động"
-                            valuePropName="checked"
-                          >
-                            <Switch checkedChildren="Đang hoạt động" unCheckedChildren="Ngừng hoạt động" />
-                          </Form.Item>
-                        </Col>
-                      </Row>
-                    </Form>
-                  </div>
-                </Card>
-
-                <Card title="Mô tả & Hình ảnh" style={{ flex: 1, minWidth: '400px', textAlign: 'left', minHeight: '450px' }}>
-                  <div style={{ padding: '8px 0' }}>
-                    <Form.Item name="description" label="Mô tả phòng">
-                      <TextArea rows={3} placeholder="Nhập mô tả chi tiết về phòng..." />
-                    </Form.Item>
-                    
-                    <div style={{ marginTop: 16 }}>
-                      <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-                        Hình ảnh phòng (tối đa 8 ảnh):
-                      </label>
-                      <Upload
-                        listType="picture-card"
-                        fileList={fileList}
-                        onChange={handleUploadChange}
-                        beforeUpload={() => false}
-                        multiple
-                        maxCount={8}
-                        accept="image/*"
-                      >
-                        {fileList.length < 8 && (
-                          <div>
-                            <PlusOutlined />
-                            <div style={{ marginTop: 8 }}>Tải lên</div>
-                          </div>
-                        )}
-                      </Upload>
-                    </div>
-                  </div>
-                </Card>
+        {/* Main Layout */}
+        <div style={{ 
+          flex: 1, 
+          marginLeft: isMobile ? 0 : 220,
+          display: "flex",
+          flexDirection: "column"
+        }}>
+          {/* Mobile Header - chỉ hiển thị trên mobile */}
+          {isMobile && (
+            <div style={{ 
+              background: '#001529', 
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
+              width: '100%'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 12,
+                color: 'white'
+              }}>
+                <div style={{ 
+                  fontWeight: 600, 
+                  fontSize: 18,
+                  color: 'white'
+                }}>
+                  MP-BHMS
+                </div>
+                <div style={{ 
+                  fontSize: 14,
+                  color: 'rgba(255,255,255,0.8)'
+                }}>
+                  Xin chào Landlord
+                </div>
               </div>
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                onClick={() => setMobileMenuOpen(true)}
+                style={{ 
+                  color: 'white',
+                  fontSize: '18px'
+                }}
+              />
+            </div>
+          )}
+          
+          {/* Content Area */}
+          <div style={{ 
+            flex: 1, 
+            padding: isMobile ? 16 : 24,
+            backgroundColor: "#f5f5f5",
+            minHeight: isMobile ? "calc(100vh - 60px)" : "100vh"
+          }}>
+            {/* Page Title - Only show on desktop */}
+            {!isMobile && (
+              <div style={{ 
+                backgroundColor: "#fff", 
+                borderRadius: "8px", 
+                padding: "24px",
+                marginBottom: "24px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+              }}>
+                <h1 style={{ 
+                  fontSize: "32px", 
+                  marginBottom: "20px",
+                  fontWeight: "600",
+                  color: "#1a1a1a"
+                }}>
+                  Danh sách phòng
+                </h1>
+              </div>
+            )}
 
-              <Card style={{ marginTop: 24, textAlign: 'center' }}>
+            {/* Header: Search + Filter + Add */}
+            <div
+              style={{
+                marginBottom: 16,
+                display: "flex",
+                flexDirection: isMobile ? "column" : "row",
+                justifyContent: "space-between",
+                alignItems: isMobile ? "stretch" : "center",
+                gap: isMobile ? 12 : 0,
+              }}
+            >
+              {isMobile && (
+                <div style={{ 
+                  backgroundColor: "#fff", 
+                  borderRadius: "8px", 
+                  padding: "16px",
+                  marginBottom: "16px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+                }}>
+                  <h1 style={{ 
+                    fontSize: "24px", 
+                    marginBottom: "16px",
+                    fontWeight: "600",
+                    color: "#1a1a1a"
+                  }}>
+                    Danh sách phòng
+                  </h1>
+                </div>
+              )}
+              <Space direction={isMobile ? "vertical" : "horizontal"} style={{ width: isMobile ? "100%" : "auto" }}>
+                <Input
+                  placeholder="Tìm phòng..."
+                  allowClear
+                  prefix={<SearchOutlined />}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onPressEnter={handleSearch}
+                  style={{ width: isMobile ? "100%" : 200 }}
+                />
+                <Popover
+                  content={<RoomFilterPopover onFilter={handleFilter} />}
+                  trigger="click"
+                  placement="bottomRight"
+                >
+                  <Button icon={<FilterOutlined />} style={{ width: isMobile ? "100%" : "auto" }}>
+                    Bộ lọc
+                  </Button>
+                </Popover>
                 <Button 
                   type="primary" 
-                  loading={addRoomLoading} 
-                  size="large"
-                  style={{ marginRight: 16 }}
-                  onClick={() => addRoomForm.submit()}
+                  icon={<PlusOutlined />}
+                  onClick={handleAddRoomModalOpen}
+                  style={{ width: isMobile ? "100%" : "auto" }}
                 >
                   Thêm phòng
                 </Button>
-                <Button 
-                  size="large"
-                  onClick={handleAddRoomModalClose}
-                >
-                  Hủy bỏ
-                </Button>
-              </Card>
+              </Space>
             </div>
-          </Modal>
-        </Content>
-      </Layout>
-    </Layout>
+
+            {/* Room cards */}
+            <div style={{ 
+              backgroundColor: "#fff", 
+              borderRadius: "8px", 
+              padding: isMobile ? "16px" : "24px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+            }}>
+              <RoomTable rooms={rooms} loading={loading} onRoomsUpdate={fetchRooms} />
+            </div>
+
+            {/* Pagination */}
+            <div style={{ 
+              marginTop: 24, 
+              textAlign: "center",
+              backgroundColor: "#fff",
+              borderRadius: "8px",
+              padding: "16px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+            }}>
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={total}
+                onChange={(page) => setCurrentPage(page)}
+                size={isMobile ? "small" : "default"}
+                showSizeChanger={!isMobile}
+                showQuickJumper={!isMobile}
+              />
+            </div>
+
+            {/* Add Room Modal */}
+            <Modal
+              title="Thêm phòng mới"
+              open={addRoomModalVisible}
+              onCancel={handleAddRoomModalClose}
+              footer={null}
+              width={1000}
+              destroyOnClose
+            >
+              <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+                <div style={{ display: "flex", gap: 24, flexWrap: 'wrap', alignItems: 'stretch', justifyContent: 'center' }}>
+                  <Card title="Thông tin phòng" style={{ flex: 1, minWidth: '500px', textAlign: 'left', minHeight: '450px' }}>
+                    <div style={{ padding: '8px 0' }}>
+                      <Form
+                        layout="vertical"
+                        form={addRoomForm}
+                        onFinish={handleAddRoomFinish}
+                        initialValues={{
+                          area: 20,
+                          price: 1000000,
+                          numberOfBedrooms: 1,
+                          numberOfBathrooms: 1,
+                          roomStatus: "Available",
+                          isActive: true,
+                        }}
+                      >
+                        <Row gutter={16}>
+                          <Col span={12}>
+                            <Form.Item
+                              name="building"
+                              label="Tòa"
+                              rules={[{ required: true, message: "Vui lòng nhập tên tòa" }]}
+                            >
+                              <Select placeholder="Chọn tòa">
+                                <Option value="A">A</Option>
+                                <Option value="B">B</Option>
+                              </Select>
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item
+                              name="roomNumberSuffix"
+                              label="Số phòng"
+                              rules={[
+                                { required: true, message: "Vui lòng nhập số phòng (chỉ gồm số)" },
+                                { pattern: /^\d+$/, message: "Số phòng chỉ được phép là số" }
+                              ]}
+                            >
+                              <InputNumber placeholder="Ví dụ: 101" style={{ width: '100%' }} min={1} step={1} stringMode={false} />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item
+                              name="area"
+                              label="Diện tích (m²)"
+                              rules={[{ required: true, message: "Vui lòng nhập diện tích" }]}
+                            >
+                              <InputNumber min={1} max={1000} style={{ width: "100%" }} />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item
+                              name="price"
+                              label="Giá (VND/tháng)"
+                              rules={[{ required: true, message: "Vui lòng nhập giá" }]}
+                            >
+                              <InputNumber
+                                min={0}
+                                style={{ width: "100%" }}
+                                formatter={(val) => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
+                                parser={(val) => val.replace(/\./g, "")}
+                              />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item
+                              name="roomStatus"
+                              label="Trạng thái phòng"
+                              rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
+                            >
+                              <Select>
+                                <Option value="Available">Còn trống</Option>
+                                <Option value="Inactive">Ngừng hoạt động</Option>
+                                <Option value="Occupied">Đã thuê</Option>
+                                <Option value="Maintenance">Bảo trì</Option>
+                              </Select>
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item
+                              name="numberOfBedrooms"
+                              label="Số phòng ngủ"
+                              rules={[{ required: true, message: "Vui lòng nhập số phòng ngủ" }]}
+                            >
+                              <InputNumber min={1} max={10} style={{ width: "100%" }} />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item
+                              name="numberOfBathrooms"
+                              label="Số phòng tắm"
+                              rules={[{ required: true, message: "Vui lòng nhập số phòng tắm" }]}
+                            >
+                              <InputNumber min={1} max={10} style={{ width: "100%" }} />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item
+                              name="maxOccupants"
+                              label="Số người tối đa"
+                              rules={[{ required: true, message: "Vui lòng nhập số người tối đa" }]}
+                            >
+                              <InputNumber min={1} max={20} style={{ width: "100%" }} />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item
+                              name="isActive"
+                              label="Trạng thái hoạt động"
+                              valuePropName="checked"
+                            >
+                              <Switch checkedChildren="Đang hoạt động" unCheckedChildren="Ngừng hoạt động" />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                      </Form>
+                    </div>
+                  </Card>
+
+                  <Card title="Mô tả & Hình ảnh" style={{ flex: 1, minWidth: '400px', textAlign: 'left', minHeight: '450px' }}>
+                    <div style={{ padding: '8px 0' }}>
+                      <Form.Item name="description" label="Mô tả phòng">
+                        <TextArea rows={3} placeholder="Nhập mô tả chi tiết về phòng..." />
+                      </Form.Item>
+                      
+                      <div style={{ marginTop: 16 }}>
+                        <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                          Hình ảnh phòng (tối đa 8 ảnh):
+                        </label>
+                        <Upload
+                          listType="picture-card"
+                          fileList={fileList}
+                          onChange={handleUploadChange}
+                          beforeUpload={() => false}
+                          multiple
+                          maxCount={8}
+                          accept="image/*"
+                        >
+                          {fileList.length < 8 && (
+                            <div>
+                              <PlusOutlined />
+                              <div style={{ marginTop: 8 }}>Tải lên</div>
+                            </div>
+                          )}
+                        </Upload>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+
+                <Card style={{ marginTop: 24, textAlign: 'center' }}>
+                  <Button 
+                    type="primary" 
+                    loading={addRoomLoading} 
+                    size="large"
+                    style={{ marginRight: 16 }}
+                    onClick={() => addRoomForm.submit()}
+                  >
+                    Thêm phòng
+                  </Button>
+                  <Button 
+                    size="large"
+                    onClick={handleAddRoomModalClose}
+                  >
+                    Hủy bỏ
+                  </Button>
+                </Card>
+              </div>
+            </Modal>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Drawer cho Sidebar */}
+      {isMobile && (
+        <Drawer
+          title="Menu"
+          placement="left"
+          onClose={() => setMobileMenuOpen(false)}
+          open={mobileMenuOpen}
+          width={280}
+          bodyStyle={{ padding: 0 }}
+        >
+          {user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
+            <AdminSidebar isDrawer={true} onMenuClick={() => setMobileMenuOpen(false)} />
+          ) : (
+            <LandlordSidebar isDrawer={true} onMenuClick={() => setMobileMenuOpen(false)} />
+          )}
+        </Drawer>
+      )}
+    </div>
   );
 }

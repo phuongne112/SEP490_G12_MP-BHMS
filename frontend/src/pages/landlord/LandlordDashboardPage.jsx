@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Card, Row, Col, Statistic, Spin, message, Drawer, Button } from "antd";
+import { Card, Row, Col, Statistic, Spin, message, Drawer, Button, Layout } from "antd";
 import { MenuOutlined } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import { getRoomStats, getAllRooms } from "../../services/roomService";
@@ -122,67 +122,91 @@ const LandlordDashboardPage = () => {
   const chartColSpan = isMobile ? 24 : isTablet ? 12 : 8;
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", flexDirection: "column" }}>
-      {/* Mobile Header */}
-      {isMobile && (
-        <div style={{
-          background: "#001529",
-          color: "white",
-          padding: "12px 16px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.15)"
-        }}>
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <Button
-              type="text"
-              icon={<MenuOutlined />}
-              onClick={() => setMobileMenuOpen(true)}
-              style={{ color: "white", marginRight: "12px" }}
-            />
-            <span style={{ fontSize: "18px", fontWeight: "600" }}>MP-BHMS</span>
-          </div>
-          <span style={{ fontSize: "16px", fontWeight: "500" }}>Tổng quan</span>
-        </div>
-      )}
-
-      {/* Mobile Menu Drawer */}
-      {isMobile && (
-        <Drawer
-          title="Menu"
-          placement="left"
-          onClose={() => setMobileMenuOpen(false)}
-          open={mobileMenuOpen}
-          width={280}
-          bodyStyle={{ padding: 0 }}
-        >
-          <LandlordSidebar />
-        </Drawer>
-      )}
-
-      {/* Main Content */}
-      <div style={{ display: "flex", flex: 1, flexDirection: isMobile ? "column" : "row" }}>
-        {/* Desktop Sidebar */}
+    <div style={{ width: '100%', minHeight: '100vh' }}>
+      <style>
+        {`
+          @media (max-width: 768px) {
+            .ant-layout-sider {
+              display: none !important;
+            }
+          }
+        `}
+      </style>
+      <div style={{ display: "flex", minHeight: "100vh" }}>
+        {/* Desktop Sidebar - chỉ hiển thị trên desktop */}
         {!isMobile && (
           <div
             style={{
-              minWidth: 220,
-              background: "#fff",
-              borderRight: "1px solid #eee",
+              width: 220,
+              background: "#001529",
+              position: "fixed",
+              height: "100vh",
+              zIndex: 1000,
             }}
           >
             <LandlordSidebar />
           </div>
         )}
-        
-        {/* Content Area */}
+
+        {/* Main Layout */}
         <div style={{ 
           flex: 1, 
-          padding: isMobile ? "16px" : 24,
-          backgroundColor: "#f5f5f5",
-          minHeight: isMobile ? "calc(100vh - 60px)" : "100vh"
+          marginLeft: isMobile ? 0 : 220,
+          display: "flex",
+          flexDirection: "column"
         }}>
+          {/* Mobile Header - chỉ hiển thị trên mobile */}
+          {isMobile && (
+            <div style={{ 
+              background: '#001529', 
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
+              width: '100%'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 12,
+                color: 'white'
+              }}>
+                <div style={{ 
+                  fontWeight: 600, 
+                  fontSize: 18,
+                  color: 'white'
+                }}>
+                  MP-BHMS
+                </div>
+                <div style={{ 
+                  fontSize: 14,
+                  color: 'rgba(255,255,255,0.8)'
+                }}>
+                  Xin chào Landlord
+                </div>
+              </div>
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                onClick={() => setMobileMenuOpen(true)}
+                style={{ 
+                  color: 'white',
+                  fontSize: '18px'
+                }}
+              />
+            </div>
+          )}
+          
+          {/* Content Area */}
+          <div style={{ 
+            flex: 1, 
+            padding: isMobile ? 16 : 24,
+            backgroundColor: "#f5f5f5",
+            minHeight: isMobile ? "calc(100vh - 60px)" : "100vh"
+          }}>
           {/* Page Title - Only show on desktop */}
           {!isMobile && (
             <div style={{ 
@@ -436,6 +460,21 @@ const LandlordDashboardPage = () => {
           </Row>
         </div>
       </div>
+      </div>
+
+      {/* Mobile Drawer cho Sidebar */}
+      {isMobile && (
+        <Drawer
+          title="Menu"
+          placement="left"
+          onClose={() => setMobileMenuOpen(false)}
+          open={mobileMenuOpen}
+          width={280}
+          bodyStyle={{ padding: 0 }}
+        >
+          <LandlordSidebar isDrawer={true} onMenuClick={() => setMobileMenuOpen(false)} />
+        </Drawer>
+      )}
     </div>
   );
 };
