@@ -12,7 +12,7 @@ import { useSelector } from "react-redux";
 import { useLocation } from "react-router-dom";
 import { Menu } from "antd";
 
-export default function LandlordSidebar() {
+export default function LandlordSidebar({ isDrawer = false, onMenuClick }) {
   const user = useSelector((state) => state.account.user);
   const location = useLocation();
 
@@ -92,6 +92,8 @@ export default function LandlordSidebar() {
       avatar="https://i.pravatar.cc/40?img=2"
       menuItems={landlordMenu}
       selectedKeys={[selectedKey]}
+      isDrawer={isDrawer}
+      onMenuClick={onMenuClick}
     ></Sidebar>
   );
 }

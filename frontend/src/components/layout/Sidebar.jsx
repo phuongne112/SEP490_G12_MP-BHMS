@@ -12,6 +12,8 @@ export default function Sidebar({
   menuItems = [],
   defaultKey = "1",
   selectedKeys,
+  isDrawer = false,
+  onMenuClick,
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -20,8 +22,93 @@ export default function Sidebar({
     const clickedItem = menuItems.find((item) => item.key === key);
     if (clickedItem && clickedItem.path) {
       navigate(clickedItem.path);
+      // Nếu là drawer và có callback onMenuClick, gọi để đóng drawer
+      if (isDrawer && onMenuClick) {
+        onMenuClick();
+      }
     }
   };
+  // Nếu là drawer, render trực tiếp nội dung không cần Sider
+  if (isDrawer) {
+    return (
+      <div
+        style={{
+          background: "#001529",
+          height: "100%",
+          width: "100%",
+          overflow: "auto",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <SidebarLogo onClick={() => navigate("/home")} />
+        </div>
+        <div
+          style={{
+            height: "calc(100vh - 80px)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              borderRadius: 8,
+              padding: "12px 16px",
+              margin: "16px",
+            }}
+          >
+            <div>
+              <div style={{ fontWeight: 500, fontSize: 12, color: "white" }}>
+                Xin chào
+              </div>
+              <div
+                style={{
+                  fontWeight: 600,
+                  fontSize: 13,
+                  color: "white",
+                  maxWidth: 100,
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                  textOverflow: "ellipsis",
+                }}
+                title={name}
+              >
+                {name}
+              </div>
+            </div>
+          </div>
+          <div
+            style={{
+              height: 1,
+              background: "white",
+              opacity: 0.3,
+              margin: "8px 16px",
+            }}
+          ></div>
+
+          <Menu
+            theme="dark"
+            mode="inline"
+            selectedKeys={
+              selectedKeys || [
+                menuItems.find((item) => location.pathname.startsWith(item.path))
+                  ?.key,
+              ]
+            }
+            onClick={handleClick}
+          >
+            {menuItems.map((item) => (
+              <Menu.Item key={item.path} icon={item.icon}>
+                {item.label}
+              </Menu.Item>
+            ))}
+          </Menu>
+        </div>
+      </div>
+    );
+  }
+
+  // Nếu không phải drawer, render Sider như cũ
   return (
     <Sider
       width={220}
@@ -31,6 +118,7 @@ export default function Sidebar({
         top: 0,
         left: 0,
         overflow: "auto",
+        height: "100vh",
       }}
     >
       <div style={{ display: "flex", justifyContent: "center" }}>
@@ -60,26 +148,16 @@ export default function Sidebar({
                 fontWeight: 600,
                 fontSize: 13,
                 color: "white",
-                maxWidth: 100, // hoặc 120 tùy theo layout
+                maxWidth: 100,
                 overflow: "hidden",
                 whiteSpace: "nowrap",
                 textOverflow: "ellipsis",
               }}
-              title={name} // để hover vẫn xem đầy đủ tên
+              title={name}
             >
               {name}
             </div>
           </div>
-          {/* <img
-            src={avatar}
-            alt="avatar"
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: "50%",
-              objectFit: "cover",
-            }}
-          /> */}
         </div>
         <div
           style={{
