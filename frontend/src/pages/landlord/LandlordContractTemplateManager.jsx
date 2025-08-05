@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Modal, Form, Input, message, Popconfirm, Tag, Drawer, Space } from 'antd';
-import { MenuOutlined, DeleteOutlined } from "@ant-design/icons";
+import { Table, Button, Modal, Form, Input, message, Popconfirm, Tag, Drawer, Space, Layout } from 'antd';
+import { MenuOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import {
   getTemplates,
@@ -12,10 +12,11 @@ import { useSelector } from 'react-redux';
 import Handlebars from 'handlebars';
 import { useMediaQuery } from 'react-responsive';
 
+const { Sider, Content } = Layout;
+
 export default function LandlordContractTemplateManager() {
   const isMobile = useMediaQuery({ maxWidth: 768 });
-  const isTablet = useMediaQuery({ minWidth: 769, maxWidth: 1024 });
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
   
   const [form] = Form.useForm();
   const user = useSelector((state) => state.account.user);
@@ -162,175 +163,293 @@ export default function LandlordContractTemplateManager() {
   ];
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", flexDirection: "column" }}>
-      {/* Mobile Header */}
-      {isMobile && (
-        <div style={{
-          background: "#001529",
-          color: "white",
-          padding: "12px 16px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.15)"
-        }}>
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <Button
-              type="text"
-              icon={<MenuOutlined />}
-              onClick={() => setMobileMenuOpen(true)}
-              style={{ color: "white", marginRight: "12px" }}
-            />
-            <span style={{ fontSize: "18px", fontWeight: "600" }}>MP-BHMS</span>
-          </div>
-          <span style={{ fontSize: "16px", fontWeight: "500" }}>Mẫu hợp đồng</span>
-        </div>
-      )}
-
-      {/* Mobile Menu Drawer */}
-      {isMobile && (
-        <Drawer
-          title="Menu"
-          placement="left"
-          onClose={() => setMobileMenuOpen(false)}
-          open={mobileMenuOpen}
-          width={280}
-          bodyStyle={{ padding: 0 }}
-        >
-          <LandlordSidebar />
-        </Drawer>
-      )}
-
-      {/* Main Content */}
-      <div style={{ display: "flex", flex: 1, flexDirection: isMobile ? "column" : "row" }}>
-        {/* Desktop Sidebar */}
+    <div style={{ width: '100%', minHeight: '100vh' }}>
+      <style>
+        {`
+          @media (max-width: 768px) {
+            .ant-layout-sider {
+              display: none !important;
+            }
+          }
+        `}
+      </style>
+      <Layout style={{ minHeight: "100vh" }}>
+        {/* Desktop Sidebar - chỉ hiển thị trên desktop */}
         {!isMobile && (
-          <div
-            style={{
-              minWidth: 220,
-              background: "#fff",
-              borderRight: "1px solid #eee",
-            }}
-          >
+          <Sider width={220} style={{ position: 'fixed', height: '100vh', zIndex: 1000 }}>
             <LandlordSidebar />
-          </div>
+          </Sider>
         )}
         
-        {/* Content Area */}
-        <div style={{ 
-          flex: 1, 
-          padding: isMobile ? "16px" : 24,
-          backgroundColor: "#f5f5f5",
-          minHeight: isMobile ? "calc(100vh - 60px)" : "100vh"
-        }}>
-          {/* Page Title - Only show on desktop */}
-          {!isMobile && (
+        {/* Main Layout */}
+        <Layout style={{ marginLeft: isMobile ? 0 : 220 }}>
+          {/* Mobile Header - chỉ hiển thị trên mobile */}
+          {isMobile && (
             <div style={{ 
-              backgroundColor: "#fff", 
-              borderRadius: "8px", 
-              padding: "24px",
-              marginBottom: "24px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+              background: '#001529', 
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
+              width: '100%'
             }}>
-              <h1 style={{ 
-                fontSize: "32px", 
-                marginBottom: "20px",
-                fontWeight: "600",
-                color: "#1a1a1a"
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 12,
+                color: 'white'
               }}>
-                Mẫu hợp đồng
-              </h1>
+                <div style={{ 
+                  fontWeight: 600, 
+                  fontSize: 18,
+                  color: 'white'
+                }}>
+                  MP-BHMS
+                </div>
+                <div style={{ 
+                  fontSize: 14,
+                  color: 'rgba(255,255,255,0.8)'
+                }}>
+                  Mẫu hợp đồng
+                </div>
+              </div>
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                onClick={() => setSidebarDrawerOpen(true)}
+                style={{ 
+                  color: 'white',
+                  fontSize: '18px'
+                }}
+              />
             </div>
           )}
-
-          {/* Main Content Card */}
-          <div style={{ 
-            backgroundColor: "#fff", 
-            borderRadius: "8px", 
-            padding: isMobile ? "16px" : "24px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+          
+          {/* Main Content */}
+          <Content style={{ 
+            padding: isMobile ? 16 : 24, 
+            backgroundColor: '#f5f5f5', 
+            minHeight: '100vh',
+            width: '100%'
           }}>
-            <Button 
-              type="primary" 
-              onClick={() => setEditing({})} 
-              size="large"
-              style={{ 
-                marginBottom: 16, 
-                width: isMobile ? '100%' : '180px',
-                height: isMobile ? '48px' : '48px',
-                fontSize: '16px',
-                fontWeight: '500',
-                borderRadius: '8px'
-              }}
-            >
-              Thêm mẫu hợp đồng
-            </Button>
+            {/* Controls Section cho cả mobile và desktop */}
+            {isMobile ? (
+              <div style={{ 
+                background: 'white', 
+                padding: 16, 
+                borderRadius: 8, 
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                marginBottom: 16
+              }}>
+                <div style={{ 
+                  fontSize: 20, 
+                  fontWeight: 600,
+                  marginBottom: 16,
+                  color: '#1a1a1a'
+                }}>
+                  Mẫu hợp đồng
+                </div>
+                
+                <Button 
+                  type="primary" 
+                  icon={<PlusOutlined />}
+                  onClick={() => setEditing({})} 
+                  size="large"
+                  style={{ 
+                    width: '100%',
+                    height: '48px',
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    borderRadius: '8px',
+                    marginBottom: 16
+                  }}
+                >
+                  Thêm mẫu hợp đồng
+                </Button>
+                
+                {/* Mobile Status bar */}
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: "center",
+                  borderTop: '1px solid #f0f0f0',
+                  paddingTop: 12,
+                  fontSize: 12
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 8,
+                    color: '#666'
+                  }}>
+                    <span>Hiển thị</span>
+                    <span style={{ fontWeight: 500, color: "#1890ff" }}>
+                      {templates.length} mẫu
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <span style={{ fontWeight: 500, color: "#1890ff", fontSize: '12px' }}>
+                      Tổng: {templates.length} mẫu hợp đồng
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ 
+                background: 'white', 
+                padding: 20, 
+                borderRadius: 8, 
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                marginBottom: 20
+              }}>
+                <div style={{ 
+                  display: "flex", 
+                  justifyContent: "space-between", 
+                  alignItems: "center", 
+                  marginBottom: 12
+                }}>
+                  <div style={{ 
+                    fontSize: 24, 
+                    fontWeight: 600,
+                    color: '#1a1a1a'
+                  }}>
+                    Mẫu hợp đồng
+                  </div>
+                  <Button 
+                    type="primary" 
+                    icon={<PlusOutlined />}
+                    onClick={() => setEditing({})} 
+                    size="large"
+                    style={{ 
+                      height: '48px',
+                      fontSize: '16px',
+                      fontWeight: '500',
+                      borderRadius: '8px'
+                    }}
+                  >
+                    Thêm mẫu hợp đồng
+                  </Button>
+                </div>
+                
+                {/* Status bar */}
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: "center",
+                  borderTop: '1px solid #f0f0f0',
+                  paddingTop: 12,
+                  fontSize: 14
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 8,
+                    color: '#666'
+                  }}>
+                    <span>Hiển thị</span>
+                    <span style={{ fontWeight: 500, color: "#1890ff" }}>
+                      {templates.length} mẫu
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <span style={{ fontWeight: 500, color: "#1890ff" }}>
+                      Tổng: {templates.length} mẫu hợp đồng
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
             
-            <Table 
-              columns={columns} 
-              dataSource={templates} 
-              rowKey="id" 
-              loading={loading} 
-              pagination={false}
-              scroll={{ x: isMobile ? 400 : 'auto' }}
-              size={isMobile ? "small" : "middle"}
-              style={{ fontSize: isMobile ? "12px" : "14px" }}
-              bordered
-            />
-          </div>
-
-          {/* Edit Modal */}
-          <Modal
-            open={!!editing}
-            onCancel={() => setEditing(null)}
-            title={editing?.id ? 'Chỉnh sửa mẫu hợp đồng' : 'Tạo mẫu hợp đồng mới'}
-            onOk={() => form.submit()}
-            okText="Lưu"
-            cancelText="Hủy"
-            width={isMobile ? '95%' : 800}
-            style={{ top: isMobile ? 20 : 100 }}
-          >
-            <Form
-              form={form}
-              initialValues={editing}
-              onFinish={handleSave}
-              layout="vertical"
-              id="template-form"
-            >
-              <Form.Item name="name" label="Tên mẫu" rules={[{ required: true, message: 'Vui lòng nhập tên mẫu!' }]}>
-                <Input />
-              </Form.Item>
-              <Form.Item name="content" label="Nội dung mẫu (HTML, hỗ trợ biến Handlebars)" rules={[{ required: true, message: 'Vui lòng nhập nội dung mẫu!' }]}>
-                <Input.TextArea rows={isMobile ? 8 : 12} />
-              </Form.Item>
-            </Form>
-            <div style={{ marginTop: 16, fontSize: isMobile ? 11 : 13, color: '#888' }}>
-              <b>Biến có thể sử dụng:</b> <br />
-              <code style={{ fontSize: isMobile ? 10 : 12 }}>
-                {'{{landlord.userInfo.fullName}}, {{room.roomNumber}}, {{contract.rentAmount}}, {{startDate}}, {{endDate}}, {{#each renters}}...{{/each}}'}
-              </code>
-            </div>
-          </Modal>
-
-          {/* Preview Drawer */}
-          <Drawer
-            open={!!previewing}
-            onClose={() => setPreviewing(null)}
-            title={`Preview: ${previewing?.name}`}
-            width={isMobile ? '100%' : 700}
-            placement={isMobile ? "bottom" : "right"}
-            height={isMobile ? "80%" : undefined}
-          >
+            {/* Main Table Section */}
             <div style={{ 
-              background: '#fff', 
-              padding: isMobile ? 16 : 24, 
-              minHeight: isMobile ? 300 : 400 
+              background: 'white', 
+              borderRadius: 8, 
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              overflow: 'hidden'
             }}>
-              <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
+              <Table 
+                columns={columns} 
+                dataSource={templates} 
+                rowKey="id" 
+                loading={loading} 
+                pagination={false}
+                scroll={{ x: isMobile ? 400 : 'auto' }}
+                size={isMobile ? "small" : "middle"}
+                style={{ fontSize: isMobile ? "12px" : "14px" }}
+                bordered
+              />
             </div>
+
+            {/* Edit Modal */}
+            <Modal
+              open={!!editing}
+              onCancel={() => setEditing(null)}
+              title={editing?.id ? 'Chỉnh sửa mẫu hợp đồng' : 'Tạo mẫu hợp đồng mới'}
+              onOk={() => form.submit()}
+              okText="Lưu"
+              cancelText="Hủy"
+              width={isMobile ? '95%' : 800}
+              style={{ top: isMobile ? 20 : 100 }}
+            >
+              <Form
+                form={form}
+                initialValues={editing}
+                onFinish={handleSave}
+                layout="vertical"
+                id="template-form"
+              >
+                <Form.Item name="name" label="Tên mẫu" rules={[{ required: true, message: 'Vui lòng nhập tên mẫu!' }]}>
+                  <Input />
+                </Form.Item>
+                <Form.Item name="content" label="Nội dung mẫu (HTML, hỗ trợ biến Handlebars)" rules={[{ required: true, message: 'Vui lòng nhập nội dung mẫu!' }]}>
+                  <Input.TextArea rows={isMobile ? 8 : 12} />
+                </Form.Item>
+              </Form>
+              <div style={{ marginTop: 16, fontSize: isMobile ? 11 : 13, color: '#888' }}>
+                <b>Biến có thể sử dụng:</b> <br />
+                <code style={{ fontSize: isMobile ? 10 : 12 }}>
+                  {'{{landlord.userInfo.fullName}}, {{room.roomNumber}}, {{contract.rentAmount}}, {{startDate}}, {{endDate}}, {{#each renters}}...{{/each}}'}
+                </code>
+              </div>
+            </Modal>
+
+            {/* Preview Drawer */}
+            <Drawer
+              open={!!previewing}
+              onClose={() => setPreviewing(null)}
+              title={`Preview: ${previewing?.name}`}
+              width={isMobile ? '100%' : 700}
+              placement={isMobile ? "bottom" : "right"}
+              height={isMobile ? "80%" : undefined}
+            >
+              <div style={{ 
+                background: '#fff', 
+                padding: isMobile ? 16 : 24, 
+                minHeight: isMobile ? 300 : 400 
+              }}>
+                <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
+              </div>
+            </Drawer>
+          </Content>
+        </Layout>
+        
+        {/* Mobile Drawer cho Sidebar */}
+        {isMobile && (
+          <Drawer
+            title="Menu"
+            placement="left"
+            onClose={() => setSidebarDrawerOpen(false)}
+            open={sidebarDrawerOpen}
+            width={280}
+            bodyStyle={{ padding: 0 }}
+          >
+            <LandlordSidebar isDrawer={true} onMenuClick={() => setSidebarDrawerOpen(false)} />
           </Drawer>
-        </div>
-      </div>
+        )}
+      </Layout>
     </div>
   );
 } 
