@@ -94,3 +94,12 @@ export const getAssetStats = async () => {
   });
   return stats;
 };
+
+export const checkDuplicateAssetName = async (assetName, excludeId = null) => {
+  let url = `/assets/check-duplicate?assetName=${encodeURIComponent(assetName)}`;
+  if (excludeId) {
+    url += `&excludeId=${excludeId}`;
+  }
+  const response = await axiosClient.get(url);
+  return response.data.isDuplicate;
+};

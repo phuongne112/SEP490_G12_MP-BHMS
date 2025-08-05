@@ -16,4 +16,5 @@ public interface AssetService {
     List<AssetDTO> findByAssetName(String assetName);
     ResultPaginationDTO searchAssets(String assetName, String assetStatus, Integer minQuantity, Integer maxQuantity, Pageable pageable);
     AssetDTO assignAssetToRoom(Long assetId, Long roomId);
+    boolean isAssetNameDuplicate(String assetName, Long excludeId);
 } 
