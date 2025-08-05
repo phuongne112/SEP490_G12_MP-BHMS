@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Pagination, Input, Button, Space, Popover, message, Form, InputNumber, Select, Upload, Switch, Modal, Card, Row, Col, Drawer } from "antd";
+import { Layout, Pagination, Input, Button, Space, Popover, message, Form, InputNumber, Select, Upload, Switch, Modal, Card, Row, Col, Drawer, ConfigProvider } from "antd";
 import {
   SearchOutlined,
   PlusOutlined,
@@ -16,6 +16,7 @@ import { useSelector } from "react-redux";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import { useMediaQuery } from "react-responsive";
 import axiosClient from "../../services/axiosClient";
+import locale from "antd/es/locale/vi_VN";
 
 import image1 from "../../assets/RoomImage/image1.png";
 import image2 from "../../assets/RoomImage/image2.png";
@@ -80,7 +81,7 @@ export default function LandlordRoomListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rooms, setRooms] = useState([]);
   const [total, setTotal] = useState(0);
-  const pageSize = isMobile ? 4 : 6;
+  const pageSize = isMobile ? 4 : 5;
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const user = useSelector((state) => state.account.user);
@@ -240,7 +241,8 @@ export default function LandlordRoomListPage() {
   };
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh' }}>
+    <ConfigProvider locale={locale}>
+      <div style={{ width: '100%', minHeight: '100vh' }}>
       <style>
         {`
           @media (max-width: 768px) {
@@ -638,6 +640,7 @@ export default function LandlordRoomListPage() {
           )}
         </Drawer>
       )}
-    </div>
+      </div>
+    </ConfigProvider>
   );
 }
