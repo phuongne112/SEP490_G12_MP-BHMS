@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Layout, Pagination, Input, Button, Space, Popover, message, Form, InputNumber, Select, Upload, Switch, Modal, Card, Row, Col, Drawer, ConfigProvider } from "antd";
 import {
   SearchOutlined,
@@ -81,7 +81,7 @@ export default function LandlordRoomListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rooms, setRooms] = useState([]);
   const [total, setTotal] = useState(0);
-  const pageSize = isMobile ? 4 : 5;
+  const [pageSize, setPageSize] = useState(isMobile ? 4 : 5);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const user = useSelector((state) => state.account.user);
@@ -93,7 +93,7 @@ export default function LandlordRoomListPage() {
   const [addRoomLoading, setAddRoomLoading] = useState(false);
 
   // Tạo filter DSL cho backend
-  const buildFilterDSL = () => {
+  const buildFilterDSL = useCallback(() => {
     let filters = [];
     if (search) filters.push(`roomNumber~'*${search}*'`);
     if (filter.status) filters.push(`roomStatus='${filter.status}'`);
@@ -118,9 +118,9 @@ export default function LandlordRoomListPage() {
     if (filter.isActive != null) filters.push(`isActive=${filter.isActive}`);
     
     return filters.join(" and ");
-  };
+  }, [search, filter]);
 
-  const fetchRooms = async () => {
+  const fetchRooms = useCallback(async () => {
     setLoading(true);
     try {
       const filterDSL = buildFilterDSL();
@@ -131,12 +131,16 @@ export default function LandlordRoomListPage() {
       message.error("Không thể tải danh sách phòng");
     }
     setLoading(false);
-  };
+  }, [currentPage, pageSize, buildFilterDSL]);
 
   useEffect(() => {
     fetchRooms();
-    // eslint-disable-next-line
-  }, [search, filter, currentPage]);
+  }, [fetchRooms]);
+
+  // Cập nhật pageSize khi isMobile thay đổi
+  useEffect(() => {
+    setPageSize(isMobile ? 4 : 5);
+  }, [isMobile]);
 
   const handleSearch = () => setCurrentPage(1);
   const handleFilter = (newFilter) => {
@@ -429,15 +433,25 @@ export default function LandlordRoomListPage() {
               padding: "16px",
               boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
             }}>
-              <Pagination
-                current={currentPage}
-                pageSize={pageSize}
-                total={total}
-                onChange={(page) => setCurrentPage(page)}
-                size={isMobile ? "small" : "default"}
-                showSizeChanger={!isMobile}
-                showQuickJumper={!isMobile}
-              />
+                             <Pagination
+                 current={currentPage}
+                 pageSize={pageSize}
+                 total={total}
+                 onChange={(page, size) => {
+                   setCurrentPage(page);
+                   if (size && size !== pageSize) {
+                     setPageSize(size);
+                   }
+                 }}
+                 onShowSizeChange={(current, size) => {
+                   setPageSize(size);
+                   setCurrentPage(1); // Reset về trang đầu khi thay đổi pageSize
+                 }}
+                 size={isMobile ? "small" : "default"}
+                 showSizeChanger={!isMobile}
+                 showQuickJumper={!isMobile}
+                 pageSizeOptions={['5', '10', '20', '50', '100']}
+               />
             </div>
 
             {/* Add Room Modal */}
