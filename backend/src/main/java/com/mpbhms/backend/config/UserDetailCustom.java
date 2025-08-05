@@ -28,7 +28,8 @@ public class UserDetailCustom implements UserDetailsService {
         System.out.println("Password hash: " + user.getPassword());
         // Bổ sung kiểm tra trạng thái tài khoản
         if (!user.getIsActive()) {
-            throw new DisabledException("User has been de-activated");
+            //throw new DisabledException("User has been de-activated");
+            throw new DisabledException("Tài khoản đã bị vô hiệu hóa");
         }
 
         String role = user.getRole() != null ? user.getRole().getRoleName() : "ROLE_GUEST";

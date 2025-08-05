@@ -103,4 +103,13 @@ public class AssetController {
         Long roomId = request.get("roomId");
         return ResponseEntity.ok(assetService.assignAssetToRoom(assetId, roomId));
     }
+
+    @GetMapping("/check-duplicate")
+    public ResponseEntity<Map<String, Boolean>> checkDuplicateAssetName(
+            @RequestParam String assetName,
+            @RequestParam(required = false) Long excludeId
+    ) {
+        boolean isDuplicate = assetService.isAssetNameDuplicate(assetName, excludeId);
+        return ResponseEntity.ok(Map.of("isDuplicate", isDuplicate));
+    }
 } 

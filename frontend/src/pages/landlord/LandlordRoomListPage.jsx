@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Layout, Pagination, Input, Button, Space, Popover, message, Form, InputNumber, Select, Upload, Switch, Modal, Card, Row, Col, Drawer } from "antd";
+import React, { useState, useEffect, useCallback } from "react";
+import { Layout, Pagination, Input, Button, Space, Popover, message, Form, InputNumber, Select, Upload, Switch, Modal, Card, Row, Col, Drawer, ConfigProvider } from "antd";
 import {
   SearchOutlined,
   PlusOutlined,
@@ -16,6 +16,7 @@ import { useSelector } from "react-redux";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import { useMediaQuery } from "react-responsive";
 import axiosClient from "../../services/axiosClient";
+import locale from "antd/es/locale/vi_VN";
 
 import image1 from "../../assets/RoomImage/image1.png";
 import image2 from "../../assets/RoomImage/image2.png";
@@ -80,7 +81,7 @@ export default function LandlordRoomListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rooms, setRooms] = useState([]);
   const [total, setTotal] = useState(0);
-  const pageSize = isMobile ? 4 : 6;
+  const [pageSize, setPageSize] = useState(isMobile ? 4 : 5);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const user = useSelector((state) => state.account.user);
@@ -92,7 +93,7 @@ export default function LandlordRoomListPage() {
   const [addRoomLoading, setAddRoomLoading] = useState(false);
 
   // Tạo filter DSL cho backend
-  const buildFilterDSL = () => {
+  const buildFilterDSL = useCallback(() => {
     let filters = [];
     if (search) filters.push(`roomNumber~'*${search}*'`);
     if (filter.status) filters.push(`roomStatus='${filter.status}'`);
@@ -117,9 +118,9 @@ export default function LandlordRoomListPage() {
     if (filter.isActive != null) filters.push(`isActive=${filter.isActive}`);
     
     return filters.join(" and ");
-  };
+  }, [search, filter]);
 
-  const fetchRooms = async () => {
+  const fetchRooms = useCallback(async () => {
     setLoading(true);
     try {
       const filterDSL = buildFilterDSL();
@@ -130,12 +131,16 @@ export default function LandlordRoomListPage() {
       message.error("Không thể tải danh sách phòng");
     }
     setLoading(false);
-  };
+  }, [currentPage, pageSize, buildFilterDSL]);
 
   useEffect(() => {
     fetchRooms();
-    // eslint-disable-next-line
-  }, [search, filter, currentPage]);
+  }, [fetchRooms]);
+
+  // Cập nhật pageSize khi isMobile thay đổi
+  useEffect(() => {
+    setPageSize(isMobile ? 4 : 5);
+  }, [isMobile]);
 
   const handleSearch = () => setCurrentPage(1);
   const handleFilter = (newFilter) => {
@@ -165,6 +170,35 @@ export default function LandlordRoomListPage() {
   };
 
   const handleAddRoomFinish = async (values) => {
+    console.log('Form values:', values); // Debug log
+    
+    // Kiểm tra validation trước khi submit
+    const maxOccupants = Number(values.maxOccupants);
+    console.log('maxOccupants value:', maxOccupants, 'type:', typeof maxOccupants); // Debug log
+    
+    if (isNaN(maxOccupants) || maxOccupants < 1 || maxOccupants > 3) {
+      message.error("Số người tối đa chỉ được từ 1-3 người");
+      addRoomForm.setFields([
+        {
+          name: 'maxOccupants',
+          errors: ['Số người tối đa chỉ được từ 1-3 người']
+        }
+      ]);
+      return;
+    }
+    
+    // Kiểm tra thêm một lần nữa trước khi gửi request
+    if (maxOccupants < 1 || maxOccupants > 3) {
+      message.error("Số người tối đa chỉ được từ 1-3 người. Vui lòng kiểm tra lại!");
+      return;
+    }
+    
+    // Kiểm tra cuối cùng trước khi tạo roomDTO
+    if (values.maxOccupants < 1 || values.maxOccupants > 3) {
+      message.error("Số người tối đa không hợp lệ!");
+      return;
+    }
+    
     setAddRoomLoading(true);
     try {
       const roomNumber = values.building + values.roomNumberSuffix;
@@ -240,7 +274,8 @@ export default function LandlordRoomListPage() {
   };
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh' }}>
+    <ConfigProvider locale={locale}>
+      <div style={{ width: '100%', minHeight: '100vh' }}>
       <style>
         {`
           @media (max-width: 768px) {
@@ -427,15 +462,25 @@ export default function LandlordRoomListPage() {
               padding: "16px",
               boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
             }}>
-              <Pagination
-                current={currentPage}
-                pageSize={pageSize}
-                total={total}
-                onChange={(page) => setCurrentPage(page)}
-                size={isMobile ? "small" : "default"}
-                showSizeChanger={!isMobile}
-                showQuickJumper={!isMobile}
-              />
+                             <Pagination
+                 current={currentPage}
+                 pageSize={pageSize}
+                 total={total}
+                 onChange={(page, size) => {
+                   setCurrentPage(page);
+                   if (size && size !== pageSize) {
+                     setPageSize(size);
+                   }
+                 }}
+                 onShowSizeChange={(current, size) => {
+                   setPageSize(size);
+                   setCurrentPage(1); // Reset về trang đầu khi thay đổi pageSize
+                 }}
+                 size={isMobile ? "small" : "default"}
+                 showSizeChanger={!isMobile}
+                 showQuickJumper={!isMobile}
+                 pageSizeOptions={['5', '10', '20', '50', '100']}
+               />
             </div>
 
             {/* Add Room Modal */}
@@ -451,19 +496,22 @@ export default function LandlordRoomListPage() {
                 <div style={{ display: "flex", gap: 24, flexWrap: 'wrap', alignItems: 'stretch', justifyContent: 'center' }}>
                   <Card title="Thông tin phòng" style={{ flex: 1, minWidth: '500px', textAlign: 'left', minHeight: '450px' }}>
                     <div style={{ padding: '8px 0' }}>
-                      <Form
-                        layout="vertical"
-                        form={addRoomForm}
-                        onFinish={handleAddRoomFinish}
-                        initialValues={{
-                          area: 20,
-                          price: 1000000,
-                          numberOfBedrooms: 1,
-                          numberOfBathrooms: 1,
-                          roomStatus: "Available",
-                          isActive: true,
-                        }}
-                      >
+                                             <Form
+                         layout="vertical"
+                         form={addRoomForm}
+                         onFinish={handleAddRoomFinish}
+                         onFinishFailed={(errorInfo) => {
+                           console.log('Form validation failed:', errorInfo);
+                         }}
+                         initialValues={{
+                           area: 20,
+                           price: 1000000,
+                           numberOfBedrooms: 1,
+                           numberOfBathrooms: 1,
+                           roomStatus: "Available",
+                           isActive: true,
+                         }}
+                       >
                         <Row gutter={16}>
                           <Col span={12}>
                             <Form.Item
@@ -544,15 +592,94 @@ export default function LandlordRoomListPage() {
                               <InputNumber min={1} max={10} style={{ width: "100%" }} />
                             </Form.Item>
                           </Col>
-                          <Col span={12}>
-                            <Form.Item
-                              name="maxOccupants"
-                              label="Số người tối đa"
-                              rules={[{ required: true, message: "Vui lòng nhập số người tối đa" }]}
-                            >
-                              <InputNumber min={1} max={20} style={{ width: "100%" }} />
-                            </Form.Item>
-                          </Col>
+                                                     <Col span={12}>
+                                                                                            <Form.Item
+                                 name="maxOccupants"
+                                 label="Số người tối đa"
+                                 rules={[
+                                   { required: true, message: "Vui lòng nhập số người tối đa" },
+                                   { 
+                                     validator: (_, value) => {
+                                       if (!value) {
+                                         return Promise.reject(new Error("Vui lòng nhập số người tối đa"));
+                                       }
+                                       const numValue = Number(value);
+                                       if (isNaN(numValue) || numValue < 1 || numValue > 3) {
+                                         return Promise.reject(new Error("Số người tối đa chỉ được từ 1-3 người"));
+                                       }
+                                       return Promise.resolve();
+                                     }
+                                   }
+                                 ]}
+                                 validateTrigger={['onChange', 'onBlur', 'onSubmit']}
+                               >
+                                                                 <InputNumber 
+                                   min={1} 
+                                   style={{ width: "100%" }} 
+                                   placeholder="Nhập số người (1-3)"
+                                   step={1}
+                                   precision={0}
+                                   onChange={(value) => {
+                                     console.log('InputNumber onChange - value:', value, 'type:', typeof value); // Debug log
+                                     // Kiểm tra ngay khi thay đổi giá trị
+                                     if (value !== null && value !== undefined) {
+                                       const numValue = Number(value);
+                                       console.log('InputNumber onChange - numValue:', numValue); // Debug log
+                                       if (isNaN(numValue) || numValue < 1) {
+                                         console.log('InputNumber onChange - validation failed (too small)'); // Debug log
+                                         addRoomForm.setFields([
+                                           {
+                                             name: 'maxOccupants',
+                                             errors: ['Số người tối đa phải lớn hơn 0']
+                                           }
+                                         ]);
+                                       } else if (numValue > 3) {
+                                         console.log('InputNumber onChange - validation failed (too large)'); // Debug log
+                                         addRoomForm.setFields([
+                                           {
+                                             name: 'maxOccupants',
+                                             errors: ['Số người tối đa chỉ được từ 1-3 người']
+                                           }
+                                         ]);
+                                       } else {
+                                         console.log('InputNumber onChange - validation passed'); // Debug log
+                                         addRoomForm.setFields([
+                                           {
+                                             name: 'maxOccupants',
+                                             errors: []
+                                           }
+                                         ]);
+                                       }
+                                     }
+                                   }}
+                                   onBlur={(e) => {
+                                     const value = Number(e.target.value);
+                                     if (value && value < 1) {
+                                       addRoomForm.setFields([
+                                         {
+                                           name: 'maxOccupants',
+                                           errors: ['Số người tối đa phải lớn hơn 0']
+                                         }
+                                       ]);
+                                     } else if (value && value > 3) {
+                                       addRoomForm.setFields([
+                                         {
+                                           name: 'maxOccupants',
+                                           errors: ['Số người tối đa chỉ được từ 1-3 người']
+                                         }
+                                       ]);
+                                     }
+                                   }}
+                                   onKeyPress={(e) => {
+                                     // Cho phép nhập số từ 0-9
+                                     const char = String.fromCharCode(e.which);
+                                     if (!/[0-9]/.test(char)) {
+                                       e.preventDefault();
+                                     }
+                                   }}
+                                 />
+                              </Form.Item>
+                           </Col>
                           <Col span={12}>
                             <Form.Item
                               name="isActive"
@@ -599,15 +726,46 @@ export default function LandlordRoomListPage() {
                 </div>
 
                 <Card style={{ marginTop: 24, textAlign: 'center' }}>
-                  <Button 
-                    type="primary" 
-                    loading={addRoomLoading} 
-                    size="large"
-                    style={{ marginRight: 16 }}
-                    onClick={() => addRoomForm.submit()}
-                  >
-                    Thêm phòng
-                  </Button>
+                                     <Button 
+                     type="primary" 
+                     loading={addRoomLoading} 
+                     size="large"
+                     style={{ marginRight: 16 }}
+                     onClick={async () => {
+                       try {
+                         const values = await addRoomForm.validateFields();
+                         console.log('Button validation - values:', values); // Debug log
+                         
+                         // Kiểm tra thêm validation cho maxOccupants
+                         const maxOccupants = Number(values.maxOccupants);
+                         console.log('Button validation - maxOccupants:', maxOccupants); // Debug log
+                         
+                         if (isNaN(maxOccupants) || maxOccupants < 1 || maxOccupants > 3) {
+                           message.error("Số người tối đa chỉ được từ 1-3 người");
+                           addRoomForm.setFields([
+                             {
+                               name: 'maxOccupants',
+                               errors: ['Số người tối đa chỉ được từ 1-3 người']
+                             }
+                           ]);
+                           return;
+                         }
+                         
+                         // Kiểm tra thêm một lần nữa
+                         if (values.maxOccupants < 1 || values.maxOccupants > 3) {
+                           message.error("Số người tối đa không hợp lệ!");
+                           return;
+                         }
+                         
+                         addRoomForm.submit();
+                       } catch (error) {
+                         console.log('Validation failed:', error);
+                         message.error("Vui lòng kiểm tra lại thông tin!");
+                       }
+                     }}
+                   >
+                     Thêm phòng
+                   </Button>
                   <Button 
                     size="large"
                     onClick={handleAddRoomModalClose}
@@ -638,6 +796,7 @@ export default function LandlordRoomListPage() {
           )}
         </Drawer>
       )}
-    </div>
+      </div>
+    </ConfigProvider>
   );
 }

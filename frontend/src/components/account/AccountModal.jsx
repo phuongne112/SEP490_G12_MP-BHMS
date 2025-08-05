@@ -18,6 +18,7 @@ import {
   logout,
 } from "../../services/authService";
 import ChangePasswordModal from "./ChangePasswordModal";
+import { getRoleDisplayName } from "../../utils/roleUtils";
 
 export default function AccountModal({ open, onClose }) {
   const [loading, setLoading] = useState(true);
@@ -150,7 +151,7 @@ export default function AccountModal({ open, onClose }) {
               </Descriptions.Item>
               <Descriptions.Item label="Email">{user?.email}</Descriptions.Item>
               <Descriptions.Item label="Vai trò">
-                {user?.role?.roleName}
+                {getRoleDisplayName(user?.role?.roleName)}
               </Descriptions.Item>
             </Descriptions>
             <div style={{ textAlign: "right", marginTop: 16 }}>

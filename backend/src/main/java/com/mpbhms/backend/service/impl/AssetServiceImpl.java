@@ -44,6 +44,11 @@ public class AssetServiceImpl implements AssetService {
 
     @Override
     public AssetDTO createAsset(AssetDTO assetDTO) {
+        // Kiểm tra tên tài sản trùng lặp trước khi tạo
+        if (isAssetNameDuplicate(assetDTO.getAssetName(), null)) {
+            throw new RuntimeException("Tên tài sản đã tồn tại (không phân biệt chữ hoa/thường). Vui lòng chọn tên khác.");
+        }
+        
         Asset asset = toEntity(assetDTO);
         asset.setId(null); // ensure new
         if (assetDTO.getRoomId() != null) {
@@ -57,6 +62,12 @@ public class AssetServiceImpl implements AssetService {
     @Override
     public AssetDTO updateAsset(Long id, AssetDTO assetDTO) {
         Asset asset = assetRepository.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy tài sản"));
+        
+        // Kiểm tra tên tài sản trùng lặp trước khi cập nhật (loại trừ tài sản hiện tại)
+        if (isAssetNameDuplicate(assetDTO.getAssetName(), id)) {
+            throw new RuntimeException("Tên tài sản đã tồn tại (không phân biệt chữ hoa/thường). Vui lòng chọn tên khác.");
+        }
+        
         asset.setAssetName(assetDTO.getAssetName());
         asset.setQuantity(assetDTO.getQuantity());
         asset.setConditionNote(assetDTO.getConditionNote());
@@ -109,6 +120,22 @@ public class AssetServiceImpl implements AssetService {
         Room room = roomRepository.findById(roomId).orElseThrow(() -> new RuntimeException("Không tìm thấy phòng"));
         asset.setRoom(room);
         return toDTO(assetRepository.save(asset));
+    }
+
+    @Override
+    public boolean isAssetNameDuplicate(String assetName, Long excludeId) {
+        // Chuẩn hóa tên tài sản về chữ thường để so sánh
+        String normalizedAssetName = assetName.toLowerCase().trim();
+        
+        // Lấy tất cả tài sản và kiểm tra tên đã chuẩn hóa
+        List<Asset> allAssets = assetRepository.findAll();
+        return allAssets.stream()
+            .anyMatch(asset -> {
+                String existingAssetName = asset.getAssetName().toLowerCase().trim();
+                boolean isDuplicate = existingAssetName.equals(normalizedAssetName);
+                boolean shouldExclude = excludeId != null && asset.getId().equals(excludeId);
+                return isDuplicate && !shouldExclude;
+            });
     }
 
     private String normalizeAssetStatus(String status) {

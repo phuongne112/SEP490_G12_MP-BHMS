@@ -4,6 +4,7 @@ public enum NotificationType {
     RENT_REMINDER("Nhắc nhở tiền phòng"),
     MAINTENANCE("Bảo trì"),
     BOOKING_STATUS("Trạng thái đặt phòng"),
+    SCHEDULE("Lịch hẹn"),
     ANNOUNCEMENT("Thông báo chung"),
     SERVICE_UPDATE("Cập nhật dịch vụ"),
     USER_UPDATE("Cập nhật người dùng"),

@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { logout as logoutService } from "../../services/authService";
 import { getAccountInfo, getPersonalInfo } from "../../services/userApi";
 import { useNavigate } from "react-router-dom";
+import { getRoleDisplayName } from "../../utils/roleUtils";
 
 export default function UserMenu() {
   const dispatch = useDispatch();
@@ -107,7 +108,7 @@ export default function UserMenu() {
           {user?.email || user?.fullName || user?.username || "User"}
           {user?.role?.roleName ? (
             <span style={{ color: "#aaa", fontSize: 12, marginLeft: 4 }}>
-              ({user.role.roleName})
+              ({getRoleDisplayName(user.role.roleName)})
             </span>
           ) : null}
         </div>
@@ -121,9 +122,10 @@ export default function UserMenu() {
       >
         {accountData ? (
           <ul>
-            <li><strong>Username:</strong> {accountData.username}</li>
+            <li><strong>Tên người dùng:</strong> {accountData.username}</li>
             <li><strong>Email:</strong> {accountData.email}</li>
             <li><strong>Họ tên:</strong> {accountData.fullName}</li>
+            <li><strong>Vai trò:</strong> {getRoleDisplayName(accountData.role?.roleName)}</li>
           </ul>
         ) : (
           <Spin />
