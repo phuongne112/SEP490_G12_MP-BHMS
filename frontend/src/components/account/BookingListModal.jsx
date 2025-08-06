@@ -22,21 +22,27 @@ export default function BookingListModal({ open, onClose, currentUser }) {
     setLoading(true);
     try {
       let allBookings = [];
+      
+      // Sử dụng scheduleApi thay vì axiosClient trực tiếp
       if (currentUser?.role?.roleName === "RENTER" && currentUser?.id) {
-        const byId = await axiosClient.get(`/schedules/my?renterId=${currentUser.id}`);
+        // Nếu là renter, lấy theo renterId
+        const byId = await scheduleApi.getMySchedules({ renterId: currentUser.id });
         allBookings = byId.data || [];
-        if (currentUser?.email) {
-          const byEmail = await axiosClient.get(`/schedules/my?email=${encodeURIComponent(currentUser.email)}`);
-          // Gộp hai mảng, loại trùng id
-          const ids = new Set(allBookings.map(b => b.id));
-          allBookings = allBookings.concat((byEmail.data || []).filter(b => !ids.has(b.id)));
-        }
-      } else if (currentUser?.email) {
-        const byEmail = await axiosClient.get(`/schedules/my?email=${encodeURIComponent(currentUser.email)}`);
-        allBookings = byEmail.data || [];
       }
+      
+      // Nếu có email, cũng lấy theo email để đảm bảo không bỏ sót
+      if (currentUser?.email) {
+        const byEmail = await scheduleApi.getMySchedules({ email: currentUser.email });
+        const emailBookings = byEmail.data || [];
+        
+        // Gộp hai mảng, loại trùng id
+        const ids = new Set(allBookings.map(b => b.id));
+        allBookings = allBookings.concat(emailBookings.filter(b => !ids.has(b.id)));
+      }
+      
       setBookings(allBookings);
     } catch (e) {
+      console.error("Error fetching bookings:", e);
       setBookings([]);
     } finally {
       setLoading(false);
@@ -94,7 +100,7 @@ export default function BookingListModal({ open, onClose, currentUser }) {
   };
 
   const bookingColumns = [
-    { title: "Phòng", dataIndex: "roomId", key: "roomId" },
+    { title: "Phòng", dataIndex: "room", key: "room", render: (room) => room?.roomNumber || 'N/A' },
     { title: "Tên", dataIndex: "fullName", key: "fullName" },
     { title: "SĐT", dataIndex: "phone", key: "phone" },
     { title: "Thời gian", dataIndex: "appointmentTime", key: "appointmentTime",
@@ -106,7 +112,7 @@ export default function BookingListModal({ open, onClose, currentUser }) {
         if (s === "PENDING") return "Chờ xác nhận";
         if (s === "CONFIRMED") return "Đã xác nhận";
         if (s === "COMPLETED") return "Hoàn thành";
-        if (s === "CANCELLED") return "Đã hủy";
+        if (s === "CANCELLED") return "Từ chối";
         return s;
       }
     },

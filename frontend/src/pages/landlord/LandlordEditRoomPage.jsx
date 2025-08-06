@@ -1,187 +1,124 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Layout,
+  Button,
   Form,
   Input,
   InputNumber,
-  Button,
   Select,
   Upload,
   message,
+  Card,
   Row,
   Col,
-  Switch,
-  Card,
+  Drawer,
 } from "antd";
-import { PlusOutlined, ArrowLeftOutlined } from "@ant-design/icons";
-import LandlordSidebar from "../../components/layout/LandlordSidebar";
-import PageHeader from "../../components/common/PageHeader";
-import axiosClient from "../../services/axiosClient";
+import {
+  ArrowLeftOutlined,
+  UploadOutlined,
+  MenuOutlined,
+} from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
+import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import AdminSidebar from "../../components/layout/AdminSidebar";
-import { BACKEND_URL } from "../../services/axiosClient";
+import PageHeader from "../../components/common/PageHeader";
+import { getRoomById, updateRoom } from "../../services/roomService";
+import { useMediaQuery } from "react-responsive";
 
 const { Sider, Content } = Layout;
-const { TextArea } = Input;
 const { Option } = Select;
 
 export default function LandlordEditRoomPage() {
-  const [form] = Form.useForm();
-  const [fileList, setFileList] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [initialValues, setInitialValues] = useState(null);
-  const [keepImageIds, setKeepImageIds] = useState([]);
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+  const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
   const navigate = useNavigate();
   const { id } = useParams();
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const [hasActiveUser, setHasActiveUser] = useState(false);
   const user = useSelector((state) => state.account.user);
 
   useEffect(() => {
     const fetchRoom = async () => {
+      setLoading(true);
       try {
-        const res = await axiosClient.get(`/rooms/${id}`);
-        const room = res.data;
-        console.log("Dữ liệu phòng từ API:", room); // Log dữ liệu phòng
-        if (!room) throw new Error("Không tìm thấy phòng");
-
-        const building = room.building || "";
-        const roomNumberSuffix = room.roomNumber?.replace(building, "") || "";
-
-        const initVals = {
-          building,
-          roomNumberSuffix,
-          area: room.area,
-          price: room.pricePerMonth,
-          roomStatus: room.roomStatus,
-          numberOfBedrooms: room.numberOfBedrooms,
-          numberOfBathrooms: room.numberOfBathrooms,
-          description: room.description,
-          maxOccupants: room.maxOccupants,
-          isActive: room.isActive,
-          roomUsers: room.roomUsers || [], // THÊM DÒNG NÀY
-        };
-        console.log("initialValues khi set:", initVals); // Log initialValues
-        setInitialValues(initVals);
-        form.setFieldsValue(initVals);
+        const res = await getRoomById(id);
+        const room = res.result || res.data;
         
-        // Đảm bảo description được set đúng
-        setTimeout(() => {
-          form.setFieldsValue({ description: room.description || "" });
-        }, 100);
-
-        setFileList(
-          (room.images || []).map((img) => {
-            let url = img.imageUrl;
-            if (url && !url.startsWith("http")) {
-              url = BACKEND_URL + url;
-            }
-            return {
-              uid: String(img.id),
-              name: url.split("/").pop(),
-              status: "done",
-              url,
-              id: img.id,
-            };
-          })
-        );
-        setKeepImageIds((room.images || []).map((img) => img.id));
-      } catch (e) {
-        message.error("Tải dữ liệu phòng thất bại!");
-        navigate("/landlord/rooms");
+        if (room) {
+          form.setFieldsValue({
+            building: room.building,
+            roomNumberSuffix: room.roomNumberSuffix,
+            area: room.area,
+            price: room.price,
+            roomStatus: room.roomStatus,
+            maxOccupants: room.maxOccupants,
+            description: room.description,
+          });
+          
+          // Kiểm tra xem phòng có người thuê đang hoạt động không
+          setHasActiveUser(room.roomUsers && room.roomUsers.some(ru => ru.status === 'ACTIVE'));
+        }
+      } catch (err) {
+        message.error("Không thể tải thông tin phòng");
       }
+      setLoading(false);
     };
-    fetchRoom();
-  }, [id, form, navigate]);
+    
+    if (id) {
+      fetchRoom();
+    }
+  }, [id, form]);
 
   const handleUploadChange = ({ fileList: newFileList }) => {
-    setFileList(newFileList);
-    // Chỉ giữ lại những ảnh cũ (có id) và không bị xóa (status !== 'removed')
-    setKeepImageIds(newFileList.filter((f) => f.id && f.status !== 'removed').map((f) => f.id));
+    // Xử lý upload ảnh nếu cần
   };
 
   const handleFinish = async (values) => {
-    setLoading(true);
     try {
-      const roomNumber = values.building + values.roomNumberSuffix;
-      const roomDTO = {
-        roomNumber,
-        area: values.area,
-        pricePerMonth: values.price,
-        roomStatus: values.roomStatus,
-        numberOfBedrooms: values.numberOfBedrooms,
-        numberOfBathrooms: values.numberOfBathrooms,
-        description: form.getFieldValue('description') || values.description || "",
-        maxOccupants: values.maxOccupants,
-        isActive: values.isActive,
-        building: values.building,
-      };
-
-      const formData = new FormData();
-      formData.append("room", JSON.stringify(roomDTO));
-      // Luôn gửi keepImageIds, có thể là mảng rỗng nếu xóa hết ảnh
-      formData.append("keepImageIds", JSON.stringify(keepImageIds || []));
-
-      fileList.forEach((file) => {
-        if (!file.id && file.originFileObj) {
-          formData.append("images", file.originFileObj);
-        }
-      });
-
-      await axiosClient.post(`/rooms/${id}`, formData);
-
+      await updateRoom(id, values);
       message.success("Cập nhật phòng thành công!");
-      if (
-        user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
-        user?.role?.roleName?.toUpperCase?.() === "SUBADMIN"
-      ) {
-        navigate("/admin/rooms");
-      } else {
-        navigate("/landlord/rooms");
-      }
+      navigate("/landlord/rooms");
     } catch (err) {
-      const res = err.response?.data;
-      if (res && typeof res === "object") {
-        if (res.message) {
-          message.error(res.message);
-        } else {
-          const firstError = Object.values(res)[0];
-          message.error(firstError || "Vui lòng kiểm tra lại các trường thông tin!");
-        }
-
-        const fieldErrors = Object.entries(res).map(([field, msg]) => ({
-          name: field,
-          errors: [msg],
-        }));
-        form.setFields(fieldErrors);
-      } else {
-        message.error("Cập nhật phòng thất bại!");
-      }
+      message.error(err.response?.data?.message || "Cập nhật phòng thất bại");
     }
-    setLoading(false);
   };
-
-  if (!initialValues) {
-    return <div style={{ textAlign: "center", padding: 60 }}>Loading...</div>;
-  }
-
-  console.log("initialValues khi render:", initialValues); // Log initialValues khi render
-  const hasActiveUser = initialValues && initialValues.roomUsers && initialValues.roomUsers.filter(u => u.isActive).length > 0;
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <Sider width={220}>
-        {user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
-        user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
-          <AdminSidebar />
-        ) : (
-          <LandlordSidebar />
-        )}
-      </Sider>
-      <Layout>
+      {/* Mobile Header */}
+      {isMobile && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1001,
+          background: 'white',
+          borderBottom: '1px solid #f0f0f0',
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Button
+              type="text"
+              icon={<MenuOutlined />}
+              onClick={() => setSidebarDrawerOpen(true)}
+              style={{ padding: 4 }}
+            />
+            <div style={{ fontWeight: 600, fontSize: 16 }}>Chỉnh sửa phòng</div>
+          </div>
+        </div>
+      )}
+      
+      <Layout style={{ marginLeft: 0 }}>
         <Content
           style={{
-            padding: "24px",
-            paddingTop: "32px",
+            padding: isMobile ? '60px 16px 16px' : "24px",
+            paddingTop: isMobile ? '60px' : "32px",
             background: "#fff",
             borderRadius: 8,
           }}
@@ -207,212 +144,142 @@ export default function LandlordEditRoomPage() {
           </div>
           
           <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-                         <div style={{ display: "flex", gap: 24, flexWrap: 'wrap', alignItems: 'stretch', justifyContent: 'center' }}>
-                <Card 
-                  title="Thông tin phòng" 
-                  style={{ 
-                    flex: 1, 
-                    minWidth: '500px', 
-                    textAlign: 'left', 
-                    minHeight: '450px',
-                    opacity: hasActiveUser ? 0.7 : 1
-                  }}
-                >
-                  <div style={{ padding: '8px 0' }}>
-                    <Form layout="vertical" form={form} onFinish={handleFinish} disabled={hasActiveUser}>
-                      <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item
-                      name="building"
-                      label="Tòa"
-                      rules={[{ required: true, message: "Vui lòng nhập tên tòa" }]}
-                    >
-                      <Select placeholder="Chọn tòa">
-                        <Option value="A">A</Option>
-                        <Option value="B">B</Option>
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name="roomNumberSuffix"
-                      label="Số phòng"
-                      rules={[{ required: true, message: "Vui lòng nhập số phòng (chỉ gồm số)" }]}
-                    >
-                      <InputNumber placeholder="Ví dụ: 101" style={{ width: '100%' }} min={1} step={1} stringMode={false} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name="area"
-                      label="Diện tích (m²)"
-                      rules={[{ required: true, message: "Vui lòng nhập diện tích" }]}
-                    >
-                      <InputNumber min={1} max={1000} style={{ width: "100%" }} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name="price"
-                      label="Giá (VND/tháng)"
-                      rules={[{ required: true, message: "Vui lòng nhập giá" }]}
-                    >
-                      <InputNumber min={0} style={{ width: "100%" }} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name="roomStatus"
-                      label="Trạng thái phòng"
-                      rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
-                    >
-                      <Select>
-                        <Option value="Available">Còn trống</Option>
-                        <Option value="Inactive" disabled={initialValues && initialValues.roomUsers && initialValues.roomUsers.filter(u => u.isActive).length > 0}>Ngừng hoạt động</Option>
-                        <Option value="Occupied">Đã thuê</Option>
-                        <Option value="Maintenance" disabled={initialValues && initialValues.roomUsers && initialValues.roomUsers.filter(u => u.isActive).length > 0}>Bảo trì</Option>
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name="numberOfBedrooms"
-                      label="Số phòng ngủ"
-                      rules={[{ required: true, message: "Vui lòng nhập số phòng ngủ" }]}
-                    >
-                      <InputNumber min={1} max={10} style={{ width: "100%" }} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name="numberOfBathrooms"
-                      label="Số phòng tắm"
-                      rules={[{ required: true, message: "Vui lòng nhập số phòng tắm" }]}
-                    >
-                      <InputNumber min={1} max={10} style={{ width: "100%" }} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name="maxOccupants"
-                      label="Số người tối đa"
-                      rules={[{ required: true, message: "Vui lòng nhập số người tối đa" }]}
-                    >
-                      <InputNumber min={1} max={20} style={{ width: "100%" }} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name="isActive"
-                      label="Trạng thái hoạt động"
-                      valuePropName="checked"
-                    >
-                      <Switch checkedChildren="Đang hoạt động" unCheckedChildren="Ngừng hoạt động" />
-                    </Form.Item>
-                  </Col>
-                        </Row>
-                    </Form>
-                  </div>
-                </Card>
-
-                <Card 
-                  title="Mô tả & Hình ảnh" 
-                  style={{ 
-                    flex: 1, 
-                    minWidth: '400px', 
-                    textAlign: 'left', 
-                    minHeight: '450px',
-                    opacity: hasActiveUser ? 0.7 : 1
-                  }}
-                >
-                  <div style={{ padding: '8px 0' }}>
-                    <div style={{ marginBottom: 16 }}>
-                      <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-                        Mô tả phòng:
-                      </label>
-                      <TextArea 
-                        rows={3} 
-                        placeholder="Nhập mô tả chi tiết về phòng..." 
-                        value={form.getFieldValue('description')}
-                        onChange={(e) => form.setFieldsValue({ description: e.target.value })}
-                        disabled={hasActiveUser}
-                      />
-                    </div>
+            <div style={{ display: "flex", gap: 24, flexWrap: 'wrap', alignItems: 'stretch', justifyContent: 'center' }}>
+              <Card 
+                title="Thông tin phòng" 
+                style={{ 
+                  flex: 1, 
+                  minWidth: isMobile ? '100%' : '500px', 
+                  textAlign: 'left', 
+                  minHeight: '450px',
+                  opacity: hasActiveUser ? 0.7 : 1
+                }}
+              >
+                <div style={{ padding: '8px 0' }}>
+                  <Form layout="vertical" form={form} onFinish={handleFinish} disabled={hasActiveUser}>
+                    <Row gutter={16}>
+                      <Col span={isMobile ? 24 : 12}>
+                        <Form.Item
+                          name="building"
+                          label="Tòa"
+                          rules={[{ required: true, message: "Vui lòng nhập tên tòa" }]}
+                        >
+                          <Select placeholder="Chọn tòa">
+                            <Option value="A">A</Option>
+                            <Option value="B">B</Option>
+                          </Select>
+                        </Form.Item>
+                      </Col>
+                      <Col span={isMobile ? 24 : 12}>
+                        <Form.Item
+                          name="roomNumberSuffix"
+                          label="Số phòng"
+                          rules={[{ required: true, message: "Vui lòng nhập số phòng (chỉ gồm số)" }]}
+                        >
+                          <InputNumber placeholder="Ví dụ: 101" style={{ width: '100%' }} min={1} step={1} stringMode={false} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={isMobile ? 24 : 12}>
+                        <Form.Item
+                          name="area"
+                          label="Diện tích (m²)"
+                          rules={[{ required: true, message: "Vui lòng nhập diện tích" }]}
+                        >
+                          <InputNumber min={1} max={1000} style={{ width: "100%" }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={isMobile ? 24 : 12}>
+                        <Form.Item
+                          name="price"
+                          label="Giá (VND/tháng)"
+                          rules={[{ required: true, message: "Vui lòng nhập giá" }]}
+                        >
+                          <InputNumber min={0} style={{ width: "100%" }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={isMobile ? 24 : 12}>
+                        <Form.Item
+                          name="roomStatus"
+                          label="Trạng thái phòng"
+                          rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
+                        >
+                          <Select>
+                            <Option value="AVAILABLE">Còn trống</Option>
+                            <Option value="OCCUPIED">Đã thuê</Option>
+                            <Option value="MAINTENANCE">Bảo trì</Option>
+                          </Select>
+                        </Form.Item>
+                      </Col>
+                      <Col span={isMobile ? 24 : 12}>
+                        <Form.Item
+                          name="maxOccupants"
+                          label="Số người tối đa"
+                          rules={[{ required: true, message: "Vui lòng nhập số người tối đa" }]}
+                        >
+                          <InputNumber min={1} max={10} style={{ width: "100%" }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={24}>
+                        <Form.Item
+                          name="description"
+                          label="Mô tả"
+                        >
+                          <Input.TextArea rows={4} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
                     
-                    <div style={{ marginTop: 16 }}>
-                      <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-                        Hình ảnh phòng (tối đa 8 ảnh):
-                      </label>
-                      <Upload
-                        listType="picture-card"
-                        fileList={fileList}
-                        onChange={handleUploadChange}
-                        beforeUpload={() => false}
-                        multiple
-                        maxCount={8}
-                        accept="image/*"
-                        disabled={hasActiveUser}
-                        onRemove={(file) => {
-                          // Logic xóa ảnh đã được xử lý trong handleUploadChange
-                          // Không cần làm gì thêm ở đây
-                        }}
-                      >
-                        {fileList.length < 8 && (
-                          <div>
-                            <PlusOutlined />
-                            <div style={{ marginTop: 8 }}>Tải lên</div>
-                          </div>
-                        )}
-                      </Upload>
-                    </div>
-                  </div>
-                </Card>
-              </div>
-
-              <Card style={{ marginTop: 24, textAlign: 'center' }}>
-                <Button 
-                  type="primary" 
-                  loading={loading} 
-                  size="large"
-                  style={{ marginRight: 16 }}
-                  disabled={hasActiveUser}
-                  onClick={() => {
-                    form.validateFields().then((values) => {
-                      handleFinish(values);
-                    }).catch((error) => {
-                      console.log('Validation failed:', error);
-                    });
-                  }}
-                >
-                  Cập nhật phòng
-                </Button>
-                <Button 
-                  size="large"
-                  onClick={() => {
-                    if (
-                      user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
-                      user?.role?.roleName?.toUpperCase?.() === "SUBADMIN"
-                    ) {
-                      navigate("/admin/rooms");
-                    } else {
-                      navigate("/landlord/rooms");
-                    }
-                  }}
-                >
-                  Hủy bỏ
-                </Button>
+                    <Form.Item>
+                      <Button type="primary" htmlType="submit" loading={loading} disabled={hasActiveUser}>
+                        Cập nhật phòng
+                      </Button>
+                    </Form.Item>
+                  </Form>
+                </div>
               </Card>
               
-              {hasActiveUser && (
-                <Card style={{ marginTop: 16, borderColor: '#ff4d4f' }}>
-                  <div style={{ color: '#ff4d4f', textAlign: 'center', fontWeight: 500 }}>
-                    ⚠️ Không thể chỉnh sửa thông tin phòng khi vẫn còn người ở trong phòng!
+              <Card 
+                title="Hình ảnh phòng" 
+                style={{ 
+                  flex: 1, 
+                  minWidth: isMobile ? '100%' : '500px', 
+                  textAlign: 'left',
+                  minHeight: '450px'
+                }}
+              >
+                <Upload
+                  listType="picture-card"
+                  fileList={[]}
+                  onChange={handleUploadChange}
+                  disabled={hasActiveUser}
+                >
+                  <div>
+                    <UploadOutlined />
+                    <div style={{ marginTop: 8 }}>Tải lên</div>
                   </div>
-                </Card>
-              )}
+                </Upload>
+              </Card>
+            </div>
           </div>
         </Content>
       </Layout>
+      
+      {/* Mobile Sidebar Drawer */}
+      <Drawer
+        title="Menu"
+        placement="left"
+        onClose={() => setSidebarDrawerOpen(false)}
+        open={sidebarDrawerOpen}
+        width={250}
+        bodyStyle={{ padding: 0 }}
+      >
+        {user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
+        user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
+          <AdminSidebar isDrawer={true} onMenuClick={() => setSidebarDrawerOpen(false)} />
+        ) : (
+          <LandlordSidebar isDrawer={true} onMenuClick={() => setSidebarDrawerOpen(false)} />
+        )}
+      </Drawer>
     </Layout>
   );
 }

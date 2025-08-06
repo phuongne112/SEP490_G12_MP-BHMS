@@ -19,6 +19,7 @@ import {
   InputNumber,
   Radio,
   Divider,
+  Drawer,
 } from "antd";
 import {
   PlusOutlined,
@@ -31,6 +32,7 @@ import {
   ExclamationCircleOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
+  MenuOutlined,
 } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
@@ -125,7 +127,7 @@ function BillFilterPopover({ onFilter }) {
 
 export default function LandlordBillListPage() {
   const isMobile = useMediaQuery({ maxWidth: 768 });
-  const isTablet = useMediaQuery({ minWidth: 769, maxWidth: 1024 });
+  const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
   
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -133,7 +135,7 @@ export default function LandlordBillListPage() {
   const [filter, setFilter] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [pageSize, setPageSize] = useState(5);
+  const [pageSize, setPageSize] = useState(isMobile ? 3 : 5);
   const [filterOpen, setFilterOpen] = useState(false);
   const [emailLoading, setEmailLoading] = useState({});
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -1107,37 +1109,102 @@ export default function LandlordBillListPage() {
   ];
 
   return (
-    <Layout style={{ minHeight: "100vh", flexDirection: isMobile ? "column" : "row" }}>
-      {!isMobile && (
-        <Sider width={220}>
-          <LandlordSidebar />
-        </Sider>
-      )}
-      <Layout>
-        <Content style={{ padding: isMobile ? 16 : 24, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
-          {/* Header Section */}
-          <div style={{ 
-            background: 'white', 
-            padding: isMobile ? 16 : 20, 
-            borderRadius: 8, 
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            marginBottom: 20
-          }}>
+    <div style={{ width: '100%', minHeight: '100vh' }}>
+      <style>
+        {`
+          @media (max-width: 768px) {
+            .ant-layout-sider {
+              display: none !important;
+            }
+          }
+        `}
+      </style>
+      <Layout style={{ minHeight: "100vh" }}>
+        {/* Desktop Sidebar - chỉ hiển thị trên desktop */}
+        {!isMobile && (
+          <Sider width={220} style={{ position: 'fixed', height: '100vh', zIndex: 1000 }}>
+            <LandlordSidebar />
+          </Sider>
+        )}
+        
+        {/* Main Layout */}
+        <Layout style={{ marginLeft: isMobile ? 0 : 220 }}>
+          {/* Mobile Header - chỉ hiển thị trên mobile */}
+          {isMobile && (
             <div style={{ 
-              display: "flex", 
-              flexDirection: isMobile ? "column" : "row",
-              justifyContent: "space-between", 
-              alignItems: isMobile ? "stretch" : "center", 
-              marginBottom: 12,
-              gap: isMobile ? 12 : 0
+              background: '#001529', 
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
+              width: '100%'
             }}>
-              <PageHeader title="Danh sách hóa đơn" style={{ margin: 0, padding: 0 }} />
               <div style={{ 
                 display: 'flex', 
-                flexDirection: isMobile ? "column" : "row",
                 alignItems: 'center', 
                 gap: 12,
-                width: isMobile ? "100%" : "auto"
+                color: 'white'
+              }}>
+                <div style={{ 
+                  fontWeight: 600, 
+                  fontSize: 18,
+                  color: 'white'
+                }}>
+                  MP-BHMS
+                </div>
+                <div style={{ 
+                  fontSize: 14,
+                  color: 'rgba(255,255,255,0.8)'
+                }}>
+                  Danh sách hóa đơn
+                </div>
+              </div>
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                onClick={() => setSidebarDrawerOpen(true)}
+                style={{ 
+                  color: 'white',
+                  fontSize: '18px'
+                }}
+              />
+            </div>
+          )}
+          
+          {/* Main Content */}
+          <Content style={{ 
+            padding: isMobile ? 16 : 24, 
+            backgroundColor: '#f5f5f5', 
+            minHeight: '100vh',
+            width: '100%'
+          }}>
+          {/* Controls Section cho cả mobile và desktop */}
+          {isMobile ? (
+            <div style={{ 
+              background: 'white', 
+              padding: 16, 
+              borderRadius: 8, 
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              marginBottom: 16
+            }}>
+              <div style={{ 
+                fontSize: 20, 
+                fontWeight: 600,
+                marginBottom: 16,
+                color: '#1a1a1a'
+              }}>
+                Danh sách hóa đơn
+              </div>
+              
+              {/* Search and Filter Controls */}
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: "column",
+                gap: 12,
+                marginBottom: 16
               }}>
                 <Input
                   placeholder="Tìm hóa đơn..."
@@ -1146,83 +1213,194 @@ export default function LandlordBillListPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   onPressEnter={() => setCurrentPage(1)}
-                  style={{ width: isMobile ? "100%" : 300 }}
+                  style={{ width: "100%" }}
+                  size="large"
                 />
-                <Popover
-                  open={filterOpen}
-                  onOpenChange={setFilterOpen}
-                  content={<BillFilterPopover onFilter={handleFilter} />}
-                  trigger="click"
-                  placement="bottomRight"
-                >
-                  <Button 
-                    icon={<FilterOutlined />} 
-                    type="default"
-                    style={{ width: isMobile ? "100%" : "auto" }}
+                <div style={{ 
+                  display: 'flex', 
+                  gap: 8
+                }}>
+                  <Popover
+                    open={filterOpen}
+                    onOpenChange={setFilterOpen}
+                    content={<BillFilterPopover onFilter={handleFilter} />}
+                    trigger="click"
+                    placement="bottom"
                   >
-                    Bộ lọc
+                    <Button 
+                      icon={<FilterOutlined />} 
+                      type="default"
+                      style={{ flex: 1 }}
+                      size="large"
+                    >
+                      Bộ lọc
+                    </Button>
+                  </Popover>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={handleCreateBillModalOpen}
+                    style={{ flex: 1 }}
+                    size="large"
+                  >
+                    Thêm hóa đơn
                   </Button>
-                </Popover>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={handleCreateBillModalOpen}
-                  style={{ width: isMobile ? "100%" : "auto" }}
-                >
-                  Thêm hóa đơn
-                </Button>
+                </div>
                 <Button
                   type="default"
                   style={{ 
                     background: '#52c41a', 
                     borderColor: '#52c41a', 
                     color: '#fff',
-                    width: isMobile ? "100%" : "auto"
+                    width: '100%'
                   }}
                   loading={bulkLoading}
                   onClick={handleBulkGenerate}
+                  size="large"
                 >
                   Tạo Hóa Đơn Tự Động
                 </Button>
               </div>
-            </div>
-            
-            {/* Status bar */}
-            <div style={{ 
-              display: 'flex', 
-              flexDirection: isMobile ? "column" : "row",
-              justifyContent: 'space-between', 
-              alignItems: isMobile ? "stretch" : "center",
-              borderTop: '1px solid #f0f0f0',
-              paddingTop: 12,
-              fontSize: isMobile ? 12 : 14,
-              gap: isMobile ? 8 : 0
-            }}>
+              
+              {/* Mobile Status bar */}
               <div style={{ 
                 display: 'flex', 
-                alignItems: 'center', 
-                gap: 8,
-                color: '#666'
+                justifyContent: 'space-between', 
+                alignItems: "center",
+                borderTop: '1px solid #f0f0f0',
+                paddingTop: 12,
+                fontSize: 12
               }}>
-                <span>Hiển thị</span>
-                <Select
-                  value={pageSize}
-                  onChange={handlePageSizeChange}
-                  style={{ width: 100 }}
-                  options={[
-                    { label: '5', value: 5 },
-                    { label: '10', value: 10 },
-                    { label: '20', value: 20 },
-                    { label: '50', value: 50 }
-                  ]}
-                />
-                <span>mục</span>
-              </div>
-              <div style={{ fontWeight: 500, color: "#1890ff" }}>
-                Tổng: {total} hóa đơn
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 8,
+                  color: '#666'
+                }}>
+                  <span>Hiển thị</span>
+                  <Select
+                    value={pageSize}
+                    onChange={handlePageSizeChange}
+                    style={{ width: 80 }}
+                    size="small"
+                    options={[
+                      { label: '3', value: 3 },
+                      { label: '5', value: 5 },
+                      { label: '10', value: 10 },
+                      { label: '20', value: 20 }
+                    ]}
+                  />
+                  <span>mục</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <span style={{ fontWeight: 500, color: "#1890ff", fontSize: '12px' }}>
+                    Tổng: {total} hóa đơn
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div style={{ 
+              background: 'white', 
+              padding: 20, 
+              borderRadius: 8, 
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              marginBottom: 20
+            }}>
+              <div style={{ 
+                display: "flex", 
+                justifyContent: "space-between", 
+                alignItems: "center", 
+                marginBottom: 12
+              }}>
+                <PageHeader title="Danh sách hóa đơn" style={{ margin: 0, padding: 0 }} />
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 12
+                }}>
+                  <Input
+                    placeholder="Tìm hóa đơn..."
+                    allowClear
+                    prefix={<SearchOutlined />}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    onPressEnter={() => setCurrentPage(1)}
+                    style={{ width: 300 }}
+                  />
+                  <Popover
+                    open={filterOpen}
+                    onOpenChange={setFilterOpen}
+                    content={<BillFilterPopover onFilter={handleFilter} />}
+                    trigger="click"
+                    placement="bottomRight"
+                  >
+                    <Button 
+                      icon={<FilterOutlined />} 
+                      type="default"
+                    >
+                      Bộ lọc
+                    </Button>
+                  </Popover>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={handleCreateBillModalOpen}
+                  >
+                    Thêm hóa đơn
+                  </Button>
+                  <Button
+                    type="default"
+                    style={{ 
+                      background: '#52c41a', 
+                      borderColor: '#52c41a', 
+                      color: '#fff'
+                    }}
+                    loading={bulkLoading}
+                    onClick={handleBulkGenerate}
+                  >
+                    Tạo Hóa Đơn Tự Động
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Status bar */}
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: "center",
+                borderTop: '1px solid #f0f0f0',
+                paddingTop: 12,
+                fontSize: 14
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 8,
+                  color: '#666'
+                }}>
+                  <span>Hiển thị</span>
+                  <Select
+                    value={pageSize}
+                    onChange={handlePageSizeChange}
+                    style={{ width: 100 }}
+                    options={[
+                      { label: '5', value: 5 },
+                      { label: '10', value: 10 },
+                      { label: '20', value: 20 },
+                      { label: '50', value: 50 }
+                    ]}
+                  />
+                  <span>mục</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <span style={{ fontWeight: 500, color: "#1890ff" }}>
+                    Tổng: {total} hóa đơn
+                  </span>
+                </div>
+              </div>
+            </div>
+                    )}
           
           {/* Main Table Section */}
           <div style={{ 
@@ -1237,7 +1415,7 @@ export default function LandlordBillListPage() {
               loading={loading}
               rowKey="id"
               pagination={false}
-              scroll={{ x: isMobile ? 600 : 1200 }}
+              scroll={{ x: isMobile ? 800 : 1200 }}
               size={isMobile ? "small" : "middle"}
               bordered
             />
@@ -1274,8 +1452,8 @@ export default function LandlordBillListPage() {
             title="Tạo hóa đơn mới"
             onCancel={handleCreateBillModalClose}
             footer={null}
-            width={800}
-            style={{ top: 20 }}
+            width={isMobile ? '95%' : 800}
+            style={{ top: isMobile ? 20 : 20 }}
           >
             <Form
               form={createBillForm}
@@ -1491,8 +1669,23 @@ export default function LandlordBillListPage() {
               </Form.Item>
             </Form>
           </Modal>
-        </Content>
+          </Content>
+        </Layout>
+        
+        {/* Mobile Drawer cho Sidebar */}
+        {isMobile && (
+          <Drawer
+            title="Menu"
+            placement="left"
+            onClose={() => setSidebarDrawerOpen(false)}
+            open={sidebarDrawerOpen}
+            width={280}
+            bodyStyle={{ padding: 0 }}
+          >
+            <LandlordSidebar isDrawer={true} onMenuClick={() => setSidebarDrawerOpen(false)} />
+          </Drawer>
+        )}
       </Layout>
-    </Layout>
+    </div>
   );
 }

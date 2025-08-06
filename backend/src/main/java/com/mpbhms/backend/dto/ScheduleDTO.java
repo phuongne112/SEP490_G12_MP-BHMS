@@ -15,4 +15,7 @@ public class ScheduleDTO {
     private Instant appointmentTime;
     private String note;
     private ScheduleStatus status;
+    
+    // Thêm thông tin room
+    private RoomDTO room;
 } 

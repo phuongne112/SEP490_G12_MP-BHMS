@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Layout, message, Button, Popover, Select, Modal, Input, DatePicker, List, Pagination, Tag, Drawer } from "antd";
+import { Layout, message, Button, Popover, Select, Modal, Input, DatePicker, List, Pagination, Tag, Drawer, ConfigProvider } from "antd";
 import PageHeader from "../../components/common/PageHeader";
 import { getAllContracts, deleteContract, exportContractPdf, buildContractFilterString } from "../../services/contractApi";
 import { useSelector } from "react-redux";
@@ -23,6 +23,7 @@ import {
 import { getAllRooms } from "../../services/roomService";
 import { FilterOutlined, ReloadOutlined, MenuOutlined } from "@ant-design/icons";
 import { useMediaQuery } from "react-responsive";
+import viVN from 'antd/locale/vi_VN';
 
 const { Sider, Content } = Layout;
 

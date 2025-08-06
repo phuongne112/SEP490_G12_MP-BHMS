@@ -245,7 +245,7 @@ export default function LandlordContractTemplateManager() {
                 marginBottom: 16
               }}>
                 <div style={{ 
-                  fontSize: 20, 
+                  fontSize: 18, 
                   fontWeight: 600,
                   marginBottom: 16,
                   color: '#1a1a1a'
@@ -257,11 +257,11 @@ export default function LandlordContractTemplateManager() {
                   type="primary" 
                   icon={<PlusOutlined />}
                   onClick={() => setEditing({})} 
-                  size="large"
+                  size="middle"
                   style={{ 
                     width: '100%',
-                    height: '48px',
-                    fontSize: '16px',
+                    height: '40px',
+                    fontSize: '14px',
                     fontWeight: '500',
                     borderRadius: '8px',
                     marginBottom: 16
@@ -312,7 +312,7 @@ export default function LandlordContractTemplateManager() {
                   marginBottom: 12
                 }}>
                   <div style={{ 
-                    fontSize: 24, 
+                    fontSize: 20, 
                     fontWeight: 600,
                     color: '#1a1a1a'
                   }}>
@@ -322,10 +322,10 @@ export default function LandlordContractTemplateManager() {
                     type="primary" 
                     icon={<PlusOutlined />}
                     onClick={() => setEditing({})} 
-                    size="large"
+                    size="middle"
                     style={{ 
-                      height: '48px',
-                      fontSize: '16px',
+                      height: '40px',
+                      fontSize: '14px',
                       fontWeight: '500',
                       borderRadius: '8px'
                     }}

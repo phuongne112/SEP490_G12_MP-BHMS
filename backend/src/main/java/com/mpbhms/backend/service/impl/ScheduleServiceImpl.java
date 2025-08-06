@@ -2,6 +2,7 @@ package com.mpbhms.backend.service.impl;
 
 import com.mpbhms.backend.dto.CreateScheduleRequest;
 import com.mpbhms.backend.dto.ScheduleDTO;
+import com.mpbhms.backend.dto.RoomDTO;
 import com.mpbhms.backend.entity.Room;
 import com.mpbhms.backend.entity.Schedule;
 import com.mpbhms.backend.entity.User;
@@ -244,16 +245,18 @@ public class ScheduleServiceImpl implements ScheduleService {
             currentUser = userRepository.findById(currentUserId).orElse(null);
         }
 
-        // Chỉ chặn các role đặc biệt
-        boolean isForbiddenRole = false;
+        // Cho phép ADMIN, SUBADMIN, LANDLORD xóa lịch hẹn
+        boolean isAdminRole = false;
         if (currentUser != null && currentUser.getRole() != null) {
             String roleName = currentUser.getRole().getRoleName();
             if ("ADMIN".equals(roleName) || "SUBADMIN".equals(roleName) || "LANDLORD".equals(roleName)) {
-                isForbiddenRole = true;
+                isAdminRole = true;
             }
         }
-        if (isForbiddenRole) {
-            throw new RuntimeException("Bạn không có quyền xóa lịch hẹn này!");
+        if (isAdminRole) {
+            // Admin roles có thể xóa bất kỳ lịch hẹn nào
+            scheduleRepository.delete(schedule);
+            return;
         }
 
         boolean isOwner = false;
@@ -329,6 +332,16 @@ public class ScheduleServiceImpl implements ScheduleService {
         dto.setAppointmentTime(schedule.getAppointmentTime());
         dto.setNote(schedule.getNote());
         dto.setStatus(schedule.getStatus());
+        
+        // Thêm thông tin room
+        if (schedule.getRoom() != null) {
+            RoomDTO roomDTO = new RoomDTO();
+            roomDTO.setId(schedule.getRoom().getId());
+            roomDTO.setRoomNumber(schedule.getRoom().getRoomNumber());
+            roomDTO.setBuilding(schedule.getRoom().getBuilding());
+            dto.setRoom(roomDTO);
+        }
+        
         return dto;
     }
 } 
