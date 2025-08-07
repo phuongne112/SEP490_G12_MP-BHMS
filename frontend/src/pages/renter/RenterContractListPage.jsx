@@ -264,6 +264,7 @@ export default function RenterContractListPage() {
             columns={columns}
             rowKey="id"
             pagination={false}
+            scroll={{ x: 800 }}
           />
 
           <Modal

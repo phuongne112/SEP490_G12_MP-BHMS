@@ -3,6 +3,7 @@ import { Table, Button, Space, Tooltip, message, Popconfirm } from "antd";
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { getAllPermissions } from "../../services/permissionApi";
 import { useSelector } from "react-redux";
+import { useMediaQuery } from "react-responsive";
 
 // ✅ Hàm tạo DSL cho filter và tìm kiếm
 const buildFilterDSL = (search, filters) => {
@@ -51,6 +52,9 @@ export default function PermissionTable({
   const hasEdit = permissions.includes("Update Permission");
   const hasDelete = permissions.includes("Delete Permission");
 
+  // Responsive states
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+
   const fetchData = async (page = 1) => {
     setLoading(true);
     try {
@@ -81,32 +85,32 @@ export default function PermissionTable({
       title: "STT",
       dataIndex: "id",
       align: "center",
-      width: 60,
+      width: isMobile ? 40 : 60,
       render: (_, __, index) => (pagination.current - 1) * pageSize + index + 1,
     },
     {
       title: "Tên quyền",
       dataIndex: "name",
       align: "center",
-      width: 200,
+      width: isMobile ? 120 : 200,
     },
     {
       title: "API",
       dataIndex: "apiPath",
       align: "center",
-      width: 250,
+      width: isMobile ? 150 : 250,
     },
     {
       title: "Phương thức",
       dataIndex: "method",
       align: "center",
-      width: 120,
+      width: isMobile ? 80 : 120,
     },
     {
       title: "Chức năng",
       dataIndex: "module",
       align: "center",
-      width: 150,
+      width: isMobile ? 100 : 150,
     },
   ];
 
@@ -115,7 +119,7 @@ export default function PermissionTable({
     columns.push({
       title: "Thao tác",
       align: "center",
-      width: 200,
+      width: isMobile ? 120 : 200,
       render: (_, record) => (
         <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
           {hasEdit && (
@@ -166,7 +170,7 @@ export default function PermissionTable({
         onChange: (page) => fetchData(page),
       }}
       style={{ background: "#fff", borderRadius: 8, padding: 16 }}
-      scroll={{ x: 1000 }}
+      scroll={{ x: isMobile ? 600 : 1000 }}
       bordered
     />
   );

@@ -686,6 +686,11 @@ export default function LandlordContractListPage() {
     
     // Format số tiền
     const formatMoney = (text) => {
+      // Đảm bảo text là string
+      if (typeof text !== 'string') {
+        text = String(text);
+      }
+      
       // Tìm và format các số tiền trong text
       return text.replace(/(\d+(?:\.\d+)?(?:E\d+)?)\s*(?:VND|₫)/gi, (match, number) => {
         const num = parseFloat(number);
@@ -1335,7 +1340,7 @@ export default function LandlordContractListPage() {
         {detailContract && (
           <div>
             <div style={{ marginBottom: 16 }}>
-              <strong>Phòng:</strong> {detailContract.room?.roomNumber}
+              <strong>Phòng:</strong> {detailContract.roomNumber}
             </div>
             <div style={{ marginBottom: 16 }}>
               <strong>Số hợp đồng:</strong> {detailContract.contractNumber || detailContract.id}

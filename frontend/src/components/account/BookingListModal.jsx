@@ -152,6 +152,7 @@ export default function BookingListModal({ open, onClose, currentUser }) {
           pagination={false}
           locale={{ emptyText: "Chưa có lịch hẹn nào" }}
           style={{ marginTop: 8 }}
+          scroll={{ x: 600 }}
         />
       </Spin>
       <Modal

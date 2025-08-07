@@ -58,6 +58,7 @@ export default function UserTable({ users, loading, pagination, onChangeRenter }
       loading={loading}
       rowKey="id"
       pagination={pagination}
+      scroll={{ x: 800 }}
     />
   );
 } 

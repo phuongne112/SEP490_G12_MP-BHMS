@@ -331,6 +331,15 @@ export default function LandlordRoomListPage() {
                 gap: 12,
                 color: 'white'
               }}>
+                <Button
+                  type="text"
+                  icon={<MenuOutlined />}
+                  onClick={() => setMobileMenuOpen(true)}
+                  style={{ 
+                    color: 'white',
+                    fontSize: '18px'
+                  }}
+                />
                 <div style={{ 
                   fontWeight: 600, 
                   fontSize: 18,
@@ -342,18 +351,11 @@ export default function LandlordRoomListPage() {
                   fontSize: 14,
                   color: 'rgba(255,255,255,0.8)'
                 }}>
-                  Xin chào Landlord
+                  {user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" 
+                    ? "Xin chào Administrator" 
+                    : "Xin chào Landlord"}
                 </div>
               </div>
-              <Button
-                type="text"
-                icon={<MenuOutlined />}
-                onClick={() => setMobileMenuOpen(true)}
-                style={{ 
-                  color: 'white',
-                  fontSize: '18px'
-                }}
-              />
             </div>
           )}
           

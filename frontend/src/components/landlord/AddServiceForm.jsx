@@ -39,6 +39,7 @@ export default function AddServiceForm({ data, onChange, onNext, onBack }) {
         dataSource={serviceData}
         columns={columns}
         pagination={false}
+        scroll={{ x: 600 }}
       />
       <Row justify="end" style={{ marginTop: 24, marginRight: 20 }}>
         <Space>

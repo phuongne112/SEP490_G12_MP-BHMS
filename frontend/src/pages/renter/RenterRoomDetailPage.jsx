@@ -14,13 +14,16 @@ import {
   Card,
   Table,
   message,
+  Drawer,
 } from "antd";
+import { MenuOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import { getMyRoom } from "../../services/roomService";
 import { getAllAssets, getAssetsByRoom, getAssetsByRoomNumber } from "../../services/assetApi";
 import { BACKEND_URL } from "../../services/axiosClient";
+import { useMediaQuery } from "react-responsive";
 import dayjs from "dayjs";
 
 const { Sider, Content } = Layout;
@@ -44,6 +47,9 @@ const getImageUrl = (img) => {
 };
 
 export default function RenterRoomDetailPage() {
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
   const navigate = useNavigate();
   const [roomInfo, setRoomInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -112,169 +118,285 @@ export default function RenterRoomDetailPage() {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Sider width={220} style={{ background: "#001529" }}>
-        <RenterSidebar />
-      </Sider>
-      <Layout style={{ padding: 24, justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <Content style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'transparent', padding: 0 }}>
-          {loading ? (
-            <Spin style={{ margin: 40 }} />
-          ) : !roomInfo ? (
-            <Alert
-              message="Bạn chưa được phân phòng. Vui lòng liên hệ quản lý để được sắp xếp phòng."
-              type="warning"
-              showIcon
-              style={{ margin: 40 }}
-            />
-          ) : (
-            <>
-              <PageHeader title="Chi tiết phòng" />
+    <div style={{ width: '100%', minHeight: '100vh' }}>
+      <style>
+        {`
+          @media (max-width: 768px) {
+            .ant-layout-sider {
+              display: none !important;
+            }
+          }
+        `}
+      </style>
+      <div style={{ display: "flex", minHeight: "100vh" }}>
+        {/* Desktop Sidebar - chỉ hiển thị trên desktop */}
+        {!isMobile && (
+          <div
+            style={{
+              width: 220,
+              background: "#001529",
+              position: "fixed",
+              height: "100vh",
+              zIndex: 1000,
+            }}
+          >
+            <RenterSidebar />
+          </div>
+        )}
 
-              <Card style={{ width: 950, margin: '0 auto', boxShadow: '0 2px 12px #0001', borderRadius: 12, marginBottom: 32 }} bodyStyle={{ padding: 32 }}>
-                <Row gutter={32} align="top" justify="center">
-                  <Col span={10} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <img
-                      src={getImageUrl(selectedImage)}
-                      alt="Main"
-                      style={{
-                        width: 340,
-                        height: 220,
-                        objectFit: "cover",
-                        borderRadius: 8,
-                        marginBottom: 16,
-                        boxShadow: '0 2px 8px #0002'
-                      }}
-                    />
-                    <Row gutter={[8, 8]} justify="center" style={{ width: '100%' }}>
-                      {roomInfo.images.map((url, index) => (
-                        <Col span={8} key={index} style={{ display: 'flex', justifyContent: 'center' }}>
-                          <img
-                            src={getImageUrl(url)}
-                            alt={`Thumb ${index}`}
-                            onClick={() => setSelectedImage(url)}
-                            style={{
-                              width: 90,
-                              height: 60,
-                              objectFit: "cover",
-                              border:
-                                selectedImage === url
-                                  ? "2px solid #1890ff"
-                                  : "1px solid #ccc",
-                              borderRadius: 6,
-                              cursor: "pointer",
-                              boxShadow: selectedImage === url ? '0 2px 8px #1890ff33' : 'none',
-                            }}
-                          />
-                        </Col>
-                      ))}
-                    </Row>
-                  </Col>
-
-                  <Col span={14}>
-                    <div style={{ maxWidth: 420, margin: '0 auto' }}>
-                      <div style={{ marginBottom: 16, fontSize: 16 }}>
-                        <span style={{ fontWeight: 500 }}>Số phòng: </span>
-                        <span>{roomInfo.roomNumber || "-"}</span>
-                      </div>
-                      <div style={{ marginBottom: 16, fontSize: 16 }}>
-                        <span style={{ fontWeight: 500 }}>Số người tối đa: </span>
-                        <span>{roomInfo.maxOccupants || "-"}</span>
-                      </div>
-                      <div style={{ marginBottom: 16, fontSize: 16 }}>
-                        <span style={{ fontWeight: 500 }}>Tòa nhà: </span>
-                        <span>{roomInfo.building || "-"}</span>
-                      </div>
-                      <div style={{ marginBottom: 16, fontSize: 16 }}>
-                        <span style={{ fontWeight: 500 }}>Diện tích (m²): </span>
-                        <span>{roomInfo.area || "-"}</span>
-                      </div>
-                      <div style={{ marginBottom: 16, fontSize: 16 }}>
-                        <span style={{ fontWeight: 500 }}>Giá (VND/Tháng): </span>
-                        <span>{roomInfo.pricePerMonth ? roomInfo.pricePerMonth.toLocaleString("vi-VN") : "-"}</span>
-                      </div>
-                      <div style={{ marginBottom: 16, fontSize: 16, display: 'flex', alignItems: 'center' }}>
-                        <span style={{ fontWeight: 500, marginRight: 8 }}>Trạng thái: </span>
-                        <span>
-                          <span style={{
-                            display: 'inline-block',
-                            width: 12,
-                            height: 12,
-                            borderRadius: '50%',
-                            background: roomInfo.status === "Available" ? '#52c41a' : '#faad14',
-                            marginRight: 8
-                          }} />
-                          {roomInfo.status === "Available" ? "Còn trống" : "Đang sử dụng"}
-                        </span>
-                      </div>
-                      <Row gutter={16} style={{ marginTop: 24 }}>
-                        <Col>
-                          <Button
-                            type="primary"
-                            onClick={() => handleCheckAssets('checkin')}
-                          >
-                            Kiểm kê tài sản nhận phòng
-                          </Button>
-                        </Col>
-                        <Col>
-                          <Button
-                            danger
-                            onClick={() => handleCheckAssets('checkout')}
-                          >
-                            Kiểm kê tài sản trả phòng
-                          </Button>
-                        </Col>
-                      </Row>
-                    </div>
-                  </Col>
-                </Row>
-                {/* Hiển thị danh sách tài sản của phòng giống landlord */}
-                <div style={{ marginTop: 32 }}>
-                  <Typography.Title level={5}>Danh sách tài sản của phòng</Typography.Title>
-                  {assets && assets.length > 0 ? (
-                    <Table
-                      dataSource={assets}
-                      loading={loading}
-                      rowKey={row => row.id || row.assetId}
-                      columns={[
-                        { title: "Tên tài sản", dataIndex: "assetName", key: "assetName" },
-                        { title: "Số lượng", dataIndex: "quantity", key: "quantity" },
-                        { title: "Tình trạng", dataIndex: "status", key: "status" },
-                        { title: "Ghi chú", dataIndex: "note", key: "note" },
-                      ]}
-                      pagination={false}
-                      style={{ marginTop: 12 }}
-                    />
-                  ) : (
-                    <div style={{ color: '#888', fontSize: 16, margin: '16px 0' }}>Không có tài sản nào trong phòng này.</div>
-                  )}
+        {/* Main Layout */}
+        <div style={{ 
+          flex: 1, 
+          marginLeft: isMobile ? 0 : 220,
+          display: "flex",
+          flexDirection: "column"
+        }}>
+          {/* Mobile Header - chỉ hiển thị trên mobile */}
+          {isMobile && (
+            <div style={{ 
+              background: '#001529', 
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
+              width: '100%'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 12,
+                color: 'white'
+              }}>
+                <div style={{ 
+                  fontWeight: 600, 
+                  fontSize: 18,
+                  color: 'white'
+                }}>
+                  MP-BHMS
                 </div>
-              </Card>
-
-              {/* Bạn cùng phòng */}
-              <Card style={{ width: 950, margin: '0 auto', boxShadow: '0 2px 12px #0001', borderRadius: 12, marginBottom: 32 }} bodyStyle={{ padding: 24 }}>
-                <Title level={5} style={{ marginBottom: 16 }}>Bạn cùng phòng</Title>
-                {Array.isArray(roomInfo.roommates) && roomInfo.roommates.length > 0 ? (
-                  <ul style={{ paddingLeft: 20, fontSize: 16 }}>
-                    {roomInfo.roommates.map((mate, idx) => (
-                      <li key={idx} style={{ marginBottom: 8 }}>
-                        {mate.fullName || "(Không rõ tên)"}
-                        {mate.joinedAt && (
-                          <span style={{ color: '#888', marginLeft: 8 }}>
-                            (vào phòng: {dayjs(mate.joinedAt).format("DD/MM/YYYY")})
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div style={{ color: '#888', fontSize: 16 }}>Không có bạn cùng phòng.</div>
-                )}
-              </Card>
-            </>
+                <div style={{ 
+                  fontSize: 14,
+                  color: 'rgba(255,255,255,0.8)'
+                }}>
+                  Xin chào Renter
+                </div>
+              </div>
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                onClick={() => setMobileMenuOpen(true)}
+                style={{ 
+                  color: 'white',
+                  fontSize: '18px'
+                }}
+              />
+            </div>
           )}
-        </Content>
-      </Layout>
-    </Layout>
+          
+          {/* Content Area */}
+          <div style={{ 
+            flex: 1, 
+            padding: isMobile ? 16 : 24,
+            backgroundColor: "#f5f5f5",
+            minHeight: isMobile ? "calc(100vh - 60px)" : "100vh",
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            {loading ? (
+              <Spin style={{ margin: 40 }} />
+            ) : !roomInfo ? (
+              <Alert
+                message="Bạn chưa được phân phòng. Vui lòng liên hệ quản lý để được sắp xếp phòng."
+                type="warning"
+                showIcon
+                style={{ margin: 40 }}
+              />
+            ) : (
+              <>
+                {/* Page Title - Only show on desktop */}
+                {!isMobile && (
+                  <PageHeader title="Chi tiết phòng" />
+                )}
+
+                <Card style={{ 
+                  width: isMobile ? '100%' : 950, 
+                  margin: '0 auto', 
+                  boxShadow: '0 2px 12px #0001', 
+                  borderRadius: 12, 
+                  marginBottom: 32 
+                }} bodyStyle={{ padding: isMobile ? 16 : 32 }}>
+                  <Row gutter={isMobile ? 16 : 32} align="top" justify="center">
+                    <Col span={isMobile ? 24 : 10} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <img
+                        src={getImageUrl(selectedImage)}
+                        alt="Main"
+                        style={{
+                          width: isMobile ? '100%' : 340,
+                          height: isMobile ? 200 : 220,
+                          objectFit: "cover",
+                          borderRadius: 8,
+                          marginBottom: 16,
+                          boxShadow: '0 2px 8px #0002'
+                        }}
+                      />
+                      <Row gutter={[8, 8]} justify="center" style={{ width: '100%' }}>
+                        {roomInfo.images.map((url, index) => (
+                          <Col span={8} key={index} style={{ display: 'flex', justifyContent: 'center' }}>
+                            <img
+                              src={getImageUrl(url)}
+                              alt={`Thumb ${index}`}
+                              onClick={() => setSelectedImage(url)}
+                              style={{
+                                width: isMobile ? 70 : 90,
+                                height: isMobile ? 50 : 60,
+                                objectFit: "cover",
+                                border:
+                                  selectedImage === url
+                                    ? "2px solid #1890ff"
+                                    : "1px solid #ccc",
+                                borderRadius: 6,
+                                cursor: "pointer",
+                                boxShadow: selectedImage === url ? '0 2px 8px #1890ff33' : 'none',
+                              }}
+                            />
+                          </Col>
+                        ))}
+                      </Row>
+                    </Col>
+
+                    <Col span={isMobile ? 24 : 14}>
+                      <div style={{ maxWidth: isMobile ? '100%' : 420, margin: '0 auto' }}>
+                        <div style={{ marginBottom: 16, fontSize: isMobile ? 14 : 16 }}>
+                          <span style={{ fontWeight: 500 }}>Số phòng: </span>
+                          <span>{roomInfo.roomNumber || "-"}</span>
+                        </div>
+                        <div style={{ marginBottom: 16, fontSize: isMobile ? 14 : 16 }}>
+                          <span style={{ fontWeight: 500 }}>Số người tối đa: </span>
+                          <span>{roomInfo.maxOccupants || "-"}</span>
+                        </div>
+                        <div style={{ marginBottom: 16, fontSize: isMobile ? 14 : 16 }}>
+                          <span style={{ fontWeight: 500 }}>Tòa nhà: </span>
+                          <span>{roomInfo.building || "-"}</span>
+                        </div>
+                        <div style={{ marginBottom: 16, fontSize: isMobile ? 14 : 16 }}>
+                          <span style={{ fontWeight: 500 }}>Diện tích (m²): </span>
+                          <span>{roomInfo.area || "-"}</span>
+                        </div>
+                        <div style={{ marginBottom: 16, fontSize: isMobile ? 14 : 16 }}>
+                          <span style={{ fontWeight: 500 }}>Giá (VND/Tháng): </span>
+                          <span>{roomInfo.pricePerMonth ? roomInfo.pricePerMonth.toLocaleString("vi-VN") : "-"}</span>
+                        </div>
+                        <div style={{ marginBottom: 16, fontSize: isMobile ? 14 : 16, display: 'flex', alignItems: 'center' }}>
+                          <span style={{ fontWeight: 500, marginRight: 8 }}>Trạng thái: </span>
+                          <span>
+                            <span style={{
+                              display: 'inline-block',
+                              width: 12,
+                              height: 12,
+                              borderRadius: '50%',
+                              background: roomInfo.status === "Available" ? '#52c41a' : '#faad14',
+                              marginRight: 8
+                            }} />
+                            {roomInfo.status === "Available" ? "Còn trống" : "Đang sử dụng"}
+                          </span>
+                        </div>
+                        <Row gutter={16} style={{ marginTop: 24 }}>
+                          <Col span={isMobile ? 24 : 12} style={{ marginBottom: isMobile ? 8 : 0 }}>
+                            <Button
+                              type="primary"
+                              onClick={() => handleCheckAssets('checkin')}
+                              style={{ width: isMobile ? '100%' : 'auto' }}
+                            >
+                              Kiểm kê tài sản nhận phòng
+                            </Button>
+                          </Col>
+                          <Col span={isMobile ? 24 : 12}>
+                            <Button
+                              danger
+                              onClick={() => handleCheckAssets('checkout')}
+                              style={{ width: isMobile ? '100%' : 'auto' }}
+                            >
+                              Kiểm kê tài sản trả phòng
+                            </Button>
+                          </Col>
+                        </Row>
+                      </div>
+                    </Col>
+                  </Row>
+                  {/* Hiển thị danh sách tài sản của phòng giống landlord */}
+                  <div style={{ marginTop: 32 }}>
+                    <Typography.Title level={isMobile ? 4 : 5}>Danh sách tài sản của phòng</Typography.Title>
+                    {assets && assets.length > 0 ? (
+                      <Table
+                        dataSource={assets}
+                        loading={loading}
+                        rowKey={row => row.id || row.assetId}
+                        columns={[
+                          { title: "Tên tài sản", dataIndex: "assetName", key: "assetName" },
+                          { title: "Số lượng", dataIndex: "quantity", key: "quantity" },
+                          { title: "Tình trạng", dataIndex: "status", key: "status" },
+                          { title: "Ghi chú", dataIndex: "note", key: "note" },
+                        ]}
+                        pagination={false}
+                        style={{ marginTop: 12 }}
+                        scroll={{ x: 600 }}
+                      />
+                    ) : (
+                      <div style={{ color: '#888', fontSize: isMobile ? 14 : 16, margin: '16px 0' }}>Không có tài sản nào trong phòng này.</div>
+                    )}
+                  </div>
+                </Card>
+
+                {/* Bạn cùng phòng */}
+                <Card style={{ 
+                  width: isMobile ? '100%' : 950, 
+                  margin: '0 auto', 
+                  boxShadow: '0 2px 12px #0001', 
+                  borderRadius: 12, 
+                  marginBottom: 32 
+                }} bodyStyle={{ padding: isMobile ? 16 : 24 }}>
+                  <Title level={isMobile ? 4 : 5} style={{ marginBottom: 16 }}>Bạn cùng phòng</Title>
+                  {Array.isArray(roomInfo.roommates) && roomInfo.roommates.length > 0 ? (
+                    <ul style={{ paddingLeft: 20, fontSize: isMobile ? 14 : 16 }}>
+                      {roomInfo.roommates.map((mate, idx) => (
+                        <li key={idx} style={{ marginBottom: 8 }}>
+                          {mate.fullName || "(Không rõ tên)"}
+                          {mate.joinedAt && (
+                            <span style={{ color: '#888', marginLeft: 8 }}>
+                              (vào phòng: {dayjs(mate.joinedAt).format("DD/MM/YYYY")})
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div style={{ color: '#888', fontSize: isMobile ? 14 : 16 }}>Không có bạn cùng phòng.</div>
+                  )}
+                </Card>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Drawer cho Sidebar */}
+      {isMobile && (
+        <Drawer
+          title="Menu"
+          placement="left"
+          onClose={() => setMobileMenuOpen(false)}
+          open={mobileMenuOpen}
+          width={280}
+          bodyStyle={{ padding: 0 }}
+        >
+          <RenterSidebar isDrawer={true} onMenuClick={() => setMobileMenuOpen(false)} />
+        </Drawer>
+      )}
+    </div>
   );
 }

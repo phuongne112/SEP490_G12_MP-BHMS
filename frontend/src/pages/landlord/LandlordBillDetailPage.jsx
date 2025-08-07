@@ -271,6 +271,7 @@ export default function LandlordBillDetailPage() {
                 rowKey={(_, idx) => idx}
                 pagination={false}
                 size="small"
+                scroll={{ x: 600 }}
               />
 
               <div style={{ marginTop: 24 }}>

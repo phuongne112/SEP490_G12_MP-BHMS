@@ -187,11 +187,11 @@ export default function UserTable({
     },
     ...(hasStatusPermission
       ? [
-          {
-            title: "Trạng thái",
-            dataIndex: "status",
-            align: "center",
-            width: 140,
+                      {
+              title: "Trạng thái",
+              dataIndex: "status",
+              align: "center",
+              width: 140,
             render: (_, record) => (
               <Popconfirm
                 title={`Bạn có chắc muốn ${
@@ -217,7 +217,7 @@ export default function UserTable({
       title: "Vai trò",
       dataIndex: "role",
       align: "center",
-      width: 120,
+      width: 80,
       render: (role) => role?.roleName || "USER",
     },
     ...(hasUpdatePermission
@@ -226,7 +226,7 @@ export default function UserTable({
             title: "Thao tác",
             key: "actions",
             align: "center",
-            width: 120,
+            width: 80,
             render: (_, record) => {
               const currentUser = JSON.parse(localStorage.getItem("user"));
               const currentRole = currentUser?.role?.roleName?.toUpperCase?.();
@@ -270,8 +270,8 @@ export default function UserTable({
         pageSize,
         onChange: (page) => fetchData(page),
       }}
-      style={{ background: "#fff", borderRadius: 8, padding: 16 }}
-      scroll={{ x: 1200 }}
+      style={{ background: "#fff", borderRadius: 8, padding: 8 }}
+      scroll={{ x: 1200, y: 400 }}
       bordered
     />
   );

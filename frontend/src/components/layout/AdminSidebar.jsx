@@ -9,7 +9,7 @@ import {
 import Sidebar from "./Sidebar";
 import { useSelector } from "react-redux";
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ isDrawer = false, onMenuClick }) {
   const user = useSelector((state) => state.account.user);
   const aclEnabled = import.meta.env.VITE_ACL_ENABLE === "true";
   useEffect(() => {
@@ -87,6 +87,8 @@ export default function AdminSidebar() {
       avatar="https://i.pravatar.cc/40?img=1"
       menuItems={menuItems}
       defaultKey="/admin/users"
+      isDrawer={isDrawer}
+      onMenuClick={onMenuClick}
     />
   );
 }
