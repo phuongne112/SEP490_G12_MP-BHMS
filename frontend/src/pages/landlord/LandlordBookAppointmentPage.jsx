@@ -372,6 +372,9 @@ export default function LandlordBookAppointmentPage(props) {
                       style={{ width: "100%" }}
                       format="HH:mm"
                       placeholder="Chọn giờ"
+                      disabledTime={() => ({
+                        disabledHours: () => [...Array(8).keys(), ...Array(4).keys().map(i => i + 20)], // Disable 0-7 and 20-23
+                      })}
                     />
                   </Form.Item>
 
@@ -388,6 +391,7 @@ export default function LandlordBookAppointmentPage(props) {
                     <div>• Không thể đặt lịch trùng thời gian với lịch hẹn khác của bạn</div>
                     <div>• Tối đa 3 lịch hẹn tổng cộng cho mỗi người dùng</div>
                     <div>• Các lịch hẹn phải cách nhau ít nhất 30 phút</div>
+                    <div>• Chỉ có thể đặt lịch từ 8:00 sáng đến 20:00 tối</div>
                   </div>
 
                   <Form.Item label="Ghi chú" name="note">
@@ -677,6 +681,9 @@ export default function LandlordBookAppointmentPage(props) {
                           style={{ width: "100%" }}
                           format="HH:mm"
                           placeholder="Chọn giờ"
+                          disabledTime={() => ({
+                            disabledHours: () => [...Array(8).keys(), ...Array(4).keys().map(i => i + 20)], // Disable 0-7 and 20-23
+                          })}
                         />
                       </Form.Item>
 
@@ -693,6 +700,7 @@ export default function LandlordBookAppointmentPage(props) {
                         <div>• Không thể đặt lịch trùng thời gian với lịch hẹn khác của bạn</div>
                         <div>• Tối đa 3 lịch hẹn tổng cộng cho mỗi người dùng</div>
                         <div>• Các lịch hẹn phải cách nhau ít nhất 30 phút</div>
+                        <div>• Chỉ có thể đặt lịch từ 8:00 sáng đến 20:00 tối</div>
                       </div>
 
                       <Form.Item label="Ghi chú" name="note">

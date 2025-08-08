@@ -62,6 +62,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Get Room by ID", "/mpbhms/rooms/{id}", "GET", "Room"));
             permissions.add(new Permission("Delete service of room", "/mpbhms/rooms/{roomId}/remove-service/{serviceId}", "DELETE", "Room"));
             permissions.add(new Permission("De-Active service of room", "/mpbhms/rooms/{roomId}/deactivate-service/{serviceId}", "PATCH", "Room"));
+            permissions.add(new Permission("Reactivate service of room", "/mpbhms/rooms/{roomId}/reactivate-service/{serviceId}", "PATCH", "Room"));
             //User
             permissions.add(new Permission("Create User", "/mpbhms/users", "POST", "User"));
             permissions.add(new Permission("Update User", "/mpbhms/users", "PUT", "User"));

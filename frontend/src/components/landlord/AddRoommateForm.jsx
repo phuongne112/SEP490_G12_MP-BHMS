@@ -100,6 +100,7 @@ export default function AddRoommateForm({ data, onChange, onBack, onSave }) {
         pagination={false}
         bordered
         rowKey={(_, index) => index}
+        scroll={{ x: 800 }}
       />
       <Row justify="end" style={{ marginTop: 16, marginRight: 54 }}>
         <Button icon={<PlusOutlined />} type="primary" onClick={addRow} />

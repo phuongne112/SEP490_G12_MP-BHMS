@@ -104,6 +104,8 @@ export default function LandlordAssignRenterPage() {
     }
   }, [room?.pricePerMonth]);
 
+
+
   // Effect riêng để xử lý auto-calculate end date
   useEffect(() => {
     if (startDate && cycle && !isCustomEndDate) {
@@ -407,16 +409,16 @@ export default function LandlordAssignRenterPage() {
                 </div>
               )}
 
-              <Form
-                form={form}
-                layout="vertical"
-                onFinish={onFinish}
-                initialValues={{
-                  paymentCycle: "MONTHLY",
-                  depositAmount: room.pricePerMonth || 0
-                }}
-                disabled={isRoomInactive || (room.maxOccupants && currentRoomUsers.length >= room.maxOccupants)}
-              >
+                             <Form
+                 form={form}
+                 layout="vertical"
+                 onFinish={onFinish}
+                 initialValues={{
+                   paymentCycle: "MONTHLY",
+                   depositAmount: room?.pricePerMonth || 0
+                 }}
+                 disabled={isRoomInactive || (room.maxOccupants && currentRoomUsers.length >= room.maxOccupants)}
+               >
                 <Form.Item
                   label="Chọn người thuê"
                   name="renterEmails"
@@ -599,87 +601,82 @@ export default function LandlordAssignRenterPage() {
                   <div>
                                          {/* Preset buttons */}
                      <div style={{ marginBottom: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                       <Button 
-                         size="small" 
-                         type="default"
-                         onClick={() => {
-                           const amount = room.pricePerMonth;
-                           form.setFieldsValue({ depositAmount: amount });
-                           setDepositAmount(amount);
-                         }}
-                       >
-                         1 tháng ({room.pricePerMonth?.toLocaleString()})
-                       </Button>
-                       <Button 
-                         size="small" 
-                         type="default"
-                         onClick={() => {
-                           const amount = room.pricePerMonth * 2;
-                           form.setFieldsValue({ depositAmount: amount });
-                           setDepositAmount(amount);
-                         }}
-                       >
-                         2 tháng ({(room.pricePerMonth * 2)?.toLocaleString()})
-                       </Button>
-                       <Button 
-                         size="small" 
-                         type="default"
-                         onClick={() => {
-                           const amount = room.pricePerMonth * 3;
-                           form.setFieldsValue({ depositAmount: amount });
-                           setDepositAmount(amount);
-                         }}
-                       >
-                         3 tháng ({(room.pricePerMonth * 3)?.toLocaleString()})
-                       </Button>
-                       <Button 
-                         size="small" 
-                         type="default"
-                         onClick={() => {
-                           form.setFieldsValue({ depositAmount: 0 });
-                           setDepositAmount(0);
-                         }}
-                       >
-                         Không cọc
-                       </Button>
+                                               <Button 
+                          size="small" 
+                          type="default"
+                          onClick={() => {
+                            const amount = room.pricePerMonth;
+                            form.setFieldsValue({ depositAmount: amount });
+                          }}
+                        >
+                          1 tháng ({room.pricePerMonth?.toLocaleString()})
+                        </Button>
+                        <Button 
+                          size="small" 
+                          type="default"
+                          onClick={() => {
+                            const amount = room.pricePerMonth * 2;
+                            form.setFieldsValue({ depositAmount: amount });
+                          }}
+                        >
+                          2 tháng ({(room.pricePerMonth * 2)?.toLocaleString()})
+                        </Button>
+                        <Button 
+                          size="small" 
+                          type="default"
+                          onClick={() => {
+                            const amount = room.pricePerMonth * 3;
+                            form.setFieldsValue({ depositAmount: amount });
+                          }}
+                        >
+                          3 tháng ({(room.pricePerMonth * 3)?.toLocaleString()})
+                        </Button>
+                        <Button 
+                          size="small" 
+                          type="default"
+                          onClick={() => {
+                            form.setFieldsValue({ depositAmount: 0 });
+                          }}
+                        >
+                          Không cọc
+                        </Button>
                      </div>
                     
-                    {/* Input field */}
-                    <InputNumber
-                      style={{ width: "100%" }}
-                      formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                      parser={value => value.replace(/\$\s?|(,*)/g, '')}
-                      min={0}
-                      max={room.pricePerMonth * 12} // Tối đa 12 tháng
-                      placeholder="Nhập số tiền đặt cọc hoặc chọn preset"
-                      addonAfter="VND"
-                      onChange={(value) => setDepositAmount(value || 0)}
-                    />
+                                         {/* Input field */}
+                     <InputNumber
+                       style={{ width: "100%" }}
+                       formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                       parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                       min={0}
+                       max={room.pricePerMonth * 12} // Tối đa 12 tháng
+                       placeholder="Nhập số tiền đặt cọc hoặc chọn preset"
+                       addonAfter="VND"
+                     />
                     
-                    {/* Thông tin tỷ lệ tiền cọc */}
-                    {depositAmount > 0 && (
-                      <div style={{ 
-                        marginTop: 8, 
-                        padding: '8px 12px', 
-                        backgroundColor: '#f6f6f6', 
-                        borderRadius: '6px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}>
-                        <div style={{ fontSize: '13px' }}>
-                          <span style={{ color: '#666' }}>Tương đương: </span>
-                          <span style={{ fontWeight: 'bold' }}>
-                            {getDepositRatio(depositAmount, room.pricePerMonth)} tháng tiền phòng
-                          </span>
-                        </div>
-                        {getDepositStatus(depositAmount, room.pricePerMonth) && (
-                          <Tag color={getDepositStatus(depositAmount, room.pricePerMonth).color} size="small">
-                            {getDepositStatus(depositAmount, room.pricePerMonth).text}
-                          </Tag>
-                        )}
-                      </div>
-                    )}
+                                         {/* Thông tin tỷ lệ tiền cọc */}
+                     {form.getFieldValue('depositAmount') > 0 && (
+                       <div style={{ 
+                         marginTop: 8, 
+                         padding: '8px 12px', 
+                         backgroundColor: '#f6f6f6', 
+                         borderRadius: '6px',
+                         display: 'flex',
+                         justifyContent: 'space-between',
+                         alignItems: 'center'
+                       }}>
+                         <div style={{ fontSize: '13px' }}>
+                           <span style={{ color: '#666' }}>Tương đương: </span>
+                           <span style={{ fontWeight: 'bold' }}>
+                             {getDepositRatio(form.getFieldValue('depositAmount'), room.pricePerMonth)} tháng tiền phòng
+                           </span>
+                         </div>
+                         {getDepositStatus(form.getFieldValue('depositAmount'), room.pricePerMonth) && (
+                           <Tag color={getDepositStatus(form.getFieldValue('depositAmount'), room.pricePerMonth).color} size="small">
+                             {getDepositStatus(form.getFieldValue('depositAmount'), room.pricePerMonth).text}
+                           </Tag>
+                         )}
+                       </div>
+                     )}
                     
                     {/* Helper text */}
                     <div style={{ fontSize: '12px', color: '#666', marginTop: 4 }}>

@@ -15,6 +15,7 @@ import {
   message,
   Popconfirm,
   Select,
+  Drawer,
 } from "antd";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import PageHeader from "../../components/common/PageHeader";
@@ -22,7 +23,8 @@ import EntrySelect from "../../components/common/EntrySelect";
 import SearchBox from "../../components/common/SearchBox";
 import RoleTable from "../../components/admin/RoleTable";
 import RoleFilterPopover from "../../components/admin/RoleFilterPopover";
-import { PlusOutlined, FilterOutlined } from "@ant-design/icons";
+import { PlusOutlined, FilterOutlined, MenuOutlined } from "@ant-design/icons";
+import { useMediaQuery } from "react-responsive";
 import {
   getAllPermissions,
   createRole,
@@ -53,6 +55,11 @@ export default function AdminRoleListPage() {
   const [total, setTotal] = useState(0);
   const dispatch = useDispatch();
   const [, forceUpdate] = useState({});
+
+  // Responsive states
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+  const isTablet = useMediaQuery({ minWidth: 769, maxWidth: 1024 });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const fetchPermissions = async () => {
@@ -176,61 +183,151 @@ export default function AdminRoleListPage() {
 
   return (
     <Layout>
-      <AdminSidebar />
-      <Layout style={{ marginLeft: 220 }}>
-        <Content style={{ padding: "24px", backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
+      {!isMobile && <AdminSidebar />}
+      <Layout style={{ marginLeft: isMobile ? 0 : 220 }}>
+        <Content style={{ padding: isMobile ? "16px" : "24px", backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
+          {/* Mobile Header */}
+          {isMobile && (
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "16px",
+              padding: "12px 16px",
+              background: "white",
+              borderRadius: "8px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <Button
+                  type="text"
+                  icon={<MenuOutlined />}
+                  onClick={() => setMobileMenuOpen(true)}
+                  style={{ fontSize: "16px" }}
+                />
+                <span style={{ fontSize: "18px", fontWeight: "bold" }}>Danh sách vai trò</span>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Sidebar Drawer */}
+          {isMobile && (
+            <Drawer
+              title="Menu"
+              placement="left"
+              onClose={() => setMobileMenuOpen(false)}
+              open={mobileMenuOpen}
+              width={280}
+            >
+              <AdminSidebar isDrawer={true} onMenuClick={() => setMobileMenuOpen(false)} />
+            </Drawer>
+          )}
           {/* Header Section */}
           <div style={{ 
             background: "white", 
-            padding: "20px", 
+            padding: isMobile ? "16px" : "20px", 
             borderRadius: "8px", 
             boxShadow: "0 2px 8px rgba(0,0,0,0.1)", 
             marginBottom: "20px" 
           }}>
-            <div style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "12px"
-            }}>
-              <PageHeader title="Danh sách vai trò" style={{ margin: 0, padding: 0 }} />
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <SearchBox
-                  onSearch={setSearchTerm}
-                  placeholder="Tìm vai trò..."
-                />
-                <Popover
-                  open={isFilterOpen}
-                  onOpenChange={setIsFilterOpen}
-                  content={
-                    <RoleFilterPopover
-                      onApply={(values) => {
-                        setFilters(values);
-                        setIsFilterOpen(false);
-                      }}
-                    />
-                  }
-                  trigger="click"
-                  placement="bottomRight"
-                >
-                  <Button
-                    icon={<FilterOutlined />}
-                    type="default"
+            {!isMobile && (
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "12px"
+              }}>
+                <PageHeader title="Danh sách vai trò" style={{ margin: 0, padding: 0 }} />
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <SearchBox
+                    onSearch={setSearchTerm}
+                    placeholder="Tìm vai trò..."
+                  />
+                  <Popover
+                    open={isFilterOpen}
+                    onOpenChange={setIsFilterOpen}
+                    content={
+                      <RoleFilterPopover
+                        onApply={(values) => {
+                          setFilters(values);
+                          setIsFilterOpen(false);
+                        }}
+                      />
+                    }
+                    trigger="click"
+                    placement="bottomRight"
                   >
-                    Bộ lọc
-                  </Button>
-                </Popover>
+                    <Button
+                      icon={<FilterOutlined />}
+                      type="default"
+                    >
+                      Bộ lọc
+                    </Button>
+                  </Popover>
+                  <Access requiredPermissions={["Create Role"]}>
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={openAddModal}
+                    >
+                      Thêm vai trò
+                    </Button>
+                  </Access>
+                </div>
+              </div>
+            )}
+
+            {/* Mobile Header Controls */}
+            {isMobile && (
+              <div style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px"
+              }}>
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px"
+                }}>
+                  <SearchBox
+                    onSearch={setSearchTerm}
+                    placeholder="Tìm vai trò..."
+                    style={{ flex: 1 }}
+                  />
+                  <Popover
+                    open={isFilterOpen}
+                    onOpenChange={setIsFilterOpen}
+                    content={
+                      <RoleFilterPopover
+                        onApply={(values) => {
+                          setFilters(values);
+                          setIsFilterOpen(false);
+                        }}
+                      />
+                    }
+                    trigger="click"
+                    placement="bottomRight"
+                  >
+                    <Button
+                      icon={<FilterOutlined />}
+                      type="default"
+                    >
+                      Bộ lọc
+                    </Button>
+                  </Popover>
+                </div>
                 <Access requiredPermissions={["Create Role"]}>
                   <Button
                     type="primary"
                     icon={<PlusOutlined />}
                     onClick={openAddModal}
+                    style={{ width: "100%" }}
                   >
                     Thêm vai trò
                   </Button>
                 </Access>
               </div>
-            </div>
+            )}
             
             {/* Status bar */}
             <div style={{ 
@@ -239,12 +336,14 @@ export default function AdminRoleListPage() {
               alignItems: "center",
               borderTop: "1px solid #f0f0f0",
               paddingTop: "12px",
-              fontSize: "14px"
+              fontSize: "14px",
+              flexDirection: isMobile ? "column" : "row",
+              gap: isMobile ? "8px" : "0"
             }}>
               <div style={{ color: "#666" }}>
                 Hiển thị
                 <Select
-                  style={{ width: 120, margin: "0 8px" }}
+                  style={{ width: isMobile ? "100%" : 120, margin: "0 8px" }}
                   value={pageSize}
                   onChange={(value) => setPageSize(value)}
                   options={[5, 10, 20, 50].map((v) => ({ value: v, label: `${v} / trang` }))}
@@ -290,7 +389,7 @@ export default function AdminRoleListPage() {
               setFormError(null);
             }}
             footer={null}
-            width={700}
+            width={isMobile ? "95%" : 700}
             centered
           >
             <Form
@@ -301,7 +400,7 @@ export default function AdminRoleListPage() {
               onValuesChange={() => forceUpdate({})}
             >
               <Row gutter={16}>
-                <Col span={12}>
+                <Col span={isMobile ? 24 : 12}>
                   <Form.Item
                     name="name"
                     label="Tên vai trò"
@@ -340,7 +439,7 @@ export default function AdminRoleListPage() {
                     >
                       <Row gutter={[16, 16]}>
                         {perms.map((perm) => (
-                          <Col span={12} key={perm.id}>
+                          <Col span={isMobile ? 24 : 12} key={perm.id}>
                             <div
                               style={{
                                 display: "flex",
@@ -400,6 +499,7 @@ export default function AdminRoleListPage() {
                   alignItems: "flex-start",
                   marginTop: 16,
                   gap: 16,
+                  flexDirection: isMobile ? "column" : "row"
                 }}
               >
                 <div
@@ -407,14 +507,19 @@ export default function AdminRoleListPage() {
                     color: formError ? "red" : "transparent",
                     fontSize: 13,
                     minHeight: 20,
-                    maxWidth: "75%",
+                    maxWidth: isMobile ? "100%" : "75%",
                     whiteSpace: "normal",
                     flex: 1,
                   }}
                 >
                   {formError || "\u00A0"}
                 </div>
-                <div style={{ whiteSpace: "nowrap" }}>
+                <div style={{ 
+                  whiteSpace: "nowrap",
+                  display: "flex",
+                  gap: "8px",
+                  justifyContent: isMobile ? "flex-end" : "flex-start"
+                }}>
                   <Button
                     onClick={() => {
                       setIsModalOpen(false);

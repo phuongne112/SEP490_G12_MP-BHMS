@@ -273,9 +273,13 @@ export default function NotificationTable({
           onChange: (page) => fetchData(page),
         }}
         style={{ background: "#fff", borderRadius: 8, padding: 16 }}
-        scroll={{ x: 1000 }}
+        scroll={{ 
+          x: 800,
+          scrollToFirstRowOnChange: false
+        }}
         bordered
         rowKey="id"
+        size="middle"
       />
     </>
   );

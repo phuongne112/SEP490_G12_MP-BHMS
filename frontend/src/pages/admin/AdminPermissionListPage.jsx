@@ -12,8 +12,10 @@ import {
   Popover,
   message,
   Alert,
+  Drawer,
 } from "antd";
-import { PlusOutlined, FilterOutlined } from "@ant-design/icons";
+import { PlusOutlined, FilterOutlined, MenuOutlined } from "@ant-design/icons";
+import { useMediaQuery } from "react-responsive";
 
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import PageHeader from "../../components/common/PageHeader";
@@ -51,6 +53,11 @@ export default function AdminPermissionListPage() {
 
   const user = useSelector((state) => state.account.user);
   const hasCreatePermission = user?.permissions?.includes("Create Permission");
+
+  // Responsive states
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+  const isTablet = useMediaQuery({ minWidth: 769, maxWidth: 1024 });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleApplyFilter = (values) => {
     setFilters(values);
@@ -151,9 +158,45 @@ export default function AdminPermissionListPage() {
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <AdminSidebar />
-      <Layout style={{ marginLeft: 220 }}>
-        <Content style={{ padding: "24px", backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
+      {!isMobile && <AdminSidebar />}
+      <Layout style={{ marginLeft: isMobile ? 0 : 220 }}>
+        <Content style={{ padding: isMobile ? "16px" : "24px", backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
+          {/* Mobile Header */}
+          {isMobile && (
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "16px",
+              padding: "12px 16px",
+              background: "white",
+              borderRadius: "8px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <Button
+                  type="text"
+                  icon={<MenuOutlined />}
+                  onClick={() => setMobileMenuOpen(true)}
+                  style={{ fontSize: "16px" }}
+                />
+                <span style={{ fontSize: "18px", fontWeight: "bold" }}>Danh sách quyền</span>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Sidebar Drawer */}
+          {isMobile && (
+            <Drawer
+              title="Menu"
+              placement="left"
+              onClose={() => setMobileMenuOpen(false)}
+              open={mobileMenuOpen}
+              width={280}
+            >
+              <AdminSidebar isDrawer={true} onMenuClick={() => setMobileMenuOpen(false)} />
+            </Drawer>
+          )}
           {/* Header Section */}
           <div style={{ 
             background: "white", 
@@ -166,12 +209,30 @@ export default function AdminPermissionListPage() {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: "12px"
+              marginBottom: "12px",
+              flexDirection: isMobile ? "column" : "row",
+              gap: isMobile ? 12 : 0
             }}>
-              <PageHeader title="Danh sách quyền" style={{ margin: 0, padding: 0 }} />
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <div style={{ display: "flex", flexDirection: "column" }}>
+              {!isMobile && <PageHeader title="Danh sách quyền" style={{ margin: 0, padding: 0 }} />}
+              <div style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: "12px",
+                flexDirection: isMobile ? "column" : "row",
+                width: isMobile ? "100%" : "auto"
+              }}>
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "8px",
+                  flexDirection: isMobile ? "column" : "row",
+                  width: isMobile ? "100%" : "auto"
+                }}>
+                  <div style={{ 
+                    display: "flex", 
+                    flexDirection: "column",
+                    width: isMobile ? "100%" : "auto"
+                  }}>
                     <label style={{ fontSize: "12px", marginBottom: "2px", color: "#666" }}>Tên</label>
                     <SearchBox
                       placeholder="Tìm quyền..."
@@ -181,7 +242,11 @@ export default function AdminPermissionListPage() {
                       }}
                     />
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column" }}>
+                  <div style={{ 
+                    display: "flex", 
+                    flexDirection: "column",
+                    width: isMobile ? "100%" : "auto"
+                  }}>
                     <label style={{ fontSize: "12px", marginBottom: "2px", color: "#666" }}>API</label>
                     <SearchBox
                       placeholder="Nhập API..."
@@ -192,41 +257,50 @@ export default function AdminPermissionListPage() {
                     />
                   </div>
                 </div>
-                <Popover
-                  open={isFilterOpen}
-                  onOpenChange={setIsFilterOpen}
-                  content={
-                    <PermissionFilterPopover
-                      onApply={(values) => {
-                        handleApplyFilter(values);
-                        setIsFilterOpen(false);
+                <div style={{ 
+                  display: "flex", 
+                  gap: "8px",
+                  flexDirection: isMobile ? "column" : "row",
+                  width: isMobile ? "100%" : "auto"
+                }}>
+                  <Popover
+                    open={isFilterOpen}
+                    onOpenChange={setIsFilterOpen}
+                    content={
+                      <PermissionFilterPopover
+                        onApply={(values) => {
+                          handleApplyFilter(values);
+                          setIsFilterOpen(false);
+                        }}
+                      />
+                    }
+                    trigger="click"
+                    placement="bottomRight"
+                  >
+                    <Button
+                      icon={<FilterOutlined />}
+                      type="default"
+                      style={{ width: isMobile ? "100%" : "auto" }}
+                    >
+                      Bộ lọc
+                    </Button>
+                  </Popover>
+                  {hasCreatePermission && (
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={() => {
+                        form.resetFields();
+                        setEditingPermission(null);
+                        setFormError(null);
+                        setIsModalOpen(true);
                       }}
-                    />
-                  }
-                  trigger="click"
-                  placement="bottomRight"
-                >
-                  <Button
-                    icon={<FilterOutlined />}
-                    type="default"
-                  >
-                    Bộ lọc
-                  </Button>
-                </Popover>
-                {hasCreatePermission && (
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={() => {
-                      form.resetFields();
-                      setEditingPermission(null);
-                      setFormError(null);
-                      setIsModalOpen(true);
-                    }}
-                  >
-                    Thêm quyền
-                  </Button>
-                )}
+                      style={{ width: isMobile ? "100%" : "auto" }}
+                    >
+                      Thêm quyền
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
             
@@ -237,12 +311,14 @@ export default function AdminPermissionListPage() {
               alignItems: "center",
               borderTop: "1px solid #f0f0f0",
               paddingTop: "12px",
-              fontSize: "14px"
+              fontSize: "14px",
+              flexDirection: isMobile ? "column" : "row",
+              gap: isMobile ? 8 : 0
             }}>
               <div style={{ color: "#666" }}>
                 Hiển thị
                 <Select
-                  style={{ width: 120, margin: "0 8px" }}
+                  style={{ width: isMobile ? 100 : 120, margin: "0 8px" }}
                   value={pageSize}
                   onChange={(val) => {
                     setPageSize(val);
@@ -301,7 +377,7 @@ export default function AdminPermissionListPage() {
               setFormError(null);
             }}
             footer={null}
-            width={600}
+            width={isMobile ? "95%" : 600}
           >
             <Form
               form={form}
@@ -309,7 +385,7 @@ export default function AdminPermissionListPage() {
               onFinish={handleSubmitPermission}
             >
               <Row gutter={16}>
-                <Col span={12}>
+                <Col span={isMobile ? 24 : 12}>
                   <Form.Item
                     name="name"
                     label="Tên quyền"
@@ -319,7 +395,7 @@ export default function AdminPermissionListPage() {
                   </Form.Item>
                 </Col>
 
-                <Col span={12}>
+                <Col span={isMobile ? 24 : 12}>
                   <Form.Item
                     name="api"
                     label="Đường dẫn API"
@@ -331,7 +407,7 @@ export default function AdminPermissionListPage() {
               </Row>
 
               <Row gutter={16}>
-                <Col span={12}>
+                <Col span={isMobile ? 24 : 12}>
                   <Form.Item
                     name="method"
                     label="Phương thức"
@@ -347,7 +423,7 @@ export default function AdminPermissionListPage() {
                   </Form.Item>
                 </Col>
 
-                <Col span={12}>
+                <Col span={isMobile ? 24 : 12}>
                   <Form.Item
                     name="module"
                     label="Module"
