@@ -104,3 +104,29 @@ export const getRoomById = async (id) => {
   const response = await axiosClient.get(`/rooms/${id}`);
   return response.data;
 };
+
+// Cập nhật thông tin phòng
+export const updateRoom = async (id, roomData) => {
+  const response = await axiosClient.put(`/rooms/${id}`, roomData);
+  return response.data;
+};
+
+// Default export
+const roomService = {
+  getAllRooms,
+  getAllRoomsNoPaging,
+  updateRoomStatus,
+  toggleRoomActiveStatus,
+  getRoomsWithRenter,
+  deleteRoom,
+  addServiceToRoom,
+  getMyRoom,
+  getRoomsWithElectricReadings,
+  deactivateServiceForRoom,
+  reactivateServiceForRoom,
+  getRoomStats,
+  getRoomById,
+  updateRoom
+};
+
+export default roomService;

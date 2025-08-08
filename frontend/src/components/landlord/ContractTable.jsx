@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Table, Button, Popconfirm, Statistic, Space, Spin, Tag } from "antd";
 import { FilePdfOutlined, EditOutlined, HistoryOutlined, ReloadOutlined, StopOutlined, EyeOutlined } from "@ant-design/icons";
 import { getContractHistoryByRoom } from "../../services/contractApi";
+import { useMediaQuery } from "react-responsive";
 
 const paymentCycleVN = {
   MONTHLY: "Hàng tháng",
@@ -69,34 +70,36 @@ function ContractHistoryTable({ roomId, onExport }) {
 }
 
 export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate, onRenew, onViewAmendments, onTerminate, onViewDetail, loading, onFilter, pageSize = 5, currentPage = 1, total = 0, onPageChange }) {
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+  
   const columns = [
     {
-      title: "Mã hợp đồng",
+      title: "Mã",
       dataIndex: "id",
       align: "center",
-      width: 90
+      width: isMobile ? 40 : 80
     },
     {
       title: "Phòng",
       render: (_, record) => record?.room?.roomNumber || record?.roomNumber || "Không rõ",
       align: "center",
-      width: 90
+      width: isMobile ? 50 : 100
     },
     {
-      title: "Ngày bắt đầu",
+      title: "Bắt đầu",
       dataIndex: "contractStartDate",
       render: (text) =>
         text ? new Date(text).toLocaleDateString("vi-VN") : "—",
       align: "center",
-      width: 110
+      width: isMobile ? 60 : 100
     },
     {
-      title: "Ngày kết thúc",
+      title: "Kết thúc",
       dataIndex: "contractEndDate",
       render: (text) =>
         text ? new Date(text).toLocaleDateString("vi-VN") : "—",
       align: "center",
-      width: 110
+      width: isMobile ? 60 : 100
     },
     {
       title: "Trạng thái",
@@ -107,12 +110,12 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
         </Tag>
       ),
       align: "center",
-      width: 110
+      width: isMobile ? 70 : 110
     },
     {
       title: "Còn lại",
       align: "center",
-      width: 160,
+      width: isMobile ? 60 : 100,
       render: (_, record) => {
         if (record.contractStatus === "TERMINATED" || record.contractStatus === "EXPIRED") {
           return <span style={{ color: "#888", fontWeight: 600 }}>—</span>;
@@ -166,11 +169,11 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       }
     },
     {
-      title: "Số hợp đồng",
+      title: "Số HĐ",
       dataIndex: "contractNumber",
       render: (num, record) => num || `#${record.id}`,
       align: "center",
-      width: 110
+      width: isMobile ? 50 : 90
     },
     {
       title: "Người thuê",
@@ -178,25 +181,25 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       key: "tenants",
       render: (users) => users?.map(u => u.fullName).join(", ") || "—",
       align: "center",
-      width: 140,
+      width: isMobile ? 70 : 120,
       ellipsis: true
     },
     {
-      title: "Số điện thoại",
+      title: "SĐT",
       dataIndex: "roomUsers",
       key: "phones",
       render: (users) => users?.map(u => u.phoneNumber).join(", ") || "—",
       align: "center",
-      width: 140,
+      width: isMobile ? 60 : 110,
       ellipsis: true
     },
     {
-      title: "Tiền cọc",
+      title: "Cọc",
       dataIndex: "depositAmount",
       key: "deposit",
       render: (amount) => amount ? amount.toLocaleString() + " VND" : "—",
       align: "center",
-      width: 110
+      width: isMobile ? 50 : 70
     },
     {
       title: "Tiền thuê",
@@ -204,39 +207,38 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       key: "rent",
       render: (amount) => amount ? amount.toLocaleString() + " VND" : "—",
       align: "center",
-      width: 110
+      width: isMobile ? 60 : 80
     },
     {
-      title: "Chu kỳ thanh toán",
+      title: "Chu kỳ",
       dataIndex: "paymentCycle",
       key: "paymentCycle",
       render: (cycle) => paymentCycleVN[cycle] || cycle || "—",
       align: "center",
-      width: 120
+      width: isMobile ? 40 : 60
     },
     {
-      title: "Ngày cập nhật",
+      title: "Cập nhật",
       dataIndex: "createdDate",
       render: (d) => d ? `${new Date(d).toLocaleDateString("vi-VN")} ${new Date(d).toLocaleTimeString("vi-VN", { hour12: false })}` : "—",
       align: "center",
-      width: 110
+      width: isMobile ? 50 : 70
     },
 
     {
       title: "Thao tác",
       align: "center",
-      width: 500,
+      width: isMobile ? 100 : 140,
       render: (_, record) => {
         const isTerminatedOrExpired = record.contractStatus === "TERMINATED" || record.contractStatus === "EXPIRED";
         return (
           <div style={{ 
             display: 'flex', 
+            flexDirection: 'column',
             justifyContent: 'center', 
             alignItems: 'center',
-            gap: '8px',
-            flexWrap: 'nowrap',
-            width: '100%',
-            minWidth: '480px'
+            gap: '2px',
+            width: '100%'
           }}>
             <Button
               type="primary"
@@ -244,6 +246,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
               onClick={() => onViewDetail && onViewDetail(record)}
               size="small"
               title="Xem chi tiết"
+              style={{ width: '100%', marginBottom: '2px' }}
             >
               Chi tiết
             </Button>
@@ -252,6 +255,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
               icon={<FilePdfOutlined />}
               onClick={() => onExport(record.id)}
               size="small"
+              style={{ width: '100%', marginBottom: '2px' }}
             >
               Xuất PDF
             </Button>
@@ -260,7 +264,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
               icon={<EditOutlined />}
               onClick={() => onUpdate && onUpdate(record)}
               size="small"
-              style={{ color: "#faad14", borderColor: "#faad14" }}
+              style={{ color: "#faad14", borderColor: "#faad14", width: '100%', marginBottom: '2px' }}
               disabled={isTerminatedOrExpired}
             >
               Sửa
@@ -271,6 +275,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
               onClick={() => onViewAmendments && onViewAmendments(record.id)}
               size="small"
               disabled={isTerminatedOrExpired}
+              style={{ width: '100%', marginBottom: '2px' }}
             >
               Lịch sử
             </Button>
@@ -281,6 +286,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
                 icon={<StopOutlined />}
                 size="small"
                 disabled={isTerminatedOrExpired}
+                style={{ width: '100%' }}
               >
                 Chấm dứt
               </Button>
@@ -306,25 +312,61 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
   });
 
   return (
-    <Table
-      columns={columns}
-      dataSource={dataSource}
-      rowKey="roomId"
-      expandable={{
-        expandedRowRender: (record) => <ContractHistoryTable roomId={record.roomId} onExport={onExport} />,
-        rowExpandable: () => true,
-      }}
-      pagination={{
-        pageSize: pageSize,
-        current: currentPage,
-        total: total,
-        showSizeChanger: false,
-        onChange: onPageChange
-      }}
-      style={{ background: "#fff", borderRadius: 8, padding: 16 }}
-      loading={loading}
-      scroll={{ x: 1800 }}
-      bordered
-    />
+    <div style={{ 
+      background: "#fff", 
+      borderRadius: 8, 
+      padding: 16
+    }}>
+      <style>
+        {`
+          .ant-table-wrapper {
+            overflow: hidden !important;
+          }
+          .ant-table-wrapper .ant-table-body {
+            overflow-x: auto !important;
+            max-height: 500px;
+          }
+          .ant-table-wrapper .ant-table-body::-webkit-scrollbar {
+            height: 12px !important;
+            background-color: #f5f5f5;
+          }
+          .ant-table-wrapper .ant-table-body::-webkit-scrollbar-track {
+            background: #f1f1f1 !important;
+            border-radius: 6px !important;
+            border: 1px solid #ddd;
+          }
+          .ant-table-wrapper .ant-table-body::-webkit-scrollbar-thumb {
+            background: #888 !important;
+            border-radius: 6px !important;
+            border: 1px solid #666;
+          }
+          .ant-table-wrapper .ant-table-body::-webkit-scrollbar-thumb:hover {
+            background: #555 !important;
+          }
+          .ant-table-wrapper .ant-table-pagination {
+            margin: 16px 0 0 0 !important;
+          }
+        `}
+      </style>
+      <Table
+        columns={columns}
+        dataSource={dataSource}
+        rowKey="roomId"
+        expandable={{
+          expandedRowRender: (record) => <ContractHistoryTable roomId={record.roomId} onExport={onExport} />,
+          rowExpandable: () => true,
+        }}
+        pagination={{
+          pageSize: pageSize,
+          current: currentPage,
+          total: total,
+          showSizeChanger: false,
+          onChange: onPageChange
+        }}
+        loading={loading}
+        scroll={{ x: isMobile ? 1200 : 1800 }}
+        bordered
+      />
+    </div>
   );
 }

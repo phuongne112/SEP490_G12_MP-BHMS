@@ -1,29 +1,33 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Row, Col, DatePicker, Select, Button, Popover, message, Modal, Table, Input, Space, Tooltip, Card, Switch, InputNumber } from "antd";
+import { Layout, Row, Col, DatePicker, Select, Button, Popover, message, Modal, Table, Input, Space, Tooltip, Card, Switch, InputNumber, Drawer } from "antd";
 import dayjs from "dayjs";
 import PageHeader from "../../components/common/PageHeader";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import ElectricTable from "../../components/landlord/ElectricTable";
 import { getElectricReadings } from "../../services/electricReadingApi";
 import { getRoomsWithElectricReadings } from "../../services/roomService";
-import { FilterOutlined, CameraOutlined, PlayCircleOutlined, PauseCircleOutlined } from "@ant-design/icons";
+import { FilterOutlined, CameraOutlined, PlayCircleOutlined, PauseCircleOutlined, MenuOutlined } from "@ant-design/icons";
 import { enableAutoScan, disableAutoScan, getAutoScanStatus, getScanLogs, getScanImages, getCurrentScanningImage } from "../../services/electricReadingApi";
 import { FolderOpenOutlined } from "@ant-design/icons";
 import axiosClient from "../../services/axiosClient";
 import { getElectricScanInterval } from '../../services/electricOcrApi';
+import { useMediaQuery } from "react-responsive";
 
 const { Sider, Content } = Layout;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 export default function LandlordElectricListPage() {
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+  const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
+  
   const [dateRange, setDateRange] = useState([null, null]);
   const [selectedBuilding, setSelectedBuilding] = useState("All");
   const [selectedCycle, setSelectedCycle] = useState("All");
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 5;
+  const pageSize = isMobile ? 3 : 5;
 
   const [electricData, setElectricData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -117,7 +121,7 @@ export default function LandlordElectricListPage() {
   };
 
   const filterContent = (
-    <div style={{ minWidth: 250 }}>
+    <div style={{ minWidth: isMobile ? 200 : 250 }}>
       <div style={{ marginBottom: 12 }}>
         <span>Khoảng ngày</span>
         <RangePicker
@@ -310,122 +314,325 @@ export default function LandlordElectricListPage() {
 
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Sider width={220} style={{ background: "#fff" }}>
-        <LandlordSidebar />
-      </Sider>
-      <Layout>
-        <Content style={{ margin: "24px 16px", padding: 24, background: "#fff" }}>
-
-          {/* Filter Section */}
-          <div style={{ 
-            background: 'white', 
-            borderRadius: 8, 
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            padding: 16,
-            marginBottom: 16
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <PageHeader title="Quản lý chỉ số điện" style={{ margin: 0, padding: 0 }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Popover
-                  content={filterContent}
-                  title={null}
-                  trigger="click"
-                  open={filterVisible}
-                  onOpenChange={setFilterVisible}
-                  placement="bottomRight"
-                >
-                  <Button icon={<FilterOutlined />} type="default">Bộ lọc</Button>
-                </Popover>
-                <Button onClick={() => openLogModal(null)} type="default">
-                  Xem tất cả lịch sử quét
-                </Button>
-              </div>
-            </div>
-            
-            {/* Controls Section */}
+    <div style={{ width: '100%', minHeight: '100vh' }}>
+      <style>
+        {`
+          @media (max-width: 768px) {
+            .ant-layout-sider {
+              display: none !important;
+            }
+          }
+        `}
+      </style>
+      <Layout style={{ minHeight: "100vh" }}>
+        {/* Desktop Sidebar - chỉ hiển thị trên desktop */}
+        {!isMobile && (
+          <Sider width={220} style={{ position: 'fixed', height: '100vh', zIndex: 1000 }}>
+            <LandlordSidebar />
+          </Sider>
+        )}
+        
+        {/* Main Layout */}
+        <Layout style={{ marginLeft: isMobile ? 0 : 220 }}>
+          {/* Mobile Header - chỉ hiển thị trên mobile */}
+          {isMobile && (
             <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
+              background: '#001529', 
+              padding: '12px 16px',
+              display: 'flex',
               alignItems: 'center',
-              borderTop: '1px solid #f0f0f0',
-              paddingTop: 12,
-              flexWrap: 'wrap',
-              gap: 16
+              justifyContent: 'space-between',
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
+              width: '100%'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontWeight: 500 }}>Tự động quét:</span>
-                <Button
-                  loading={autoScanLoading}
-                  type={autoScanStatus === "Auto scan ON" ? "primary" : "default"}
-                  onClick={() => handleToggleAutoScan(autoScanStatus !== "Auto scan ON")}
-                >
-                  {autoScanStatus === "Auto scan ON" ? "Tắt" : "Bật"}
-                </Button>
-                <span style={{ 
-                  padding: '4px 8px', 
-                  borderRadius: 4, 
-                  background: autoScanStatus === "Auto scan ON" ? '#f6ffed' : '#fff2f0',
-                  color: autoScanStatus === "Auto scan ON" ? '#52c41a' : '#ff4d4f',
-                  fontSize: 12,
-                  fontWeight: 500
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 12,
+                color: 'white'
+              }}>
+                <div style={{ 
+                  fontWeight: 600, 
+                  fontSize: 18,
+                  color: 'white'
                 }}>
-                  {autoScanStatus === "Auto scan ON" ? "Tự động quét BẬT" : "Tự động quét TẮT"}
-                </span>
+                  MP-BHMS
+                </div>
+                <div style={{ 
+                  fontSize: 14,
+                  color: 'rgba(255,255,255,0.8)'
+                }}>
+                  Quản lý chỉ số điện
+                </div>
               </div>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <label style={{ fontWeight: 500 }}>
-                  Thời gian quét tự động:
-                  <Input
-                    type="number"
-                    min={1}
-                    value={Math.round(scanInterval / 1000)}
-                    onChange={e => setScanInterval(Number(e.target.value) * 1000)}
-                    style={{ width: 100, marginLeft: 8 }}
-                    suffix="giây"
-                  />
-                </label>
-                <Button
-                  type="primary"
-                  onClick={handleUpdateInterval}
-                  loading={intervalLoading}
-                  size="small"
-                >
-                  Cập nhật
-                </Button>
-              </div>
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                onClick={() => setSidebarDrawerOpen(true)}
+                style={{ 
+                  color: 'white',
+                  fontSize: '18px'
+                }}
+              />
             </div>
-          </div>
+          )}
           
-          {/* Main Table Section */}
-          <div style={{ 
-            background: 'white', 
-            borderRadius: 8, 
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            overflow: 'hidden'
+          {/* Main Content */}
+          <Content style={{ 
+            padding: isMobile ? 16 : 24, 
+            backgroundColor: '#f5f5f5', 
+            minHeight: '100vh',
+            width: '100%'
           }}>
-            <ElectricTable
-              dataSource={pagedData}
-              currentPage={currentPage}
-              pageSize={pageSize}
-              total={electricData.length}
-              onPageChange={(page) => setCurrentPage(page)}
-              loading={loading}
-              onReload={reloadElectricData}
-              onShowLog={openLogModal}
-            />
-          </div>
-        </Content>
+            {/* Controls Section cho cả mobile và desktop */}
+            {isMobile ? (
+              <div style={{ 
+                background: 'white', 
+                padding: 16, 
+                borderRadius: 8, 
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                marginBottom: 16
+              }}>
+                <div style={{ 
+                  fontSize: 20, 
+                  fontWeight: 600,
+                  marginBottom: 16,
+                  color: '#1a1a1a'
+                }}>
+                  Quản lý chỉ số điện
+                </div>
+                
+                {/* Search and Filter Controls */}
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: "column",
+                  gap: 12,
+                  marginBottom: 16
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    gap: 8
+                  }}>
+                    <Popover
+                      content={filterContent}
+                      title={null}
+                      trigger="click"
+                      open={filterVisible}
+                      onOpenChange={setFilterVisible}
+                      placement="bottom"
+                    >
+                      <Button 
+                        icon={<FilterOutlined />} 
+                        type="default"
+                        style={{ flex: 1 }}
+                        size="large"
+                      >
+                        Bộ lọc
+                      </Button>
+                    </Popover>
+                    <Button 
+                      onClick={() => openLogModal(null)} 
+                      type="default"
+                      style={{ flex: 1 }}
+                      size="large"
+                    >
+                      Lịch sử quét
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Mobile Auto Scan Controls */}
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  gap: 12,
+                  borderTop: '1px solid #f0f0f0',
+                  paddingTop: 12,
+                  fontSize: 12
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontWeight: 500 }}>Tự động quét:</span>
+                    <Button
+                      loading={autoScanLoading}
+                      type={autoScanStatus === "Auto scan ON" ? "primary" : "default"}
+                      onClick={() => handleToggleAutoScan(autoScanStatus !== "Auto scan ON")}
+                      size="small"
+                    >
+                      {autoScanStatus === "Auto scan ON" ? "Tắt" : "Bật"}
+                    </Button>
+                    <span style={{ 
+                      padding: '4px 8px', 
+                      borderRadius: 4, 
+                      background: autoScanStatus === "Auto scan ON" ? '#f6ffed' : '#fff2f0',
+                      color: autoScanStatus === "Auto scan ON" ? '#52c41a' : '#ff4d4f',
+                      fontSize: 11,
+                      fontWeight: 500
+                    }}>
+                      {autoScanStatus === "Auto scan ON" ? "BẬT" : "TẮT"}
+                    </span>
+                  </div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label style={{ fontWeight: 500, fontSize: 11 }}>
+                      Thời gian quét:
+                      <Input
+                        type="number"
+                        min={1}
+                        value={Math.round(scanInterval / 1000)}
+                        onChange={e => setScanInterval(Number(e.target.value) * 1000)}
+                        style={{ width: 80, marginLeft: 8 }}
+                        suffix="s"
+                        size="small"
+                      />
+                    </label>
+                    <Button
+                      type="primary"
+                      onClick={handleUpdateInterval}
+                      loading={intervalLoading}
+                      size="small"
+                    >
+                      Cập nhật
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ 
+                background: 'white', 
+                padding: 20, 
+                borderRadius: 8, 
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                marginBottom: 20
+              }}>
+                <div style={{ 
+                  display: "flex", 
+                  justifyContent: "space-between", 
+                  alignItems: "center", 
+                  marginBottom: 12
+                }}>
+                  <PageHeader title="Quản lý chỉ số điện" style={{ margin: 0, padding: 0 }} />
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 12
+                  }}>
+                    <Popover
+                      content={filterContent}
+                      title={null}
+                      trigger="click"
+                      open={filterVisible}
+                      onOpenChange={setFilterVisible}
+                      placement="bottomRight"
+                    >
+                      <Button icon={<FilterOutlined />} type="default">Bộ lọc</Button>
+                    </Popover>
+                    <Button onClick={() => openLogModal(null)} type="default">
+                      Xem tất cả lịch sử quét
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Desktop Controls Section */}
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  borderTop: '1px solid #f0f0f0',
+                  paddingTop: 12,
+                  flexWrap: 'wrap',
+                  gap: 16
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontWeight: 500 }}>Tự động quét:</span>
+                    <Button
+                      loading={autoScanLoading}
+                      type={autoScanStatus === "Auto scan ON" ? "primary" : "default"}
+                      onClick={() => handleToggleAutoScan(autoScanStatus !== "Auto scan ON")}
+                    >
+                      {autoScanStatus === "Auto scan ON" ? "Tắt" : "Bật"}
+                    </Button>
+                    <span style={{ 
+                      padding: '4px 8px', 
+                      borderRadius: 4, 
+                      background: autoScanStatus === "Auto scan ON" ? '#f6ffed' : '#fff2f0',
+                      color: autoScanStatus === "Auto scan ON" ? '#52c41a' : '#ff4d4f',
+                      fontSize: 12,
+                      fontWeight: 500
+                    }}>
+                      {autoScanStatus === "Auto scan ON" ? "Tự động quét BẬT" : "Tự động quét TẮT"}
+                    </span>
+                  </div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <label style={{ fontWeight: 500 }}>
+                      Thời gian quét tự động:
+                      <Input
+                        type="number"
+                        min={1}
+                        value={Math.round(scanInterval / 1000)}
+                        onChange={e => setScanInterval(Number(e.target.value) * 1000)}
+                        style={{ width: 100, marginLeft: 8 }}
+                        suffix="giây"
+                      />
+                    </label>
+                    <Button
+                      type="primary"
+                      onClick={handleUpdateInterval}
+                      loading={intervalLoading}
+                      size="small"
+                    >
+                      Cập nhật
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Main Table Section */}
+            <div style={{ 
+              background: 'white', 
+              borderRadius: 8, 
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              overflow: 'hidden'
+            }}>
+              <ElectricTable
+                dataSource={pagedData}
+                currentPage={currentPage}
+                pageSize={pageSize}
+                total={electricData.length}
+                onPageChange={(page) => setCurrentPage(page)}
+                loading={loading}
+                onReload={reloadElectricData}
+                onShowLog={openLogModal}
+              />
+            </div>
+          </Content>
+        </Layout>
+        
+        {/* Mobile Drawer cho Sidebar */}
+        {isMobile && (
+          <Drawer
+            title="Menu"
+            placement="left"
+            onClose={() => setSidebarDrawerOpen(false)}
+            open={sidebarDrawerOpen}
+            width={280}
+            bodyStyle={{ padding: 0 }}
+          >
+            <LandlordSidebar isDrawer={true} onMenuClick={() => setSidebarDrawerOpen(false)} />
+          </Drawer>
+        )}
       </Layout>
+      
       <Modal
         open={logModalVisible}
         onCancel={() => setLogModalVisible(false)}
         title={`📊 Lịch sử quét chỉ số điện tự động${logRoomId ? ` - Phòng ${roomList.find(r => r.id === logRoomId)?.roomNumber || logRoomId}` : ''}`}
         footer={null}
-        width={1000}
-        style={{ top: 20 }}
+        width={isMobile ? '95%' : 1000}
+        style={{ top: isMobile ? 20 : 20 }}
       >
         <Table
           columns={logColumns}
@@ -441,10 +648,10 @@ export default function LandlordElectricListPage() {
             showQuickJumper: true,
             showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} mục`
           }}
-          scroll={{ x: 800 }}
-          size="small"
+          scroll={{ x: isMobile ? 600 : 800 }}
+          size={isMobile ? "small" : "middle"}
         />
       </Modal>
-    </Layout>
+    </div>
   );
 }

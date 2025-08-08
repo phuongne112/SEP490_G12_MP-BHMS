@@ -17,8 +17,9 @@ import {
   Table,
   Tag,
   Tooltip,
+  Drawer,
 } from "antd";
-import { PlusOutlined, SearchOutlined, FilterOutlined, HistoryOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { PlusOutlined, SearchOutlined, FilterOutlined, HistoryOutlined, EditOutlined, DeleteOutlined, MenuOutlined } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import ServiceTable from "../../components/landlord/ServiceTable";
@@ -32,7 +33,7 @@ const { Sider, Content } = Layout;
 
 export default function LandlordServiceListPage() {
   const isMobile = useMediaQuery({ maxWidth: 768 });
-  const isTablet = useMediaQuery({ minWidth: 769, maxWidth: 1024 });
+  const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
   
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -372,7 +373,7 @@ export default function LandlordServiceListPage() {
       title: "Thao tác",
       key: "actions",
       align: "center",
-      width: 450,
+      width: isMobile ? 200 : 450,
       render: (_, record) => (
         <div style={{ 
           display: 'flex', 
@@ -381,7 +382,7 @@ export default function LandlordServiceListPage() {
           gap: '8px',
           flexWrap: 'nowrap',
           width: '100%',
-          minWidth: '430px'
+          minWidth: isMobile ? '180px' : '430px'
         }}>
           <Button 
             type="primary" 
@@ -426,150 +427,305 @@ export default function LandlordServiceListPage() {
   ];
 
   return (
-    <Layout style={{ minHeight: "100vh", flexDirection: isMobile ? "column" : "row" }}>
-      {!isMobile && (
-        <Sider width={220}>
-          <LandlordSidebar />
-        </Sider>
-      )}
-      <Layout>
-        <Content style={{ padding: isMobile ? 16 : 24, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
-          {/* Header Section */}
-          <div style={{ 
-            background: 'white', 
-            padding: isMobile ? 16 : 20, 
-            borderRadius: 8, 
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            marginBottom: 20
-          }}>
+    <div style={{ width: '100%', minHeight: '100vh' }}>
+      <style>
+        {`
+          @media (max-width: 768px) {
+            .ant-layout-sider {
+              display: none !important;
+            }
+          }
+        `}
+      </style>
+      <Layout style={{ minHeight: "100vh" }}>
+        {/* Desktop Sidebar - chỉ hiển thị trên desktop */}
+        {!isMobile && (
+          <Sider width={220} style={{ position: 'fixed', height: '100vh', zIndex: 1000 }}>
+            <LandlordSidebar />
+          </Sider>
+        )}
+        
+        {/* Main Layout */}
+        <Layout style={{ marginLeft: isMobile ? 0 : 220 }}>
+          {/* Mobile Header - chỉ hiển thị trên mobile */}
+          {isMobile && (
             <div style={{ 
-              display: "flex", 
-              flexDirection: isMobile ? "column" : "row",
-              justifyContent: "space-between", 
-              alignItems: isMobile ? "stretch" : "center", 
-              marginBottom: 12,
-              gap: isMobile ? 12 : 0
+              background: '#001529', 
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
+              width: '100%'
             }}>
-              <PageHeader title="Danh sách dịch vụ" style={{ margin: 0, padding: 0 }} />
               <div style={{ 
                 display: 'flex', 
-                flexDirection: isMobile ? "column" : "row",
                 alignItems: 'center', 
                 gap: 12,
-                width: isMobile ? "100%" : "auto"
+                color: 'white'
               }}>
-                <Input
-                  placeholder="Tìm tên dịch vụ"
-                  prefix={<SearchOutlined />}
-                  value={searchInput}
-                  onChange={handleSearchInputChange}
-                  style={{ width: isMobile ? "100%" : 250 }}
-                />
-                <Popover
-                  content={<ServiceFilterPopover onFilter={handleAdvancedFilterApply} onClose={() => setIsFilterOpen(false)} onReset={handleResetFilter} />}
-                  trigger="click"
-                  placement="bottomRight"
-                  open={isFilterOpen}
-                  onOpenChange={setIsFilterOpen}
-                >
-                  <Button 
-                    icon={<FilterOutlined />} 
-                    type="default"
-                    style={{ width: isMobile ? "100%" : "auto" }}
-                  >
-                    Bộ lọc
-                  </Button>
-                </Popover>
-                <Button 
-                  type="primary" 
-                  icon={<PlusOutlined />} 
-                  onClick={() => setIsModalOpen(true)}
-                  style={{ width: isMobile ? "100%" : "auto" }}
-                >
-                  Thêm dịch vụ
-                </Button>
+                <div style={{ 
+                  fontWeight: 600, 
+                  fontSize: 18,
+                  color: 'white'
+                }}>
+                  MP-BHMS
+                </div>
+                <div style={{ 
+                  fontSize: 14,
+                  color: 'rgba(255,255,255,0.8)'
+                }}>
+                  Danh sách dịch vụ
+                </div>
               </div>
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                onClick={() => setSidebarDrawerOpen(true)}
+                style={{ 
+                  color: 'white',
+                  fontSize: '18px'
+                }}
+              />
             </div>
-            
-            {/* Status bar */}
-            <div style={{ 
-              display: 'flex', 
-              flexDirection: isMobile ? "column" : "row",
-              justifyContent: 'space-between', 
-              alignItems: isMobile ? "stretch" : "center",
-              borderTop: '1px solid #f0f0f0',
-              paddingTop: 12,
-              fontSize: isMobile ? 12 : 14,
-              gap: isMobile ? 8 : 0
-            }}>
-              <div style={{ color: '#666' }}>
-                Hiển thị
-                <Select
-                  style={{ width: isMobile ? 60 : 80, margin: "0 8px" }}
-                  value={pagination.pageSize}
-                  onChange={handlePageSizeChange}
-                  options={pageSizeOptions.map((v) => ({ value: v, label: v }))}
-                  size={isMobile ? "small" : "middle"}
-                />
-                mục
-              </div>
-              <div style={{ fontWeight: 500, color: "#1890ff" }}>
-                Tổng: {pagination.total} dịch vụ
-              </div>
-            </div>
-          </div>
+          )}
           
-          {/* Main Table Section */}
-          <div style={{ 
-            background: 'white', 
-            borderRadius: 8, 
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            overflow: 'hidden'
+          {/* Main Content */}
+          <Content style={{ 
+            padding: isMobile ? 16 : 24, 
+            backgroundColor: '#f5f5f5', 
+            minHeight: '100vh',
+            width: '100%'
           }}>
-            <ServiceTable
-              services={services}
-              pagination={pagination}
-              loading={loading}
-              onEdit={handleEdit}
-              onDelete={handleDeleteService}
-              onTableChange={handleTableChange}
-              onUpdatePrice={handleUpdatePrice}
-              onViewPriceHistory={handleViewPriceHistory}
-            />
-          </div>
+            {/* Controls Section cho cả mobile và desktop */}
+            {isMobile ? (
+              <div style={{ 
+                background: 'white', 
+                padding: 16, 
+                borderRadius: 8, 
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                marginBottom: 16
+              }}>
+                <div style={{ 
+                  fontSize: 20, 
+                  fontWeight: 600,
+                  marginBottom: 16,
+                  color: '#1a1a1a'
+                }}>
+                  Danh sách dịch vụ
+                </div>
+                
+                {/* Search and Filter Controls */}
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: "column",
+                  gap: 12,
+                  marginBottom: 16
+                }}>
+                  <Input
+                    placeholder="Tìm tên dịch vụ"
+                    prefix={<SearchOutlined />}
+                    value={searchInput}
+                    onChange={handleSearchInputChange}
+                    style={{ width: "100%" }}
+                    size="large"
+                  />
+                  <div style={{ 
+                    display: 'flex', 
+                    gap: 8
+                  }}>
+                    <Popover
+                      content={<ServiceFilterPopover onFilter={handleAdvancedFilterApply} onClose={() => setIsFilterOpen(false)} onReset={handleResetFilter} />}
+                      trigger="click"
+                      placement="bottom"
+                      open={isFilterOpen}
+                      onOpenChange={setIsFilterOpen}
+                    >
+                      <Button 
+                        icon={<FilterOutlined />} 
+                        type="default"
+                        style={{ flex: 1 }}
+                        size="large"
+                      >
+                        Bộ lọc
+                      </Button>
+                    </Popover>
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={() => setIsModalOpen(true)}
+                      style={{ flex: 1 }}
+                      size="large"
+                    >
+                      Thêm dịch vụ
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Mobile Status bar */}
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: "center",
+                  borderTop: '1px solid #f0f0f0',
+                  paddingTop: 12,
+                  fontSize: 12
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 8,
+                    color: '#666'
+                  }}>
+                    <span>Hiển thị</span>
+                    <Select
+                      value={pagination.pageSize}
+                      onChange={handlePageSizeChange}
+                      style={{ width: 80 }}
+                      size="small"
+                      options={pageSizeOptions.map((v) => ({ value: v, label: `${v}` }))}
+                    />
+                    <span>mục</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <span style={{ fontWeight: 500, color: "#1890ff", fontSize: '12px' }}>
+                      Tổng: {pagination.total} dịch vụ
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ 
+                background: 'white', 
+                padding: 20, 
+                borderRadius: 8, 
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                marginBottom: 20
+              }}>
+                <div style={{ 
+                  display: "flex", 
+                  justifyContent: "space-between", 
+                  alignItems: "center", 
+                  marginBottom: 12
+                }}>
+                  <PageHeader title="Danh sách dịch vụ" style={{ margin: 0, padding: 0 }} />
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 12
+                  }}>
+                    <Input
+                      placeholder="Tìm tên dịch vụ"
+                      prefix={<SearchOutlined />}
+                      value={searchInput}
+                      onChange={handleSearchInputChange}
+                      style={{ width: 250 }}
+                    />
+                    <Popover
+                      content={<ServiceFilterPopover onFilter={handleAdvancedFilterApply} onClose={() => setIsFilterOpen(false)} onReset={handleResetFilter} />}
+                      trigger="click"
+                      placement="bottomRight"
+                      open={isFilterOpen}
+                      onOpenChange={setIsFilterOpen}
+                    >
+                      <Button icon={<FilterOutlined />} type="default">
+                        Bộ lọc
+                      </Button>
+                    </Popover>
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={() => setIsModalOpen(true)}
+                    >
+                      Thêm dịch vụ
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Status bar */}
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: "center",
+                  borderTop: '1px solid #f0f0f0',
+                  paddingTop: 12,
+                  fontSize: 14
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 8,
+                    color: '#666'
+                  }}>
+                    <span>Hiển thị</span>
+                    <Select
+                      value={pagination.pageSize}
+                      onChange={handlePageSizeChange}
+                      style={{ width: 100 }}
+                      options={pageSizeOptions.map((v) => ({ value: v, label: `${v}` }))}
+                    />
+                    <span>mục</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <span style={{ fontWeight: 500, color: "#1890ff" }}>
+                      Tổng: {pagination.total} dịch vụ
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Main Table Section */}
+            <div style={{ 
+              background: 'white', 
+              borderRadius: 8, 
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              overflow: 'hidden'
+            }}>
+              <ServiceTable
+                services={services}
+                pagination={pagination}
+                loading={loading}
+                onEdit={handleEdit}
+                onDelete={handleDeleteService}
+                onTableChange={handleTableChange}
+                onUpdatePrice={handleUpdatePrice}
+                onViewPriceHistory={handleViewPriceHistory}
+              />
+            </div>
 
-
-
-          {/* Modal thêm/sửa dịch vụ */}
-          <Modal
-            title={editingService ? "Chỉnh sửa dịch vụ" : "Thêm dịch vụ mới"}
-            open={isModalOpen}
-            onCancel={handleModalCancel}
-            width={isMobile ? '95%' : 600}
-            style={{ top: isMobile ? 20 : 100 }}
-            footer={
-              editingService ? (
-                [
-                  <Button key="back" onClick={handleModalCancel}>Hủy</Button>,
-                  <Popconfirm
-                    key="submit"
-                    title="Cập nhật dịch vụ"
-                    description="Bạn có chắc chắn muốn lưu thay đổi này không?"
-                    onConfirm={() => form.submit()}
-                    okText="Cập nhật"
-                    cancelText="Hủy"
-                  >
-                    <Button type="primary" loading={isSubmitting}>Cập nhật</Button>
-                  </Popconfirm>
-                ]
-              ) : (
-                [
-                  <Button key="back" onClick={handleModalCancel}>Hủy</Button>,
-                  <Button key="submit" type="primary" loading={isSubmitting} onClick={() => form.submit()}>Lưu</Button>
-                ]
-              )
-            }
-          >
+            {/* Modal thêm/sửa dịch vụ */}
+            <Modal
+              title={editingService ? "Chỉnh sửa dịch vụ" : "Thêm dịch vụ mới"}
+              open={isModalOpen}
+              onCancel={handleModalCancel}
+              width={isMobile ? '95%' : 600}
+              style={{ top: isMobile ? 20 : 100 }}
+              footer={
+                editingService ? (
+                  [
+                    <Button key="back" onClick={handleModalCancel}>Hủy</Button>,
+                    <Popconfirm
+                      key="submit"
+                      title="Cập nhật dịch vụ"
+                      description="Bạn có chắc chắn muốn lưu thay đổi này không?"
+                      onConfirm={() => form.submit()}
+                      okText="Cập nhật"
+                      cancelText="Hủy"
+                    >
+                      <Button type="primary" loading={isSubmitting}>Cập nhật</Button>
+                    </Popconfirm>
+                  ]
+                ) : (
+                  [
+                    <Button key="back" onClick={handleModalCancel}>Hủy</Button>,
+                    <Button key="submit" type="primary" loading={isSubmitting} onClick={() => form.submit()}>Lưu</Button>
+                  ]
+                )
+              }
+            >
                          <Form layout="vertical" form={form} onFinish={handleAddService}>
                <Form.Item label="Tên dịch vụ" name="name" rules={[{ required: true, message: "Vui lòng nhập tên dịch vụ" }]}>
                  <Input placeholder="Nhập tên dịch vụ" />
@@ -586,65 +742,66 @@ export default function LandlordServiceListPage() {
                  <Select options={serviceTypeOptions} placeholder="Chọn loại dịch vụ" />
                </Form.Item>
              </Form>
-          </Modal>
+            </Modal>
 
-          {/* Modal cập nhật giá */}
-          <Modal
-            title={`Cập nhật giá dịch vụ: ${selectedServiceForPrice?.name}`}
-            open={isPriceModalOpen}
-            onCancel={handlePriceModalCancel}
-            footer={[
-              <Button key="back" onClick={handlePriceModalCancel}>Hủy</Button>,
-              <Button key="submit" type="primary" loading={isSubmitting} onClick={() => priceForm.submit()}>
-                Cập nhật giá
-              </Button>
-            ]}
-          >
-            <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 6 }}>
-              <div style={{ color: '#52c41a', fontWeight: 500, marginBottom: 4 }}>ℹ️ Lưu ý:</div>
-              <div style={{ color: '#666', fontSize: 13 }}>
-                • Giá mới sẽ được lưu vào lịch sử và chỉ áp dụng từ ngày hiệu lực<br/>
-                • Giá hiện tại vẫn được sử dụng cho đến ngày hiệu lực<br/>
-                • Ngày hiệu lực phải cách ngày hiện tại ít nhất 5 ngày (để đảm bảo người thuê có đủ thời gian chuẩn bị)<br/>
-                • Bạn có thể xem trạng thái trong "Lịch sử giá"
+            {/* Modal cập nhật giá */}
+            <Modal
+              title={`Cập nhật giá dịch vụ: ${selectedServiceForPrice?.name}`}
+              open={isPriceModalOpen}
+              onCancel={handlePriceModalCancel}
+              footer={[
+                <Button key="back" onClick={handlePriceModalCancel}>Hủy</Button>,
+                <Button key="submit" type="primary" loading={isSubmitting} onClick={() => priceForm.submit()}>
+                  Cập nhật giá
+                </Button>
+              ]}
+            >
+              <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 6 }}>
+                <div style={{ color: '#52c41a', fontWeight: 500, marginBottom: 4 }}>ℹ️ Lưu ý:</div>
+                <div style={{ color: '#666', fontSize: 13 }}>
+                  • Giá mới sẽ được lưu vào lịch sử và chỉ áp dụng từ ngày hiệu lực<br/>
+                  • Giá hiện tại vẫn được sử dụng cho đến ngày hiệu lực<br/>
+                  • Ngày hiệu lực phải cách ngày hiện tại ít nhất 5 ngày (để đảm bảo người thuê có đủ thời gian chuẩn bị)<br/>
+                  • Bạn có thể xem trạng thái trong "Lịch sử giá"
+                </div>
               </div>
-            </div>
-            <Form layout="vertical" form={priceForm} onFinish={handleUpdatePriceSubmit}>
-              <Form.Item label="Giá mới (VND/đơn vị)" name="newUnitPrice" rules={[{ required: true, message: "Vui lòng nhập giá mới" }]}>
-                <InputNumber style={{ width: "100%" }} placeholder="Nhập giá mới" min={0} />
-              </Form.Item>
-              <Form.Item 
-                label="Ngày hiệu lực" 
-                name="effectiveDate" 
-                rules={[{ required: true, message: "Vui lòng chọn ngày hiệu lực" }]}
-                extra="Ngày hiệu lực phải cách ngày hiện tại ít nhất 5 ngày"
-              >
-                <DatePicker 
-                  style={{ width: "100%" }} 
-                  placeholder="Chọn ngày hiệu lực" 
-                  disabledDate={(current) => {
-                    // Không cho chọn ngày trong quá khứ và chỉ cho chọn từ 5 ngày trở đi
-                    const today = dayjs().startOf('day');
-                    const fiveDaysFromNow = dayjs().add(5, 'day').startOf('day');
-                    return current && (current.isBefore(today) || current.isBefore(fiveDaysFromNow));
-                  }}
-                  format="DD/MM/YYYY"
-                />
-              </Form.Item>
-              <Form.Item label="Lý do thay đổi" name="reason">
-                <Input.TextArea placeholder="Nhập lý do thay đổi giá (tùy chọn)" rows={3} />
-              </Form.Item>
-            </Form>
-          </Modal>
+              <Form layout="vertical" form={priceForm} onFinish={handleUpdatePriceSubmit}>
+                <Form.Item label="Giá mới (VND/đơn vị)" name="newUnitPrice" rules={[{ required: true, message: "Vui lòng nhập giá mới" }]}>
+                  <InputNumber style={{ width: "100%" }} placeholder="Nhập giá mới" min={0} />
+                </Form.Item>
+                <Form.Item 
+                  label="Ngày hiệu lực" 
+                  name="effectiveDate" 
+                  rules={[{ required: true, message: "Vui lòng chọn ngày hiệu lực" }]}
+                  extra="Ngày hiệu lực phải cách ngày hiện tại ít nhất 5 ngày"
+                >
+                  <DatePicker 
+                    style={{ width: "100%" }} 
+                    placeholder="Chọn ngày hiệu lực" 
+                    disabledDate={(current) => {
+                      // Không cho chọn ngày trong quá khứ và chỉ cho chọn từ 5 ngày trở đi
+                      const today = dayjs().startOf('day');
+                      const fiveDaysFromNow = dayjs().add(5, 'day').startOf('day');
+                      return current && (current.isBefore(today) || current.isBefore(fiveDaysFromNow));
+                    }}
+                    format="DD/MM/YYYY"
+                  />
+                </Form.Item>
+                <Form.Item label="Lý do thay đổi" name="reason">
+                  <Input.TextArea placeholder="Nhập lý do thay đổi giá (tùy chọn)" rows={3} />
+                </Form.Item>
+              </Form>
+            </Modal>
 
-          {/* Modal lịch sử giá */}
-          <Modal
-            title={`Lịch sử giá dịch vụ: ${selectedServiceForPrice?.name}`}
-            open={isHistoryModalOpen}
-            onCancel={() => setIsHistoryModalOpen(false)}
-            footer={null}
-            width={800}
-          >
+            {/* Modal lịch sử giá */}
+            <Modal
+              title={`Lịch sử giá dịch vụ: ${selectedServiceForPrice?.name}`}
+              open={isHistoryModalOpen}
+              onCancel={() => setIsHistoryModalOpen(false)}
+              footer={null}
+              width={isMobile ? '95%' : 800}
+              style={{ top: isMobile ? 20 : 100 }}
+            >
 
                          <Table
                dataSource={priceHistory}
@@ -726,10 +883,26 @@ export default function LandlordServiceListPage() {
                ]}
                pagination={false}
                size="small"
+               scroll={{ x: isMobile ? 600 : 'auto' }}
              />
-          </Modal>
-        </Content>
+            </Modal>
+          </Content>
+        </Layout>
+        
+        {/* Mobile Drawer cho Sidebar */}
+        {isMobile && (
+          <Drawer
+            title="Menu"
+            placement="left"
+            onClose={() => setSidebarDrawerOpen(false)}
+            open={sidebarDrawerOpen}
+            width={280}
+            bodyStyle={{ padding: 0 }}
+          >
+            <LandlordSidebar isDrawer={true} onMenuClick={() => setSidebarDrawerOpen(false)} />
+          </Drawer>
+        )}
       </Layout>
-    </Layout>
+    </div>
   );
 }

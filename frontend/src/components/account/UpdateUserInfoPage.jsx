@@ -208,13 +208,14 @@ export default function UpdateUserInfoModal({
   }, [open, isCreate, ocrData]);
 
   const onFinish = async (values) => {
-    // Kiểm tra validation cho ảnh upload
-    if (!frontFile) {
-      message.error("Vui lòng upload ảnh mặt trước CCCD");
+    // Không bắt buộc upload ảnh CCCD nữa, người dùng có thể nhập tay hoặc quét CCCD
+    // Chỉ kiểm tra nếu người dùng đã upload ảnh thì phải upload đủ 2 ảnh
+    if (frontFile && !backFile) {
+      message.error("Vui lòng upload đủ ảnh mặt trước và mặt sau CCCD");
       return;
     }
-    if (!backFile) {
-      message.error("Vui lòng upload ảnh mặt sau CCCD");
+    if (!frontFile && backFile) {
+      message.error("Vui lòng upload đủ ảnh mặt trước và mặt sau CCCD");
       return;
     }
 
@@ -567,11 +568,22 @@ export default function UpdateUserInfoModal({
               rows={3}
             />
           </Form.Item>
+                     <div style={{ 
+             marginBottom: 16, 
+             padding: 8, 
+             backgroundColor: '#f6ffed', 
+             border: '1px solid #b7eb8f', 
+             borderRadius: 6,
+             fontSize: 12,
+             color: '#52c41a'
+           }}>
+             💡 <strong>Lưu ý:</strong> Upload ảnh CCCD là tùy chọn. Bạn có thể nhập thông tin bằng tay hoặc upload ảnh CCCD để quét tự động thông tin.
+           </div>
           <Row gutter={16} style={{ marginBottom: 0 }}>
             <Col span={12}>
-              <div style={{ marginBottom: 8, fontWeight: 500 }}>
-                Ảnh mặt trước CCCD <span style={{ color: 'red' }}>*</span>
-              </div>
+                             <div style={{ marginBottom: 8, fontWeight: 500 }}>
+                 Ảnh mặt trước CCCD
+               </div>
               <Upload.Dragger
                 accept="image/*"
                 beforeUpload={handleFrontChange}
@@ -580,7 +592,6 @@ export default function UpdateUserInfoModal({
                 maxCount={1}
                 disabled={ocrLoading}
                 style={{ background: "#fafafa" }}
-                rules={[{ required: true, message: "Vui lòng upload ảnh mặt trước CCCD" }]}
               >
                 {frontPreview ? (
                   <img src={frontPreview} alt="Ảnh mặt trước" style={{ width: 180, borderRadius: 8, objectFit: "cover" }} />
@@ -593,9 +604,9 @@ export default function UpdateUserInfoModal({
               </Upload.Dragger>
             </Col>
             <Col span={12}>
-              <div style={{ marginBottom: 8, fontWeight: 500 }}>
-                Ảnh mặt sau CCCD <span style={{ color: 'red' }}>*</span>
-              </div>
+                             <div style={{ marginBottom: 8, fontWeight: 500 }}>
+                 Ảnh mặt sau CCCD
+               </div>
               <Upload.Dragger
                 accept="image/*"
                 beforeUpload={handleBackChange}
@@ -604,7 +615,6 @@ export default function UpdateUserInfoModal({
                 maxCount={1}
                 disabled={ocrLoading}
                 style={{ background: "#fafafa" }}
-                rules={[{ required: true, message: "Vui lòng upload ảnh mặt sau CCCD" }]}
               >
                 {backPreview ? (
                   <img src={backPreview} alt="Ảnh mặt sau" style={{ width: 180, borderRadius: 8, objectFit: "cover" }} />

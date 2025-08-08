@@ -377,6 +377,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             if (getScheduleById != null && !landlordPermission.contains(getScheduleById)) {
                 landlordPermission.add(getScheduleById);
             }
+            // Đảm bảo LANDLORD có quyền xóa lịch hẹn
+            if (deleteSchedule != null && !landlordPermission.contains(deleteSchedule)) {
+                landlordPermission.add(deleteSchedule);
+            }
             if (viewMyNotification != null && !landlordPermission.contains(viewMyNotification)) {
                 landlordPermission.add(viewMyNotification);
             }

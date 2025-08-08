@@ -333,7 +333,6 @@ export default function LandlordRenterListPage() {
         phone: values.phoneNumber,
         dateOfBirth: values.dateOfBirth ? values.dateOfBirth.format("YYYY-MM-DD") : undefined,
         citizenId: values.citizenId,
-        address: values.address,
         birthPlace: values.birthPlace,
         nationalIDIssuePlace: values.nationalIDIssuePlace,
         nationalIDIssueDate: values.nationalIDIssueDate ? values.nationalIDIssueDate.format("YYYY-MM-DD") : undefined,
@@ -767,15 +766,10 @@ export default function LandlordRenterListPage() {
                             </Form.Item>
                           </Col>
                           <Col span={24}>
-                            <Form.Item label="Địa chỉ thường trú" name="address" rules={[
+                            <Form.Item label="Địa chỉ thường trú" name="permanentAddress" rules={[
                               { required: true, message: "Vui lòng nhập địa chỉ thường trú" }
                             ]}>
                               <Input placeholder="Nhập địa chỉ thường trú" />
-                            </Form.Item>
-                          </Col>
-                          <Col span={24}>
-                            <Form.Item label="Địa chỉ thường trú (OCR)" name="permanentAddress">
-                              <Input placeholder="Địa chỉ từ OCR" />
                             </Form.Item>
                           </Col>
                           <Col span={12}>

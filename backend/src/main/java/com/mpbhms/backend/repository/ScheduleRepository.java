@@ -15,27 +15,16 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     List<Schedule> findByRoom_Landlord_Id(Long landlordId);
 
     // Phân trang, search, filter status, filter thời gian, filter giờ
-    @Query(value = "SELECT s.* FROM schedules s " +
-            "INNER JOIN rooms r ON s.room_id = r.id " +
-            "INNER JOIN users u ON r.landlord_id = u.id " +
+    @Query("SELECT s FROM Schedule s " +
+            "JOIN s.room r " +
+            "JOIN r.landlord u " +
             "WHERE (:landlordId IS NULL OR u.id = :landlordId) " +
-            "AND (:search IS NULL OR LOWER(s.full_name) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            "AND (:search IS NULL OR LOWER(s.fullName) LIKE LOWER(CONCAT('%', :search, '%'))) " +
             "AND (:status IS NULL OR s.status = :status) " +
-            "AND (:from IS NULL OR s.appointment_time >= :from) " +
-            "AND (:to IS NULL OR s.appointment_time <= :to) " +
-            "AND (:hourFrom IS NULL OR HOUR(CONVERT_TZ(s.appointment_time, '+00:00', '+07:00')) >= :hourFrom) " +
-            "AND (:hourTo IS NULL OR HOUR(CONVERT_TZ(s.appointment_time, '+00:00', '+07:00')) <= :hourTo)",
-            countQuery = "SELECT COUNT(*) FROM schedules s " +
-            "INNER JOIN rooms r ON s.room_id = r.id " +
-            "INNER JOIN users u ON r.landlord_id = u.id " +
-            "WHERE (:landlordId IS NULL OR u.id = :landlordId) " +
-            "AND (:search IS NULL OR LOWER(s.full_name) LIKE LOWER(CONCAT('%', :search, '%'))) " +
-            "AND (:status IS NULL OR s.status = :status) " +
-            "AND (:from IS NULL OR s.appointment_time >= :from) " +
-            "AND (:to IS NULL OR s.appointment_time <= :to) " +
-            "AND (:hourFrom IS NULL OR HOUR(CONVERT_TZ(s.appointment_time, '+00:00', '+07:00')) >= :hourFrom) " +
-            "AND (:hourTo IS NULL OR HOUR(CONVERT_TZ(s.appointment_time, '+00:00', '+07:00')) <= :hourTo)",
-            nativeQuery = true)
+            "AND (:from IS NULL OR s.appointmentTime >= :from) " +
+            "AND (:to IS NULL OR s.appointmentTime <= :to) " +
+            "AND (:hourFrom IS NULL OR HOUR(s.appointmentTime) >= :hourFrom) " +
+            "AND (:hourTo IS NULL OR HOUR(s.appointmentTime) <= :hourTo)")
     Page<Schedule> searchAndFilter(@Param("landlordId") Long landlordId,
                                    @Param("search") String search,
                                    @Param("status") String status,
@@ -49,39 +38,39 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     List<Schedule> findByEmail(String email);
     
     // Kiểm tra lịch hẹn trùng thời gian cho cùng một phòng
-    @Query("SELECT s FROM Schedule s WHERE s.room.id = :roomId AND s.appointmentTime = :appointmentTime AND s.status IN ('PENDING', 'ACCEPTED')")
+    @Query("SELECT s FROM Schedule s WHERE s.room.id = :roomId AND s.appointmentTime = :appointmentTime AND s.status IN ('PENDING', 'CONFIRMED')")
     List<Schedule> findOverlappingAppointments(@Param("roomId") Long roomId, @Param("appointmentTime") java.time.Instant appointmentTime);
     
     // Kiểm tra lịch hẹn trùng thời gian cho cùng một người dùng (email)
-    @Query("SELECT s FROM Schedule s WHERE s.email = :email AND s.appointmentTime = :appointmentTime AND s.status IN ('PENDING', 'ACCEPTED')")
+    @Query("SELECT s FROM Schedule s WHERE s.email = :email AND s.appointmentTime = :appointmentTime AND s.status IN ('PENDING', 'CONFIRMED')")
     List<Schedule> findOverlappingAppointmentsByEmail(@Param("email") String email, @Param("appointmentTime") java.time.Instant appointmentTime);
     
     // Kiểm tra số lịch hẹn của một người dùng trong khoảng thời gian (để ngăn spam)
-    @Query("SELECT COUNT(s) FROM Schedule s WHERE s.email = :email AND s.appointmentTime BETWEEN :startTime AND :endTime AND s.status IN ('PENDING', 'ACCEPTED')")
+    @Query("SELECT COUNT(s) FROM Schedule s WHERE s.email = :email AND s.appointmentTime BETWEEN :startTime AND :endTime AND s.status IN ('PENDING', 'CONFIRMED')")
     long countAppointmentsByEmailInTimeRange(@Param("email") String email, @Param("startTime") java.time.Instant startTime, @Param("endTime") java.time.Instant endTime);
     
     // Lấy danh sách lịch hẹn của một người dùng trong khoảng thời gian (để hiển thị chi tiết)
-    @Query("SELECT s FROM Schedule s WHERE s.email = :email AND s.appointmentTime BETWEEN :startTime AND :endTime AND s.status IN ('PENDING', 'ACCEPTED') ORDER BY s.appointmentTime DESC")
+    @Query("SELECT s FROM Schedule s WHERE s.email = :email AND s.appointmentTime BETWEEN :startTime AND :endTime AND s.status IN ('PENDING', 'CONFIRMED') ORDER BY s.appointmentTime DESC")
     List<Schedule> findAppointmentsByEmailInTimeRange(@Param("email") String email, @Param("startTime") java.time.Instant startTime, @Param("endTime") java.time.Instant endTime);
     
     // Kiểm tra số lịch hẹn của một phòng trong khoảng thời gian (để ngăn spam)
-    @Query("SELECT COUNT(s) FROM Schedule s WHERE s.room.id = :roomId AND s.appointmentTime BETWEEN :startTime AND :endTime AND s.status IN ('PENDING', 'ACCEPTED')")
+    @Query("SELECT COUNT(s) FROM Schedule s WHERE s.room.id = :roomId AND s.appointmentTime BETWEEN :startTime AND :endTime AND s.status IN ('PENDING', 'CONFIRMED')")
     long countAppointmentsByRoomInTimeRange(@Param("roomId") Long roomId, @Param("startTime") java.time.Instant startTime, @Param("endTime") java.time.Instant endTime);
     
     // Lấy danh sách lịch hẹn của một phòng trong khoảng thời gian (để hiển thị chi tiết)
-    @Query("SELECT s FROM Schedule s WHERE s.room.id = :roomId AND s.appointmentTime BETWEEN :startTime AND :endTime AND s.status IN ('PENDING', 'ACCEPTED') ORDER BY s.appointmentTime DESC")
+    @Query("SELECT s FROM Schedule s WHERE s.room.id = :roomId AND s.appointmentTime BETWEEN :startTime AND :endTime AND s.status IN ('PENDING', 'CONFIRMED') ORDER BY s.appointmentTime DESC")
     List<Schedule> findAppointmentsByRoomInTimeRange(@Param("roomId") Long roomId, @Param("startTime") java.time.Instant startTime, @Param("endTime") java.time.Instant endTime);
     
     // Đếm số người đang xem phòng tại một thời điểm cụ thể
-    @Query("SELECT COUNT(s) FROM Schedule s WHERE s.room.id = :roomId AND s.appointmentTime = :appointmentTime AND s.status IN ('PENDING', 'ACCEPTED')")
+    @Query("SELECT COUNT(s) FROM Schedule s WHERE s.room.id = :roomId AND s.appointmentTime = :appointmentTime AND s.status IN ('PENDING', 'CONFIRMED')")
     long countPeopleViewingRoomAtTime(@Param("roomId") Long roomId, @Param("appointmentTime") java.time.Instant appointmentTime);
     
     // Kiểm tra các lịch hẹn trong khoảng 30 phút trước và sau thời gian đặt lịch (để đảm bảo khoảng cách 30 phút)
-    @Query("SELECT s FROM Schedule s WHERE s.room.id = :roomId AND s.status IN ('PENDING', 'ACCEPTED') AND " +
+    @Query("SELECT s FROM Schedule s WHERE s.room.id = :roomId AND s.status IN ('PENDING', 'CONFIRMED') AND " +
            "s.appointmentTime BETWEEN :startTime AND :endTime ORDER BY s.appointmentTime")
     List<Schedule> findAppointmentsInTimeRange(@Param("roomId") Long roomId, @Param("startTime") java.time.Instant startTime, @Param("endTime") java.time.Instant endTime);
     
     // Đếm tổng số lịch hẹn của một người dùng (email) - để giới hạn tối đa 3 lịch hẹn
-    @Query("SELECT COUNT(s) FROM Schedule s WHERE s.email = :email AND s.status IN ('PENDING', 'ACCEPTED')")
+    @Query("SELECT COUNT(s) FROM Schedule s WHERE s.email = :email AND s.status IN ('PENDING', 'CONFIRMED')")
     long countTotalAppointmentsByEmail(@Param("email") String email);
 } 

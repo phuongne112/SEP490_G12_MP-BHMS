@@ -374,7 +374,7 @@ export default function LandlordRoomListPage() {
                 boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
               }}>
                 <h1 style={{ 
-                  fontSize: "32px", 
+                  fontSize: "22px", 
                   marginBottom: "20px",
                   fontWeight: "600",
                   color: "#1a1a1a"
@@ -404,7 +404,7 @@ export default function LandlordRoomListPage() {
                   boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
                 }}>
                   <h1 style={{ 
-                    fontSize: "24px", 
+                    fontSize: "18px", 
                     marginBottom: "16px",
                     fontWeight: "600",
                     color: "#1a1a1a"
