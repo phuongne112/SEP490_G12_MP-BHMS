@@ -86,75 +86,122 @@ export default function LandlordEditRoomPage() {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      {/* Mobile Header */}
-      {isMobile && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 1001,
-          background: 'white',
-          borderBottom: '1px solid #f0f0f0',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Button
-              type="text"
-              icon={<MenuOutlined />}
-              onClick={() => setSidebarDrawerOpen(true)}
-              style={{ padding: 4 }}
-            />
-            <div style={{ fontWeight: 600, fontSize: 16 }}>Chỉnh sửa phòng</div>
-          </div>
-        </div>
-      )}
-      
-      <Layout style={{ marginLeft: 0 }}>
-        <Content
-          style={{
-            padding: isMobile ? '60px 16px 16px' : "24px",
-            paddingTop: isMobile ? '60px' : "32px",
-            background: "#fff",
-            borderRadius: 8,
-          }}
-        >
-          <div style={{ marginBottom: 24 }}>
-            <Button
-              icon={<ArrowLeftOutlined />}
-              onClick={() => {
-                if (
-                  user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
-                  user?.role?.roleName?.toUpperCase?.() === "SUBADMIN"
-                ) {
-                  navigate("/admin/rooms");
-                } else {
-                  navigate("/landlord/rooms");
-                }
-              }}
-              style={{ marginBottom: 16 }}
-            >
-              Quay lại danh sách phòng
-            </Button>
-            <PageHeader title="Chỉnh sửa phòng" />
-          </div>
-          
-          <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-            <div style={{ display: "flex", gap: 24, flexWrap: 'wrap', alignItems: 'stretch', justifyContent: 'center' }}>
-              <Card 
-                title="Thông tin phòng" 
+    <div style={{ width: '100%', minHeight: '100vh' }}>
+      <style>
+        {`
+          @media (max-width: 768px) {
+            .ant-layout-sider {
+              display: none !important;
+            }
+          }
+        `}
+      </style>
+      <Layout style={{ minHeight: "100vh" }}>
+        {/* Desktop Sidebar - chỉ hiển thị trên desktop */}
+        {!isMobile && (
+          <Sider width={220} style={{ position: 'fixed', height: '100vh', zIndex: 1000 }}>
+            {user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
+            user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
+              <AdminSidebar />
+            ) : (
+              <LandlordSidebar />
+            )}
+          </Sider>
+        )}
+        
+        {/* Main Layout */}
+        <Layout style={{ marginLeft: isMobile ? 0 : 220 }}>
+          {/* Mobile Header - chỉ hiển thị trên mobile */}
+          {isMobile && (
+            <div style={{ 
+              background: '#001529', 
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              position: 'sticky',
+              top: 0,
+              zIndex: 100,
+              width: '100%'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 12,
+                color: 'white'
+              }}>
+                <div style={{ 
+                  fontWeight: 600, 
+                  fontSize: 18,
+                  color: 'white'
+                }}>
+                  MP-BHMS
+                </div>
+                <div style={{ 
+                  fontSize: 14,
+                  color: 'rgba(255,255,255,0.8)'
+                }}>
+                  Chỉnh sửa phòng
+                </div>
+              </div>
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                onClick={() => setSidebarDrawerOpen(true)}
                 style={{ 
-                  flex: 1, 
-                  minWidth: isMobile ? '100%' : '500px', 
-                  textAlign: 'left', 
-                  minHeight: '450px',
-                  opacity: hasActiveUser ? 0.7 : 1
+                  color: 'white',
+                  fontSize: '18px'
                 }}
-              >
+              />
+            </div>
+          )}
+          
+          {/* Main Content */}
+          <Content style={{ 
+            padding: isMobile ? 16 : 24, 
+            backgroundColor: '#f5f5f5', 
+            minHeight: '100vh',
+            width: '100%'
+          }}>
+            <div style={{ 
+              background: 'white', 
+              padding: isMobile ? 16 : 24, 
+              borderRadius: 8, 
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              marginBottom: 20
+            }}>
+              <div style={{ marginBottom: 24 }}>
+                <Button
+                  icon={<ArrowLeftOutlined />}
+                  onClick={() => {
+                    if (
+                      user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
+                      user?.role?.roleName?.toUpperCase?.() === "SUBADMIN"
+                    ) {
+                      navigate("/admin/rooms");
+                    } else {
+                      navigate("/landlord/rooms");
+                    }
+                  }}
+                  style={{ marginBottom: 16 }}
+                >
+                  Quay lại danh sách phòng
+                </Button>
+                <PageHeader title="Chỉnh sửa phòng" />
+              </div>
+              
+              <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+                <div style={{ display: "flex", gap: 24, flexWrap: 'wrap', alignItems: 'stretch', justifyContent: 'center' }}>
+                  <Card 
+                    title="Thông tin phòng" 
+                    style={{ 
+                      flex: 1, 
+                      minWidth: isMobile ? '100%' : '500px', 
+                      textAlign: 'left', 
+                      minHeight: '450px',
+                      opacity: hasActiveUser ? 0.7 : 1
+                    }}
+                  >
                 <div style={{ padding: '8px 0' }}>
                   <Form layout="vertical" form={form} onFinish={handleFinish} disabled={hasActiveUser}>
                     <Row gutter={16}>
@@ -258,28 +305,32 @@ export default function LandlordEditRoomPage() {
                     <div style={{ marginTop: 8 }}>Tải lên</div>
                   </div>
                 </Upload>
-              </Card>
+                  </Card>
+                </div>
+              </div>
             </div>
-          </div>
-        </Content>
-      </Layout>
-      
-      {/* Mobile Sidebar Drawer */}
-      <Drawer
-        title="Menu"
-        placement="left"
-        onClose={() => setSidebarDrawerOpen(false)}
-        open={sidebarDrawerOpen}
-        width={250}
-        bodyStyle={{ padding: 0 }}
-      >
-        {user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
-        user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
-          <AdminSidebar isDrawer={true} onMenuClick={() => setSidebarDrawerOpen(false)} />
-        ) : (
-          <LandlordSidebar isDrawer={true} onMenuClick={() => setSidebarDrawerOpen(false)} />
+          </Content>
+        </Layout>
+        
+        {/* Mobile Drawer cho Sidebar */}
+        {isMobile && (
+          <Drawer
+            title="Menu"
+            placement="left"
+            onClose={() => setSidebarDrawerOpen(false)}
+            open={sidebarDrawerOpen}
+            width={280}
+            bodyStyle={{ padding: 0 }}
+          >
+            {user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
+            user?.role?.roleName?.toUpperCase?.() === "SUBADMIN" ? (
+              <AdminSidebar isDrawer={true} onMenuClick={() => setSidebarDrawerOpen(false)} />
+            ) : (
+              <LandlordSidebar isDrawer={true} onMenuClick={() => setSidebarDrawerOpen(false)} />
+            )}
+          </Drawer>
         )}
-      </Drawer>
-    </Layout>
+      </Layout>
+    </div>
   );
 }
