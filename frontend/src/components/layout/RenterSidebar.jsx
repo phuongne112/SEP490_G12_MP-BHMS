@@ -9,7 +9,7 @@ import Sidebar from "./Sidebar";
 import { useSelector } from "react-redux";
 import { useLocation } from "react-router-dom";
 
-export default function RenterSidebar() {
+export default function RenterSidebar({ isDrawer = false, onMenuClick }) {
   const user = useSelector((state) => state.account.user);
   const location = useLocation();
 
@@ -50,6 +50,8 @@ export default function RenterSidebar() {
       avatar="https://i.pravatar.cc/40?img=4"
       menuItems={renterMenu}
       selectedKeys={[selectedKey]}
+      isDrawer={isDrawer}
+      onMenuClick={onMenuClick}
     />
   );
 }
