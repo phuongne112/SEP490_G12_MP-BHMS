@@ -1,7 +1,21 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { FaFacebookF, FaYoutube, FaLinkedinIn } from "react-icons/fa";
 
+// Mobile detection hook
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  return isMobile;
+};
+
 export default function Footer() {
+  const isMobile = useIsMobile();
+
   return (
     <footer
       id="footer"
@@ -9,15 +23,27 @@ export default function Footer() {
     >
       <div
         style={{
+          width: isMobile ? "100%" : "95%",
+          maxWidth: 1400,
+          margin: "0 auto",
           display: "flex",
+          flexDirection: isMobile ? "column" : "row",
           justifyContent: "space-between",
-          alignItems: "flex-start",
-          padding: 32,
-          gap: 32,
+          alignItems: isMobile ? "center" : "flex-start",
+          padding: isMobile ? "24px 16px" : "32px",
+          gap: isMobile ? 24 : 32,
         }}
       >
-        <div style={{ minWidth: 180 }}>
-          <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
+        <div style={{ 
+          minWidth: isMobile ? "auto" : 180,
+          textAlign: isMobile ? "center" : "left"
+        }}>
+          <div style={{ 
+            display: "flex", 
+            gap: 16, 
+            marginBottom: 24,
+            justifyContent: isMobile ? "center" : "flex-start"
+          }}>
             <a href="#" target="_blank" rel="noopener noreferrer">
               <FaFacebookF size={24} />
             </a>
@@ -35,18 +61,19 @@ export default function Footer() {
               />
             </a>
           </div>
-          <div style={{ fontSize: 15, fontWeight: 500, marginTop: 16 }}>
+          <div style={{ fontSize: isMobile ? 14 : 15, fontWeight: 500, marginTop: 16 }}>
             Địa chỉ:
           </div>
-          <div style={{ fontSize: 15, marginTop: 4 }}>
+          <div style={{ fontSize: isMobile ? 14 : 15, marginTop: 4 }}>
             Thôn 2 Thạch Hoà, Thạch Thất HN
           </div>
         </div>
         <div
           style={{
-            flex: 1,
-            minWidth: 320,
-            height: 220,
+            flex: isMobile ? "none" : 1,
+            width: isMobile ? "100%" : "auto",
+            minWidth: isMobile ? "auto" : 320,
+            height: isMobile ? 200 : 220,
             borderRadius: 12,
             overflow: "hidden",
             boxShadow: "0 2px 8px rgba(0,0,0,0.08)",

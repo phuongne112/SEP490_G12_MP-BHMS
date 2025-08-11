@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Card, Descriptions, Tag, Spin, Typography, Button, message, Row, Col, Modal, List, DatePicker, Alert, Badge, Statistic, Timeline, Divider, Pagination } from "antd";
-import { FileTextOutlined, HistoryOutlined, ReloadOutlined, BellOutlined, InfoCircleOutlined, ClockCircleOutlined } from "@ant-design/icons";
+import { Card, Descriptions, Tag, Spin, Typography, Button, message, Row, Col, Modal, List, DatePicker, Alert, Badge, Statistic, Timeline, Divider, Pagination, Drawer } from "antd";
+import { FileTextOutlined, HistoryOutlined, ReloadOutlined, BellOutlined, InfoCircleOutlined, ClockCircleOutlined, MenuOutlined } from "@ant-design/icons";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import dayjs from "dayjs";
 import { getRenterContracts, exportContractPdf } from "../../services/contractApi";
@@ -36,6 +36,7 @@ export default function RenterContractPage() {
   const [hasNewChanges, setHasNewChanges] = useState(false);
   const [previousContractId, setPreviousContractId] = useState(null);
   const [amendmentsPage, setAmendmentsPage] = useState(1);
+  const [drawerVisible, setDrawerVisible] = useState(false);
   const amendmentsPageSize = 3;
   const user = useSelector((state) => state.account.user);
 
@@ -391,7 +392,7 @@ export default function RenterContractPage() {
   if (loading) {
     return (
       <div style={{ display: "flex", minHeight: "100vh" }}>
-        <RenterSidebar />
+        {!isMobile && <RenterSidebar />}
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ textAlign: "center" }}>
             <Spin size="large" />
@@ -405,7 +406,7 @@ export default function RenterContractPage() {
   if (!contract) {
     return (
       <div style={{ display: "flex", minHeight: "100vh" }}>
-        <RenterSidebar />
+        {!isMobile && <RenterSidebar />}
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ textAlign: "center" }}>
             <Title level={3}>Chưa có hợp đồng</Title>
@@ -423,6 +424,7 @@ export default function RenterContractPage() {
           <RenterSidebar />
         </div>
       )}
+      
       <div
         style={{
           flex: 1,
@@ -430,210 +432,260 @@ export default function RenterContractPage() {
           minHeight: "100vh",
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "flex-start",
-          padding: isMobile ? "16px 0" : "40px 0",
         }}
       >
-        <div style={{ width: "100%", maxWidth: 1100, margin: "0 auto", padding: isMobile ? 8 : 0 }}>
-          <Card style={{ borderRadius: "16px", boxShadow: "0 2px 12px rgba(0,0,0,0.08)", margin: "0 auto", background: "#fff" }}>
-            {/* Header với thông tin chính */}
-            <div style={{ 
-              padding: "24px 24px 16px 24px",
-              borderBottom: "1px solid #f0f0f0",
-              marginBottom: 24
-            }}>
-              <Title level={2} style={{ margin: 0, color: "#1890ff", fontSize: isMobile ? 20 : 28, textAlign: "center" }}>
-                <FileTextOutlined style={{ marginRight: 8 }} />
-                Hợp đồng thuê nhà
-                {hasNewChanges && <Badge count="Mới" style={{ marginLeft: 8 }} />}
-              </Title>
-              <div style={{ marginTop: 8, textAlign: "center" }}>
-                <Text type="secondary" style={{ fontSize: isMobile ? 14 : 16 }}>
-                  Thông tin chi tiết về hợp đồng thuê nhà của bạn
-                </Text>
+        {/* Mobile Header */}
+        {isMobile && (
+          <div style={{
+            background: "#001529",
+            color: "white",
+            padding: "12px 16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            position: "sticky",
+            top: 0,
+            zIndex: 1000,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ fontWeight: 600, fontSize: 16 }}>
+                MP-BHMS
               </div>
-              {lastUpdated && (
-                <div style={{ textAlign: "center", marginTop: 8 }}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Cập nhật lần cuối: {lastUpdated.toLocaleTimeString('vi-VN')}
+              <div style={{ fontSize: 14, color: "#e2e8f0" }}>
+                Xin chào {user?.fullName || user?.name || "Renter"}
+              </div>
+            </div>
+            <Button
+              type="text"
+              icon={<MenuOutlined />}
+              onClick={() => setDrawerVisible(true)}
+              style={{ color: "white", padding: 4 }}
+            />
+          </div>
+        )}
+
+        <div style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "flex-start",
+          padding: isMobile ? "16px 8px" : "40px 0",
+        }}>
+          <div style={{ width: "100%", maxWidth: 1100, margin: "0 auto", padding: isMobile ? 8 : 0 }}>
+            <Card style={{ borderRadius: "16px", boxShadow: "0 2px 12px rgba(0,0,0,0.08)", margin: "0 auto", background: "#fff" }}>
+              {/* Header với thông tin chính */}
+              <div style={{ 
+                padding: isMobile ? "16px 16px 12px 16px" : "24px 24px 16px 24px",
+                borderBottom: "1px solid #f0f0f0",
+                marginBottom: 24
+              }}>
+                <Title level={isMobile ? 3 : 2} style={{ margin: 0, color: "#1890ff", fontSize: isMobile ? 18 : 28, textAlign: "center" }}>
+                  <FileTextOutlined style={{ marginRight: 8 }} />
+                  Hợp đồng thuê nhà
+                  {hasNewChanges && <Badge count="Mới" style={{ marginLeft: 8 }} />}
+                </Title>
+                <div style={{ marginTop: 8, textAlign: "center" }}>
+                  <Text type="secondary" style={{ fontSize: isMobile ? 13 : 16 }}>
+                    Thông tin chi tiết về hợp đồng thuê nhà của bạn
                   </Text>
                 </div>
-              )}
-            </div>
+                {lastUpdated && (
+                  <div style={{ textAlign: "center", marginTop: 8 }}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>
+                      Cập nhật lần cuối: {lastUpdated.toLocaleTimeString('vi-VN')}
+                    </Text>
+                  </div>
+                )}
+              </div>
 
-            {hasNewChanges && (
-              <Alert
-                message="Có thay đổi mới trong hợp đồng!"
-                description="Hệ thống đã phát hiện hợp đồng mới hoặc có cập nhật. Vui lòng kiểm tra thông tin."
-                type="info"
-                showIcon
-                closable
-                onClose={() => setHasNewChanges(false)}
-                style={{ marginBottom: 24 }}
-              />
-            )}
-            
-            <div
-              style={{
-                display: "flex",
-                flexDirection: isMobile ? "column" : "row",
-                flexWrap: "wrap",
-                justifyContent: "center",
-                gap: 24,
-              }}
-            >
-              {/* Main contract info */}
-              <div style={{ flex: 1, minWidth: isMobile ? "100%" : 340, maxWidth: isMobile ? "100%" : 600 }}>
-                <Card 
-                  title={
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>Thông tin hợp đồng</span>
-                      <Tag 
-                        color={getStatusColor(contract.contractStatus || contract.status)}
-                        style={{ fontSize: "12px", fontWeight: "bold" }}
-                      >
-                        {getStatusText(contract.contractStatus || contract.status)}
-                      </Tag>
-                    </div>
-                  } 
+              {hasNewChanges && (
+                <Alert
+                  message="Có thay đổi mới trong hợp đồng!"
+                  description="Hệ thống đã phát hiện hợp đồng mới hoặc có cập nhật. Vui lòng kiểm tra thông tin."
+                  type="info"
+                  showIcon
+                  closable
+                  onClose={() => setHasNewChanges(false)}
                   style={{ marginBottom: 24 }}
-                >
-                  <Descriptions bordered column={2} size={isMobile ? "small" : "default"}>
-                    <Descriptions.Item label="Mã hợp đồng">
-                      <Text strong style={{ color: "#1890ff" }}>
-                        #{contract.id || contract.contractNumber}
-                      </Text>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Phòng">
-                      <Tag color="blue" style={{ fontWeight: "bold" }}>
-                        {contract.roomNumber}
-                      </Tag>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Ngày bắt đầu">
-                      <Text>
-                        <ClockCircleOutlined style={{ marginRight: 4, color: "#52c41a" }} />
-                        {dayjs(contract.contractStartDate || contract.startDate).format("DD/MM/YYYY")}
-                      </Text>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Ngày kết thúc">
-                      <Text>
-                        <ClockCircleOutlined style={{ marginRight: 4, color: "#ff4d4f" }} />
-                        {dayjs(contract.contractEndDate || contract.endDate).format("DD/MM/YYYY")}
-                      </Text>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Tiền thuê hàng tháng">
-                      <Text strong style={{ color: "#52c41a", fontSize: "16px" }}>
-                        {contract.rentAmount?.toLocaleString() || contract.monthlyRent?.toLocaleString()} ₫/tháng
-                      </Text>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Tiền đặt cọc">
-                      <Text strong style={{ color: "#faad14", fontSize: "16px" }}>
-                        {contract.depositAmount?.toLocaleString() || contract.deposit?.toLocaleString()} ₫
-                      </Text>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Chu kỳ thanh toán">
-                      <Tag color="purple">
-                        {contract.paymentCycle === 'MONTHLY' ? 'Hàng tháng' : 
-                         contract.paymentCycle === 'QUARTERLY' ? 'Hàng quý' : 'Hàng năm'}
-                      </Tag>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Thời gian còn lại">
-                      {contract.contractStatus === 'ACTIVE' && dayjs(contract.contractEndDate).isAfter(dayjs()) ? (
-                        <Countdown
-                          value={dayjs(contract.contractEndDate).valueOf()}
-                          format="D [ngày] H [giờ] m [phút]"
-                          valueStyle={{ fontSize: '14px', color: dayjs(contract.contractEndDate).diff(dayjs(), 'day') <= 30 ? '#ff4d4f' : '#52c41a' }}
-                        />
-                      ) : (
-                        <Text type={contract.contractStatus === 'EXPIRED' ? 'danger' : 'secondary'}>
-                          {contract.contractStatus === 'EXPIRED' ? 'Đã hết hạn' : 'Không xác định'}
+                />
+              )}
+              
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: isMobile ? "column" : "row",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                  gap: isMobile ? 16 : 24,
+                }}
+              >
+                {/* Main contract info */}
+                <div style={{ flex: 1, minWidth: isMobile ? "100%" : 340, maxWidth: isMobile ? "100%" : 600 }}>
+                  <Card 
+                    title={
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                        <span style={{ fontSize: isMobile ? 14 : 16 }}>Thông tin hợp đồng</span>
+                        <Tag 
+                          color={getStatusColor(contract.contractStatus || contract.status)}
+                          style={{ fontSize: "11px", fontWeight: "bold" }}
+                        >
+                          {getStatusText(contract.contractStatus || contract.status)}
+                        </Tag>
+                      </div>
+                    } 
+                    style={{ marginBottom: 24 }}
+                  >
+                    <Descriptions bordered column={isMobile ? 1 : 2} size={isMobile ? "small" : "default"}>
+                      <Descriptions.Item label="Mã hợp đồng">
+                        <Text strong style={{ color: "#1890ff" }}>
+                          #{contract.id || contract.contractNumber}
+                        </Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Phòng">
+                        <Tag color="blue" style={{ fontWeight: "bold" }}>
+                          {contract.roomNumber}
+                        </Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Ngày bắt đầu">
+                        <Text>
+                          <ClockCircleOutlined style={{ marginRight: 4, color: "#52c41a" }} />
+                          {dayjs(contract.contractStartDate || contract.startDate).format("DD/MM/YYYY")}
+                        </Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Ngày kết thúc">
+                        <Text>
+                          <ClockCircleOutlined style={{ marginRight: 4, color: "#ff4d4f" }} />
+                          {dayjs(contract.contractEndDate || contract.endDate).format("DD/MM/YYYY")}
+                        </Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Tiền thuê hàng tháng">
+                        <Text strong style={{ color: "#52c41a", fontSize: isMobile ? "14px" : "16px" }}>
+                          {contract.rentAmount?.toLocaleString() || contract.monthlyRent?.toLocaleString()} ₫/tháng
+                        </Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Tiền đặt cọc">
+                        <Text strong style={{ color: "#faad14", fontSize: isMobile ? "14px" : "16px" }}>
+                          {contract.depositAmount?.toLocaleString() || contract.deposit?.toLocaleString()} ₫
+                        </Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Chu kỳ thanh toán">
+                        <Tag color="purple">
+                          {contract.paymentCycle === 'MONTHLY' ? 'Hàng tháng' : 
+                           contract.paymentCycle === 'QUARTERLY' ? 'Hàng quý' : 'Hàng năm'}
+                        </Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Thời gian còn lại">
+                        {contract.contractStatus === 'ACTIVE' && dayjs(contract.contractEndDate).isAfter(dayjs()) ? (
+                          <Countdown
+                            value={dayjs(contract.contractEndDate).valueOf()}
+                            format="D [ngày] H [giờ] m [phút]"
+                            valueStyle={{ fontSize: isMobile ? '12px' : '14px', color: dayjs(contract.contractEndDate).diff(dayjs(), 'day') <= 30 ? '#ff4d4f' : '#52c41a' }}
+                          />
+                        ) : (
+                          <Text type={contract.contractStatus === 'EXPIRED' ? 'danger' : 'secondary'}>
+                            {contract.contractStatus === 'EXPIRED' ? 'Đã hết hạn' : 'Không xác định'}
+                          </Text>
+                        )}
+                      </Descriptions.Item>
+                    </Descriptions>
+                    
+                    {/* Quick actions */}
+                    <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <Button
+                        type="primary"
+                        icon={<FileTextOutlined />}
+                        onClick={handleExportPdf}
+                        style={{ flex: 1, minWidth: isMobile ? 100 : 120 }}
+                        size={isMobile ? "small" : "middle"}
+                      >
+                        {isMobile ? "Tải PDF" : "Tải hợp đồng PDF"}
+                      </Button>
+                      
+                      {((contract.contractStatus === 'ACTIVE' && dayjs(contract.contractEndDate).diff(dayjs(), 'day') <= 30 && dayjs(contract.contractEndDate).diff(dayjs(), 'day') >= 0)
+                        || contract.contractStatus === 'EXPIRED') && (
+                        <Button 
+                          type="default" 
+                          onClick={openRenewModal}
+                          style={{ flex: 1, minWidth: isMobile ? 100 : 120 }}
+                          size={isMobile ? "small" : "middle"}
+                        >
+                          {isMobile ? "Gia hạn" : "Yêu cầu gia hạn"}
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                  
+                  {/* Renter info */}
+                  <Card title="Thông tin người thuê">
+                    <Descriptions bordered column={1} size={isMobile ? "small" : "default"}>
+                      <Descriptions.Item label="Họ và tên">
+                        <Text strong>{renterInfo?.fullName}</Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Số điện thoại">
+                        <Text>{renterInfo?.phoneNumber}</Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Email">
+                        <Text>{contract?.roomUsers?.[0]?.email || renterInfo?.email || 'Chưa cập nhật'}</Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="CCCD/CMND">
+                        <Text>{renterInfo?.nationalID || 'Chưa cập nhật'}</Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Địa chỉ thường trú">
+                        <Text>{renterInfo?.permanentAddress || 'Chưa cập nhật'}</Text>
+                      </Descriptions.Item>
+                    </Descriptions>
+                  </Card>
+                </div>
+
+                {/* Terms and actions */}
+                <div style={{ flex: 1, minWidth: isMobile ? "100%" : 280, maxWidth: isMobile ? "100%" : 350, marginTop: isMobile ? 16 : 0 }}>
+                  <Card title="Điều khoản hợp đồng" style={{ position: isMobile ? "static" : "sticky", top: 20, marginBottom: 16 }}>
+                    <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                      {contract.terms?.length > 0 ? contract.terms.map((term, index) => (
+                        <div key={index} style={{ marginBottom: 12, padding: 8, background: '#f9f9f9', borderRadius: 4 }}>
+                          <Text style={{ fontSize: isMobile ? 13 : 16 }}>
+                            <InfoCircleOutlined style={{ marginRight: 6, color: '#1890ff' }} />
+                            {typeof term === 'object' ? term.content : term}
+                          </Text>
+                        </div>
+                      )) : (
+                        <Text type="secondary" style={{ fontStyle: 'italic' }}>
+                          Không có điều khoản cụ thể được ghi nhận.
                         </Text>
                       )}
-                    </Descriptions.Item>
-                  </Descriptions>
-                  
-                  {/* Quick actions */}
-                  <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    </div>
+                  </Card>
+
+                  {/* Amendment history quick view */}
+                  <Card title="Thay đổi gần đây" size="small">
                     <Button
-                      type="primary"
-                      icon={<FileTextOutlined />}
-                      onClick={handleExportPdf}
-                      style={{ flex: 1, minWidth: 120 }}
+                      type="link"
+                      icon={<HistoryOutlined />}
+                      onClick={handleViewAmendments}
+                      style={{ padding: 0 }}
                     >
-                      Tải hợp đồng PDF
+                      Xem tất cả thay đổi hợp đồng
                     </Button>
-                    
-                    {((contract.contractStatus === 'ACTIVE' && dayjs(contract.contractEndDate).diff(dayjs(), 'day') <= 30 && dayjs(contract.contractEndDate).diff(dayjs(), 'day') >= 0)
-                      || contract.contractStatus === 'EXPIRED') && (
-                      <Button 
-                        type="default" 
-                        onClick={openRenewModal}
-                        style={{ flex: 1, minWidth: 120 }}
-                      >
-                        Yêu cầu gia hạn
-                      </Button>
-                    )}
-                  </div>
-                </Card>
-                
-                {/* Renter info */}
-                <Card title="Thông tin người thuê">
-                  <Descriptions bordered column={1} size={isMobile ? "small" : "default"}>
-                    <Descriptions.Item label="Họ và tên">
-                      <Text strong>{renterInfo?.fullName}</Text>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Số điện thoại">
-                      <Text>{renterInfo?.phoneNumber}</Text>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Email">
-                      <Text>{contract?.roomUsers?.[0]?.email || renterInfo?.email || 'Chưa cập nhật'}</Text>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="CCCD/CMND">
-                      <Text>{renterInfo?.nationalID || 'Chưa cập nhật'}</Text>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Địa chỉ thường trú">
-                      <Text>{renterInfo?.permanentAddress || 'Chưa cập nhật'}</Text>
-                    </Descriptions.Item>
-                  </Descriptions>
-                </Card>
+                  </Card>
+                </div>
               </div>
-
-              {/* Terms and actions */}
-              <div style={{ flex: 1, minWidth: isMobile ? "100%" : 280, maxWidth: isMobile ? "100%" : 350, marginTop: isMobile ? 16 : 0 }}>
-                <Card title="Điều khoản hợp đồng" style={{ position: isMobile ? "static" : "sticky", top: 20, marginBottom: 16 }}>
-                  <div style={{ maxHeight: 200, overflowY: 'auto' }}>
-                    {contract.terms?.length > 0 ? contract.terms.map((term, index) => (
-                      <div key={index} style={{ marginBottom: 12, padding: 8, background: '#f9f9f9', borderRadius: 4 }}>
-                        <Text style={{ fontSize: isMobile ? 14 : 16 }}>
-                          <InfoCircleOutlined style={{ marginRight: 6, color: '#1890ff' }} />
-                          {typeof term === 'object' ? term.content : term}
-                        </Text>
-                      </div>
-                    )) : (
-                      <Text type="secondary" style={{ fontStyle: 'italic' }}>
-                        Không có điều khoản cụ thể được ghi nhận.
-                      </Text>
-                    )}
-                  </div>
-                </Card>
-
-                {/* Amendment history quick view */}
-                <Card title="Thay đổi gần đây" size="small">
-                  <Button
-                    type="link"
-                    icon={<HistoryOutlined />}
-                    onClick={handleViewAmendments}
-                    style={{ padding: 0 }}
-                  >
-                    Xem tất cả thay đổi hợp đồng
-                  </Button>
-                </Card>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </div>
         </div>
         
+        {/* Mobile Drawer */}
+        <Drawer
+          title="Menu"
+          placement="left"
+          onClose={() => setDrawerVisible(false)}
+          open={drawerVisible}
+          width={280}
+          bodyStyle={{ padding: 0 }}
+        >
+          <RenterSidebar isDrawer={true} onMenuClick={() => setDrawerVisible(false)} />
+        </Drawer>
+
         {/* Contract History Modal */}
         <Modal
           open={historyModalOpen}
