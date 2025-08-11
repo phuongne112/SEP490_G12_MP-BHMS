@@ -428,7 +428,7 @@ export default function LandlordAssignRenterPage() {
                 >
                   <Select
                     mode="multiple"
-                    placeholder="Chọn người thuê theo email"
+                    placeholder="Tìm theo tên, email hoặc số điện thoại"
                     showSearch
                     onSearch={fetchRenters}
                     filterOption={false}
@@ -436,7 +436,10 @@ export default function LandlordAssignRenterPage() {
                   >
                     {renters.map(renter => (
                       <Option key={renter.email} value={renter.email}>
-                        {renter.email} - {renter.username}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontWeight: 600 }}>{renter.fullName || renter.username}</span>
+                          <span style={{ fontSize: 12, color: '#666' }}>{renter.email}</span>
+                        </div>
                       </Option>
                     ))}
                   </Select>

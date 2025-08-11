@@ -1,20 +1,36 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Descriptions, Table, Button, Spin, message, Tag, Layout } from "antd";
+import { Card, Descriptions, Table, Button, Spin, message, Tag, Layout, Drawer } from "antd";
 import { getBillDetail, exportBillPdf, createVnPayUrl } from "../../services/billApi";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import PageHeader from "../../components/common/PageHeader";
+import { MenuOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
+import { useSelector } from "react-redux";
 dayjs.extend(customParseFormat);
 
 const { Sider } = Layout;
+
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  return isMobile;
+};
 
 export default function RenterBillDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [bill, setBill] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const isMobile = useIsMobile();
+  const user = useSelector((state) => state.account.user);
 
   useEffect(() => {
     fetchBill();
@@ -150,137 +166,191 @@ export default function RenterBillDetailPage() {
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
-      <Sider width={220} style={{ background: "#001529" }}>
-        <RenterSidebar />
-      </Sider>
-      <div style={{ flex: 1, padding: 24 }}>
-        <PageHeader title="Chi tiết hóa đơn" />
-        <Card style={{ marginTop: 20 }}>
-          {loading ? (
-            <Spin />
-          ) : bill ? (
-            <>
-              <Descriptions bordered column={2}>
-                <Descriptions.Item label="Mã hóa đơn">#{bill.id}</Descriptions.Item>
-                <Descriptions.Item label="Phòng">{bill.roomNumber}</Descriptions.Item>
-                <Descriptions.Item label="Mã hợp đồng">{bill.contractId ? `#${bill.contractId}` : "Không có"}</Descriptions.Item>
-                <Descriptions.Item label="Loại hóa đơn">
-                  <Tag
-                    color={
-                      bill.billType === "REGULAR" || bill.billType === "ROOM_RENT" || bill.billType === "CONTRACT_ROOM_RENT" || (bill.billType && bill.billType.includes('ROOM_RENT'))
-                        ? "blue"
-                        : bill.billType === "SERVICE" || bill.billType === "CONTRACT_SERVICE" || (bill.billType && bill.billType.includes('SERVICE'))
-                        ? "green"
-                        : bill.billType === "DEPOSIT" || (bill.billType && bill.billType.includes('DEPOSIT'))
-                        ? "purple"
-                        : bill.billType === "CONTRACT_TOTAL"
-                        ? "geekblue"
-                        : bill.billType === "LATE_PENALTY"
-                        ? "volcano"
-                        : "default"
-                    }
-                  >
-                    {bill.billType === "REGULAR" || bill.billType === "ROOM_RENT" || bill.billType === "CONTRACT_ROOM_RENT" || (bill.billType && bill.billType.includes('ROOM_RENT'))
-                      ? "Tiền phòng"
-                      : bill.billType === "SERVICE" || bill.billType === "CONTRACT_SERVICE" || (bill.billType && bill.billType.includes('SERVICE'))
-                      ? "Dịch vụ"
-                      : bill.billType === "DEPOSIT" || (bill.billType && bill.billType.includes('DEPOSIT'))
-                      ? "Đặt cọc"
-                      : bill.billType === "CONTRACT_TOTAL"
-                      ? "Tổng hợp đồng"
-                      : bill.billType === "LATE_PENALTY"
-                      ? "Phạt quá hạn"
-                      : bill.billType || 'Không xác định'}
-                  </Tag>
-                </Descriptions.Item>
-                <Descriptions.Item label="Từ ngày">{dayjs(bill.fromDate).format("DD/MM/YYYY")}</Descriptions.Item>
-                <Descriptions.Item label="Đến ngày">
-                  {bill.toDate && dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").isValid() ? (
-                    dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").format("DD/MM/YYYY")
-                  ) : getFallbackToDate(bill) ? (
-                    <span style={{ color: '#faad14', fontWeight: 500 }}>
-                      {dayjs(getFallbackToDate(bill)).isValid()
-                        ? dayjs(getFallbackToDate(bill)).format('DD/MM/YYYY')
-                        : getFallbackToDate(bill)}
-                      {" "}(Lấy từ chi tiết hóa đơn)
-                    </span>
-                  ) : (
-                    <span style={{ color: 'red', fontWeight: 500 }}>
-                      Không xác định (Dữ liệu hóa đơn thiếu ngày kết thúc)
-                    </span>
-                  )}
-                </Descriptions.Item>
-                <Descriptions.Item label="Tổng tiền">{bill.totalAmount?.toLocaleString()} ₫</Descriptions.Item>
-                <Descriptions.Item label="Trạng thái">
-                  <Tag color={bill.status ? "green" : "red"}>
-                    {bill.status ? "Đã thanh toán" : "Chưa thanh toán"}
-                  </Tag>
-                </Descriptions.Item>
-                {bill.billType === 'LATE_PENALTY' && (
-                  <>
-                    <Descriptions.Item label="Hóa đơn gốc">
-                      <Button 
-                        type="link" 
-                        onClick={() => navigate(`/renter/bills/${bill.originalBillId}`)}
-                        style={{ padding: 0 }}
-                      >
-                        Xem hóa đơn #{bill.originalBillId}
-                      </Button>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Tỷ lệ phạt">
-                      <Tag color="volcano">{bill.penaltyRate}%</Tag>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Số ngày quá hạn">
-                      <Tag color="red">{bill.overdueDays} ngày</Tag>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Số tiền phạt">
-                      <span style={{ color: '#cf1322', fontWeight: 'bold' }}>
-                        {bill.penaltyAmount?.toLocaleString()} ₫
-                      </span>
-                    </Descriptions.Item>
-                    {bill.notes && (
-                      <Descriptions.Item label="Ghi chú" span={2}>
-                        <span style={{ color: '#666' }}>{bill.notes}</span>
-                      </Descriptions.Item>
-                    )}
-                  </>
-                )}
-              </Descriptions>
-
-              <h3 style={{ marginTop: 24 }}>Chi tiết các khoản</h3>
-              <Table
-                columns={columns}
-                dataSource={bill.details}
-                rowKey={(_, idx) => idx}
-                pagination={false}
-                size="small"
-                scroll={{ x: 600 }}
-              />
-
-              <div style={{ marginTop: 24 }}>
-                <Button onClick={handleExport} type="primary">Xuất PDF</Button>
-
-                {!bill.status && (
-                  <Button
-                    type="primary"
-                    style={{ marginLeft: 16 }}
-                    onClick={handlePayVnPay}
-                  >
-                    Thanh toán VNPay
-                  </Button>
-                )}
-
-                <Button style={{ marginLeft: 16 }} onClick={() => navigate(-1)}>
-                  Quay lại
-                </Button>
+    <Layout style={{ minHeight: "100vh" }}>
+      {!isMobile && (
+        <Sider width={220} style={{ background: "#001529" }}>
+          <RenterSidebar />
+        </Sider>
+      )}
+      <Layout style={{ marginLeft: isMobile ? 0 : 220 }}>
+        {isMobile && (
+          <div style={{
+            background: "#001529",
+            padding: "12px 16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            position: "sticky",
+            top: 0,
+            zIndex: 1000,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ fontWeight: 600, fontSize: 16 }}>
+                MP-BHMS
               </div>
-            </>
-          ) : (
-            <div>Không tìm thấy hóa đơn</div>
+              <div style={{ fontSize: 14, color: "#e2e8f0" }}>
+                Xin chào {user?.fullName || user?.name || "Renter"}
+              </div>
+            </div>
+            <Button
+              type="text"
+              icon={<MenuOutlined />}
+              onClick={() => setDrawerVisible(true)}
+              style={{ color: "white", padding: 4 }}
+            />
+          </div>
+        )}
+        <div style={{ flex: 1, padding: isMobile ? 16 : 24 }}>
+          {!isMobile && <PageHeader title="Chi tiết hóa đơn" />}
+          {isMobile && (
+            <div style={{ marginBottom: 16 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 600, color: "#1890ff", margin: 0 }}>
+                Chi tiết hóa đơn
+              </h2>
+            </div>
           )}
-        </Card>
-      </div>
-    </div>
+          <Card style={{ marginTop: isMobile ? 0 : 20 }} size={isMobile ? "small" : "default"}>
+            {loading ? (
+              <Spin />
+            ) : bill ? (
+              <>
+                <Descriptions bordered column={isMobile ? 1 : 2} size={isMobile ? "small" : "default"}>
+                  <Descriptions.Item label="Mã hóa đơn">#{bill.id}</Descriptions.Item>
+                  <Descriptions.Item label="Phòng">{bill.roomNumber}</Descriptions.Item>
+                  <Descriptions.Item label="Mã hợp đồng">{bill.contractId ? `#${bill.contractId}` : "Không có"}</Descriptions.Item>
+                  <Descriptions.Item label="Loại hóa đơn">
+                    <Tag
+                      color={
+                        bill.billType === "REGULAR" || bill.billType === "ROOM_RENT" || bill.billType === "CONTRACT_ROOM_RENT" || (bill.billType && bill.billType.includes('ROOM_RENT'))
+                          ? "blue"
+                          : bill.billType === "SERVICE" || bill.billType === "CONTRACT_SERVICE" || (bill.billType && bill.billType.includes('SERVICE'))
+                          ? "green"
+                          : bill.billType === "DEPOSIT" || (bill.billType && bill.billType.includes('DEPOSIT'))
+                          ? "purple"
+                          : bill.billType === "CONTRACT_TOTAL"
+                          ? "geekblue"
+                          : bill.billType === "LATE_PENALTY"
+                          ? "volcano"
+                          : "default"
+                      }
+                    >
+                      {bill.billType === "REGULAR" || bill.billType === "ROOM_RENT" || bill.billType === "CONTRACT_ROOM_RENT" || (bill.billType && bill.billType.includes('ROOM_RENT'))
+                        ? "Tiền phòng"
+                        : bill.billType === "SERVICE" || bill.billType === "CONTRACT_SERVICE" || (bill.billType && bill.billType.includes('SERVICE'))
+                        ? "Dịch vụ"
+                        : bill.billType === "DEPOSIT" || (bill.billType && bill.billType.includes('DEPOSIT'))
+                        ? "Đặt cọc"
+                        : bill.billType === "CONTRACT_TOTAL"
+                        ? "Tổng hợp đồng"
+                        : bill.billType === "LATE_PENALTY"
+                        ? "Phạt quá hạn"
+                        : bill.billType || 'Không xác định'}
+                    </Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Từ ngày">{dayjs(bill.fromDate).format("DD/MM/YYYY")}</Descriptions.Item>
+                  <Descriptions.Item label="Đến ngày">
+                    {bill.toDate && dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").isValid() ? (
+                      dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").format("DD/MM/YYYY")
+                    ) : getFallbackToDate(bill) ? (
+                      <span style={{ color: '#faad14', fontWeight: 500 }}>
+                        {dayjs(getFallbackToDate(bill)).isValid()
+                          ? dayjs(getFallbackToDate(bill)).format('DD/MM/YYYY')
+                          : getFallbackToDate(bill)}
+                        {" "}(Lấy từ chi tiết hóa đơn)
+                      </span>
+                    ) : (
+                      <span style={{ color: 'red', fontWeight: 500 }}>
+                        Không xác định (Dữ liệu hóa đơn thiếu ngày kết thúc)
+                      </span>
+                    )}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Tổng tiền">{bill.totalAmount?.toLocaleString()} ₫</Descriptions.Item>
+                  <Descriptions.Item label="Trạng thái">
+                    <Tag color={bill.status ? "green" : "red"}>
+                      {bill.status ? "Đã thanh toán" : "Chưa thanh toán"}
+                    </Tag>
+                  </Descriptions.Item>
+                  {bill.billType === 'LATE_PENALTY' && (
+                    <>
+                      <Descriptions.Item label="Hóa đơn gốc">
+                        <Button 
+                          type="link" 
+                          onClick={() => navigate(`/renter/bills/${bill.originalBillId}`)}
+                          style={{ padding: 0 }}
+                        >
+                          Xem hóa đơn #{bill.originalBillId}
+                        </Button>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Tỷ lệ phạt">
+                        <Tag color="volcano">{bill.penaltyRate}%</Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Số ngày quá hạn">
+                        <Tag color="red">{bill.overdueDays} ngày</Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Số tiền phạt">
+                        <span style={{ color: '#cf1322', fontWeight: 'bold' }}>
+                          {bill.penaltyAmount?.toLocaleString()} ₫
+                        </span>
+                      </Descriptions.Item>
+                      {bill.notes && (
+                        <Descriptions.Item label="Ghi chú" span={2}>
+                          <span style={{ color: '#666' }}>{bill.notes}</span>
+                        </Descriptions.Item>
+                      )}
+                    </>
+                  )}
+                </Descriptions>
+
+                <h3 style={{ marginTop: 24, fontSize: isMobile ? 16 : 18 }}>Chi tiết các khoản</h3>
+                <Table
+                  columns={columns}
+                  dataSource={bill.details}
+                  rowKey={(_, idx) => idx}
+                  pagination={false}
+                  size={isMobile ? "small" : "small"}
+                  scroll={{ x: isMobile ? 400 : 600 }}
+                />
+
+                <div style={{ marginTop: 24, display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 8 : 16 }}>
+                  <Button onClick={handleExport} type="primary" size={isMobile ? "small" : "middle"}>
+                    Xuất PDF
+                  </Button>
+
+                  {!bill.status && (
+                    <Button
+                      type="primary"
+                      size={isMobile ? "small" : "middle"}
+                      onClick={handlePayVnPay}
+                    >
+                      Thanh toán VNPay
+                    </Button>
+                  )}
+
+                  <Button size={isMobile ? "small" : "middle"} onClick={() => navigate(-1)}>
+                    Quay lại
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div>Không tìm thấy hóa đơn</div>
+            )}
+          </Card>
+        </div>
+        
+        {/* Mobile Drawer for Sidebar */}
+        {isMobile && (
+          <Drawer
+            title="Menu"
+            placement="left"
+            onClose={() => setDrawerVisible(false)}
+            open={drawerVisible}
+            width={280}
+            bodyStyle={{ padding: 0 }}
+          >
+            <RenterSidebar isDrawer={true} onMenuClick={() => setDrawerVisible(false)} />
+          </Drawer>
+        )}
+      </Layout>
+    </Layout>
   );
 }

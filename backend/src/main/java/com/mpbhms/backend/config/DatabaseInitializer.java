@@ -98,6 +98,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("View Permissions", "/mpbhms/permissions", "GET", "Permission"));
             //Room User
             permissions.add(new Permission("Assign user to Room", "/mpbhms/room-users/add-many", "POST", "RoomUser"));
+            permissions.add(new Permission("Assign user to Room Single", "/mpbhms/room-users/assign", "POST", "RoomUser"));
     
             permissions.add(new Permission("Process Expired Contracts", "/mpbhms/room-users/process-expired-contracts", "POST", "RoomUser"));
             permissions.add(new Permission("Renew Contract", "/mpbhms/room-users/renew-contract/{contractId}", "POST", "RoomUser"));
@@ -371,6 +372,12 @@ public class DatabaseInitializer implements CommandLineRunner {
                     .stream()
                     .filter(p -> List.of("Room","ContractTemplate","Renter","RoomUser","Bill","Ocr","Contract","Service","Schedule","User","Asset","ElectricReading","RoomAsset","AssetInventory").contains(p.getModule())) // hoặc theo API cụ thể
                     .toList());
+            
+            // Đảm bảo LANDLORD có quyền assign user to room single
+            Permission assignUserToRoomSingle = permissionRepository.findByModuleAndApiPathAndMethod("RoomUser", "/mpbhms/room-users/assign", "POST");
+            if (assignUserToRoomSingle != null && !landlordPermission.contains(assignUserToRoomSingle)) {
+                landlordPermission.add(assignUserToRoomSingle);
+            }
             // Đảm bảo LANDLORD có quyền xem booking (schedule)
             if (getAllSchedules != null && !landlordPermission.contains(getAllSchedules)) {
                 landlordPermission.add(getAllSchedules);
