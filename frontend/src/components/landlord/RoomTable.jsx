@@ -11,6 +11,7 @@ import axiosClient from "../../services/axiosClient";
 import image1 from '../../assets/RoomImage/image1.png';
 import { Modal as AntdModal, Popconfirm } from "antd";
 import { getContractHistoryByRoom } from '../../services/contractApi';
+import AssignRenterModal from "./AssignRenterModal";
 
 const { Meta } = Card;
 const { Option } = Select;
@@ -98,6 +99,10 @@ const [selectedAssetId, setSelectedAssetId] = useState(null);
 const [assetSearch, setAssetSearch] = useState("");
 const [assetPage, setAssetPage] = useState(1);
 const [assetTotal, setAssetTotal] = useState(0);
+
+// For assign renter modal
+const [assignRenterModalVisible, setAssignRenterModalVisible] = useState(false);
+const [selectedRoomForAssign, setSelectedRoomForAssign] = useState(null);
 const [assetPageSize, setAssetPageSize] = useState(5);
 const [assetRoomId, setAssetRoomId] = useState(null);
 
@@ -548,20 +553,6 @@ const user = useSelector((state) => state.account.user);
             try {
               await deactivateServiceForRoom(selectedRoom.id, serviceId);
               message.success("Đã ngừng sử dụng dịch vụ cho phòng!");
-              
-              // Cập nhật ngay lập tức trạng thái dịch vụ trong selectedRoom
-              setSelectedRoom(prevRoom => {
-                if (!prevRoom) return prevRoom;
-                return {
-                  ...prevRoom,
-                  services: prevRoom.services?.map(s => 
-                    s.id === serviceId 
-                      ? { ...s, isActive: false, endDate: new Date().toISOString().split('T')[0] }
-                      : s
-                  )
-                };
-              });
-              
               if (onRoomsUpdate) onRoomsUpdate();
             } catch (err) {
               const backendMsg = err.response?.data?.message || err.response?.data || err.message;
@@ -600,20 +591,6 @@ const user = useSelector((state) => state.account.user);
                 try {
                     await reactivateServiceForRoom(selectedRoom.id, serviceId);
                     message.success("Đã sử dụng lại dịch vụ cho phòng!");
-                    
-                    // Cập nhật ngay lập tức trạng thái dịch vụ trong selectedRoom
-                    setSelectedRoom(prevRoom => {
-                        if (!prevRoom) return prevRoom;
-                        return {
-                            ...prevRoom,
-                            services: prevRoom.services?.map(s => 
-                                s.id === serviceId 
-                                    ? { ...s, isActive: true, endDate: null }
-                                    : s
-                            )
-                        };
-                    });
-                    
                     if (onRoomsUpdate) onRoomsUpdate();
                 } catch (err) {
                     const backendMsg = err.response?.data?.message || err.response?.data || err.message;
@@ -769,11 +746,8 @@ const user = useSelector((state) => state.account.user);
                                                     fontWeight: 500
                                                 }}
                                                 onClick={() => {
-                                                    if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
-                                                        navigate(`/admin/rooms/${room.id}/assign`);
-                                                    } else {
-                                                        navigate(`/landlord/rooms/${room.id}/assign`);
-                                                    }
+                                                    setSelectedRoomForAssign(room);
+                                                    setAssignRenterModalVisible(true);
                                                 }}
                                             >
                                                 Gán người thuê
@@ -1065,7 +1039,6 @@ const user = useSelector((state) => state.account.user);
                         { title: "Số lượng", dataIndex: "quantity", key: "quantity" },
                         { title: "Ghi chú", dataIndex: "conditionNote", key: "conditionNote" },
                     ]}
-                    scroll={{ x: 600 }}
                 />
             </Modal>
             {/* Modal xem danh sách tài sản của phòng */}
@@ -1141,7 +1114,6 @@ const user = useSelector((state) => state.account.user);
                                 },
                             ]}
                             pagination={false}
-                            scroll={{ x: 1000 }}
                         />
                     </Tabs.TabPane>
                     <Tabs.TabPane tab="Lịch sử kiểm kê" key="kiemke">
@@ -1171,7 +1143,6 @@ const user = useSelector((state) => state.account.user);
                                 { title: "Loại kiểm kê", dataIndex: "type", key: "type" },
                             ]}
                             pagination={false}
-                            scroll={{ x: 800 }}
                         />
                     </Tabs.TabPane>
                 </Tabs>
@@ -1253,6 +1224,19 @@ const user = useSelector((state) => state.account.user);
                 />
               </div>
             </Modal>
+            
+            {/* Modal gán người thuê */}
+            <AssignRenterModal
+                visible={assignRenterModalVisible}
+                onCancel={() => {
+                    setAssignRenterModalVisible(false);
+                    setSelectedRoomForAssign(null);
+                }}
+                room={selectedRoomForAssign}
+                onSuccess={() => {
+                    onRoomsUpdate?.();
+                }}
+            />
         </>
     );
 }
