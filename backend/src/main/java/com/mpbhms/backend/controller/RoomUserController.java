@@ -53,6 +53,34 @@ public class RoomUserController {
         }
     }
 
+    @PostMapping("/assign")
+    public ResponseEntity<?> assignUserToRoom(@RequestBody Map<String, Object> request) {
+        try {
+            Long roomId = Long.valueOf(request.get("roomId").toString());
+            Long userId = Long.valueOf(request.get("userId").toString());
+            String startDate = (String) request.get("startDate");
+            String endDate = (String) request.get("endDate");
+            String paymentCycle = (String) request.get("paymentCycle");
+            Double depositAmount = Double.valueOf(request.get("depositAmount").toString());
+
+            // Tạo request cho add-many với 1 user
+            AddUsersToRoomRequest addRequest = new AddUsersToRoomRequest();
+            addRequest.setRoomId(roomId);
+            addRequest.setUserIds(java.util.Arrays.asList(userId));
+            addRequest.setContractStartDate(Instant.parse(startDate));
+            addRequest.setContractEndDate(Instant.parse(endDate));
+            addRequest.setPaymentCycle(paymentCycle);
+            addRequest.setDepositAmount(depositAmount);
+
+            roomUserService.addUsersToRoom(addRequest);
+            return ResponseEntity.ok("Đã gán người thuê vào phòng thành công.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Có lỗi xảy ra: " + e.getMessage());
+        }
+    }
+
 
     
     /**

@@ -12,6 +12,7 @@ import image1 from '../../assets/RoomImage/image1.png';
 import { Modal as AntdModal, Popconfirm } from "antd";
 import { getContractHistoryByRoom } from '../../services/contractApi';
 import AssignRenterModal from "./AssignRenterModal";
+import EditRoomModal from "./EditRoomModal";
 
 const { Meta } = Card;
 const { Option } = Select;
@@ -105,6 +106,10 @@ const [assignRenterModalVisible, setAssignRenterModalVisible] = useState(false);
 const [selectedRoomForAssign, setSelectedRoomForAssign] = useState(null);
 const [assetPageSize, setAssetPageSize] = useState(5);
 const [assetRoomId, setAssetRoomId] = useState(null);
+
+// For edit room modal
+const [editRoomModalVisible, setEditRoomModalVisible] = useState(false);
+const [selectedRoomForEdit, setSelectedRoomForEdit] = useState(null);
 
 const [viewAssetModalOpen, setViewAssetModalOpen] = useState(false);
 const [viewAssetRoomId, setViewAssetRoomId] = useState(null);
@@ -831,11 +836,8 @@ const user = useSelector((state) => state.account.user);
                                                 message.error("Không thể chỉnh sửa phòng khi vẫn còn người ở!");
                                                 return;
                                             }
-                                            if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
-                                                navigate(`/admin/rooms/${room.id}/edit`);
-                                            } else {
-                                                navigate(`/landlord/rooms/${room.id}/edit`);
-                                            }
+                                            setSelectedRoomForEdit(room);
+                                            setEditRoomModalVisible(true);
                                         }}
                                     >
                                         Sửa
@@ -1229,10 +1231,25 @@ const user = useSelector((state) => state.account.user);
             <AssignRenterModal
                 visible={assignRenterModalVisible}
                 onCancel={() => {
+                    console.log("RoomTable: onCancel được gọi");
                     setAssignRenterModalVisible(false);
                     setSelectedRoomForAssign(null);
                 }}
                 room={selectedRoomForAssign}
+                onSuccess={() => {
+                    console.log("RoomTable: onSuccess được gọi");
+                    onRoomsUpdate?.();
+                }}
+            />
+
+            {/* Modal chỉnh sửa phòng */}
+            <EditRoomModal
+                visible={editRoomModalVisible}
+                onCancel={() => {
+                    setEditRoomModalVisible(false);
+                    setSelectedRoomForEdit(null);
+                }}
+                roomId={selectedRoomForEdit?.id}
                 onSuccess={() => {
                     onRoomsUpdate?.();
                 }}

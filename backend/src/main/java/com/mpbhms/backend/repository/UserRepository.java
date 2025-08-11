@@ -26,7 +26,9 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
            "AND NOT EXISTS (SELECT 1 FROM RoomUser ru WHERE ru.user = u AND ru.isActive = true) " +
            "AND (LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
            "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-           "OR LOWER(u.userInfo.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) )")
+           "OR LOWER(u.userInfo.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "OR LOWER(u.userInfo.phoneNumber) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "OR LOWER(u.userInfo.phoneNumber2) LIKE LOWER(CONCAT('%', :keyword, '%')) )")
     List<User> findRentersWithoutActiveRoomAndSearch(@Param("keyword") String keyword);
 }
 
