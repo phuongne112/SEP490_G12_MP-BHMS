@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Card, Descriptions, Table, Button, Spin, message, Tag, Layout } from "antd";
-import { getBillDetail, exportBillPdf, createVnPayUrl } from "../../services/billApi";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { Card, Descriptions, Table, Button, Spin, message, Tag, Layout, Modal, Radio, InputNumber, Alert, Divider } from "antd";
+import { getBillDetail, exportBillPdf, createVnPayUrl, makePartialPayment } from "../../services/billApi";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import PageHeader from "../../components/common/PageHeader";
+import PartialPaymentModal from "../../components/common/PartialPaymentModal";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 dayjs.extend(customParseFormat);
@@ -13,13 +14,26 @@ const { Sider } = Layout;
 export default function RenterBillDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [bill, setBill] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [partialPaymentModalVisible, setPartialPaymentModalVisible] = useState(false);
+  const [paymentType, setPaymentType] = useState('full');
+  const [partialAmount, setPartialAmount] = useState(0);
 
   useEffect(() => {
     fetchBill();
     // eslint-disable-next-line
   }, [id]);
+
+  // Check if action=pay is in URL params
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'pay' && bill && !bill.status) {
+      setPaymentModalVisible(true);
+    }
+  }, [searchParams, bill]);
 
   const fetchBill = async () => {
     setLoading(true);
@@ -63,7 +77,18 @@ export default function RenterBillDetailPage() {
 
   const handlePayVnPay = async () => {
     try {
-      const amount = Number(String(bill.totalAmount).replace(/[^0-9.-]+/g, ""));
+      // Sử dụng outstandingAmount thay vì totalAmount để thanh toán đúng số tiền còn nợ
+      const outstandingAmount = bill.outstandingAmount || bill.totalAmount || 0;
+      const amount = Number(String(outstandingAmount).replace(/[^0-9.-]+/g, ""));
+      
+      console.log('Thanh toán VNPAY:', {
+        billId: bill.id,
+        totalAmount: bill.totalAmount,
+        paidAmount: bill.paidAmount,
+        outstandingAmount: bill.outstandingAmount,
+        amountToPay: amount
+      });
+      
       const paymentUrl = await createVnPayUrl({
         billId: bill.id,
         amount,
@@ -71,8 +96,35 @@ export default function RenterBillDetailPage() {
       });
       window.location.href = paymentUrl;
     } catch (err) {
-      alert("Không tạo được link thanh toán!");
+      message.error("Không tạo được link thanh toán!");
     }
+  };
+
+  const handlePaymentModalOk = () => {
+    if (paymentType === 'full') {
+      handlePayVnPay();
+    } else {
+      setPaymentModalVisible(false);
+      setPartialPaymentModalVisible(true);
+    }
+  };
+
+  const handlePartialPaymentSuccess = () => {
+    setPartialPaymentModalVisible(false);
+    message.success("Thanh toán từng phần thành công!");
+    fetchBill(); // Refresh bill data
+  };
+
+  const handlePartialPaymentCancel = () => {
+    setPartialPaymentModalVisible(false);
+  };
+
+  const formatCurrency = (amount) => {
+    if (!amount) return '0 ₫';
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
   };
 
   const columns = [
@@ -211,11 +263,57 @@ export default function RenterBillDetailPage() {
                     </span>
                   )}
                 </Descriptions.Item>
-                <Descriptions.Item label="Tổng tiền">{bill.totalAmount?.toLocaleString()} ₫</Descriptions.Item>
+                <Descriptions.Item label="Hạn thanh toán">
+                  {bill.dueDate ? (
+                    <span>
+                      {(() => {
+                        try {
+                          const dueDate = dayjs(bill.dueDate, "YYYY-MM-DD HH:mm:ss A");
+                          return dueDate.isValid() ? dueDate.format("DD/MM/YYYY") : 'Không xác định';
+                        } catch (error) {
+                          return 'Không xác định';
+                        }
+                      })()}
+                    </span>
+                  ) : (
+                    <span style={{ color: '#faad14', fontStyle: 'italic' }}>
+                      Chưa thiết lập
+                    </span>
+                  )}
+                </Descriptions.Item>
+                <Descriptions.Item label="Tổng tiền">
+                  <div>
+                    <div style={{ fontWeight: 'bold' }}>{formatCurrency(bill.totalAmount)}</div>
+                    {(bill.paidAmount || 0) > 0 && (
+                      <div style={{ fontSize: '12px', color: '#52c41a' }}>
+                        Đã trả: {formatCurrency(bill.paidAmount || 0)}
+                      </div>
+                    )}
+                    {(bill.outstandingAmount || 0) > 0 && (
+                      <div style={{ fontSize: '12px', color: '#ff4d4f' }}>
+                        Còn nợ: {formatCurrency(bill.outstandingAmount || 0)}
+                      </div>
+                    )}
+                  </div>
+                </Descriptions.Item>
                 <Descriptions.Item label="Trạng thái">
-                  <Tag color={bill.status ? "green" : "red"}>
-                    {bill.status ? "Đã thanh toán" : "Chưa thanh toán"}
+                  <div>
+                    <Tag color={bill.status ? "green" : bill.isPartiallyPaid ? "orange" : "red"}>
+                      {bill.status ? "Đã thanh toán" : bill.isPartiallyPaid ? "Thanh toán từng phần" : "Chưa thanh toán"}
                   </Tag>
+                    {bill.lastPaymentDate && (
+                      <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+                        Lần thanh toán cuối: {(() => {
+                          try {
+                            const date = dayjs(bill.lastPaymentDate);
+                            return date.isValid() ? date.format('DD/MM/YYYY HH:mm') : 'Không xác định';
+                          } catch (error) {
+                            return 'Không xác định';
+                          }
+                        })()}
+                      </div>
+                    )}
+                  </div>
                 </Descriptions.Item>
                 {bill.billType === 'LATE_PENALTY' && (
                   <>
@@ -265,9 +363,9 @@ export default function RenterBillDetailPage() {
                   <Button
                     type="primary"
                     style={{ marginLeft: 16 }}
-                    onClick={handlePayVnPay}
+                    onClick={() => setPaymentModalVisible(true)}
                   >
-                    Thanh toán VNPay
+                    Thanh toán
                   </Button>
                 )}
 
@@ -280,6 +378,73 @@ export default function RenterBillDetailPage() {
             <div>Không tìm thấy hóa đơn</div>
           )}
         </Card>
+
+        {/* Payment Options Modal */}
+        <Modal
+          title="Chọn phương thức thanh toán"
+          open={paymentModalVisible}
+          onOk={handlePaymentModalOk}
+          onCancel={() => setPaymentModalVisible(false)}
+          okText="Tiếp tục"
+          cancelText="Hủy"
+          width={500}
+        >
+          <div style={{ marginBottom: 16 }}>
+            <Alert
+              message="Thông tin hóa đơn"
+              description={
+                <div>
+                  <p><strong>Hóa đơn #:</strong> {bill?.id || 'N/A'}</p>
+                  <p><strong>Phòng:</strong> {bill?.roomNumber || 'N/A'}</p>
+                  <p><strong>Tổng tiền:</strong> {formatCurrency(bill?.totalAmount)}</p>
+                  <p><strong>Đã thanh toán:</strong> {formatCurrency(bill?.paidAmount || 0)}</p>
+                  <p><strong>Còn nợ:</strong> {formatCurrency(bill?.outstandingAmount || bill?.totalAmount || 0)}</p>
+                </div>
+              }
+              type="info"
+              showIcon
+            />
+          </div>
+
+          <Divider />
+
+          <Radio.Group 
+            value={paymentType} 
+            onChange={(e) => setPaymentType(e.target.value)}
+            style={{ width: '100%' }}
+          >
+            <div style={{ marginBottom: 16 }}>
+              <Radio value="full" style={{ width: '100%' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', color: '#1890ff' }}>Thanh toán thẳng (VNPAY)</div>
+                  <div style={{ fontSize: '12px', color: '#666' }}>
+                    Thanh toán toàn bộ số tiền còn nợ qua VNPAY
+                  </div>
+                </div>
+              </Radio>
+            </div>
+            <div>
+              <Radio value="partial" style={{ width: '100%' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', color: '#faad14' }}>Thanh toán một phần</div>
+                  <div style={{ fontSize: '12px', color: '#666' }}>
+                    Thanh toán một phần số tiền và ghi nợ phần còn lại
+                  </div>
+                </div>
+              </Radio>
+            </div>
+          </Radio.Group>
+        </Modal>
+
+        {/* Partial Payment Modal */}
+        {bill && (
+          <PartialPaymentModal
+            visible={partialPaymentModalVisible}
+            onCancel={handlePartialPaymentCancel}
+            onSuccess={handlePartialPaymentSuccess}
+            bill={bill}
+          />
+        )}
       </div>
     </div>
   );

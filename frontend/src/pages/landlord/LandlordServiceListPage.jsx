@@ -412,7 +412,7 @@ export default function LandlordServiceListPage() {
             description="Bạn có chắc muốn xóa dịch vụ này?"
             onConfirm={() => handleDeleteService(record.id)}
             okText="Xóa"
-            cancelText="Không"
+                            cancelText="Hủy"
           >
             <Button
               icon={<DeleteOutlined />}

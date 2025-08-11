@@ -502,7 +502,7 @@ export default function AdminUserListPage() {
                   title="Bạn có chắc chắn muốn cập nhật người dùng này?"
                   onConfirm={() => updateForm.submit()}
                   okText="Đồng ý"
-                  cancelText="Huỷ"
+                  cancelText="Hủy"
                 >
                   <Button type="primary" block>
                     Cập nhật người dùng

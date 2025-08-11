@@ -2,6 +2,8 @@ package com.mpbhms.backend.controller;
 
 import com.mpbhms.backend.dto.BillResponse;
 import com.mpbhms.backend.dto.BillDetailResponse;
+import com.mpbhms.backend.dto.PartialPaymentRequest;
+import com.mpbhms.backend.dto.PartialPaymentResponse;
 import com.mpbhms.backend.entity.Bill;
 import com.mpbhms.backend.enums.BillType;
 import com.mpbhms.backend.service.BillService;
@@ -247,6 +249,82 @@ public class BillController {
     public BillResponse updatePaymentStatus(@PathVariable Long id, @RequestBody Map<String, Object> request) {
         Boolean status = Boolean.valueOf(request.get("status").toString());
         return billService.updatePaymentStatus(id, status);
+    }
+    
+    @PostMapping("/partial-payment")
+    public ResponseEntity<?> makePartialPayment(@RequestBody PartialPaymentRequest request) {
+        try {
+            // Kiểm tra thanh toán tối thiểu 50%
+            Bill bill = billService.getBillById(request.getBillId());
+            BigDecimal totalAmount = bill.getTotalAmount();
+            BigDecimal outstandingAmount = bill.getOutstandingAmount() != null ? bill.getOutstandingAmount() : totalAmount;
+            BigDecimal minPaymentAmount = outstandingAmount.multiply(new BigDecimal("0.5"));
+            
+            if (request.getPaymentAmount().compareTo(minPaymentAmount) < 0) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("message", "Số tiền thanh toán phải tối thiểu 50% giá trị hóa đơn (" + 
+                    minPaymentAmount.toPlainString() + " VNĐ)");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+            
+            PartialPaymentResponse response = billService.makePartialPayment(request);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("message", response.getMessage());
+            result.put("data", response);
+            
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Lỗi khi thanh toán từng phần: " + e.getMessage());
+            
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+
+    @PostMapping("/partial-payment/vnpay")
+    public ResponseEntity<?> createPartialPaymentVnPayUrl(@RequestBody PartialPaymentRequest request) {
+        try {
+            // Kiểm tra thanh toán tối thiểu 50%
+            Bill bill = billService.getBillById(request.getBillId());
+            BigDecimal totalAmount = bill.getTotalAmount();
+            BigDecimal outstandingAmount = bill.getOutstandingAmount() != null ? bill.getOutstandingAmount() : totalAmount;
+            BigDecimal minPaymentAmount = outstandingAmount.multiply(new BigDecimal("0.5"));
+            
+            if (request.getPaymentAmount().compareTo(minPaymentAmount) < 0) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("message", "Số tiền thanh toán phải tối thiểu 50% giá trị hóa đơn (" + 
+                    minPaymentAmount.toPlainString() + " VNĐ)");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+            
+            // Tạo URL VNPAY cho thanh toán từng phần
+            String orderInfo = "Thanh toán từng phần hóa đơn #" + request.getBillId();
+            String paymentUrl = vnPayService.createPaymentUrl(
+                request.getBillId(), 
+                request.getPaymentAmount().longValue(), 
+                orderInfo
+            );
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("message", "Đã tạo link thanh toán VNPAY thành công");
+            result.put("paymentUrl", paymentUrl);
+            result.put("billId", request.getBillId());
+            result.put("paymentAmount", request.getPaymentAmount());
+            
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Lỗi khi tạo link thanh toán VNPAY: " + e.getMessage());
+            
+            return ResponseEntity.status(500).body(errorResponse);
+        }
     }
 
     @PostMapping("/{id}/create-penalty")

@@ -131,13 +131,13 @@ export default function AccountModal({ open, onClose }) {
             </Form.Item>
 
             <Space style={{ display: "flex", justifyContent: "end" }}>
-              <Button onClick={() => setEditing(false)}>Huỷ</Button>
+              <Button onClick={() => setEditing(false)}>Hủy</Button>
               <Popconfirm
                 title="Xác nhận cập nhật"
                 description="Bạn có chắc chắn muốn lưu thay đổi không?"
                 onConfirm={() => form.submit()}
                 okText="Đồng ý"
-                cancelText="Huỷ"
+                cancelText="Hủy"
               >
                 <Button type="primary">Lưu</Button>
               </Popconfirm>

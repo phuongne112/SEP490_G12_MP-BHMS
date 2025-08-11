@@ -6,6 +6,8 @@ import com.mpbhms.backend.enums.BillType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.mpbhms.backend.dto.BillDetailResponse;
+import com.mpbhms.backend.dto.PartialPaymentRequest;
+import com.mpbhms.backend.dto.PartialPaymentResponse;
 import java.time.LocalDate;
 import java.util.List;
 import java.math.BigDecimal;
@@ -51,6 +53,9 @@ public interface BillService {
 
     // Cập nhật trạng thái thanh toán hóa đơn
     BillResponse updatePaymentStatus(Long billId, Boolean status);
+    
+    // Thanh toán từng phần
+    PartialPaymentResponse makePartialPayment(PartialPaymentRequest request);
 
     // Xử lý phạt quá hạn
     BillResponse createLatePenaltyBill(Long originalBillId);

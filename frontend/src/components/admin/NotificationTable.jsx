@@ -230,7 +230,7 @@ export default function NotificationTable({
                       description="Bạn có chắc muốn xóa thông báo này?"
                       onConfirm={() => onDelete(record)}
                       okText="Xóa"
-                      cancelText="Không"
+                      cancelText="Hủy"
                     >
                       <Button
                         icon={<DeleteOutlined />}

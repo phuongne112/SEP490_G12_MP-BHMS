@@ -210,7 +210,7 @@ export default function RenterTable({ search = "", filter = {}, refreshKey = 0 }
           } tài khoản này?`}
           onConfirm={() => handleChangeAccountStatus(record)}
           okText="Có"
-          cancelText="Không"
+                          cancelText="Hủy"
           placement="top"
         >
           <Tag color={active ? "green" : "red"} style={{ cursor: "pointer" }}>

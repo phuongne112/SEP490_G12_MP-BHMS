@@ -625,7 +625,8 @@ const user = useSelector((state) => state.account.user);
 
     const statusMenu = (room) => (
         <Menu
-            onClick={({ key }) => {
+            onClick={({ key, domEvent }) => {
+                domEvent.stopPropagation();
                 if (room.roomStatus !== key) {
                     handleStatusChange(room.id, key);
                 }
@@ -739,6 +740,15 @@ const user = useSelector((state) => state.account.user);
                     return (
                         <Col key={room.id} xs={24} sm={12} md={8}>
                             <Card
+                                hoverable
+                                onClick={() => {
+                                    if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
+                                        navigate(`/admin/rooms/${room.id}`);
+                                    } else {
+                                        navigate(`/landlord/rooms/${room.id}`);
+                                    }
+                                }}
+                                style={{ cursor: 'pointer' }}
                                 cover={
                                     <div style={{ position: 'relative' }}>
                                         <img
@@ -768,7 +778,8 @@ const user = useSelector((state) => state.account.user);
                                                     background: 'rgba(255,255,255,0.85)',
                                                     fontWeight: 500
                                                 }}
-                                                onClick={() => {
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
                                                     if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
                                                         navigate(`/admin/rooms/${room.id}/assign`);
                                                     } else {
@@ -790,7 +801,10 @@ const user = useSelector((state) => state.account.user);
                                                     border: 'none',
                                                     boxShadow: '0 2px 8px rgba(25, 118, 210, 0.08)'
                                                 }}
-                                                onClick={() => openViewAssetModal(room)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openViewAssetModal(room);
+                                                }}
                                             >
                                                 Xem tài sản
                                             </Button>
@@ -805,7 +819,10 @@ const user = useSelector((state) => state.account.user);
                                                     color: '#52c41a',
                                                     background: 'rgba(255,255,255,0.85)'
                                                 }}
-                                                onClick={() => openServiceModal(room)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openServiceModal(room);
+                                                }}
                                             >
                                                 Thêm dịch vụ
                                             </Button>
@@ -819,7 +836,10 @@ const user = useSelector((state) => state.account.user);
                                             <span style={{ fontSize: 22, fontWeight: 700, color: '#222' }}>{room.roomNumber}</span>
                                             <Tag 
                                                 color={room.isActive ? "green" : "red"}
-                                                onClick={() => handleToggleActive(room.id)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleToggleActive(room.id);
+                                                }}
                                                 style={{
                                                     cursor: 'pointer',
                                                     opacity: togglingId === room.id ? 0.5 : 1,
@@ -851,7 +871,8 @@ const user = useSelector((state) => state.account.user);
                                     <Button
                                         type="primary"
                                         style={{ borderRadius: 6, minWidth: 80, height: 38 }}
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                            e.stopPropagation();
                                             // Chặn sửa nếu phòng có người ở
                                             if (room.roomUsers && room.roomUsers.filter(u => u.isActive).length > 0) {
                                                 message.error("Không thể chỉnh sửa phòng khi vẫn còn người ở!");
@@ -870,7 +891,8 @@ const user = useSelector((state) => state.account.user);
                                         type="primary"
                                         danger
                                         style={{ borderRadius: 6, minWidth: 90, height: 38 }}
-                                        onClick={async () => {
+                                        onClick={async (e) => {
+                                            e.stopPropagation();
                                             if (window.confirm('Bạn có chắc muốn xóa phòng này không?')) {
                                                 try {
                                                     await deleteRoom(room.id);
@@ -886,7 +908,10 @@ const user = useSelector((state) => state.account.user);
                                         Xóa
                                     </Button>
                                     <Dropdown overlay={statusMenu(room)} trigger={['click']} disabled={updatingId === room.id}>
-                                        <a onClick={e => e.preventDefault()} style={{
+                                        <a onClick={e => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                        }} style={{
                                             opacity: updatingId === room.id ? 0.5 : 1,
                                             cursor: updatingId === room.id ? 'wait' : 'pointer',
                                             display: 'inline-block',
@@ -981,7 +1006,7 @@ const user = useSelector((state) => state.account.user);
                 }}
                 onOk={handleElectricOcr}
                 okText="Có"
-                cancelText="Không"
+                cancelText="Hủy"
                 confirmLoading={ocrLoading}
                 title={`Nhập chỉ số điện cho phòng ${selectedRoom?.roomNumber}`}
                 width={500}

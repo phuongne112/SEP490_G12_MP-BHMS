@@ -72,5 +72,10 @@ public interface ContractService {
     void requestTerminateContract(Long contractId, String reason);
 
     void requestRenewalAmendment(Long contractId, java.time.Instant newEndDate, String reason, Long userId);
+    
+    /**
+     * Migrate dữ liệu ContractRenterInfo cho các hợp đồng cũ
+     */
+    void migrateContractRenterInfo();
 }
 

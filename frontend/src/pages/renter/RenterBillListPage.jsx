@@ -249,7 +249,7 @@ export default function RenterBillListPage() {
       dataIndex: "billType",
       key: "billType",
       align: "center",
-      width: 120,
+      width: 90,
       render: (billType, record) => {
         if (!billType) return <span style={{ color: '#888' }}>Không xác định</span>;
         if (
@@ -294,7 +294,7 @@ export default function RenterBillListPage() {
       key: "fromDate",
       align: "center",
       render: (date) => <Text>{formatDate(date)}</Text>,
-      width: 100,
+      width: 180,
     },
     {
       title: "Đến ngày",
@@ -302,19 +302,55 @@ export default function RenterBillListPage() {
       key: "toDate",
       align: "center",
       render: (date) => <Text>{formatDate(date)}</Text>,
-      width: 100,
+      width: 180,
+    },
+    {
+      title: "Hạn thanh toán",
+      dataIndex: "dueDate",
+      key: "dueDate",
+      align: "center",
+      render: (date) => {
+        if (!date) {
+          return <span style={{ color: '#faad14', fontStyle: 'italic', fontSize: '11px' }}>Chưa thiết lập</span>;
+        }
+        
+        try {
+          const dueDate = dayjs(date, "YYYY-MM-DD HH:mm:ss A");
+          if (!dueDate.isValid()) {
+            return <span style={{ color: 'red', fontSize: '11px' }}>Không xác định</span>;
+          }
+          
+          return <Text>{dueDate.format("DD/MM/YYYY")}</Text>;
+        } catch (error) {
+          return <span style={{ color: 'red', fontSize: '11px' }}>Lỗi</span>;
+        }
+      },
+      width: 180,
     },
     {
       title: "Tổng tiền",
       dataIndex: "totalAmount",
       key: "totalAmount",
       align: "center",
-      render: (amount) => (
-        <Text strong style={{ color: "#52c41a", fontSize: "16px" }}>
-          {amount != null ? amount.toLocaleString() + ' ₫' : <span style={{ color: '#888' }}>Không xác định</span>}
-        </Text>
+      render: (amount, record) => (
+        <div>
+          <Text strong style={{ color: "#52c41a", fontSize: "16px" }}>
+            {amount != null ? amount.toLocaleString() + ' ₫' : <span style={{ color: '#888' }}>Không xác định</span>}
+          </Text>
+          {(record.paidAmount || 0) > 0 && (
+            <div style={{ fontSize: '9px', color: '#52c41a' }}>
+              Đã trả: {(record.paidAmount || 0).toLocaleString()} ₫
+            </div>
+          )}
+          {(record.outstandingAmount || 0) > 0 && (
+            <div style={{ fontSize: '9px', color: '#ff4d4f' }}>
+              Còn nợ: {(record.outstandingAmount || 0).toLocaleString()} ₫
+            </div>
+          )}
+
+        </div>
       ),
-      width: 120,
+      width: 200,
     },
     {
       title: "Trạng thái",
@@ -330,7 +366,7 @@ export default function RenterBillListPage() {
           {getStatusText(status)}
         </Tag>
       ),
-      width: 120,
+      width: 80,
     },
     {
       title: "Trạng thái quá hạn",
@@ -345,7 +381,7 @@ export default function RenterBillListPage() {
           {getOverdueStatusText(isOverdue, record.overdueDays)}
         </Tag>
       ),
-      width: 150,
+      width: 80,
     },
     {
       title: "Thao tác",

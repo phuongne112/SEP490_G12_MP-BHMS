@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.math.BigDecimal;
 import com.mpbhms.backend.entity.Bill;
 
 @Service
@@ -80,9 +81,17 @@ public class LatePenaltySchedulerService {
                         continue;
                     }
                     
-                    // Kiểm tra xem hóa đơn gốc có còn quá hạn không
+                    // 🆕 Sửa: Kiểm tra xem hóa đơn gốc có còn quá hạn không (bao gồm thanh toán từng phần)
                     if (originalBill.getStatus()) {
-                        System.out.println("ℹ️ [" + java.time.LocalDateTime.now() + "] Hóa đơn gốc #" + originalBill.getId() + " đã thanh toán, bỏ qua phạt #" + penaltyBill.getId());
+                        System.out.println("ℹ️ [" + java.time.LocalDateTime.now() + "] Hóa đơn gốc #" + originalBill.getId() + " đã thanh toán đầy đủ, bỏ qua phạt #" + penaltyBill.getId());
+                        continue;
+                    }
+                    
+                    // Kiểm tra xem có còn nợ không (cho thanh toán từng phần)
+                    BigDecimal outstandingAmount = originalBill.getOutstandingAmount() != null ? 
+                        originalBill.getOutstandingAmount() : originalBill.getTotalAmount();
+                    if (outstandingAmount.compareTo(BigDecimal.ZERO) <= 0) {
+                        System.out.println("ℹ️ [" + java.time.LocalDateTime.now() + "] Hóa đơn gốc #" + originalBill.getId() + " đã thanh toán hết, bỏ qua phạt #" + penaltyBill.getId());
                         continue;
                     }
                     

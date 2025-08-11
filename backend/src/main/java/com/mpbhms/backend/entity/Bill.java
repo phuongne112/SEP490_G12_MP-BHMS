@@ -41,6 +41,21 @@ public class Bill extends BaseEntity {
 
     @Column(name = "total_amount", precision = 15, scale = 2, nullable = false)
     private BigDecimal totalAmount;
+    
+    // Các trường mới cho thanh toán từng phần
+    @Column(name = "paid_amount", precision = 15, scale = 2)
+    private BigDecimal paidAmount = BigDecimal.ZERO; // Số tiền đã thanh toán
+    
+    @Column(name = "outstanding_amount", precision = 15, scale = 2)
+    private BigDecimal outstandingAmount; // Số tiền còn nợ
+    
+    @Column(name = "is_partially_paid")
+    private Boolean isPartiallyPaid = false; // Đánh dấu thanh toán từng phần
+    
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss a",timezone = "GMT+7")
+    @Column(name = "last_payment_date")
+    private Instant lastPaymentDate; // Ngày thanh toán cuối cùng
+    
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss a",timezone = "GMT+7")
     @Column(name = "bill_date", nullable = false)
     private Instant billDate;
@@ -78,4 +93,28 @@ public class Bill extends BaseEntity {
     @OneToMany(mappedBy = "bill", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<BillDetail> billDetails = new ArrayList<>();
+    
+    // Phương thức để tính toán outstanding amount
+    public void calculateOutstandingAmount() {
+        if (this.totalAmount != null) {
+            this.outstandingAmount = this.totalAmount.subtract(this.paidAmount != null ? this.paidAmount : BigDecimal.ZERO);
+            this.isPartiallyPaid = this.outstandingAmount.compareTo(BigDecimal.ZERO) > 0 && this.paidAmount.compareTo(BigDecimal.ZERO) > 0;
+        }
+    }
+    
+    // Phương thức để thêm thanh toán
+    public void addPayment(BigDecimal paymentAmount) {
+        if (this.paidAmount == null) {
+            this.paidAmount = BigDecimal.ZERO;
+        }
+        this.paidAmount = this.paidAmount.add(paymentAmount);
+        this.lastPaymentDate = Instant.now();
+        this.calculateOutstandingAmount();
+        
+        // Cập nhật status nếu đã thanh toán hết
+        if (this.outstandingAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            this.status = true;
+            this.paidDate = Instant.now();
+        }
+    }
 }

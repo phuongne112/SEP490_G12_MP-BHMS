@@ -91,4 +91,14 @@ public class ContractController {
         java.util.List<ContractDTO> contracts = contractService.getContractsByRoomId(roomId);
         return ResponseEntity.ok(contracts);
     }
+    
+    @PostMapping("/migrate-renter-info")
+    public ResponseEntity<?> migrateContractRenterInfo() {
+        try {
+            contractService.migrateContractRenterInfo();
+            return ResponseEntity.ok("Đã migrate thông tin người thuê cho tất cả hợp đồng thành công!");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
+        }
+    }
 }

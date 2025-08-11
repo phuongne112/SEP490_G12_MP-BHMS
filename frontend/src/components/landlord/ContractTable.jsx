@@ -12,7 +12,7 @@ const paymentCycleVN = {
 
 const { Countdown } = Statistic;
 
-function ContractHistoryTable({ roomId, onExport }) {
+function ContractHistoryTable({ roomId, onExport, onViewDetail }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -31,17 +31,28 @@ function ContractHistoryTable({ roomId, onExport }) {
     { title: "Ngày kết thúc", dataIndex: "contractEndDate", key: "contractEndDate", render: (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—" },
     { title: "Ngày cập nhật", dataIndex: "createdDate", key: "createdDate", render: (d) => d ? `${new Date(d).toLocaleDateString("vi-VN")} ${new Date(d).toLocaleTimeString("vi-VN", { hour12: false })}` : "—" },
     {
-      title: "Tệp PDF",
-      key: "pdf",
+      title: "Thao tác",
+      key: "actions",
       render: (_, record) => (
-        <Button
-          type="primary"
-          icon={<FilePdfOutlined />}
-          size="small"
-          onClick={() => onExport && onExport(record.id)}
-        >
-          Xuất PDF
-        </Button>
+        <Space size="small">
+          <Button
+            type="primary"
+            icon={<EyeOutlined />}
+            size="small"
+            onClick={() => onViewDetail && onViewDetail(record)}
+            title="Xem chi tiết"
+          >
+            Chi tiết
+          </Button>
+          <Button
+            type="primary"
+            icon={<FilePdfOutlined />}
+            size="small"
+            onClick={() => onExport && onExport(record.id)}
+          >
+            Xuất PDF
+          </Button>
+        </Space>
       )
     }
   ];
@@ -353,7 +364,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
         dataSource={dataSource}
         rowKey="roomId"
         expandable={{
-          expandedRowRender: (record) => <ContractHistoryTable roomId={record.roomId} onExport={onExport} />,
+                        expandedRowRender: (record) => <ContractHistoryTable roomId={record.roomId} onExport={onExport} onViewDetail={onViewDetail} />,
           rowExpandable: () => true,
         }}
         pagination={{

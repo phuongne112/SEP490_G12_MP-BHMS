@@ -336,7 +336,7 @@ export default function LandlordBookingListPage() {
                   title="Bạn có chắc chắn muốn xác nhận đặt lịch này?"
                   onConfirm={() => handleConfirm(record)}
                   okText="Có"
-                  cancelText="Không"
+                  cancelText="Hủy"
                   placement="left"
                 >
                   <Button
