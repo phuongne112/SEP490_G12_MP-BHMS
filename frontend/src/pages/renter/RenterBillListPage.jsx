@@ -434,28 +434,39 @@ export default function RenterBillListPage() {
   ];
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "#f5f5f5" }}>
       {!isMobile && (
-        <Sider width={220} style={{ background: "#001529" }}>
+        <div style={{ width: 220, minHeight: "100vh", background: "#001529", position: "fixed", left: 0, top: 0, bottom: 0, zIndex: 10 }}>
           <RenterSidebar />
-        </Sider>
+        </div>
       )}
-      <Layout style={{ marginLeft: isMobile ? 0 : 220 }}>
+      
+      <div
+        style={{
+          flex: 1,
+          marginLeft: !isMobile ? 220 : 0,
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {/* Mobile Header */}
         {isMobile && (
-          <div
-            style={{
-              background: "#001529",
-              padding: "12px 16px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              position: "sticky",
-              top: 0,
-              zIndex: 1000,
-            }}
-          >
+          <div style={{
+            background: "#001529",
+            color: "white",
+            padding: "12px 16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            position: "sticky",
+            top: 0,
+            zIndex: 1000,
+          }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ fontWeight: 600, fontSize: 16 }}>MP-BHMS</div>
+              <div style={{ fontWeight: 600, fontSize: 16 }}>
+                MP-BHMS
+              </div>
               <div style={{ fontSize: 14, color: "#e2e8f0" }}>
                 Xin chào {user?.fullName || user?.name || "Renter"}
               </div>
@@ -468,17 +479,32 @@ export default function RenterBillListPage() {
             />
           </div>
         )}
-        <Content style={{ padding: isMobile ? 16 : 20, backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
-          <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-            <Card style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }} size={isMobile ? "small" : "default"}>
-              <div style={{ marginBottom: isMobile ? 16 : 24 }}>
-                <Title level={isMobile ? 3 : 2} style={{ color: "#1890ff", fontSize: isMobile ? 20 : 28, marginBottom: isMobile ? 8 : 16 }}>
+
+        <div style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "flex-start",
+          padding: isMobile ? "16px 8px" : "40px 0",
+        }}>
+          <div style={{ width: "100%", maxWidth: 1100, margin: "0 auto", padding: isMobile ? 8 : 0 }}>
+            <Card style={{ borderRadius: "16px", boxShadow: "0 2px 12px rgba(0,0,0,0.08)", margin: "0 auto", background: "#fff" }}>
+              {/* Header với thông tin chính */}
+              <div style={{ 
+                padding: isMobile ? "16px 16px 12px 16px" : "24px 24px 16px 24px",
+                borderBottom: "1px solid #f0f0f0",
+                marginBottom: 24
+              }}>
+                <Title level={isMobile ? 3 : 2} style={{ margin: 0, color: "#1890ff", fontSize: isMobile ? 18 : 28, textAlign: "center" }}>
                   <FileDoneOutlined style={{ marginRight: 8 }} />
                   Hóa đơn của tôi
                 </Title>
-                <Text type="secondary" style={{ fontSize: isMobile ? 12 : 16 }}>
-                  Quản lý và theo dõi các hóa đơn của bạn
-                </Text>
+                <div style={{ marginTop: 8, textAlign: "center" }}>
+                  <Text type="secondary" style={{ fontSize: isMobile ? 13 : 16 }}>
+                    Quản lý và theo dõi các hóa đơn của bạn
+                  </Text>
+                </div>
               </div>
 
               <Row gutter={16} style={{ marginBottom: 24 }}>
@@ -682,8 +708,8 @@ export default function RenterBillListPage() {
               </Card>
             </Card>
           </div>
-        </Content>
-      </Layout>
+        </div>
+      </div>
 
       {/* Mobile Drawer for Sidebar */}
       {isMobile && (
@@ -698,6 +724,6 @@ export default function RenterBillListPage() {
           <RenterSidebar isDrawer={true} onMenuClick={() => setDrawerVisible(false)} />
         </Drawer>
       )}
-    </Layout>
+    </div>
   );
 }
