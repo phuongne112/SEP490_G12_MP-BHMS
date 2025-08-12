@@ -286,6 +286,24 @@ public class BillController {
                 return ResponseEntity.badRequest().body(errorResponse);
             }
             
+            // 🆕 KIỂM TRA KHOẢNG THỜI GIAN 30 NGÀY GIỮA CÁC LẦN THANH TOÁN TỪNG PHẦN
+            if (Boolean.TRUE.equals(bill.getIsPartiallyPaid()) && bill.getLastPaymentDate() != null) {
+                Instant currentDate = Instant.now();
+                Instant lastPaymentDate = bill.getLastPaymentDate();
+                
+                // Tính số ngày từ lần thanh toán cuối cùng
+                long daysSinceLastPayment = java.time.Duration.between(lastPaymentDate, currentDate).toDays();
+                
+                if (daysSinceLastPayment < 30) {
+                    long remainingDays = 30 - daysSinceLastPayment;
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("success", false);
+                    errorResponse.put("message", "Bạn phải đợi thêm " + remainingDays + " ngày nữa mới được thanh toán từng phần tiếp theo. " +
+                        "Khoảng thời gian tối thiểu giữa các lần thanh toán từng phần là 30 ngày.");
+                    return ResponseEntity.badRequest().body(errorResponse);
+                }
+            }
+            
             PartialPaymentResponse response = billService.makePartialPayment(request);
             
             Map<String, Object> result = new HashMap<>();
@@ -375,6 +393,24 @@ public class BillController {
                 errorResponse.put("message", "Số tiền thanh toán không được vượt quá số tiền còn nợ (" + 
                     outstandingAmount.toPlainString() + " VNĐ)");
                 return ResponseEntity.badRequest().body(errorResponse);
+            }
+            
+            // 🆕 KIỂM TRA KHOẢNG THỜI GIAN 30 NGÀY GIỮA CÁC LẦN THANH TOÁN TỪNG PHẦN
+            if (Boolean.TRUE.equals(bill.getIsPartiallyPaid()) && bill.getLastPaymentDate() != null) {
+                Instant currentDate = Instant.now();
+                Instant lastPaymentDate = bill.getLastPaymentDate();
+                
+                // Tính số ngày từ lần thanh toán cuối cùng
+                long daysSinceLastPayment = java.time.Duration.between(lastPaymentDate, currentDate).toDays();
+                
+                if (daysSinceLastPayment < 30) {
+                    long remainingDays = 30 - daysSinceLastPayment;
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("success", false);
+                    errorResponse.put("message", "Bạn phải đợi thêm " + remainingDays + " ngày nữa mới được thanh toán từng phần tiếp theo. " +
+                        "Khoảng thời gian tối thiểu giữa các lần thanh toán từng phần là 30 ngày.");
+                    return ResponseEntity.badRequest().body(errorResponse);
+                }
             }
             
             // Đảm bảo số tiền là số dương
@@ -560,10 +596,28 @@ public class BillController {
             if (request.getOriginalPaymentAmount().compareTo(maxPayment) > 0) {
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("success", false);
-                errorResponse.put("message", "Số tiền thanh toán tối đa là " + maxPayment.toPlainString() + " VNĐ");
+                errorResponse.put("message", "Số tiền thanh toán không được vượt quá " + maxPayment.toPlainString() + " VNĐ");
                 return ResponseEntity.badRequest().body(errorResponse);
             }
-
+            
+            // 🆕 KIỂM TRA KHOẢNG THỜI GIAN 30 NGÀY GIỮA CÁC LẦN THANH TOÁN TỪNG PHẦN
+            if (Boolean.TRUE.equals(bill.getIsPartiallyPaid()) && bill.getLastPaymentDate() != null) {
+                Instant currentDate = Instant.now();
+                Instant lastPaymentDate = bill.getLastPaymentDate();
+                
+                // Tính số ngày từ lần thanh toán cuối cùng
+                long daysSinceLastPayment = java.time.Duration.between(lastPaymentDate, currentDate).toDays();
+                
+                if (daysSinceLastPayment < 30) {
+                    long remainingDays = 30 - daysSinceLastPayment;
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("success", false);
+                    errorResponse.put("message", "Bạn phải đợi thêm " + remainingDays + " ngày nữa mới được thanh toán từng phần tiếp theo. " +
+                        "Khoảng thời gian tối thiểu giữa các lần thanh toán từng phần là 30 ngày.");
+                    return ResponseEntity.badRequest().body(errorResponse);
+                }
+            }
+            
             // Create payment history record for cash payment (pending status)
             PaymentHistory paymentHistory = new PaymentHistory();
             paymentHistory.setBill(bill);

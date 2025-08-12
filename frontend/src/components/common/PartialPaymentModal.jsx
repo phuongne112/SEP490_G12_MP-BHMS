@@ -65,6 +65,39 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
     }
   };
 
+  // 🆕 Tính số ngày từ lần thanh toán cuối cùng
+  const getDaysSinceLastPayment = () => {
+    if (!bill || !bill.lastPaymentDate) return null;
+    
+    try {
+      const lastPaymentDate = dayjs(bill.lastPaymentDate);
+      const currentDate = dayjs();
+      const daysDiff = currentDate.diff(lastPaymentDate, 'day');
+      return Math.max(0, daysDiff);
+    } catch (error) {
+      console.error('Error calculating days since last payment:', error);
+      return null;
+    }
+  };
+
+  // 🆕 Kiểm tra có thể thanh toán từng phần không
+  const canMakePartialPayment = () => {
+    if (!bill || !bill.isPartiallyPaid || !bill.lastPaymentDate) return true;
+    
+    const daysSinceLastPayment = getDaysSinceLastPayment();
+    if (daysSinceLastPayment === null) return true;
+    
+    return daysSinceLastPayment >= 30;
+  };
+
+  // 🆕 Lấy số ngày còn lại cần đợi
+  const getRemainingDays = () => {
+    const daysSinceLastPayment = getDaysSinceLastPayment();
+    if (daysSinceLastPayment === null) return 0;
+    
+    return Math.max(0, 30 - daysSinceLastPayment);
+  };
+
   // Tính phí thanh toán từng phần dựa trên số lần thanh toán
   const calculatePartialPaymentFee = (paymentCount) => {
     switch (paymentCount) {
@@ -150,6 +183,14 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
         return;
       }
 
+      // 🆕 Kiểm tra khoảng thời gian 30 ngày
+      if (!canMakePartialPayment()) {
+        const remainingDays = getRemainingDays();
+        message.error(`Bạn phải đợi thêm ${remainingDays} ngày nữa mới được thanh toán từng phần tiếp theo. Khoảng thời gian tối thiểu giữa các lần thanh toán từng phần là 30 ngày.`);
+        setLoading(false);
+        return;
+      }
+
       // Tính tổng số tiền cần thanh toán (bao gồm cả phí)
       const totalAmountToPay = paymentAmount + partialPaymentFee + overdueInterest;
       
@@ -226,26 +267,34 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
     >
       <div style={{ marginBottom: 16 }}>
         <Alert
-          message="Thông tin hóa đơn"
+          message="Thông tin thanh toán từng phần"
           description={
             <div>
-              <p><strong>Hóa đơn #:</strong> {bill.id || 'N/A'}</p>
-              <p><strong>Phòng:</strong> {bill.roomNumber || 'N/A'}</p>
-              <p><strong>Tổng tiền:</strong> {formatCurrency(bill.totalAmount)}</p>
-              <p><strong>Đã thanh toán (gốc):</strong> {formatCurrency(bill.paidAmount || 0)}</p>
-              {(bill.partialPaymentFeesCollected || 0) > 0 && (
-                <p><strong>Phí thanh toán từng phần đã thu:</strong> {formatCurrency(bill.partialPaymentFeesCollected || 0)}</p>
+              <p><strong>Hóa đơn #:</strong> {bill.id}</p>
+              <p><strong>Phòng:</strong> {bill.roomNumber}</p>
+              <p><strong>Tổng tiền hóa đơn:</strong> {formatCurrency(bill.totalAmount)}</p>
+              <p><strong>Đã thanh toán:</strong> {formatCurrency(bill.paidAmount || 0)}</p>
+              <p><strong>Còn nợ:</strong> {formatCurrency(getOutstandingAmount())}</p>
+              <p><strong>Lần thanh toán thứ:</strong> {paymentCount + 1}</p>
+              
+              {/* 🆕 Hiển thị thông tin về khoảng thời gian 30 ngày */}
+              {bill.isPartiallyPaid && bill.lastPaymentDate && (
+                <div style={{ marginTop: 8, padding: '8px 12px', backgroundColor: '#fff2e8', border: '1px solid #ffbb96', borderRadius: '4px' }}>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#d46b08' }}>
+                    <strong>⚠️ Lưu ý:</strong> Khoảng thời gian tối thiểu giữa các lần thanh toán từng phần là 30 ngày.
+                  </p>
+                  {!canMakePartialPayment() && (
+                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#cf1322', fontWeight: 'bold' }}>
+                      Bạn cần đợi thêm {getRemainingDays()} ngày nữa mới được thanh toán từng phần tiếp theo.
+                    </p>
+                  )}
+                </div>
               )}
-              <p><strong>Còn nợ:</strong> {formatCurrency(outstandingAmount)}</p>
-              <p><strong>Tối thiểu thanh toán (50%):</strong> <span style={{ color: '#faad14', fontWeight: 'bold' }}>{formatCurrency(minPayment)}</span></p>
-              <p><strong>Tối đa thanh toán:</strong> 
-                <span style={{ color: '#52c41a', fontWeight: 'bold' }}>{formatCurrency(maxPayment)}</span>
-                <span style={{ color: '#52c41a', fontSize: '12px', marginLeft: '8px' }}>(100% số tiền còn nợ)</span>
-              </p>
             </div>
           }
           type="info"
           showIcon={false}
+          style={{ marginBottom: 16 }}
         />
       </div>
 
@@ -487,22 +536,18 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
         <Divider />
 
         <Form.Item>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <Button onClick={onCancel}>
-              Hủy
-            </Button>
-            <Button 
-              type="primary" 
-              htmlType="submit" 
-              loading={loading}
-              style={{ 
-                backgroundColor: '#1890ff',
-                borderColor: '#1890ff'
-              }}
-            >
-              Thanh toán {paymentAmount > 0 ? formatCurrency(totalWithFees) : ''} qua VNPAY
-            </Button>
-          </div>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={loading}
+            disabled={!canMakePartialPayment()}
+            style={{ width: '100%' }}
+          >
+            {!canMakePartialPayment() 
+              ? `Đợi thêm ${getRemainingDays()} ngày nữa` 
+              : 'Thanh toán qua VNPAY'
+            }
+          </Button>
         </Form.Item>
       </Form>
     </Modal>

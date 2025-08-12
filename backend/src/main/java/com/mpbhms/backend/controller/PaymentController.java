@@ -36,6 +36,28 @@ public class PaymentController {
             Long billId = Long.valueOf(payload.get("billId").toString());
             Long amount = Long.valueOf(payload.get("amount").toString());
             String orderInfo = payload.getOrDefault("orderInfo", "Thanh toán hóa đơn").toString();
+            
+            // 🆕 Kiểm tra khoảng thời gian 30 ngày cho tất cả thanh toán
+            Bill bill = billService.getBillById(billId);
+            if (bill == null) {
+                return ResponseEntity.badRequest().body("Không tìm thấy hóa đơn");
+            }
+            
+            // Kiểm tra nếu hóa đơn đã từng thanh toán từng phần
+            if (Boolean.TRUE.equals(bill.getIsPartiallyPaid()) && bill.getLastPaymentDate() != null) {
+                Instant currentDate = Instant.now();
+                Instant lastPaymentDate = bill.getLastPaymentDate();
+                long daysSinceLastPayment = java.time.Duration.between(lastPaymentDate, currentDate).toDays();
+                if (daysSinceLastPayment < 30) {
+                    long remainingDays = 30 - daysSinceLastPayment;
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("success", false);
+                    errorResponse.put("message", "Bạn phải đợi thêm " + remainingDays + " ngày nữa mới được thanh toán tiếp theo. " +
+                        "Khoảng thời gian tối thiểu giữa các lần thanh toán là 30 ngày.");
+                    return ResponseEntity.badRequest().body(errorResponse);
+                }
+            }
+            
             String url = vnPayService.createPaymentUrl(billId, amount, orderInfo);
             Map<String, String> res = new HashMap<>();
             res.put("paymentUrl", url);

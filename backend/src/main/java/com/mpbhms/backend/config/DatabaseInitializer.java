@@ -901,6 +901,62 @@ public class DatabaseInitializer implements CommandLineRunner {
                 <td>Điện, nước, internet, rác... (theo thực tế sử dụng)</td>
             </tr>
         </table>
+        
+        <div class="section-title" style="margin-top: 20px;">3.1. ĐIỀU KHOẢN THANH TOÁN TỪNG PHẦN</div>
+        <p><strong>Bên B được phép thanh toán từng phần hóa đơn với các điều kiện sau:</strong></p>
+        <ul>
+            <li><strong>Khoảng thời gian tối thiểu:</strong> 30 ngày giữa các lần thanh toán từng phần</li>
+            <li><strong>Số tiền thanh toán tối thiểu:</strong> 50% giá trị hóa đơn</li>
+            <li><strong>Phí thanh toán từng phần:</strong>
+                <ul>
+                    <li>Lần 1: 200.000 VNĐ</li>
+                    <li>Lần 2: 500.000 VNĐ</li>
+                    <li>Lần 3 trở đi: 1.000.000 VNĐ</li>
+                </ul>
+            </li>
+            <li><strong>Gia hạn tự động:</strong> Hạn thanh toán được gia hạn thêm 30 ngày sau mỗi lần thanh toán từng phần</li>
+            <li><strong>Phạt chậm thanh toán:</strong> Bắt đầu tính phạt sau 7 ngày kể từ hạn thanh toán mới (sau khi gia hạn)</li>
+        </ul>
+        
+        <div class="section-title" style="margin-top: 20px;">3.2. SỐ TIỀN THU VÀ PHƯƠNG THỨC THU</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">Tiền phòng:</td>
+                <td>{{rentAmount}} VNĐ/tháng</td>
+            </tr>
+            <tr>
+                <td class="label">Tiền đặt cọc:</td>
+                <td>{{depositAmount}} VNĐ (thu 1 lần khi ký hợp đồng)</td>
+            </tr>
+            <tr>
+                <td class="label">Tiền điện:</td>
+                <td>Theo chỉ số công tơ điện thực tế</td>
+            </tr>
+            <tr>
+                <td class="label">Tiền nước:</td>
+                <td>Theo chỉ số đồng hồ nước thực tế</td>
+            </tr>
+            <tr>
+                <td class="label">Tiền internet:</td>
+                <td>Theo gói cước đã đăng ký</td>
+            </tr>
+            <tr>
+                <td class="label">Tiền rác:</td>
+                <td>Theo quy định của địa phương</td>
+            </tr>
+            <tr>
+                <td class="label">Phí dịch vụ khác:</td>
+                <td>Theo thỏa thuận và thông báo trước</td>
+            </tr>
+        </table>
+        
+        <p><strong>Lưu ý:</strong></p>
+        <ul>
+            <li>Tất cả các khoản tiền phải được thanh toán đầy đủ và đúng hạn</li>
+            <li>Việc thanh toán từng phần chỉ áp dụng cho tiền phòng, không áp dụng cho các khoản phí dịch vụ</li>
+            <li>Phí thanh toán từng phần được tính cố định theo số lần thanh toán, không phụ thuộc vào số tiền thanh toán</li>
+            <li>Bên A có quyền từ chối thanh toán từng phần nếu Bên B vi phạm các điều khoản của hợp đồng</li>
+        </ul>
     </div>
 
     <div class="section">
@@ -1101,6 +1157,29 @@ public class DatabaseInitializer implements CommandLineRunner {
             <li>Không được sửa chữa, thay đổi cấu trúc phòng</li>
             <li>Báo cáo ngay khi có sự cố về điện, nước</li>
             <li>Trả phòng đúng hạn khi kết thúc hợp đồng</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <div class="section-title">THANH TOÁN TỪNG PHẦN</div>
+        <ul>
+            <li>Được phép thanh toán từng phần với khoảng cách tối thiểu 30 ngày</li>
+            <li>Số tiền tối thiểu: 50% giá trị hóa đơn</li>
+            <li>Phí thanh toán từng phần: Lần 1 (200k), Lần 2 (500k), Lần 3+ (1M)</li>
+            <li>Gia hạn tự động 30 ngày sau mỗi lần thanh toán</li>
+            <li>Phạt chậm thanh toán sau 7 ngày kể từ hạn mới</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <div class="section-title">CÁC KHOẢN THU</div>
+        <ul>
+            <li><strong>Tiền phòng:</strong> {{rentAmount}} VNĐ/tháng</li>
+            <li><strong>Tiền cọc:</strong> {{depositAmount}} VNĐ (thu 1 lần)</li>
+            <li><strong>Tiền điện:</strong> Theo chỉ số thực tế</li>
+            <li><strong>Tiền nước:</strong> Theo chỉ số thực tế</li>
+            <li><strong>Internet:</strong> Theo gói cước</li>
+            <li><strong>Tiền rác:</strong> Theo quy định địa phương</li>
         </ul>
     </div>
 
@@ -1366,6 +1445,64 @@ public class DatabaseInitializer implements CommandLineRunner {
                 <td>Điện, nước, internet, rác, vệ sinh... (theo thực tế sử dụng)</td>
             </tr>
         </table>
+        
+        <div class="section-title" style="margin-top: 20px;">3.1. ĐIỀU KHOẢN THANH TOÁN TỪNG PHẦN</div>
+        <p><strong>Bên B được phép thanh toán từng phần hóa đơn với các điều kiện sau:</strong></p>
+        <ul>
+            <li><strong>Khoảng thời gian tối thiểu:</strong> 30 ngày giữa các lần thanh toán từng phần</li>
+            <li><strong>Số tiền thanh toán tối thiểu:</strong> 50% giá trị hóa đơn</li>
+            <li><strong>Phí thanh toán từng phần:</strong>
+                <ul>
+                    <li>Lần 1: 200.000 VNĐ</li>
+                    <li>Lần 2: 500.000 VNĐ</li>
+                    <li>Lần 3 trở đi: 1.000.000 VNĐ</li>
+                </ul>
+            </li>
+            <li><strong>Gia hạn tự động:</strong> Hạn thanh toán được gia hạn thêm 30 ngày sau mỗi lần thanh toán từng phần</li>
+            <li><strong>Phạt chậm thanh toán:</strong> Bắt đầu tính phạt sau 7 ngày kể từ hạn thanh toán mới (sau khi gia hạn)</li>
+        </ul>
+        
+        <div class="section-title" style="margin-top: 20px;">3.2. CHI TIẾT CÁC KHOẢN THU</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">Tiền phòng:</td>
+                <td>{{rentAmount}} VNĐ/tháng</td>
+            </tr>
+            <tr>
+                <td class="label">Tiền đặt cọc:</td>
+                <td>{{depositAmount}} VNĐ (thu 1 lần khi ký hợp đồng)</td>
+            </tr>
+            <tr>
+                <td class="label">Tiền điện:</td>
+                <td>Theo chỉ số công tơ điện thực tế</td>
+            </tr>
+            <tr>
+                <td class="label">Tiền nước:</td>
+                <td>Theo chỉ số đồng hồ nước thực tế</td>
+            </tr>
+            <tr>
+                <td class="label">Tiền internet:</td>
+                <td>Theo gói cước đã đăng ký</td>
+            </tr>
+            <tr>
+                <td class="label">Tiền rác:</td>
+                <td>Theo quy định của địa phương</td>
+            </tr>
+            <tr>
+                <td class="label">Phí dịch vụ khác:</td>
+                <td>Theo thỏa thuận và thông báo trước</td>
+            </tr>
+        </table>
+        
+        <div class="warning" style="margin-top: 15px;">
+            <strong>Lưu ý quan trọng:</strong>
+            <ul>
+                <li>Tất cả các khoản tiền phải được thanh toán đầy đủ và đúng hạn</li>
+                <li>Việc thanh toán từng phần chỉ áp dụng cho tiền phòng, không áp dụng cho các khoản phí dịch vụ</li>
+                <li>Phí thanh toán từng phần được tính cố định theo số lần thanh toán, không phụ thuộc vào số tiền thanh toán</li>
+                <li>Bên A có quyền từ chối thanh toán từng phần nếu Bên B vi phạm các điều khoản của hợp đồng</li>
+            </ul>
+        </div>
     </div>
 
     <div class="section">
