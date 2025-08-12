@@ -108,4 +108,24 @@ export const runLatePenaltyCheck = async () => {
 export const getOverdueBills = async () => {
   const response = await axiosClient.get("/bills/overdue-bills");
   return response.data;
+};
+
+// Thanh toán từng phần
+export const makePartialPayment = async (request) => {
+  try {
+    const response = await axiosClient.post('/bills/partial-payment', request);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Tạo QR VNPAY cho thanh toán từng phần
+export const createPartialPaymentVnPayUrl = async (request) => {
+  try {
+    const response = await axiosClient.post('/bills/partial-payment/vnpay', request);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
 }; 

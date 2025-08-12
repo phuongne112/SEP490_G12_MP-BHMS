@@ -65,4 +65,8 @@ public interface BillRepository extends JpaRepository<Bill, Long>, JpaSpecificat
     // Tìm hóa đơn quá hạn (chưa thanh toán và toDate + 7 ngày < hiện tại)
     @Query("SELECT b FROM Bill b WHERE b.status = false AND b.toDate < :sevenDaysAgo AND b.billType != 'LATE_PENALTY'")
     List<Bill> findByStatusFalseAndToDateBefore(@Param("sevenDaysAgo") Instant sevenDaysAgo);
+    
+    // Tìm tất cả hóa đơn chưa thanh toán (không phải hóa đơn phạt)
+    @Query("SELECT b FROM Bill b WHERE b.status = false AND b.billType != 'LATE_PENALTY'")
+    List<Bill> findByStatusFalse();
 }

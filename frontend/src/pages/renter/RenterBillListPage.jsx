@@ -74,50 +74,45 @@ export default function RenterBillListPage() {
 
   // Kiểm tra hóa đơn quá hạn
   const checkOverdue = (bill) => {
-    if (bill.status) return false; // Đã thanh toán thì không quá hạn
-    
+    if (bill.status) return false; // đã thanh toán -> không quá hạn
     const today = dayjs();
-    
-    // Parse dueDate nếu có
+
     let dueDate = null;
     if (bill.dueDate) {
       dueDate = dayjs(bill.dueDate, "YYYY-MM-DD HH:mm:ss A");
     }
-    
-    // Parse toDate nếu có
+
     let toDate = null;
     if (bill.toDate) {
       toDate = dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A");
     }
-    
-    // Logic đơn giản: toDate + 7 ngày là hạn thanh toán
-    const actualDueDate = dueDate || (toDate ? toDate.add(7, 'day') : null);
-    
-    return actualDueDate && today.isAfter(actualDueDate, 'day');
+
+    // Mặc định: hạn thanh toán = toDate + 7 ngày nếu không có dueDate
+    const actualDueDate = dueDate || (toDate ? toDate.add(7, "day") : null);
+
+    return actualDueDate && today.isAfter(actualDueDate, "day");
   };
 
-  // Tính số ngày quá hạn
+  // Số ngày quá hạn
   const getOverdueDays = (bill) => {
     if (bill.status) return 0;
-    
+
     const today = dayjs();
-    
-    // Parse dueDate nếu có
+
     let dueDate = null;
     if (bill.dueDate) {
       dueDate = dayjs(bill.dueDate, "YYYY-MM-DD HH:mm:ss A");
     }
-    
-    // Parse toDate nếu có
+
     let toDate = null;
     if (bill.toDate) {
       toDate = dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A");
     }
-    
-    const actualDueDate = dueDate || (toDate ? toDate.add(7, 'day') : null);
-    
-    if (actualDueDate && today.isAfter(actualDueDate, 'day')) {
-      return today.diff(actualDueDate, 'day');
+
+    const actualDueDate = dueDate || (toDate ? toDate.add(7, "day") : null);
+
+    if (actualDueDate && today.isAfter(actualDueDate, "day")) {
+      return today.diff(actualDueDate, "day");
     }
     return 0;
   };
@@ -131,44 +126,41 @@ export default function RenterBillListPage() {
     setLoading(true);
     try {
       const res = await getMyBills({ page: page - 1, size });
-      let billsData = res.content || [];
-      
-      // Xử lý hóa đơn quá hạn
-      const processedBills = billsData.map(bill => ({
+      const billsData = res.content || [];
+
+      // xử lý cờ quá hạn
+      const processedBills = billsData.map((bill) => ({
         ...bill,
         isOverdue: checkOverdue(bill),
-        overdueDays: getOverdueDays(bill)
+        overdueDays: getOverdueDays(bill),
       }));
-      
+
       setBills(processedBills);
       setTotal(res.totalElements || billsData.length);
-      
-      // Tính toán thống kê
+
+      // thống kê
       const totalStats = processedBills.length;
-      const paid = processedBills.filter((bill) => bill.status).length;
+      const paid = processedBills.filter((b) => b.status).length;
       const unpaid = totalStats - paid;
-      const overdue = processedBills.filter((bill) => bill.isOverdue).length;
+      const overdue = processedBills.filter((b) => b.isOverdue).length;
       const totalAmount = processedBills.reduce(
-        (sum, bill) => sum + (bill.totalAmount || 0),
+        (sum, b) => sum + (b.totalAmount || 0),
         0
       );
       const overdueAmount = processedBills
-        .filter((bill) => bill.isOverdue)
-        .reduce((sum, bill) => sum + (bill.totalAmount || 0), 0);
-      
-      setStats({ 
-        total: totalStats, 
-        paid, 
-        unpaid, 
+        .filter((b) => b.isOverdue)
+        .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+
+      setStats({
+        total: totalStats,
+        paid,
+        unpaid,
         overdue,
         totalAmount,
-        overdueAmount
+        overdueAmount,
       });
-      
-      // Cập nhật danh sách hóa đơn quá hạn
-      const overdueBillsList = processedBills.filter(bill => bill.isOverdue);
-      setOverdueBills(overdueBillsList);
-      
+
+      setOverdueBills(processedBills.filter((b) => b.isOverdue));
     } catch (err) {
       message.error("Không thể tải danh sách hóa đơn");
     }
@@ -176,12 +168,9 @@ export default function RenterBillListPage() {
   };
 
   const getStatusColor = (status) => (status ? "success" : "error");
-
   const getStatusIcon = (status) =>
     status ? <CheckCircleOutlined /> : <CloseCircleOutlined />;
-
-  const getStatusText = (status) =>
-    status ? "Đã thanh toán" : "Chưa thanh toán";
+  const getStatusText = (status) => (status ? "Đã thanh toán" : "Chưa thanh toán");
 
   const getOverdueStatusColor = (isOverdue, overdueDays) => {
     if (!isOverdue) return "green";
@@ -192,8 +181,6 @@ export default function RenterBillListPage() {
 
   const getOverdueStatusText = (isOverdue, overdueDays) => {
     if (!isOverdue) return "Chưa quá hạn";
-    if (overdueDays <= 7) return `Quá hạn ${overdueDays} ngày`;
-    if (overdueDays <= 30) return `Quá hạn ${overdueDays} ngày`;
     return `Quá hạn ${overdueDays} ngày`;
   };
 
@@ -217,9 +204,7 @@ export default function RenterBillListPage() {
     if (date && dayjs(date).isValid()) {
       return dayjs(date).format("DD/MM/YYYY");
     }
-    return (
-      <span style={{ color: "red", fontWeight: 500 }}>Không xác định</span>
-    );
+    return <span style={{ color: "red", fontWeight: 500 }}>Không xác định</span>;
   };
 
   const columns = [
@@ -253,73 +238,122 @@ export default function RenterBillListPage() {
       key: "billType",
       align: "center",
       width: isMobile ? 100 : 120,
-      render: (billType, record) => {
-        if (!billType) return <span style={{ color: '#888' }}>Không xác định</span>;
+      render: (billType) => {
+        if (!billType) return <span style={{ color: "#888" }}>Không xác định</span>;
         if (
-          billType === 'REGULAR' ||
-          billType === 'ROOM_RENT' ||
-          billType === 'CONTRACT_ROOM_RENT' ||
-          (typeof billType === 'string' && billType.includes('ROOM_RENT'))
+          billType === "REGULAR" ||
+          billType === "ROOM_RENT" ||
+          billType === "CONTRACT_ROOM_RENT" ||
+          (typeof billType === "string" && billType.includes("ROOM_RENT"))
         ) {
           return <Tag color="blue">Tiền phòng</Tag>;
         }
         if (
-          billType === 'SERVICE' ||
-          billType === 'CONTRACT_SERVICE' ||
-          (typeof billType === 'string' && billType.includes('SERVICE'))
+          billType === "SERVICE" ||
+          billType === "CONTRACT_SERVICE" ||
+          (typeof billType === "string" && billType.includes("SERVICE"))
         ) {
           return <Tag color="green">Dịch vụ</Tag>;
         }
-        if (billType === 'DEPOSIT' || (typeof billType === 'string' && billType.includes('DEPOSIT'))) {
+        if (
+          billType === "DEPOSIT" ||
+          (typeof billType === "string" && billType.includes("DEPOSIT"))
+        ) {
           return <Tag color="purple">Đặt cọc</Tag>;
         }
-        if (billType === 'CONTRACT_TOTAL') {
+        if (billType === "CONTRACT_TOTAL") {
           return <Tag color="geekblue">Tổng hợp đồng</Tag>;
         }
-        if (billType === 'CUSTOM') {
+        if (billType === "CUSTOM") {
           return <Tag color="orange">Tùy chỉnh</Tag>;
         }
-        if (billType === 'CONTRACT_INIT') {
+        if (billType === "CONTRACT_INIT") {
           return <Tag color="cyan">Khởi tạo hợp đồng</Tag>;
         }
-        if (billType === 'OTHER') {
+        if (billType === "OTHER") {
           return <Tag>Khác</Tag>;
         }
-        if (billType === 'LATE_PENALTY') {
+        if (billType === "LATE_PENALTY") {
           return <Tag color="red">Phạt trễ hạn</Tag>;
         }
         return <Tag>{billType}</Tag>;
-      }
-    },
-    ...(isMobile ? [] : [
-      {
-        title: "Từ ngày",
-        dataIndex: "fromDate",
-        key: "fromDate",
-        align: "center",
-        render: (date) => <Text>{formatDate(date)}</Text>,
-        width: 100,
       },
-      {
-        title: "Đến ngày",
-        dataIndex: "toDate",
-        key: "toDate",
-        align: "center",
-        render: (date) => <Text>{formatDate(date)}</Text>,
-        width: 100,
-      }
-    ]),
+    },
+    ...(isMobile
+      ? []
+      : [
+          {
+            title: "Từ ngày",
+            dataIndex: "fromDate",
+            key: "fromDate",
+            align: "center",
+            render: (date) => <Text>{formatDate(date)}</Text>,
+            width: 120,
+          },
+          {
+            title: "Đến ngày",
+            dataIndex: "toDate",
+            key: "toDate",
+            align: "center",
+            render: (date) => <Text>{formatDate(date)}</Text>,
+            width: 120,
+          },
+          {
+            title: "Hạn thanh toán",
+            dataIndex: "dueDate",
+            key: "dueDate",
+            align: "center",
+            render: (date) => {
+              if (!date) {
+                return (
+                  <span
+                    style={{
+                      color: "#faad14",
+                      fontStyle: "italic",
+                      fontSize: 12,
+                    }}
+                  >
+                    Chưa thiết lập
+                  </span>
+                );
+              }
+              const d = dayjs(date, "YYYY-MM-DD HH:mm:ss A");
+              if (!d.isValid()) {
+                return <span style={{ color: "red", fontSize: 12 }}>Không xác định</span>;
+              }
+              return <Text>{d.format("DD/MM/YYYY")}</Text>;
+            },
+            width: 140,
+          },
+        ]),
     {
       title: "Tổng tiền",
       dataIndex: "totalAmount",
       key: "totalAmount",
       align: "center",
-      render: (amount) => (
-        <Text strong style={{ color: "#52c41a", fontSize: isMobile ? "14px" : "16px" }}>
-          {amount != null ? amount.toLocaleString() + ' ₫' : <span style={{ color: '#888' }}>Không xác định</span>}
-        </Text>
-      ),
-      width: isMobile ? 100 : 120,
+      render: (amount, record) =>
+        isMobile ? (
+          <Text strong style={{ color: "#52c41a", fontSize: 14 }}>
+            {amount != null ? amount.toLocaleString() + " ₫" : <span style={{ color: "#888" }}>Không xác định</span>}
+          </Text>
+        ) : (
+          <div>
+            <Text strong style={{ color: "#52c41a", fontSize: 16 }}>
+              {amount != null ? amount.toLocaleString() + " ₫" : <span style={{ color: "#888" }}>Không xác định</span>}
+            </Text>
+            {(record.paidAmount || 0) > 0 && (
+              <div style={{ fontSize: 11, color: "#52c41a" }}>
+                Đã trả: {(record.paidAmount || 0).toLocaleString()} ₫
+              </div>
+            )}
+            {(record.outstandingAmount || 0) > 0 && (
+              <div style={{ fontSize: 11, color: "#ff4d4f" }}>
+                Còn nợ: {(record.outstandingAmount || 0).toLocaleString()} ₫
+              </div>
+            )}
+          </div>
+        ),
+      width: isMobile ? 110 : 200,
     },
     {
       title: "Trạng thái",
@@ -327,33 +361,28 @@ export default function RenterBillListPage() {
       key: "status",
       align: "center",
       render: (status) => (
-        <Tag
-          color={getStatusColor(status)}
-          icon={getStatusIcon(status)}
-          style={{ fontWeight: "normal" }}
-        >
+        <Tag color={getStatusColor(status)} icon={getStatusIcon(status)} style={{ fontWeight: "normal" }}>
           {getStatusText(status)}
         </Tag>
       ),
-      width: isMobile ? 90 : 120,
+      width: isMobile ? 100 : 120,
     },
-    ...(isMobile ? [] : [
-      {
-        title: "Trạng thái quá hạn",
-        dataIndex: "isOverdue",
-        key: "isOverdue",
-        align: "center",
-        render: (isOverdue, record) => (
-          <Tag
-            color={getOverdueStatusColor(isOverdue, record.overdueDays)}
-            style={{ fontWeight: "normal" }}
-          >
-            {getOverdueStatusText(isOverdue, record.overdueDays)}
-          </Tag>
-        ),
-        width: 150,
-      }
-    ]),
+    ...(isMobile
+      ? []
+      : [
+          {
+            title: "Trạng thái quá hạn",
+            dataIndex: "isOverdue",
+            key: "isOverdue",
+            align: "center",
+            render: (isOverdue, record) => (
+              <Tag color={getOverdueStatusColor(isOverdue, record.overdueDays)} style={{ fontWeight: "normal" }}>
+                {getOverdueStatusText(isOverdue, record.overdueDays)}
+              </Tag>
+            ),
+            width: 160,
+          },
+        ]),
     {
       title: "Thao tác",
       key: "actions",
@@ -365,15 +394,15 @@ export default function RenterBillListPage() {
               type="primary"
               icon={<EyeOutlined />}
               onClick={() => navigate(`/renter/bills/${record.id}`)}
-              size={isMobile ? "small" : "small"}
+              size="small"
             >
               {isMobile ? "" : "Xem"}
             </Button>
           </Tooltip>
           {!record.status && (
-            <Tooltip 
+            <Tooltip
               title={
-                record.isOverdue 
+                record.isOverdue
                   ? `Thanh toán ngay - Hóa đơn quá hạn ${record.overdueDays} ngày`
                   : "Thanh toán hóa đơn"
               }
@@ -382,17 +411,19 @@ export default function RenterBillListPage() {
                 type="primary"
                 danger={record.isOverdue}
                 icon={<DollarOutlined />}
-                onClick={() =>
-                  navigate(`/renter/bills/${record.id}?action=pay`)
+                onClick={() => navigate(`/renter/bills/${record.id}?action=pay`)}
+                size="small"
+                style={
+                  record.isOverdue
+                    ? {
+                        background: "#ff4d4f",
+                        borderColor: "#ff4d4f",
+                        fontWeight: "normal",
+                      }
+                    : {}
                 }
-                size={isMobile ? "small" : "small"}
-                style={record.isOverdue ? { 
-                  background: '#ff4d4f', 
-                  borderColor: '#ff4d4f',
-                  fontWeight: 'normal'
-                } : {}}
               >
-                {isMobile ? "" : (record.isOverdue ? "Thanh toán gấp" : "Thanh toán")}
+                {isMobile ? "" : record.isOverdue ? "Thanh toán gấp" : "Thanh toán"}
               </Button>
             </Tooltip>
           )}
@@ -411,20 +442,20 @@ export default function RenterBillListPage() {
       )}
       <Layout style={{ marginLeft: isMobile ? 0 : 220 }}>
         {isMobile && (
-          <div style={{
-            background: "#001529",
-            padding: "12px 16px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            position: "sticky",
-            top: 0,
-            zIndex: 1000,
-          }}>
+          <div
+            style={{
+              background: "#001529",
+              padding: "12px 16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              position: "sticky",
+              top: 0,
+              zIndex: 1000,
+            }}
+          >
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ fontWeight: 600, fontSize: 16 }}>
-                MP-BHMS
-              </div>
+              <div style={{ fontWeight: 600, fontSize: 16 }}>MP-BHMS</div>
               <div style={{ fontSize: 14, color: "#e2e8f0" }}>
                 Xin chào {user?.fullName || user?.name || "Renter"}
               </div>
@@ -439,15 +470,9 @@ export default function RenterBillListPage() {
         )}
         <Content style={{ padding: isMobile ? 16 : 20, backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
           <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-            <Card
-              style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
-              size={isMobile ? "small" : "default"}
-            >
+            <Card style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }} size={isMobile ? "small" : "default"}>
               <div style={{ marginBottom: isMobile ? 16 : 24 }}>
-                <Title
-                  level={isMobile ? 3 : 2}
-                  style={{ color: "#1890ff", fontSize: isMobile ? 20 : 28, marginBottom: isMobile ? 8 : 16 }}
-                >
+                <Title level={isMobile ? 3 : 2} style={{ color: "#1890ff", fontSize: isMobile ? 20 : 28, marginBottom: isMobile ? 8 : 16 }}>
                   <FileDoneOutlined style={{ marginRight: 8 }} />
                   Hóa đơn của tôi
                 </Title>
@@ -507,7 +532,7 @@ export default function RenterBillListPage() {
                           prefix={<DollarOutlined />}
                           suffix="₫"
                           valueStyle={{ color: "#52c41a" }}
-                          formatter={(value) => value.toLocaleString()}
+                          formatter={(value) => Number(value || 0).toLocaleString()}
                         />
                       </Card>
                     </Col>
@@ -519,7 +544,7 @@ export default function RenterBillListPage() {
                           prefix={<WarningOutlined />}
                           suffix="₫"
                           valueStyle={{ color: "#ff4d4f" }}
-                          formatter={(value) => value.toLocaleString()}
+                          formatter={(value) => Number(value || 0).toLocaleString()}
                         />
                       </Card>
                     </Col>
@@ -536,11 +561,10 @@ export default function RenterBillListPage() {
                       <p style={{ marginBottom: 8, fontSize: isMobile ? 12 : 14 }}>
                         <strong>Danh sách hóa đơn quá hạn:</strong>
                       </p>
-                      <ul style={{ margin: '8px 0', paddingLeft: '20px', fontSize: isMobile ? 12 : 14 }}>
-                        {overdueBills.slice(0, isMobile ? 2 : 3).map(bill => (
+                      <ul style={{ margin: "8px 0", paddingLeft: "20px", fontSize: isMobile ? 12 : 14 }}>
+                        {overdueBills.slice(0, isMobile ? 2 : 3).map((bill) => (
                           <li key={bill.id}>
-                            Hóa đơn #{bill.id} - {bill.totalAmount?.toLocaleString()} ₫ 
-                            (Quá hạn {bill.overdueDays} ngày)
+                            Hóa đơn #{bill.id} - {bill.totalAmount?.toLocaleString()} ₫ (Quá hạn {bill.overdueDays} ngày)
                           </li>
                         ))}
                         {overdueBills.length > (isMobile ? 2 : 3) && (
@@ -548,7 +572,7 @@ export default function RenterBillListPage() {
                         )}
                       </ul>
                       <p style={{ marginTop: 8, marginBottom: 0, fontSize: isMobile ? 12 : 14 }}>
-                        <strong>Tổng tiền quá hạn: {stats.overdueAmount.toLocaleString()} ₫</strong>
+                        <strong>Tổng tiền quá hạn: {Number(stats.overdueAmount || 0).toLocaleString()} ₫</strong>
                       </p>
                     </div>
                   }
@@ -556,9 +580,9 @@ export default function RenterBillListPage() {
                   showIcon
                   style={{ marginBottom: 16 }}
                   action={
-                    <Button 
-                      type="primary" 
-                      danger 
+                    <Button
+                      type="primary"
+                      danger
                       size={isMobile ? "small" : "small"}
                       onClick={() => {
                         const firstOverdueBill = overdueBills[0];
@@ -573,30 +597,18 @@ export default function RenterBillListPage() {
                 />
               )}
 
-              <Card 
-                title={<span style={{ fontSize: isMobile ? 16 : 18 }}>Danh sách hóa đơn</span>} 
+              <Card
+                title={<span style={{ fontSize: isMobile ? 16 : 18 }}>Danh sách hóa đơn</span>}
                 style={{ marginTop: 16 }}
                 size={isMobile ? "small" : "default"}
               >
                 <style>
                   {`
-                    .ant-pagination-total-text {
-                      font-weight: normal !important;
-                      font-size: 14px !important;
-                    }
-                    .ant-pagination-item {
-                      font-weight: normal !important;
-                    }
-                    .ant-pagination-item-active {
-                      font-weight: normal !important;
-                    }
-                    .ant-pagination-prev,
-                    .ant-pagination-next {
-                      font-weight: normal !important;
-                    }
-                    .ant-pagination .ant-pagination-total-text {
-                      font-weight: normal !important;
-                    }
+                    .ant-pagination-total-text { font-weight: normal !important; font-size: 14px !important; }
+                    .ant-pagination-item { font-weight: normal !important; }
+                    .ant-pagination-item-active { font-weight: normal !important; }
+                    .ant-pagination-prev, .ant-pagination-next { font-weight: normal !important; }
+                    .ant-pagination .ant-pagination-total-text { font-weight: normal !important; }
                   `}
                 </style>
                 {loading ? (
@@ -620,40 +632,50 @@ export default function RenterBillListPage() {
                         setPageSize(size);
                       },
                       showTotal: (total, range) => (
-                        <span style={{ fontWeight: 'normal', fontSize: '14px' }}>
+                        <span style={{ fontWeight: "normal", fontSize: "14px" }}>
                           {range[0]}-{range[1]} trên tổng số {total} hóa đơn
                         </span>
                       ),
                       position: ["bottomCenter"],
                       itemRender: (page, type, originalElement) => {
-                        if (type === 'page') {
-                          return <span style={{ fontWeight: 'normal' }}>{page}</span>;
+                        if (type === "page") {
+                          return <span style={{ fontWeight: "normal" }}>{page}</span>;
                         }
                         return originalElement;
                       },
-                      style: { 
-                        fontWeight: 'normal',
-                        fontSize: '14px'
-                      }
+                      style: {
+                        fontWeight: "normal",
+                        fontSize: "14px",
+                      },
                     }}
                     scroll={{ x: isMobile ? 800 : 1000 }}
                     size={isMobile ? "small" : "middle"}
                     bordered
                     rowClassName={(record) => {
                       if (record.isOverdue) {
-                        if (record.overdueDays <= 7) return 'overdue-warning';
-                        if (record.overdueDays <= 30) return 'overdue-danger';
-                        return 'overdue-critical';
+                        if (record.overdueDays <= 7) return "overdue-warning";
+                        if (record.overdueDays <= 30) return "overdue-danger";
+                        return "overdue-critical";
                       }
-                      return '';
+                      return "";
                     }}
                     onRow={(record) => ({
-                      style: record.isOverdue ? {
-                        backgroundColor: record.overdueDays <= 7 ? '#fff7e6' : 
-                                       record.overdueDays <= 30 ? '#fff2f0' : '#fff1f0',
-                        borderLeft: record.overdueDays <= 7 ? '4px solid #faad14' : 
-                                   record.overdueDays <= 30 ? '4px solid #ff4d4f' : '4px solid #cf1322'
-                      } : {}
+                      style: record.isOverdue
+                        ? {
+                            backgroundColor:
+                              record.overdueDays <= 7
+                                ? "#fff7e6"
+                                : record.overdueDays <= 30
+                                ? "#fff2f0"
+                                : "#fff1f0",
+                            borderLeft:
+                              record.overdueDays <= 7
+                                ? "4px solid #faad14"
+                                : record.overdueDays <= 30
+                                ? "4px solid #ff4d4f"
+                                : "4px solid #cf1322",
+                          }
+                        : {},
                     })}
                   />
                 )}
@@ -662,7 +684,7 @@ export default function RenterBillListPage() {
           </div>
         </Content>
       </Layout>
-      
+
       {/* Mobile Drawer for Sidebar */}
       {isMobile && (
         <Drawer

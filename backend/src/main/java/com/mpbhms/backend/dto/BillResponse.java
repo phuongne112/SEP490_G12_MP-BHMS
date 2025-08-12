@@ -33,6 +33,13 @@ public class BillResponse {
 
     private BigDecimal totalAmount;
     private Boolean status;
+    
+    // Các trường mới cho thanh toán từng phần
+    private BigDecimal paidAmount; // Số tiền đã thanh toán
+    private BigDecimal outstandingAmount; // Số tiền còn nợ
+    private Boolean isPartiallyPaid; // Đánh dấu thanh toán từng phần
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss a",timezone = "GMT+7")
+    private Instant lastPaymentDate; // Ngày thanh toán cuối cùng
 
     private List<BillDetailResponse> details;
 

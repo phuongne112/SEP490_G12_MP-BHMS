@@ -218,11 +218,6 @@ export default function RenterRoomDetailPage() {
               />
             ) : (
               <>
-                {/* Page Title - Only show on desktop */}
-                {!isMobile && (
-                  <PageHeader title="Chi tiết phòng" />
-                )}
-
                 <Card style={{ 
                   width: isMobile ? '100%' : 950, 
                   margin: '0 auto', 
@@ -230,6 +225,16 @@ export default function RenterRoomDetailPage() {
                   borderRadius: 12, 
                   marginBottom: 32 
                 }} bodyStyle={{ padding: isMobile ? 16 : 32 }}>
+                  {/* Page Title - Inside the card */}
+                  <div style={{ 
+                    textAlign: 'center', 
+                    marginBottom: isMobile ? 16 : 24,
+                    fontSize: isMobile ? 18 : 20,
+                    fontWeight: 'bold',
+                    color: '#1890ff'
+                  }}>
+                    Chi tiết phòng
+                  </div>
                   <Row gutter={isMobile ? 16 : 32} align="top" justify="center">
                     <Col span={isMobile ? 24 : 10} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                       <img

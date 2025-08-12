@@ -641,7 +641,7 @@ export default function UpdateUserInfoModal({
           </div>
           <Form.Item style={{ marginBottom: 0 }}>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-              <Button onClick={onClose}>Huỷ</Button>
+              <Button onClick={onClose}>Hủy</Button>
               <Popconfirm
                 title={isCreate ? "Xác nhận tạo mới" : "Xác nhận cập nhật"}
                 description={
@@ -658,7 +658,7 @@ export default function UpdateUserInfoModal({
                   });
                 }}
                 okText="Đồng ý"
-                cancelText="Huỷ"
+                cancelText="Hủy"
               >
                 <Button type="primary" loading={loading}>
                   {isCreate ? "Tạo mới" : "Cập nhật"}

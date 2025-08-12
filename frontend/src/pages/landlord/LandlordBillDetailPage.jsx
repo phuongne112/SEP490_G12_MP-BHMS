@@ -17,6 +17,58 @@ export default function LandlordBillDetailPage() {
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
+  // Hàm kiểm tra hóa đơn có quá hạn không
+  const checkOverdue = (bill) => {
+    if (bill.status) return false; // Đã thanh toán thì không quá hạn
+    
+    const today = dayjs();
+    
+    // Parse dueDate nếu có
+    let dueDate = null;
+    if (bill.dueDate) {
+      dueDate = dayjs(bill.dueDate, "YYYY-MM-DD HH:mm:ss A");
+    }
+    
+    // Parse toDate nếu có
+    let toDate = null;
+    if (bill.toDate) {
+      toDate = dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A");
+    }
+    
+    // Logic: toDate + 7 ngày là hạn thanh toán
+    const actualDueDate = dueDate || (toDate ? toDate.add(7, 'day') : null);
+    
+    return actualDueDate && today.isAfter(actualDueDate, 'day');
+  };
+
+  // Hàm tính số ngày quá hạn
+  const getOverdueDays = (bill) => {
+    if (bill.status) return 0;
+    
+    const today = dayjs();
+    
+    // Parse dueDate nếu có
+    let dueDate = null;
+    if (bill.dueDate) {
+      dueDate = dayjs(bill.dueDate, "YYYY-MM-DD HH:mm:ss A");
+    }
+    
+    // Parse toDate nếu có
+    let toDate = null;
+    if (bill.toDate) {
+      toDate = dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A");
+    }
+    
+    // Logic: toDate + 7 ngày là hạn thanh toán
+    const actualDueDate = dueDate || (toDate ? toDate.add(7, 'day') : null);
+    
+    if (actualDueDate && today.isAfter(actualDueDate, 'day')) {
+      return today.diff(actualDueDate, 'day');
+    }
+    
+    return 0;
+  };
+
   useEffect(() => {
     fetchBill();
     // eslint-disable-next-line
@@ -64,7 +116,18 @@ export default function LandlordBillDetailPage() {
 
   const handlePayVnPay = async () => {
     try {
-      const amount = Number(String(bill.totalAmount).replace(/[^0-9.-]+/g, ""));
+      // Sử dụng outstandingAmount thay vì totalAmount để thanh toán đúng số tiền còn nợ
+      const outstandingAmount = bill.outstandingAmount || bill.totalAmount || 0;
+      const amount = Number(String(outstandingAmount).replace(/[^0-9.-]+/g, ""));
+      
+      console.log('Thanh toán VNPAY (Landlord):', {
+        billId: bill.id,
+        totalAmount: bill.totalAmount,
+        paidAmount: bill.paidAmount,
+        outstandingAmount: bill.outstandingAmount,
+        amountToPay: amount
+      });
+      
       const paymentUrl = await createVnPayUrl({
         billId: bill.id,
         amount,
@@ -227,10 +290,24 @@ export default function LandlordBillDetailPage() {
                     </span>
                   )}
                 </Descriptions.Item>
+                <Descriptions.Item label="Hạn thanh toán">
+                  {bill.dueDate ? (
+                    dayjs(bill.dueDate, "YYYY-MM-DD HH:mm:ss A").format("DD/MM/YYYY")
+                  ) : (
+                    <span style={{ color: '#faad14', fontStyle: 'italic' }}>
+                      Chưa thiết lập
+                    </span>
+                  )}
+                </Descriptions.Item>
                 <Descriptions.Item label="Tổng tiền">{bill.totalAmount?.toLocaleString()} ₫</Descriptions.Item>
                 <Descriptions.Item label="Trạng thái">
                   <Tag color={bill.status ? "green" : "red"}>
                     {bill.status ? "Đã thanh toán" : "Chưa thanh toán"}
+                  </Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="Trạng thái quá hạn">
+                  <Tag color={checkOverdue(bill) ? "red" : "green"}>
+                    {checkOverdue(bill) ? `Quá hạn ${getOverdueDays(bill)} ngày` : "Chưa quá hạn"}
                   </Tag>
                 </Descriptions.Item>
                 {bill.billType === 'LATE_PENALTY' && (
@@ -278,32 +355,22 @@ export default function LandlordBillDetailPage() {
                 <Button onClick={handleExport} type="primary">Xuất PDF</Button>
 
                 {!bill.status && (
-                  <>
+                  <Popconfirm
+                    title="Xác nhận thanh toán"
+                    description="Bạn có chắc muốn đánh dấu hóa đơn này đã được thanh toán?"
+                    onConfirm={handleUpdatePaymentStatus}
+                    okText="Xác nhận"
+                    cancelText="Hủy"
+                  >
                     <Button
-                      type="primary"
+                      type="default"
                       style={{ marginLeft: 16 }}
-                      onClick={handlePayVnPay}
+                      loading={updatingStatus}
+                      title="Đánh dấu đã thanh toán (cho thanh toán tại văn phòng)"
                     >
-                      Thanh toán VNPay
+                      Đã thanh toán
                     </Button>
-                    
-                    <Popconfirm
-                      title="Xác nhận thanh toán"
-                      description="Bạn có chắc muốn đánh dấu hóa đơn này đã được thanh toán?"
-                      onConfirm={handleUpdatePaymentStatus}
-                      okText="Xác nhận"
-                      cancelText="Hủy"
-                    >
-                      <Button
-                        type="default"
-                        style={{ marginLeft: 16 }}
-                        loading={updatingStatus}
-                        title="Đánh dấu đã thanh toán (cho thanh toán tại văn phòng)"
-                      >
-                        Đã thanh toán
-                      </Button>
-                    </Popconfirm>
-                  </>
+                  </Popconfirm>
                 )}
 
                 <Button style={{ marginLeft: 16 }} onClick={() => navigate(-1)}>

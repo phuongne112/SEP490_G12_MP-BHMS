@@ -106,7 +106,7 @@ export default function ChangePasswordModal({ open, onClose }) {
             description="Bạn có chắc chắn muốn đổi mật khẩu?"
             onConfirm={() => form.submit()}
             okText="Có"
-            cancelText="Không"
+                            cancelText="Hủy"
           >
             <Button type="primary" loading={loading}>
               Cập nhật

@@ -3,6 +3,7 @@ package com.mpbhms.backend.controller;
 import com.mpbhms.backend.service.VnPayService;
 import com.mpbhms.backend.repository.BillRepository;
 import com.mpbhms.backend.entity.Bill;
+import com.mpbhms.backend.dto.PartialPaymentRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,9 @@ public class PaymentController {
 
     @Autowired
     private BillRepository billRepository;
+    
+    @Autowired
+    private com.mpbhms.backend.service.BillService billService;
 
     // 1. API tạo URL thanh toán VNPay
     @PostMapping("/create-vnpay-url")
@@ -78,13 +82,47 @@ public class PaymentController {
                     System.out.println("Bill status before update: " + bill.getStatus());
                     System.out.println("Bill total amount: " + bill.getTotalAmount());
                     
+                    // Lấy số tiền thanh toán từ VNPAY
+                    String vnp_Amount = fields.get("vnp_Amount");
+                    Long paidAmount = null;
+                    if (vnp_Amount != null) {
+                        paidAmount = Long.parseLong(vnp_Amount) / 100; // VNPAY trả về x100
+                        System.out.println("VNPAY paid amount: " + paidAmount);
+                    }
+                    
+                    // Kiểm tra xem có phải thanh toán từng phần không
+                    boolean isPartialPayment = false;
+                    if (paidAmount != null && bill.getTotalAmount() != null) {
+                        isPartialPayment = paidAmount < bill.getTotalAmount().longValue();
+                        System.out.println("Is partial payment: " + isPartialPayment);
+                    }
+                    
                     if (bill.getStatus() == null || !bill.getStatus()) {
-                        System.out.println("Updating bill status to PAID...");
-                        bill.setStatus(true);
-                        bill.setPaidDate(Instant.now());
-                        
-                        System.out.println("Bill status after setStatus(true): " + bill.getStatus());
-                        System.out.println("Bill paidDate after setPaidDate: " + bill.getPaidDate());
+                        if (isPartialPayment) {
+                            // Xử lý thanh toán từng phần
+                            System.out.println("Processing partial payment...");
+                            java.math.BigDecimal paymentAmount = new java.math.BigDecimal(paidAmount);
+                            
+                            // Gọi service để xử lý thanh toán từng phần
+                            PartialPaymentRequest partialRequest = new PartialPaymentRequest();
+                            partialRequest.setBillId(billId);
+                            partialRequest.setPaymentAmount(paymentAmount);
+                            partialRequest.setPaymentMethod("VNPAY");
+                            partialRequest.setNotes("Thanh toán qua VNPAY");
+                            
+                            // Gọi service để xử lý thanh toán từng phần
+                            billService.makePartialPayment(partialRequest);
+                            
+                            System.out.println("Partial payment processed successfully");
+                        } else {
+                            // Xử lý thanh toán đầy đủ
+                            System.out.println("Processing full payment...");
+                            bill.setStatus(true);
+                            bill.setPaidDate(Instant.now());
+                            
+                            System.out.println("Bill status after setStatus(true): " + bill.getStatus());
+                            System.out.println("Bill paidDate after setPaidDate: " + bill.getPaidDate());
+                        }
                         
                         Bill savedBill = billRepository.save(bill);
                         System.out.println("Bill saved successfully: " + (savedBill != null));

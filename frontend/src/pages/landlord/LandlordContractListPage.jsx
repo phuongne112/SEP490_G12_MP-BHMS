@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Layout, message, Button, Popover, Select, Modal, Input, DatePicker, List, Pagination, Tag } from "antd";
+import { Layout, message, Button, Popover, Select, Modal, Input, DatePicker, List, Pagination, Tag, Card, Descriptions, Typography } from "antd";
 import PageHeader from "../../components/common/PageHeader";
 import { getAllContracts, deleteContract, exportContractPdf, buildContractFilterString } from "../../services/contractApi";
 import { useSelector } from "react-redux";
@@ -21,9 +21,10 @@ import {
   rejectAmendment
 } from "../../services/roomUserApi";
 import { getAllRooms } from "../../services/roomService";
-import { FilterOutlined, ReloadOutlined } from "@ant-design/icons";
+import { FilterOutlined, ReloadOutlined, FileTextOutlined, InfoCircleOutlined, ClockCircleOutlined, DollarOutlined, UserOutlined } from "@ant-design/icons";
 
 const { Sider, Content } = Layout;
+const { Text } = Typography;
 
 const paymentCycleOptions = [
   { value: "MONTHLY", label: "Hàng tháng" },
@@ -1517,144 +1518,209 @@ export default function LandlordContractListPage() {
             onCancel={() => setDetailModalOpen(false)}
             footer={null}
             title="Chi tiết hợp đồng"
-            width={700}
+            width={1000}
+            centered
+            bodyStyle={{ padding: '20px' }}
           >
             {detailContract ? (
-              <div style={{ padding: '16px 0' }}>
-                {/* Thông tin cơ bản */}
-                <div style={{
-                  padding: '16px',
-                  borderRadius: '8px',
-                  marginBottom: '20px',
-                  border: '1px solid #d9d9d9'
-                }}>
-                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px' }}>
-                    Thông tin cơ bản
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div><b>Mã hợp đồng:</b> {detailContract.contractNumber || `#${detailContract.id}`}</div>
-                    <div><b>Phòng:</b> {detailContract.roomNumber || detailContract.room?.roomNumber}</div>
-                    <div><b>Trạng thái:</b>
-                      {detailContract.contractStatus === "TERMINATED" ? "Đã chấm dứt" :
-                        detailContract.contractStatus === "ACTIVE" ? "Đang hiệu lực" :
-                          detailContract.contractStatus === "EXPIRED" ? "Hết hạn" : detailContract.contractStatus}
-                    </div>
-                    <div><b>Chu kỳ thanh toán:</b>
-                      {detailContract.paymentCycle === 'MONTHLY' ? 'Hàng tháng' :
-                        detailContract.paymentCycle === 'QUARTERLY' ? 'Hàng quý' :
-                          detailContract.paymentCycle === 'YEARLY' ? 'Hàng năm' : detailContract.paymentCycle}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Thông tin thời gian */}
-                <div style={{
-                  padding: '16px',
-                  borderRadius: '8px',
-                  marginBottom: '20px',
-                  border: '1px solid #d9d9d9'
-                }}>
-                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px' }}>
-                    Thông tin thời gian
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div><b>Ngày bắt đầu:</b>
-                      {detailContract.contractStartDate ? new Date(detailContract.contractStartDate).toLocaleDateString("vi-VN") : 'Chưa có'}
-                    </div>
-                    <div><b>Ngày kết thúc:</b>
-                      {detailContract.contractEndDate ? new Date(detailContract.contractEndDate).toLocaleDateString("vi-VN") : 'Chưa có'}
-                    </div>
-                    <div><b>Ngày tạo:</b>
-                      {detailContract.createdDate ? new Date(detailContract.createdDate).toLocaleDateString("vi-VN") : 'Chưa có'}
-                    </div>
-                    <div><b>Ngày cập nhật:</b>
-                      {detailContract.updatedDate ? new Date(detailContract.updatedDate).toLocaleDateString("vi-VN") : 'Chưa có'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Thông tin tài chính */}
-                <div style={{
-                  padding: '16px',
-                  borderRadius: '8px',
-                  marginBottom: '20px',
-                  border: '1px solid #d9d9d9'
-                }}>
-                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px' }}>
-                    Thông tin tài chính
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div><b>Tiền thuê:</b>
-                      {detailContract.rentAmount ? detailContract.rentAmount.toLocaleString() + " VND" : 'Chưa có'}
-                    </div>
-                    <div><b>Tiền cọc:</b>
-                      {detailContract.depositAmount ? detailContract.depositAmount.toLocaleString() + " VND" : 'Chưa có'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Thông tin người thuê */}
-                <div style={{
-                  padding: '16px',
-                  borderRadius: '8px',
-                  marginBottom: '20px',
-                  border: '1px solid #d9d9d9'
-                }}>
-                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px' }}>
-                    Thông tin người thuê
-                  </div>
-                  {detailContract.roomUsers && detailContract.roomUsers.length > 0 ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      {detailContract.roomUsers.map((user, idx) => (
-                        <div key={idx} style={{
-                          padding: '8px 12px',
-                          borderRadius: '6px',
-                          border: '1px solid #d9d9d9'
-                        }}>
-                          <div><b>Tên:</b> {user.fullName || 'Không rõ'}</div>
-                          <div><b>SĐT:</b> {user.phoneNumber || 'Không có'}</div>
-                          <div><b>Email:</b> {user.email || 'Không có'}</div>
-                          <div><b>Trạng thái:</b>
-                            {user.isActive !== false ? 'Đang thuê' : 'Đã rời'}
-                          </div>
+              <div style={{ background: '#f5f5f5', borderRadius: '12px', padding: '20px' }}>
+                  {/* Header */}
+                  <div style={{ 
+                    padding: "16px 16px 12px 16px",
+                    borderBottom: "1px solid #f0f0f0",
+                    marginBottom: 16
+                  }}>
+                                          <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 20, fontWeight: 'bold', color: '#1890ff', marginBottom: 6 }}>
+                          Hợp đồng #{detailContract.id || detailContract.contractNumber}
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ fontStyle: 'italic' }}>Chưa có người thuê</div>
-                  )}
-                </div>
-
-                {/* Điều khoản hợp đồng */}
-                <div style={{
-                  padding: '16px',
-                  borderRadius: '8px',
-                  border: '1px solid #d9d9d9'
-                }}>
-                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px' }}>
-                    Điều khoản hợp đồng
+                        <Tag 
+                          color={
+                            detailContract.contractStatus === "ACTIVE" ? 'green' :
+                            detailContract.contractStatus === "EXPIRED" ? 'red' :
+                            detailContract.contractStatus === "TERMINATED" ? 'orange' : 'default'
+                          }
+                          style={{ fontSize: '12px', fontWeight: 'bold', padding: '2px 8px' }}
+                        >
+                          {detailContract.contractStatus === "TERMINATED" ? "Đã chấm dứt" :
+                           detailContract.contractStatus === "ACTIVE" ? "Đang hiệu lực" :
+                           detailContract.contractStatus === "EXPIRED" ? "Hết hạn" : detailContract.contractStatus}
+                        </Tag>
+                      </div>
                   </div>
-                  {detailContract.terms && detailContract.terms.length > 0 ? (
-                    <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                      {detailContract.terms.map((term, idx) => (
-                        <li key={idx} style={{
-                          marginBottom: '8px',
-                          padding: '8px 12px',
-                          borderRadius: '6px',
-                          border: '1px solid #d9d9d9'
-                        }}>
-                          {term}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div style={{ fontStyle: 'italic' }}>Không có điều khoản cụ thể.</div>
-                  )}
-                </div>
+
+                                    <div style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    flexWrap: "nowrap",
+                    gap: 12,
+                    overflowX: "auto"
+                  }}>
+                    {/* Main contract info */}
+                    <div style={{ flex: 1, minWidth: 320, maxWidth: 500 }}>
+                    {/* Basic Information Card */}
+                    <Card 
+                      title="Thông tin cơ bản"
+                      size="small"
+                      style={{ minWidth: 200, flexShrink: 0 }}
+                    >
+                      <div style={{ fontSize: '12px' }}>
+                        <div style={{ marginBottom: 8 }}>
+                          <div style={{ fontWeight: 'bold', color: '#666' }}>Mã hợp đồng:</div>
+                          <Text strong style={{ color: "#1890ff" }}>
+                            #{detailContract.id || detailContract.contractNumber}
+                          </Text>
+                        </div>
+                        <div style={{ marginBottom: 8 }}>
+                          <div style={{ fontWeight: 'bold', color: '#666' }}>Phòng:</div>
+                          <Tag color="blue" style={{ fontWeight: "bold", fontSize: '11px' }}>
+                            {detailContract.roomNumber || detailContract.room?.roomNumber}
+                          </Tag>
+                        </div>
+                        <div style={{ marginBottom: 8 }}>
+                          <div style={{ fontWeight: 'bold', color: '#666' }}>Chu kỳ:</div>
+                          <Tag color="purple" style={{ fontSize: '11px' }}>
+                            {detailContract.paymentCycle === 'MONTHLY' ? 'Hàng tháng' : 
+                             detailContract.paymentCycle === 'QUARTERLY' ? 'Hàng quý' : 'Hàng năm'}
+                          </Tag>
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 'bold', color: '#666' }}>Ngày tạo:</div>
+                          <Text style={{ fontSize: '11px' }}>
+                            {detailContract.createdDate ? new Date(detailContract.createdDate).toLocaleDateString("vi-VN") : 'Chưa có'}
+                          </Text>
+                        </div>
+                      </div>
+                    </Card>
+
+                      {/* Time Information Card */}
+                      <Card 
+                                              title="Thông tin thời gian"
+                        style={{ marginBottom: 24 }}
+                        size="small"
+                      >
+                        <Descriptions bordered column={2} size="small">
+                          <Descriptions.Item label="Ngày bắt đầu">
+                            <Text>
+                              {detailContract.contractStartDate ? new Date(detailContract.contractStartDate).toLocaleDateString("vi-VN") : 'Chưa có'}
+                            </Text>
+                          </Descriptions.Item>
+                          <Descriptions.Item label="Ngày kết thúc">
+                            <Text>
+                              {detailContract.contractEndDate ? new Date(detailContract.contractEndDate).toLocaleDateString("vi-VN") : 'Chưa có'}
+                            </Text>
+                          </Descriptions.Item>
+                          <Descriptions.Item label="Ngày cập nhật">
+                            <Text>
+                              {detailContract.updatedDate ? new Date(detailContract.updatedDate).toLocaleDateString("vi-VN") : 'Chưa có'}
+                            </Text>
+                          </Descriptions.Item>
+                        </Descriptions>
+                      </Card>
+
+                      {/* Financial Information Card */}
+                      <Card 
+                                              title="Thông tin tài chính"
+                        style={{ marginBottom: 24 }}
+                        size="small"
+                      >
+                        <Descriptions bordered column={2} size="small">
+                          <Descriptions.Item label="Tiền thuê">
+                            <Text strong style={{ color: "#52c41a", fontSize: "16px" }}>
+                              {detailContract.rentAmount ? detailContract.rentAmount.toLocaleString() + " ₫" : 'Chưa có'}
+                            </Text>
+                          </Descriptions.Item>
+                          <Descriptions.Item label="Tiền cọc">
+                            <Text strong style={{ color: "#faad14", fontSize: "16px" }}>
+                              {detailContract.depositAmount ? detailContract.depositAmount.toLocaleString() + " ₫" : 'Chưa có'}
+                            </Text>
+                          </Descriptions.Item>
+                        </Descriptions>
+                      </Card>
+                    </div>
+
+                    {/* Side information */}
+                    <div style={{ flex: 1, minWidth: 300, maxWidth: 400 }}>
+                      {/* Tenant Information Card */}
+                      <Card 
+                                              title="Thông tin người thuê"
+                        style={{ marginBottom: 24 }}
+                        size="small"
+                      >
+                        {detailContract.roomUsers && detailContract.roomUsers.length > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            {detailContract.roomUsers.map((user, idx) => (
+                              <div key={idx} style={{
+                                padding: '12px',
+                                borderRadius: '8px',
+                                border: '1px solid #f0f0f0',
+                                backgroundColor: '#fafafa'
+                              }}>
+                                <div style={{ marginBottom: 8 }}>
+                                  <Text strong style={{ fontSize: '14px' }}>{user.fullName || 'Không rõ'}</Text>
+                                  <Tag 
+                                    color={user.isActive !== false ? 'green' : 'orange'} 
+                                    style={{ marginLeft: 8, fontSize: '12px' }}
+                                  >
+                                    {user.isActive !== false ? 'Đang thuê' : 'Thông tin lịch sử'}
+                                  </Tag>
+                                </div>
+                                <div style={{ fontSize: '13px', color: '#666' }}>
+                                  <div>📞 {user.phoneNumber || 'Không có'}</div>
+                                  <div>📧 {user.email || 'Không có'}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ 
+                            textAlign: 'center', 
+                            padding: '20px',
+                            color: '#999',
+                            fontStyle: 'italic'
+                          }}>
+                            {detailContract.contractStatus === "EXPIRED" || detailContract.contractStatus === "TERMINATED" 
+                              ? 'Không có thông tin người thuê cho hợp đồng này' 
+                              : 'Chưa có người thuê'}
+                          </div>
+                        )}
+                      </Card>
+
+                      {/* Contract Terms Card */}
+                      <Card 
+                                              title="Điều khoản hợp đồng"
+                        size="small"
+                      >
+                        <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                          {detailContract.terms && detailContract.terms.length > 0 ? (
+                            detailContract.terms.map((term, idx) => (
+                              <div key={idx} style={{ 
+                                marginBottom: 12, 
+                                padding: 8, 
+                                background: '#f9f9f9', 
+                                borderRadius: 4,
+                                fontSize: '13px'
+                              }}>
+                                <Text>
+                                  {typeof term === 'object' ? term.content : term}
+                                </Text>
+                              </div>
+                            ))
+                          ) : (
+                            <Text type="secondary" style={{ fontStyle: 'italic' }}>
+                              Không có điều khoản cụ thể được ghi nhận.
+                            </Text>
+                          )}
+                        </div>
+                      </Card>
+                    </div>
+                  </div>
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '40px' }}>
-                Không tìm thấy thông tin hợp đồng
+                <div style={{ fontSize: '18px', color: '#999', marginBottom: 16 }}>
+                  Không tìm thấy thông tin hợp đồng
+                </div>
               </div>
             )}
           </Modal>
