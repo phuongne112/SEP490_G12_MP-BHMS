@@ -8,12 +8,12 @@ import {
   Spin,
   message,
   Tag,
-  Layout,
   Modal,
   Radio,
   Alert,
   Divider,
   Drawer,
+  Typography,
 } from "antd";
 import {
   getBillDetail,
@@ -23,7 +23,6 @@ import {
   createCashPartialPayment,
 } from "../../services/billApi";
 import RenterSidebar from "../../components/layout/RenterSidebar";
-import PageHeader from "../../components/common/PageHeader";
 import PartialPaymentModal from "../../components/common/PartialPaymentModal";
 import PaymentHistoryModal from "../../components/common/PaymentHistoryModal";
 import CashPartialPaymentModal from "../../components/common/CashPartialPaymentModal";
@@ -34,7 +33,7 @@ import { useSelector } from "react-redux";
 
 dayjs.extend(customParseFormat);
 
-const { Sider } = Layout;
+const { Title } = Typography;
 
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(false);
@@ -59,11 +58,13 @@ export default function RenterBillDetailPage() {
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [partialPaymentModalVisible, setPartialPaymentModalVisible] =
     useState(false);
-  const [cashPartialPaymentModalVisible, setCashPartialPaymentModalVisible] = useState(false);
+  const [cashPartialPaymentModalVisible, setCashPartialPaymentModalVisible] =
+    useState(false);
   const [paymentType, setPaymentType] = useState("full");
-  
+
   // Payment history
-  const [paymentHistoryModalVisible, setPaymentHistoryModalVisible] = useState(false);
+  const [paymentHistoryModalVisible, setPaymentHistoryModalVisible] =
+    useState(false);
 
   // Mobile UI
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -127,13 +128,13 @@ export default function RenterBillDetailPage() {
       // thanh toán đúng số tiền còn nợ
       const outstandingAmount = bill.outstandingAmount || bill.totalAmount || 0;
       let amount = Number(String(outstandingAmount).replace(/[^0-9.-]+/g, ""));
-      
+
       // Nếu hóa đơn đã từng thanh toán từng phần, tính thêm phí thanh toán từng phần
       if (bill.isPartiallyPaid) {
         try {
           const paymentCountData = await getPaymentCount(bill.id);
           const paymentCount = paymentCountData.paymentCount || 0;
-          
+
           // Tính phí thanh toán từng phần dựa trên số lần đã thanh toán
           let partialPaymentFee = 0;
           switch (paymentCount) {
@@ -150,24 +151,28 @@ export default function RenterBillDetailPage() {
               partialPaymentFee = 1000000; // Tối đa 1.000.000 VNĐ cho các lần sau
               break;
           }
-          
+
           // Cộng phí vào tổng số tiền thanh toán
           amount += partialPaymentFee;
-          
-          console.log(`Hóa đơn #${bill.id} đã thanh toán ${paymentCount} lần, phí thanh toán từng phần: ${partialPaymentFee.toLocaleString()} VNĐ`);
+
+          console.log(
+            `Hóa đơn #${bill.id} đã thanh toán ${paymentCount} lần, phí thanh toán từng phần: ${partialPaymentFee.toLocaleString()} VNĐ`
+          );
         } catch (error) {
           console.error("Lỗi khi lấy số lần thanh toán:", error);
           // Nếu không lấy được số lần thanh toán, vẫn thanh toán bình thường
         }
       }
-      
+
       // Tạo orderInfo với thông tin originalPaymentAmount nếu có phí
       let orderInfo = `Thanh toán hóa đơn #${bill.id}`;
       if (bill.isPartiallyPaid) {
-        const originalAmount = Number(String(outstandingAmount).replace(/[^0-9.-]+/g, ""));
+        const originalAmount = Number(
+          String(outstandingAmount).replace(/[^0-9.-]+/g, "")
+        );
         orderInfo = `Thanh toán hóa đơn #${bill.id}|originalAmount:${originalAmount}`;
       }
-      
+
       const paymentUrl = await createVnPayUrl({
         billId: bill.id,
         amount,
@@ -204,12 +209,14 @@ export default function RenterBillDetailPage() {
   const handleCashPartialPaymentSuccess = async (paymentData) => {
     try {
       await createCashPartialPayment(paymentData);
-      message.success("Đã gửi yêu cầu thanh toán tiền mặt! Landlord sẽ xác nhận sau.");
+      message.success(
+        "Đã gửi yêu cầu thanh toán tiền mặt! Landlord sẽ xác nhận sau."
+      );
       setCashPartialPaymentModalVisible(false);
       fetchBill();
     } catch (error) {
       message.error("Không thể gửi yêu cầu thanh toán tiền mặt!");
-      console.error('Error creating cash payment:', error);
+      console.error("Error creating cash payment:", error);
     }
   };
 
@@ -247,7 +254,10 @@ export default function RenterBillDetailPage() {
         ) {
           return <Tag color="green">Dịch vụ</Tag>;
         }
-        if (type === "DEPOSIT" || (typeof type === "string" && type.includes("DEPOSIT"))) {
+        if (
+          type === "DEPOSIT" ||
+          (typeof type === "string" && type.includes("DEPOSIT"))
+        ) {
           return <Tag color="purple">Đặt cọc</Tag>;
         }
         if (type === "CONTRACT_TOTAL") {
@@ -274,10 +284,10 @@ export default function RenterBillDetailPage() {
   ];
 
   // Helper: lấy ngày "đến" fallback từ mô tả chi tiết nếu toDate null/invalid
-  function getFallbackToDate(bill) {
-    if (!bill || !bill.details || !Array.isArray(bill.details)) return null;
-    const roomRent = bill.details.find((d) => d.itemType === "ROOM_RENT");
-    const anyDetail = bill.details[0];
+  function getFallbackToDate(billObj) {
+    if (!billObj || !billObj.details || !Array.isArray(billObj.details)) return null;
+    const roomRent = billObj.details.find((d) => d.itemType === "ROOM_RENT");
+    const anyDetail = billObj.details[0];
     const regex = /đến (\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4})/;
     let match = null;
     if (roomRent && roomRent.description) match = roomRent.description.match(regex);
@@ -295,17 +305,41 @@ export default function RenterBillDetailPage() {
   }
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "#f5f5f5" }}>
+      {/* Sidebar (desktop) */}
       {!isMobile && (
-        <Sider width={220} style={{ background: "#001529" }}>
+        <div
+          style={{
+            width: 220,
+            minHeight: "100vh",
+            background: "#001529",
+            position: "fixed",
+            left: 0,
+            top: 0,
+            bottom: 0,
+            zIndex: 10,
+          }}
+        >
           <RenterSidebar />
-        </Sider>
+        </div>
       )}
-      <Layout style={{ marginLeft: isMobile ? 0 : 220 }}>
+
+      {/* Main content */}
+      <div
+        style={{
+          flex: 1,
+          marginLeft: !isMobile ? 220 : 0,
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {/* Mobile Header */}
         {isMobile && (
           <div
             style={{
               background: "#001529",
+              color: "white",
               padding: "12px 16px",
               display: "flex",
               alignItems: "center",
@@ -330,347 +364,371 @@ export default function RenterBillDetailPage() {
           </div>
         )}
 
-        <div style={{ flex: 1, padding: isMobile ? 16 : 24 }}>
-          {!isMobile && <PageHeader title="Chi tiết hóa đơn" />}
-          {isMobile && (
-            <div style={{ marginBottom: 16 }}>
-              <h2
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "flex-start",
+            padding: isMobile ? "16px 8px" : "40px 0",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 1100,
+              margin: "0 auto",
+              padding: isMobile ? 8 : 0,
+            }}
+          >
+            <Card
+              style={{
+                borderRadius: "16px",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+                margin: "0 auto",
+                background: "#fff",
+              }}
+            >
+              {/* Header */}
+              <div
                 style={{
-                  fontSize: 20,
-                  fontWeight: 600,
-                  color: "#1890ff",
-                  margin: 0,
+                  padding: isMobile ? "16px 16px 12px 16px" : "24px 24px 16px 24px",
+                  borderBottom: "1px solid #f0f0f0",
+                  marginBottom: 24,
                 }}
               >
-                Chi tiết hóa đơn
-              </h2>
-            </div>
-          )}
-
-          <Card style={{ marginTop: isMobile ? 0 : 20 }} size={isMobile ? "small" : "default"}>
-            {loading ? (
-              <Spin />
-            ) : bill ? (
-              <>
-                <Descriptions
-                  bordered
-                  column={isMobile ? 1 : 2}
-                  size={isMobile ? "small" : "default"}
+                <Title
+                  level={isMobile ? 3 : 2}
+                  style={{
+                    margin: 0,
+                    color: "#1890ff",
+                    fontSize: isMobile ? 18 : 28,
+                    textAlign: "center",
+                  }}
                 >
-                  <Descriptions.Item label="Mã hóa đơn">
-                    #{bill.id}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Phòng">
-                    {bill.roomNumber}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Mã hợp đồng">
-                    {bill.contractId ? `#${bill.contractId}` : "Không có"}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Loại hóa đơn">
-                    <Tag
-                      color={
-                        bill.billType === "REGULAR" ||
+                  Chi tiết hóa đơn
+                </Title>
+              </div>
+
+              {loading ? (
+                <div style={{ textAlign: "center", padding: "40px" }}>
+                  <Spin size="large" />
+                  <div style={{ marginTop: 16 }}>Đang tải...</div>
+                </div>
+              ) : bill ? (
+                <>
+                  <Descriptions
+                    bordered
+                    column={isMobile ? 1 : 2}
+                    size={isMobile ? "small" : "default"}
+                  >
+                    <Descriptions.Item label="Mã hóa đơn">
+                      #{bill.id}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Phòng">
+                      {bill.roomNumber}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Mã hợp đồng">
+                      {bill.contractId ? `#${bill.contractId}` : "Không có"}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Loại hóa đơn">
+                      <Tag
+                        color={
+                          bill.billType === "REGULAR" ||
+                          bill.billType === "ROOM_RENT" ||
+                          bill.billType === "CONTRACT_ROOM_RENT" ||
+                          (bill.billType &&
+                            bill.billType.includes("ROOM_RENT"))
+                            ? "blue"
+                            : bill.billType === "SERVICE" ||
+                              bill.billType === "CONTRACT_SERVICE" ||
+                              (bill.billType &&
+                                bill.billType.includes("SERVICE"))
+                            ? "green"
+                            : bill.billType === "DEPOSIT" ||
+                              (bill.billType &&
+                                bill.billType.includes("DEPOSIT"))
+                            ? "purple"
+                            : bill.billType === "CONTRACT_TOTAL"
+                            ? "geekblue"
+                            : bill.billType === "LATE_PENALTY"
+                            ? "volcano"
+                            : "default"
+                        }
+                      >
+                        {bill.billType === "REGULAR" ||
                         bill.billType === "ROOM_RENT" ||
                         bill.billType === "CONTRACT_ROOM_RENT" ||
                         (bill.billType && bill.billType.includes("ROOM_RENT"))
-                          ? "blue"
+                          ? "Tiền phòng"
                           : bill.billType === "SERVICE" ||
                             bill.billType === "CONTRACT_SERVICE" ||
-                            (bill.billType && bill.billType.includes("SERVICE"))
-                          ? "green"
+                            (bill.billType &&
+                              bill.billType.includes("SERVICE"))
+                          ? "Dịch vụ"
                           : bill.billType === "DEPOSIT" ||
-                            (bill.billType && bill.billType.includes("DEPOSIT"))
-                          ? "purple"
+                            (bill.billType &&
+                              bill.billType.includes("DEPOSIT"))
+                          ? "Đặt cọc"
                           : bill.billType === "CONTRACT_TOTAL"
-                          ? "geekblue"
+                          ? "Tổng hợp đồng"
                           : bill.billType === "LATE_PENALTY"
-                          ? "volcano"
-                          : "default"
-                      }
-                    >
-                      {bill.billType === "REGULAR" ||
-                      bill.billType === "ROOM_RENT" ||
-                      bill.billType === "CONTRACT_ROOM_RENT" ||
-                      (bill.billType && bill.billType.includes("ROOM_RENT"))
-                        ? "Tiền phòng"
-                        : bill.billType === "SERVICE" ||
-                          bill.billType === "CONTRACT_SERVICE" ||
-                          (bill.billType && bill.billType.includes("SERVICE"))
-                        ? "Dịch vụ"
-                        : bill.billType === "DEPOSIT" ||
-                          (bill.billType && bill.billType.includes("DEPOSIT"))
-                        ? "Đặt cọc"
-                        : bill.billType === "CONTRACT_TOTAL"
-                        ? "Tổng hợp đồng"
-                        : bill.billType === "LATE_PENALTY"
-                        ? "Phạt quá hạn"
-                        : bill.billType || "Không xác định"}
-                    </Tag>
-                  </Descriptions.Item>
-
-                  <Descriptions.Item label="Từ ngày">
-                    {dayjs(bill.fromDate).format("DD/MM/YYYY")}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Đến ngày">
-                    {bill.toDate &&
-                    dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").isValid() ? (
-                      dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").format(
-                        "DD/MM/YYYY"
-                      )
-                    ) : getFallbackToDate(bill) ? (
-                      <span style={{ color: "#faad14", fontWeight: 500 }}>
-                        {dayjs(getFallbackToDate(bill)).isValid()
-                          ? dayjs(getFallbackToDate(bill)).format("DD/MM/YYYY")
-                          : getFallbackToDate(bill)}{" "}
-                        (Lấy từ chi tiết hóa đơn)
-                      </span>
-                    ) : (
-                      <span style={{ color: "red", fontWeight: 500 }}>
-                        Không xác định (Dữ liệu hóa đơn thiếu ngày kết thúc)
-                      </span>
-                    )}
-                  </Descriptions.Item>
-
-                  <Descriptions.Item label="Hạn thanh toán">
-                    {bill.dueDate ? (
-                      <span>
-                        {(() => {
-                          try {
-                            const dueDate = dayjs(
-                              bill.dueDate,
-                              "YYYY-MM-DD HH:mm:ss A"
-                            );
-                            return dueDate.isValid()
-                              ? dueDate.format("DD/MM/YYYY")
-                              : "Không xác định";
-                          } catch {
-                            return "Không xác định";
-                          }
-                        })()}
-                      </span>
-                    ) : (
-                      <span style={{ color: "#faad14", fontStyle: "italic" }}>
-                        Chưa thiết lập
-                      </span>
-                    )}
-                  </Descriptions.Item>
-
-                  <Descriptions.Item label="Tổng tiền">
-                    <div>
-                      <div style={{ fontWeight: "bold" }}>
-                        {formatCurrency(bill.totalAmount)}
-                      </div>
-                      {(bill.paidAmount || 0) > 0 && (
-                        <div style={{ fontSize: "12px", color: "#52c41a" }}>
-                          Đã trả (gốc): {formatCurrency(bill.paidAmount || 0)}
-                        </div>
-                      )}
-                      {(bill.partialPaymentFeesCollected || 0) > 0 && (
-                        <div style={{ fontSize: "12px", color: "#1890ff" }}>
-                          Phí thanh toán từng phần: {formatCurrency(bill.partialPaymentFeesCollected || 0)}
-                        </div>
-                      )}
-                      {(bill.outstandingAmount || 0) > 0 && (
-                        <div style={{ fontSize: "12px", color: "#ff4d4f" }}>
-                          Còn nợ:{" "}
-                          {formatCurrency(bill.outstandingAmount || 0)}
-                        </div>
-                      )}
-                      {/* Hiển thị lãi suất nếu có */}
-                      {bill.interestAmount && bill.interestAmount > 0 && (
-                        <div style={{ fontSize: "12px", color: "#cf1322", fontWeight: "bold" }}>
-                          Lãi suất: {formatCurrency(bill.interestAmount)}
-                        </div>
-                      )}
-                    </div>
-                  </Descriptions.Item>
-
-                  <Descriptions.Item label="Trạng thái">
-                    <div>
-                      <Tag
-                        color={
-                          bill.status
-                            ? "green"
-                            : bill.isPartiallyPaid
-                            ? "orange"
-                            : "red"
-                        }
-                      >
-                        {bill.status
-                          ? "Đã thanh toán"
-                          : bill.isPartiallyPaid
-                          ? "Thanh toán từng phần"
-                          : "Chưa thanh toán"}
+                          ? "Phạt quá hạn"
+                          : bill.billType || "Không xác định"}
                       </Tag>
-                      {bill.lastPaymentDate && (
-                        <div
-                          style={{
-                            fontSize: "11px",
-                            color: "#666",
-                            marginTop: "4px",
-                          }}
-                        >
-                          Lần thanh toán cuối:{" "}
+                    </Descriptions.Item>
+
+                    <Descriptions.Item label="Từ ngày">
+                      {dayjs(bill.fromDate).format("DD/MM/YYYY")}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Đến ngày">
+                      {bill.toDate &&
+                      dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").isValid() ? (
+                        dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").format(
+                          "DD/MM/YYYY"
+                        )
+                      ) : getFallbackToDate(bill) ? (
+                        <span style={{ color: "#faad14", fontWeight: 500 }}>
+                          {dayjs(getFallbackToDate(bill)).isValid()
+                            ? dayjs(getFallbackToDate(bill)).format(
+                                "DD/MM/YYYY"
+                              )
+                            : getFallbackToDate(bill)}{" "}
+                          (Lấy từ chi tiết hóa đơn)
+                        </span>
+                      ) : (
+                        <span style={{ color: "red", fontWeight: 500 }}>
+                          Không xác định (Dữ liệu hóa đơn thiếu ngày kết thúc)
+                        </span>
+                      )}
+                    </Descriptions.Item>
+
+                    <Descriptions.Item label="Hạn thanh toán">
+                      {bill.dueDate ? (
+                        <span>
                           {(() => {
                             try {
-                              const date = dayjs(bill.lastPaymentDate);
-                              return date.isValid()
-                                ? date.format("DD/MM/YYYY HH:mm")
+                              const dueDate = dayjs(
+                                bill.dueDate,
+                                "YYYY-MM-DD HH:mm:ss A"
+                              );
+                              return dueDate.isValid()
+                                ? dueDate.format("DD/MM/YYYY")
                                 : "Không xác định";
                             } catch {
                               return "Không xác định";
                             }
                           })()}
-                        </div>
+                        </span>
+                      ) : (
+                        <span style={{ color: "#faad14", fontStyle: "italic" }}>
+                          Chưa thiết lập
+                        </span>
                       )}
-                      {/* Hiển thị thông tin quá hạn */}
-                      {bill.dueDate && (() => {
-                        try {
-                          const dueDate = dayjs(bill.dueDate);
-                          const currentDate = dayjs();
-                          if (currentDate.isAfter(dueDate) && !bill.status) {
-                            const monthsOverdue = Math.ceil(currentDate.diff(dueDate, 'month', true));
-                            return (
-                              <div
-                                style={{
-                                  fontSize: "11px",
-                                  color: "#cf1322",
-                                  marginTop: "4px",
-                                  fontWeight: "bold",
-                                }}
-                              >
-                                ⚠️ Quá hạn {monthsOverdue} tháng
-                              </div>
-                            );
+                      {/* Thông tin quá hạn nếu có */}
+                      {bill.dueDate &&
+                        (() => {
+                          try {
+                            const dueDate = dayjs(bill.dueDate);
+                            const currentDate = dayjs();
+                            if (currentDate.isAfter(dueDate) && !bill.status) {
+                              const monthsOverdue = Math.ceil(
+                                currentDate.diff(dueDate, "month", true)
+                              );
+                              return (
+                                <div
+                                  style={{
+                                    fontSize: "11px",
+                                    color: "#cf1322",
+                                    marginTop: "4px",
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  ⚠️ Quá hạn {monthsOverdue} tháng
+                                </div>
+                              );
+                            }
+                            return null;
+                          } catch {
+                            return null;
                           }
-                          return null;
-                        } catch {
-                          return null;
-                        }
-                      })()}
-                    </div>
-                  </Descriptions.Item>
+                        })()}
+                    </Descriptions.Item>
 
-                  {/* Hiển thị thông tin phí thanh toán từng phần nếu đã thanh toán từng phần */}
-                  {bill.isPartiallyPaid && (
-                    <Descriptions.Item label="Phí thanh toán từng phần" span={2}>
-                      <div style={{ 
-                        padding: '8px 12px', 
-                        backgroundColor: '#fff2f0', 
-                        border: '1px solid #ffccc7', 
-                        borderRadius: '4px',
-                        fontSize: '12px'
-                      }}>
-                        <div style={{ color: '#cf1322', fontWeight: 'bold', marginBottom: '4px' }}>
-                          ⚠️ Lưu ý về phí thanh toán từng phần:
+                    <Descriptions.Item label="Tổng tiền">
+                      <div>
+                        <div style={{ fontWeight: "bold" }}>
+                          {formatCurrency(bill.totalAmount)}
                         </div>
-                        <ul style={{ margin: 0, paddingLeft: '16px', color: '#666' }}>
-                          <li>Lần 1: 200.000 ₫</li>
-                          <li>Lần 2: 500.000 ₫</li>
-                          <li>Lần 3+: 1.000.000 ₫</li>
-                        </ul>
-                        <div style={{ marginTop: '8px', fontSize: '11px', color: '#999' }}>
-                          Phí này sẽ được cộng vào tổng số tiền thanh toán lần tiếp theo
-                        </div>
-                        <div style={{ marginTop: '4px', fontSize: '11px', color: '#999' }}>
-                          Tối thiểu thanh toán: 50% | Lãi suất tối đa: 5%
-                        </div>
+                        {(bill.paidAmount || 0) > 0 && (
+                          <div style={{ fontSize: "12px", color: "#52c41a" }}>
+                            Đã trả (gốc): {formatCurrency(bill.paidAmount || 0)}
+                          </div>
+                        )}
+                        {(bill.partialPaymentFeesCollected || 0) > 0 && (
+                          <div style={{ fontSize: "12px", color: "#1890ff" }}>
+                            Phí thanh toán từng phần:{" "}
+                            {formatCurrency(
+                              bill.partialPaymentFeesCollected || 0
+                            )}
+                          </div>
+                        )}
+                        {(bill.outstandingAmount || 0) > 0 && (
+                          <div style={{ fontSize: "12px", color: "#ff4d4f" }}>
+                            Còn nợ:{" "}
+                            {formatCurrency(bill.outstandingAmount || 0)}
+                          </div>
+                        )}
+                        {bill.interestAmount && bill.interestAmount > 0 && (
+                          <div
+                            style={{
+                              fontSize: "12px",
+                              color: "#cf1322",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            Lãi suất: {formatCurrency(bill.interestAmount)}
+                          </div>
+                        )}
                       </div>
                     </Descriptions.Item>
-                  )}
 
-                  {bill.billType === "LATE_PENALTY" && (
-                    <>
-                      <Descriptions.Item label="Hóa đơn gốc">
-                        <Button
-                          type="link"
-                          onClick={() =>
-                            navigate(`/renter/bills/${bill.originalBillId}`)
+                    <Descriptions.Item label="Trạng thái">
+                      <div>
+                        <Tag
+                          color={
+                            bill.status
+                              ? "green"
+                              : bill.isPartiallyPaid
+                              ? "orange"
+                              : "red"
                           }
-                          style={{ padding: 0 }}
                         >
-                          Xem hóa đơn #{bill.originalBillId}
-                        </Button>
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Tỷ lệ phạt">
-                        <Tag color="volcano">{bill.penaltyRate}%</Tag>
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Số ngày quá hạn">
-                        <Tag color="red">{bill.overdueDays} ngày</Tag>
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Số tiền phạt">
-                        <span style={{ color: "#cf1322", fontWeight: "bold" }}>
-                          {bill.penaltyAmount?.toLocaleString()} ₫
-                        </span>
-                      </Descriptions.Item>
-                      {bill.notes && (
-                        <Descriptions.Item label="Ghi chú" span={2}>
-                          <span style={{ color: "#666" }}>{bill.notes}</span>
+                          {bill.status
+                            ? "Đã thanh toán"
+                            : bill.isPartiallyPaid
+                            ? "Thanh toán từng phần"
+                            : "Chưa thanh toán"}
+                        </Tag>
+                        {bill.lastPaymentDate && (
+                          <div
+                            style={{
+                              fontSize: "11px",
+                              color: "#666",
+                              marginTop: "4px",
+                            }}
+                          >
+                            Lần thanh toán cuối:{" "}
+                            {(() => {
+                              try {
+                                const date = dayjs(bill.lastPaymentDate);
+                                return date.isValid()
+                                  ? date.format("DD/MM/YYYY HH:mm")
+                                  : "Không xác định";
+                              } catch {
+                                return "Không xác định";
+                              }
+                            })()}
+                          </div>
+                        )}
+                      </div>
+                    </Descriptions.Item>
+
+                    {bill.billType === "LATE_PENALTY" && (
+                      <>
+                        <Descriptions.Item label="Hóa đơn gốc">
+                          <Button
+                            type="link"
+                            onClick={() =>
+                              navigate(`/renter/bills/${bill.originalBillId}`)
+                            }
+                            style={{ padding: 0 }}
+                          >
+                            Xem hóa đơn #{bill.originalBillId}
+                          </Button>
                         </Descriptions.Item>
-                      )}
-                    </>
-                  )}
-                </Descriptions>
+                        <Descriptions.Item label="Tỷ lệ phạt">
+                          <Tag color="volcano">{bill.penaltyRate}%</Tag>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Số ngày quá hạn">
+                          <Tag color="red">{bill.overdueDays} ngày</Tag>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Số tiền phạt">
+                          <span style={{ color: "#cf1322", fontWeight: "bold" }}>
+                            {bill.penaltyAmount?.toLocaleString()} ₫
+                          </span>
+                        </Descriptions.Item>
+                        {bill.notes && (
+                          <Descriptions.Item label="Ghi chú" span={2}>
+                            <span style={{ color: "#666" }}>{bill.notes}</span>
+                          </Descriptions.Item>
+                        )}
+                      </>
+                    )}
+                  </Descriptions>
 
-                <h3 style={{ marginTop: 24, fontSize: isMobile ? 16 : 18 }}>
-                  Chi tiết các khoản
-                </h3>
-                <Table
-                  columns={columns}
-                  dataSource={bill.details}
-                  rowKey={(_, idx) => idx}
-                  pagination={false}
-                  size={isMobile ? "small" : "small"}
-                  scroll={{ x: isMobile ? 400 : 600 }}
-                />
+                  <h3 style={{ marginTop: 24, fontSize: isMobile ? 16 : 18 }}>
+                    Chi tiết các khoản
+                  </h3>
+                  <Table
+                    columns={columns}
+                    dataSource={bill.details}
+                    rowKey={(_, idx) => idx}
+                    pagination={false}
+                    size={isMobile ? "small" : "small"}
+                    scroll={{ x: isMobile ? 400 : 600 }}
+                  />
 
-                <div
-                  style={{
-                    marginTop: 24,
-                    display: "flex",
-                    flexDirection: isMobile ? "column" : "row",
-                    gap: isMobile ? 8 : 16,
-                  }}
-                >
-                  <Button
-                    onClick={handleExport}
-                    type="primary"
-                    size={isMobile ? "small" : "middle"}
+                  <div
+                    style={{
+                      marginTop: 24,
+                      display: "flex",
+                      flexDirection: isMobile ? "column" : "row",
+                      gap: isMobile ? 8 : 16,
+                    }}
                   >
-                    Xuất PDF
-                  </Button>
-
-                  {/* Nút xem lịch sử thanh toán */}
-                  <Button
-                    icon={<HistoryOutlined />}
-                    size={isMobile ? "small" : "middle"}
-                    onClick={() => setPaymentHistoryModalVisible(true)}
-                  >
-                    Lịch sử thanh toán
-                  </Button>
-
-                  {!bill.status && (
                     <Button
+                      onClick={handleExport}
                       type="primary"
                       size={isMobile ? "small" : "middle"}
-                      onClick={() => setPaymentModalVisible(true)}
                     >
-                      Thanh toán
+                      Xuất PDF
                     </Button>
-                  )}
 
-                  <Button
-                    size={isMobile ? "small" : "middle"}
-                    onClick={() => navigate(-1)}
-                  >
-                    Quay lại
-                  </Button>
+                    <Button
+                      icon={<HistoryOutlined />}
+                      size={isMobile ? "small" : "middle"}
+                      onClick={() => setPaymentHistoryModalVisible(true)}
+                    >
+                      Lịch sử thanh toán
+                    </Button>
+
+                    {!bill.status && (
+                      <Button
+                        type="primary"
+                        size={isMobile ? "small" : "middle"}
+                        onClick={() => setPaymentModalVisible(true)}
+                      >
+                        Thanh toán
+                      </Button>
+                    )}
+
+                    <Button
+                      size={isMobile ? "small" : "middle"}
+                      onClick={() => navigate(-1)}
+                    >
+                      Quay lại
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div style={{ textAlign: "center", padding: "40px" }}>
+                  <div>Không tìm thấy hóa đơn</div>
                 </div>
-              </>
-            ) : (
-              <div>Không tìm thấy hóa đơn</div>
-            )}
-          </Card>
+              )}
+            </Card>
+          </div>
         </div>
 
         {/* Mobile Drawer for Sidebar */}
@@ -689,7 +747,7 @@ export default function RenterBillDetailPage() {
             />
           </Drawer>
         )}
-      </Layout>
+      </div>
 
       {/* Payment Options Modal */}
       <Modal
@@ -713,7 +771,8 @@ export default function RenterBillDetailPage() {
                   <strong>Phòng:</strong> {bill?.roomNumber || "N/A"}
                 </p>
                 <p>
-                  <strong>Tổng tiền:</strong> {formatCurrency(bill?.totalAmount)}
+                  <strong>Tổng tiền:</strong>{" "}
+                  {formatCurrency(bill?.totalAmount)}
                 </p>
                 <p>
                   <strong>Đã thanh toán:</strong>{" "}
@@ -734,31 +793,48 @@ export default function RenterBillDetailPage() {
 
         <Divider />
 
-        {/* Thông báo phí thanh toán từng phần nếu hóa đơn đã từng thanh toán từng phần */}
+        {/* Cảnh báo phí từng phần nếu đã từng partial */}
         {bill?.isPartiallyPaid && (
           <div style={{ marginBottom: 16 }}>
             <Alert
               message="Phí thanh toán từng phần"
               description={
                 <div>
-                  <p style={{ marginBottom: 8, fontSize: '14px' }}>
-                    <strong>⚠️ Lưu ý:</strong> Hóa đơn này đã từng thanh toán từng phần. 
+                  <p style={{ marginBottom: 8, fontSize: "14px" }}>
+                    <strong>⚠️ Lưu ý:</strong> Hóa đơn này đã từng thanh toán từng phần.
                     Khi thanh toán thẳng, bạn sẽ phải trả thêm phí thanh toán từng phần:
                   </p>
-                  <ul style={{ margin: 0, paddingLeft: 20, fontSize: '13px' }}>
-                    <li>Lần 1: <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>200.000 ₫</span></li>
-                    <li>Lần 2: <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>500.000 ₫</span></li>
-                    <li>Lần 3+: <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>1.000.000 ₫</span></li>
+                  <ul style={{ margin: 0, paddingLeft: 20, fontSize: "13px" }}>
+                    <li>
+                      Lần 1:{" "}
+                      <span style={{ color: "#ff4d4f", fontWeight: "bold" }}>
+                        200.000 ₫
+                      </span>
+                    </li>
+                    <li>
+                      Lần 2:{" "}
+                      <span style={{ color: "#ff4d4f", fontWeight: "bold" }}>
+                        500.000 ₫
+                      </span>
+                    </li>
+                    <li>
+                      Lần 3+:{" "}
+                      <span style={{ color: "#ff4d4f", fontWeight: "bold" }}>
+                        1.000.000 ₫
+                      </span>
+                    </li>
                   </ul>
-                  <div style={{ 
-                    marginTop: 8, 
-                    padding: '8px 12px', 
-                    backgroundColor: '#fff2f0', 
-                    border: '1px solid #ffccc7', 
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    color: '#cf1322'
-                  }}>
+                  <div
+                    style={{
+                      marginTop: 8,
+                      padding: "8px 12px",
+                      backgroundColor: "#fff2f0",
+                      border: "1px solid #ffccc7",
+                      borderRadius: "4px",
+                      fontSize: "12px",
+                      color: "#cf1322",
+                    }}
+                  >
                     Phí này sẽ được tự động cộng vào tổng số tiền thanh toán
                   </div>
                 </div>
@@ -814,7 +890,7 @@ export default function RenterBillDetailPage() {
         </Radio.Group>
       </Modal>
 
-      {/* Partial Payment Modal */}
+      {/* Partial Payment Modal (VNPAY) */}
       {bill && (
         <PartialPaymentModal
           visible={partialPaymentModalVisible}
@@ -844,6 +920,6 @@ export default function RenterBillDetailPage() {
           outstandingAmount={bill.outstandingAmount || bill.totalAmount}
         />
       )}
-    </Layout>
+    </div>
   );
 }

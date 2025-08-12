@@ -30,9 +30,7 @@ import { getAllServicesList } from "../../services/serviceApi";
 import { detectElectricOcr } from "../../services/electricOcrApi";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import {
-  CheckCircleFilled,
-} from "@ant-design/icons";
+import { CheckCircleFilled } from "@ant-design/icons";
 import {
   getAllAssets,
   getAssetInventoryByRoomAndContract,
@@ -171,7 +169,7 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
     message: "",
   });
 
-  // Trong state, thêm allServices để lưu tất cả dịch vụ
+  // all services
   const [allServices, setAllServices] = useState([]);
 
   const [editAssetModalOpen, setEditAssetModalOpen] = useState(false);
@@ -225,11 +223,9 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
       const res = await getAllServicesList();
       const all = res.data || [];
       setAllServices(all);
-      // Lấy danh sách dịch vụ đang active trong phòng
       const activeServiceIds = (room.services || [])
         .filter((s) => s.isActive !== false && !s.endDate)
         .map((s) => s.id);
-      // Chỉ lọc ra các dịch vụ chưa active trong phòng (cho phép thêm lại dịch vụ đã từng ngừng/xóa)
       const availableServices = all.filter(
         (service) => !activeServiceIds.includes(service.id)
       );
@@ -248,8 +244,6 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
       message.error("Vui lòng chọn ít nhất một dịch vụ!");
       return;
     }
-
-    // Kiểm tra xem có dịch vụ điện không
     const selectedServiceObjects = services.filter((s) =>
       selectedServices.includes(s.id)
     );
@@ -258,12 +252,10 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
     );
 
     if (hasElectricityService) {
-      // Nếu có dịch vụ điện, lưu danh sách dịch vụ và mở modal nhập số điện
       setPendingServices(selectedServices);
       setElectricModalOpen(true);
       setServiceModalOpen(false);
     } else {
-      // Nếu không có dịch vụ điện, thêm dịch vụ ngay
       try {
         await addServicesToRoom(selectedServices);
         message.success("Thêm dịch vụ thành công!");
@@ -277,7 +269,7 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
     }
   };
 
-  // Hàm thêm dịch vụ vào phòng
+  // Thêm dịch vụ vào phòng
   const addServicesToRoom = async (serviceIds, electricReading = null) => {
     setAddingService(true);
     try {
@@ -285,14 +277,15 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
         serviceIds.includes(s.id)
       );
 
-      // Thêm từng dịch vụ
       for (const serviceId of serviceIds) {
         const service = selectedServiceObjects.find((s) => s.id === serviceId);
-        if (service && service.serviceType === "ELECTRICITY" && electricReading) {
-          // Nếu là dịch vụ điện và có chỉ số, sử dụng initialReading
+        if (
+          service &&
+          service.serviceType === "ELECTRICITY" &&
+          electricReading
+        ) {
           await addServiceToRoom(selectedRoom.id, serviceId, electricReading);
         } else {
-          // Các dịch vụ khác hoặc điện không có chỉ số
           await addServiceToRoom(selectedRoom.id, serviceId);
         }
       }
@@ -317,7 +310,7 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
     }
   };
 
-  // Xử lý modal nhập chỉ số điện hoặc OCR
+  // OCR điện
   const handleElectricOcr = async () => {
     if (!electricFile && !electricValue) {
       message.error("Vui lòng nhập số điện hoặc upload ảnh!");
@@ -331,8 +324,6 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
         result = res.data.data;
         setElectricValue(result);
       }
-
-      // Thêm dịch vụ vào phòng với chỉ số điện
       await addServicesToRoom(pendingServices, result);
 
       message.success(
@@ -349,7 +340,7 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
     }
   };
 
-  // Function để xử lý khi người thuê rời phòng
+  // Người thuê rời phòng
   const handleRenterLeave = async (roomUserId) => {
     try {
       const response = await fetch(
@@ -374,7 +365,7 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
     }
   };
 
-  // Function để gia hạn hợp đồng
+  // Gia hạn hợp đồng
   const handleRenewContract = async () => {
     if (!renewalDate) {
       message.error("Vui lòng chọn ngày gia hạn");
@@ -413,7 +404,7 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
     }
   };
 
-  // Function để xử lý hợp đồng hết hạn
+  // Xử lý hợp đồng hết hạn
   const handleProcessExpiredContracts = async () => {
     try {
       const response = await fetch(
@@ -438,7 +429,7 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
     }
   };
 
-  // Function để cập nhật hợp đồng
+  // Cập nhật hợp đồng
   const handleUpdateContract = async () => {
     if (!updateContractData.reasonForUpdate) {
       message.error("Vui lòng nhập lý do cập nhật");
@@ -518,7 +509,6 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
 
   const handleAssetAssign = async () => {
     if (!selectedAssetId || !assetRoomId) return;
-    // Tìm asset được chọn
     const asset = assetList.find((a) => a.id === selectedAssetId);
     setAssetToAdd(asset);
     setAddAssetInventoryForm({ quantity: 1, status: "", note: "" });
@@ -541,7 +531,6 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
     setViewAssetRoomId(room.id);
     setViewAssetModalOpen(true);
     fetchRoomAssets(room.id);
-    // Fetch danh sách hợp đồng của phòng
     try {
       const contracts = await getContractHistoryByRoom(room.id);
       setContractList(contracts || []);
@@ -743,7 +732,6 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
   const handleContractChange = async (value) => {
     setSelectedContractId(value);
     setRoomAssetsLoading(true);
-    // Lấy roomNumber từ viewAssetRoomId và rooms
     let roomNumber = null;
     if (viewAssetRoomId && rooms && rooms.length > 0) {
       const room = rooms.find((r) => r.id === viewAssetRoomId);
@@ -774,7 +762,7 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
   const handleDeleteRoomAsset = async (roomAssetId) => {
     try {
       await deleteRoomAsset(roomAssetId);
-      fetchRoomAssets(viewAssetRoomId); // reload lại danh sách
+      fetchRoomAssets(viewAssetRoomId);
     } catch (err) {
       message.error("Xóa tài sản khỏi phòng thất bại!");
     }
@@ -1003,8 +991,10 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
                     style={{ borderRadius: 6, minWidth: 80, height: 38 }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Chặn sửa nếu phòng có người ở
-                      if (room.roomUsers && room.roomUsers.filter((u) => u.isActive).length > 0) {
+                      if (
+                        room.roomUsers &&
+                        room.roomUsers.filter((u) => u.isActive).length > 0
+                      ) {
                         message.error("Không thể chỉnh sửa phòng khi vẫn còn người ở!");
                         return;
                       }
