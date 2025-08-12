@@ -846,17 +846,30 @@ const user = useSelector((state) => state.account.user);
                                         type="primary"
                                         danger
                                         style={{ borderRadius: 6, minWidth: 90, height: 38 }}
-                                        onClick={async () => {
-                                            if (window.confirm('Bạn có chắc muốn xóa phòng này không?')) {
-                                                try {
-                                                    await deleteRoom(room.id);
-                                                    message.success('Xóa phòng thành công');
-                                                    if (onRoomsUpdate) onRoomsUpdate();
-                                                } catch (e) {
-                                                    const backendMsg = e?.response?.data?.message || e?.response?.data?.error || 'Xóa phòng thất bại';
-                                                    message.error(backendMsg);
+                                        onClick={() => {
+                                            Modal.confirm({
+                                                title: (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                        <ExclamationCircleOutlined style={{ color: '#faad14', fontSize: 16 }} />
+                                                        <span>Bạn có chắc muốn xóa phòng này?</span>
+                                                    </div>
+                                                ),
+                                                okText: "Có",
+                                                cancelText: "Không",
+                                                okType: "primary",
+                                                okButtonProps: { style: { backgroundColor: '#1890ff', borderColor: '#1890ff' } },
+                                                cancelButtonProps: { style: { borderColor: '#d9d9d9', color: '#000' } },
+                                                onOk: async () => {
+                                                    try {
+                                                        await deleteRoom(room.id);
+                                                        message.success('Xóa phòng thành công');
+                                                        if (onRoomsUpdate) onRoomsUpdate();
+                                                    } catch (e) {
+                                                        const backendMsg = e?.response?.data?.message || e?.response?.data?.error || 'Xóa phòng thất bại';
+                                                        message.error(backendMsg);
+                                                    }
                                                 }
-                                            }
+                                            });
                                         }}
                                     >
                                         Xóa
