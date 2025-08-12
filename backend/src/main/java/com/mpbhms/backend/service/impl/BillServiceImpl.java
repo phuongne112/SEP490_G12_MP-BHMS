@@ -1435,6 +1435,21 @@ public class BillServiceImpl implements BillService {
             throw new BusinessException("Số tiền thanh toán không được vượt quá số tiền còn nợ: " + formatCurrency(outstandingAmount));
         }
         
+        // 🆕 KIỂM TRA KHOẢNG THỜI GIAN 30 NGÀY GIỮA CÁC LẦN THANH TOÁN TỪNG PHẦN
+        if (Boolean.TRUE.equals(bill.getIsPartiallyPaid()) && bill.getLastPaymentDate() != null) {
+            Instant currentDate = Instant.now();
+            Instant lastPaymentDate = bill.getLastPaymentDate();
+            
+            // Tính số ngày từ lần thanh toán cuối cùng
+            long daysSinceLastPayment = java.time.Duration.between(lastPaymentDate, currentDate).toDays();
+            
+            if (daysSinceLastPayment < 30) {
+                long remainingDays = 30 - daysSinceLastPayment;
+                throw new BusinessException("Bạn phải đợi thêm " + remainingDays + " ngày nữa mới được thanh toán từng phần tiếp theo. " +
+                    "Khoảng thời gian tối thiểu giữa các lần thanh toán từng phần là 30 ngày.");
+            }
+        }
+        
         // Lưu số tiền đã thanh toán trước đó
         BigDecimal previousPaidAmount = bill.getPaidAmount() != null ? bill.getPaidAmount() : BigDecimal.ZERO;
         
@@ -2161,11 +2176,12 @@ public class BillServiceImpl implements BillService {
         long daysDiff = java.time.Duration.between(dueDate, now).toDays();
         int overdueDays = (int) daysDiff;
         
-        // 🆕 Logic mới: Đối với hóa đơn thanh toán từng phần, trừ đi 37 ngày trước khi tính phạt
+        // 🆕 Logic mới: Đối với hóa đơn thanh toán từng phần, trừ đi 7 ngày trước khi tính phạt
+        // (thay vì 37 ngày như trước)
         if (Boolean.TRUE.equals(bill.getIsPartiallyPaid())) {
-            overdueDays = Math.max(0, overdueDays - 37); // Trừ 37 ngày, tối thiểu là 0
+            overdueDays = Math.max(0, overdueDays - 7); // Trừ 7 ngày, tối thiểu là 0
             System.out.println("🆕 Hóa đơn #" + bill.getId() + " đã thanh toán từng phần - Ngày quá hạn thực tế: " + 
-                (int) daysDiff + " - Sau khi trừ 37 ngày: " + overdueDays);
+                (int) daysDiff + " - Sau khi trừ 7 ngày: " + overdueDays);
         }
         
         return overdueDays;

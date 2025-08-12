@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, InputNumber, Button, Alert, Space, Typography } from 'antd';
 import { getPaymentCount } from '../../services/billApi';
+import { message } from 'antd'; // Added message import
 
 const { Text } = Typography;
 
@@ -39,6 +40,40 @@ export default function CashPartialPaymentModal({
       setPaymentCount(0);
       calculateFees(0);
     }
+  };
+
+  // 🆕 Tính số ngày từ lần thanh toán cuối cùng
+  const getDaysSinceLastPayment = () => {
+    if (!bill || !bill.lastPaymentDate) return null;
+    
+    try {
+      const lastPaymentDate = new Date(bill.lastPaymentDate);
+      const currentDate = new Date();
+      const diffTime = currentDate.getTime() - lastPaymentDate.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return Math.max(0, diffDays);
+    } catch (error) {
+      console.error('Error calculating days since last payment:', error);
+      return null;
+    }
+  };
+
+  // 🆕 Kiểm tra có thể thanh toán từng phần không
+  const canMakePartialPayment = () => {
+    if (!bill || !bill.isPartiallyPaid || !bill.lastPaymentDate) return true;
+    
+    const daysSinceLastPayment = getDaysSinceLastPayment();
+    if (daysSinceLastPayment === null) return true;
+    
+    return daysSinceLastPayment >= 30;
+  };
+
+  // 🆕 Lấy số ngày còn lại cần đợi
+  const getRemainingDays = () => {
+    const daysSinceLastPayment = getDaysSinceLastPayment();
+    if (daysSinceLastPayment === null) return 0;
+    
+    return Math.max(0, 30 - daysSinceLastPayment);
   };
 
   const calculatePaymentLimits = () => {
@@ -168,33 +203,31 @@ export default function CashPartialPaymentModal({
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
-      const paymentAmount = values.paymentAmount;
       
-      if (paymentAmount < minPayment) {
-        throw new Error(`Số tiền thanh toán tối thiểu là ${minPayment.toLocaleString()} ₫`);
+      // 🆕 Kiểm tra khoảng thời gian 30 ngày
+      if (!canMakePartialPayment()) {
+        const remainingDays = getRemainingDays();
+        message.error(`Bạn phải đợi thêm ${remainingDays} ngày nữa mới được thanh toán từng phần tiếp theo. Khoảng thời gian tối thiểu giữa các lần thanh toán từng phần là 30 ngày.`);
+        return;
       }
       
-      if (paymentAmount > maxPayment) {
-        throw new Error(`Số tiền thanh toán tối đa là ${maxPayment.toLocaleString()} ₫`);
-      }
-
       setLoading(true);
       
-      // Gọi callback với thông tin thanh toán
-      await onOk({
+      const request = {
         billId: bill.id,
-        originalPaymentAmount: paymentAmount,
-        partialPaymentFee,
-        overdueInterest,
-        totalWithFees,
+        originalPaymentAmount: values.paymentAmount,
+        partialPaymentFee: partialPaymentFee,
+        overdueInterest: overdueInterest,
+        totalWithFees: totalWithFees,
         paymentMethod: 'CASH',
-        isPartialPayment: paymentAmount < getOutstandingAmount()
-      });
+        notes: 'Thanh toán tiền mặt'
+      };
       
-      form.resetFields();
-      onCancel();
+      console.log('Cash payment request:', request);
+      
+      onOk(request);
     } catch (error) {
-      console.error('Lỗi khi xử lý thanh toán:', error);
+      console.error('Validation error:', error);
     } finally {
       setLoading(false);
     }
@@ -213,8 +246,9 @@ export default function CashPartialPaymentModal({
       onOk={handleOk}
       confirmLoading={loading}
       width={600}
-      okText="Xác nhận thanh toán"
+      okText={!canMakePartialPayment() ? `Đợi thêm ${getRemainingDays()} ngày nữa` : "Xác nhận thanh toán"}
       cancelText="Hủy"
+      okButtonProps={{ disabled: !canMakePartialPayment() }}
     >
       <Form form={form} layout="vertical">
         <Alert
@@ -235,6 +269,20 @@ export default function CashPartialPaymentModal({
                 <span style={{ color: '#52c41a', fontSize: '12px', marginLeft: '8px' }}>(100% số tiền còn nợ)</span>
               </p>
               <p><strong>Lần thanh toán thứ:</strong> {paymentCount + 1}</p>
+              
+              {/* 🆕 Hiển thị thông tin về khoảng thời gian 30 ngày */}
+              {bill.isPartiallyPaid && bill.lastPaymentDate && (
+                <div style={{ marginTop: 8, padding: '8px 12px', backgroundColor: '#fff2e8', border: '1px solid #ffbb96', borderRadius: '4px' }}>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#d46b08' }}>
+                    <strong>⚠️ Lưu ý:</strong> Khoảng thời gian tối thiểu giữa các lần thanh toán từng phần là 30 ngày.
+                  </p>
+                  {!canMakePartialPayment() && (
+                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#cf1322', fontWeight: 'bold' }}>
+                      Bạn cần đợi thêm {getRemainingDays()} ngày nữa mới được thanh toán từng phần tiếp theo.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           }
           type="info"
@@ -393,6 +441,24 @@ export default function CashPartialPaymentModal({
           type="info"
           showIcon
         />
+        <Form.Item>
+          <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+            <Button onClick={handleCancel}>
+              Hủy
+            </Button>
+            <Button
+              type="primary"
+              onClick={handleOk}
+              loading={loading}
+              disabled={!canMakePartialPayment()}
+            >
+              {!canMakePartialPayment() 
+                ? `Đợi thêm ${getRemainingDays()} ngày nữa` 
+                : 'Xác nhận thanh toán'
+              }
+            </Button>
+          </Space>
+        </Form.Item>
       </Form>
     </Modal>
   );

@@ -123,20 +123,44 @@ export default function RenterBillDetailPage() {
     }
   };
 
+  // 🆕 Helper functions cho validation thời gian
+  const getDaysSinceLastPayment = () => {
+    if (!bill?.lastPaymentDate) return 0;
+    const lastPayment = new Date(bill.lastPaymentDate);
+    const now = new Date();
+    const diffTime = Math.abs(now - lastPayment);
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const canMakePayment = () => {
+    if (!bill?.isPartiallyPaid || !bill?.lastPaymentDate) return true;
+    return getDaysSinceLastPayment() >= 30;
+  };
+
+  const getRemainingDays = () => {
+    if (!bill?.isPartiallyPaid || !bill?.lastPaymentDate) return 0;
+    const daysSince = getDaysSinceLastPayment();
+    return Math.max(0, 30 - daysSince);
+  };
+
   const handlePayVnPay = async () => {
     try {
-      // thanh toán đúng số tiền còn nợ
-      const outstandingAmount = bill.outstandingAmount || bill.totalAmount || 0;
-      let amount = Number(String(outstandingAmount).replace(/[^0-9.-]+/g, ""));
+      // 🆕 Kiểm tra khoảng thời gian 30 ngày
+      if (!canMakePayment()) {
+        const remainingDays = getRemainingDays();
+        message.error(`Bạn phải đợi thêm ${remainingDays} ngày nữa mới được thanh toán tiếp theo. Khoảng thời gian tối thiểu giữa các lần thanh toán là 30 ngày.`);
+        return;
+      }
 
-      // Nếu hóa đơn đã từng thanh toán từng phần, tính thêm phí thanh toán từng phần
+      const outstandingAmount = bill.outstandingAmount || bill.totalAmount || 0;
+      let amount = outstandingAmount;
+
+      // Nếu hóa đơn đã từng thanh toán từng phần, tính thêm phí
       if (bill.isPartiallyPaid) {
         try {
-          const paymentCountData = await getPaymentCount(bill.id);
-          const paymentCount = paymentCountData.paymentCount || 0;
-
-          // Tính phí thanh toán từng phần dựa trên số lần đã thanh toán
+          const paymentCount = await getPaymentCount(bill.id);
           let partialPaymentFee = 0;
+
           switch (paymentCount) {
             case 0:
               partialPaymentFee = 200000; // 200.000 VNĐ cho lần thanh toán đầu tiên
@@ -619,17 +643,7 @@ export default function RenterBillDetailPage() {
                               marginTop: "4px",
                             }}
                           >
-                            Lần thanh toán cuối:{" "}
-                            {(() => {
-                              try {
-                                const date = dayjs(bill.lastPaymentDate);
-                                return date.isValid()
-                                  ? date.format("DD/MM/YYYY HH:mm")
-                                  : "Không xác định";
-                              } catch {
-                                return "Không xác định";
-                              }
-                            })()}
+                          
                           </div>
                         )}
                       </div>
@@ -753,10 +767,23 @@ export default function RenterBillDetailPage() {
       <Modal
         title="Chọn phương thức thanh toán"
         open={paymentModalVisible}
-        onOk={handlePaymentModalOk}
         onCancel={() => setPaymentModalVisible(false)}
-        okText="Tiếp tục"
-        cancelText="Hủy"
+        footer={[
+          <Button key="cancel" onClick={() => setPaymentModalVisible(false)}>
+            Hủy
+          </Button>,
+          <Button
+            key="continue"
+            type="primary"
+            onClick={handlePaymentModalOk}
+            disabled={!canMakePayment()}
+          >
+            {!canMakePayment() 
+              ? `Đợi thêm ${getRemainingDays()} ngày nữa` 
+              : 'Tiếp tục'
+            }
+          </Button>
+        ]}
         width={500}
       >
         <div style={{ marginBottom: 16 }}>
@@ -837,6 +864,39 @@ export default function RenterBillDetailPage() {
                   >
                     Phí này sẽ được tự động cộng vào tổng số tiền thanh toán
                   </div>
+                </div>
+              }
+              type="warning"
+              showIcon={false}
+            />
+          </div>
+        )}
+
+        {/* 🆕 Cảnh báo về quy tắc 30 ngày */}
+        {bill?.isPartiallyPaid && bill?.lastPaymentDate && (
+          <div style={{ marginBottom: 16 }}>
+            <Alert
+              message="Quy tắc thời gian thanh toán"
+              description={
+                <div>
+                  <p style={{ marginBottom: 8, fontSize: "14px" }}>
+                    <strong>⏰ Lưu ý:</strong> Khoảng thời gian tối thiểu giữa các lần thanh toán là 30 ngày.
+                  </p>
+                  {!canMakePayment() && (
+                    <div
+                      style={{
+                        marginTop: 8,
+                        padding: "8px 12px",
+                        backgroundColor: "#fff2e8",
+                        border: "1px solid #ffbb96",
+                        borderRadius: "4px",
+                        fontSize: "12px",
+                        color: "#d46b08",
+                      }}
+                    >
+                      <strong>⏳ Bạn cần đợi thêm {getRemainingDays()} ngày nữa mới được thanh toán tiếp theo.</strong>
+                    </div>
+                  )}
                 </div>
               }
               type="warning"
