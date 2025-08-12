@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, Descriptions, Table, Button, Spin, message, Tag, Layout, Popconfirm } from "antd";
-import { getBillDetail, exportBillPdf, createVnPayUrl, updateBillPaymentStatus } from "../../services/billApi";
+import { getBillDetail, exportBillPdf, createVnPayUrl, updateBillPaymentStatus, confirmCashPayment } from "../../services/billApi";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
+import PaymentHistoryModal from "../../components/common/PaymentHistoryModal";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 dayjs.extend(customParseFormat);
@@ -16,6 +17,9 @@ export default function LandlordBillDetailPage() {
   const [bill, setBill] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [paymentHistoryVisible, setPaymentHistoryVisible] = useState(false);
+  const [pendingCashPayments, setPendingCashPayments] = useState([]);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
 
   // Hàm kiểm tra hóa đơn có quá hạn không
   const checkOverdue = (bill) => {
@@ -79,6 +83,11 @@ export default function LandlordBillDetailPage() {
     try {
       const res = await getBillDetail(id);
       setBill(res);
+      
+      // Lấy danh sách thanh toán tiền mặt pending
+      if (res.pendingCashPayments) {
+        setPendingCashPayments(res.pendingCashPayments);
+      }
     } catch {
       message.error("Không thể tải chi tiết hóa đơn");
     }
@@ -151,6 +160,25 @@ export default function LandlordBillDetailPage() {
       console.error("Error updating payment status:", error);
     } finally {
       setUpdatingStatus(false);
+    }
+  };
+
+  const handleConfirmCashPayment = async (paymentHistoryId) => {
+    try {
+      setConfirmingPayment(true);
+      
+      // Gọi API xác nhận thanh toán tiền mặt
+      await confirmCashPayment(bill.id, paymentHistoryId);
+      
+      message.success("Đã xác nhận thanh toán tiền mặt thành công!");
+      
+      // Refresh lại thông tin hóa đơn
+      await fetchBill();
+    } catch (error) {
+      message.error("Không thể xác nhận thanh toán tiền mặt!");
+      console.error("Error confirming cash payment:", error);
+    } finally {
+      setConfirmingPayment(false);
     }
   };
 
@@ -300,6 +328,27 @@ export default function LandlordBillDetailPage() {
                   )}
                 </Descriptions.Item>
                 <Descriptions.Item label="Tổng tiền">{bill.totalAmount?.toLocaleString()} ₫</Descriptions.Item>
+                {(bill.paidAmount || 0) > 0 && (
+                  <Descriptions.Item label="Đã thanh toán (gốc)">
+                    <span style={{ color: '#52c41a', fontWeight: 'bold' }}>
+                      {bill.paidAmount?.toLocaleString()} ₫
+                    </span>
+                  </Descriptions.Item>
+                )}
+                {(bill.partialPaymentFeesCollected || 0) > 0 && (
+                  <Descriptions.Item label="Phí thanh toán từng phần">
+                    <span style={{ color: '#1890ff', fontWeight: 'bold' }}>
+                      {bill.partialPaymentFeesCollected?.toLocaleString()} ₫
+                    </span>
+                  </Descriptions.Item>
+                )}
+                {(bill.outstandingAmount || 0) > 0 && (
+                  <Descriptions.Item label="Còn nợ">
+                    <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>
+                      {bill.outstandingAmount?.toLocaleString()} ₫
+                    </span>
+                  </Descriptions.Item>
+                )}
                 <Descriptions.Item label="Trạng thái">
                   <Tag color={bill.status ? "green" : "red"}>
                     {bill.status ? "Đã thanh toán" : "Chưa thanh toán"}
@@ -354,6 +403,14 @@ export default function LandlordBillDetailPage() {
               <div style={{ marginTop: 24 }}>
                 <Button onClick={handleExport} type="primary">Xuất PDF</Button>
 
+                <Button 
+                  type="default" 
+                  style={{ marginLeft: 16 }}
+                  onClick={() => setPaymentHistoryVisible(true)}
+                >
+                  Lịch sử thanh toán
+                </Button>
+
                 {!bill.status && (
                   <Popconfirm
                     title="Xác nhận thanh toán"
@@ -373,6 +430,70 @@ export default function LandlordBillDetailPage() {
                   </Popconfirm>
                 )}
 
+                {/* Danh sách thanh toán tiền mặt pending */}
+                {pendingCashPayments && pendingCashPayments.length > 0 && (
+                  <div style={{ marginTop: 16, marginBottom: 16 }}>
+                    <h4>Thanh toán tiền mặt chờ xác nhận:</h4>
+                    {pendingCashPayments.map((payment, index) => (
+                      <div key={payment.id} style={{ 
+                        border: '1px solid #d9d9d9', 
+                        borderRadius: '6px', 
+                        padding: '12px', 
+                        marginBottom: '8px',
+                        backgroundColor: '#fafafa'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <p style={{ margin: 0, fontWeight: 'bold' }}>
+                              Thanh toán #{payment.paymentNumber} - {payment.paymentDate}
+                            </p>
+                            <p style={{ margin: '4px 0', color: '#666', fontSize: '12px' }}>
+                              <Tag color="blue" size="small">{payment.paymentMethodDisplay || 'Tiền mặt'}</Tag>
+                              <Tag color="warning" size="small" style={{ marginLeft: '4px' }}>{payment.statusDisplay || 'Đang xử lý'}</Tag>
+                            </p>
+                            <p style={{ margin: '4px 0', color: '#666' }}>
+                              Số tiền: {payment.paymentAmount?.toLocaleString()} ₫
+                              {payment.partialPaymentFee > 0 && (
+                                <span style={{ marginLeft: '8px', color: '#ff4d4f' }}>
+                                  + Phí: {payment.partialPaymentFee?.toLocaleString()} ₫
+                                </span>
+                              )}
+                              {payment.overdueInterest > 0 && (
+                                <span style={{ marginLeft: '8px', color: '#fa8c16' }}>
+                                  + Lãi: {payment.overdueInterest?.toLocaleString()} ₫
+                                </span>
+                              )}
+                            </p>
+                            <p style={{ margin: '4px 0', color: '#666', fontSize: '12px' }}>
+                              Tổng cộng: {payment.totalAmount?.toLocaleString()} ₫
+                            </p>
+                            {payment.notes && (
+                              <p style={{ margin: '4px 0', color: '#666', fontSize: '12px', fontStyle: 'italic' }}>
+                                Ghi chú: {payment.notes}
+                              </p>
+                            )}
+                          </div>
+                          <Popconfirm
+                            title="Xác nhận thanh toán tiền mặt"
+                            description={`Bạn có chắc muốn xác nhận thanh toán ${payment.paymentAmount?.toLocaleString()} ₫?`}
+                            onConfirm={() => handleConfirmCashPayment(payment.id)}
+                            okText="Xác nhận"
+                            cancelText="Hủy"
+                          >
+                            <Button
+                              type="primary"
+                              loading={confirmingPayment}
+                              size="small"
+                            >
+                              Xác nhận
+                            </Button>
+                          </Popconfirm>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <Button style={{ marginLeft: 16 }} onClick={() => navigate(-1)}>
                   Quay lại
                 </Button>
@@ -382,6 +503,18 @@ export default function LandlordBillDetailPage() {
             <div>Không tìm thấy hóa đơn</div>
           )}
         </Card>
+
+        {/* Payment History Modal */}
+        {bill && (
+          <PaymentHistoryModal
+            visible={paymentHistoryVisible}
+            onCancel={() => setPaymentHistoryVisible(false)}
+            billId={bill.id}
+            billNumber={`HĐ#${bill.id}`}
+            roomNumber={bill.roomNumber}
+            roomAddress={bill.building}
+          />
+        )}
       </div>
     </div>
   );

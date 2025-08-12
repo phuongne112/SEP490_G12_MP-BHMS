@@ -1024,7 +1024,12 @@ export default function LandlordBillListPage() {
           <div style={{ fontWeight: 'bold' }}>{formatCurrency(amount)}</div>
           {(record.paidAmount || 0) > 0 && (
             <div style={{ fontSize: '12px', color: '#52c41a' }}>
-              Đã trả: {formatCurrency(record.paidAmount || 0)}
+              Đã trả (gốc): {formatCurrency(record.paidAmount || 0)}
+            </div>
+          )}
+          {(record.partialPaymentFeesCollected || 0) > 0 && (
+            <div style={{ fontSize: '12px', color: '#1890ff' }}>
+              Phí: {formatCurrency(record.partialPaymentFeesCollected || 0)}
             </div>
           )}
           {(record.outstandingAmount || 0) > 0 && (

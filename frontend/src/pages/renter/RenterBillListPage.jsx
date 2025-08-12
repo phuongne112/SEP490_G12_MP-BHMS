@@ -343,7 +343,12 @@ export default function RenterBillListPage() {
             </Text>
             {(record.paidAmount || 0) > 0 && (
               <div style={{ fontSize: 11, color: "#52c41a" }}>
-                Đã trả: {(record.paidAmount || 0).toLocaleString()} ₫
+                Đã trả (gốc): {(record.paidAmount || 0).toLocaleString()} ₫
+              </div>
+            )}
+            {(record.partialPaymentFeesCollected || 0) > 0 && (
+              <div style={{ fontSize: 11, color: "#1890ff" }}>
+                Phí: {(record.partialPaymentFeesCollected || 0).toLocaleString()} ₫
               </div>
             )}
             {(record.outstandingAmount || 0) > 0 && (

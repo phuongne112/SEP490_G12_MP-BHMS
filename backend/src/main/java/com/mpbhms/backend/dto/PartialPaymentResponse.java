@@ -16,6 +16,10 @@ public class PartialPaymentResponse {
     private String paymentMethod;
     private String notes;
     private String message;
+    
+    // Thông tin lãi suất
+    private BigDecimal interestAmount;
+    private Integer monthsOverdue;
 }
 
 

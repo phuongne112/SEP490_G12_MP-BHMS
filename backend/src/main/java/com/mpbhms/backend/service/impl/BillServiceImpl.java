@@ -28,6 +28,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -55,7 +56,12 @@ import com.lowagie.text.pdf.draw.LineSeparator;
 import java.awt.Color;
 import java.util.stream.Collectors;
 import com.mpbhms.backend.service.EmailService;
+import com.mpbhms.backend.service.InterestCalculationService;
+import com.mpbhms.backend.service.PaymentHistoryService;
+import com.mpbhms.backend.repository.PaymentHistoryRepository;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -69,6 +75,9 @@ public class BillServiceImpl implements BillService {
     private final RoomRepository roomRepository;
     private final NotificationService notificationService;
     private final EmailService emailService;
+    private final InterestCalculationService interestCalculationService;
+    private final PaymentHistoryService paymentHistoryService;
+    private final PaymentHistoryRepository paymentHistoryRepository;
     
     // Cache để theo dõi các hóa đơn đã gửi cảnh báo ngày thứ 7
     private final Set<Long> warningSentBills = new HashSet<>();
@@ -677,6 +686,7 @@ public class BillServiceImpl implements BillService {
         
         // Thông tin thanh toán từng phần
         response.setPaidAmount(bill.getPaidAmount());
+        response.setPartialPaymentFeesCollected(bill.getPartialPaymentFeesCollected());
         response.setOutstandingAmount(bill.getOutstandingAmount());
         response.setIsPartiallyPaid(bill.getIsPartiallyPaid());
         response.setLastPaymentDate(bill.getLastPaymentDate());
@@ -726,6 +736,38 @@ public class BillServiceImpl implements BillService {
             System.err.println("Lỗi khi xử lý billDetails cho bill #" + bill.getId() + ": " + e.getMessage());
         }
         response.setDetails(detailResponses);
+
+        // Thêm danh sách thanh toán tiền mặt pending
+        try {
+            List<PaymentHistory> pendingCashPayments = paymentHistoryRepository.findByBillIdAndPaymentMethodAndStatusOrderByPaymentDateDesc(
+                bill.getId(), "CASH", "PENDING");
+            List<Map<String, Object>> pendingPaymentsList = new ArrayList<>();
+            
+            for (PaymentHistory payment : pendingCashPayments) {
+                Map<String, Object> paymentMap = new HashMap<>();
+                paymentMap.put("id", payment.getId());
+                paymentMap.put("paymentNumber", payment.getPaymentNumber());
+                paymentMap.put("paymentAmount", payment.getPaymentAmount());
+                paymentMap.put("totalAmount", payment.getTotalAmount());
+                paymentMap.put("partialPaymentFee", payment.getPartialPaymentFee());
+                paymentMap.put("overdueInterest", payment.getOverdueInterest());
+                paymentMap.put("paymentDate", payment.getPaymentDate());
+                paymentMap.put("notes", payment.getNotes());
+                
+                // Thêm thông tin hiển thị đã được Việt hóa
+                paymentMap.put("paymentMethodDisplay", getPaymentMethodDisplay(payment.getPaymentMethod()));
+                paymentMap.put("statusDisplay", getStatusDisplay(payment.getStatus()));
+                paymentMap.put("paymentTypeDisplay", getPaymentTypeDisplay(payment.getIsPartialPayment()));
+                
+                pendingPaymentsList.add(paymentMap);
+            }
+            
+            response.setPendingCashPayments(pendingPaymentsList);
+        } catch (Exception e) {
+            System.err.println("Lỗi khi lấy danh sách thanh toán tiền mặt pending cho bill #" + bill.getId() + ": " + e.getMessage());
+            response.setPendingCashPayments(new ArrayList<>());
+        }
+
         return response;
     }
 
@@ -1397,29 +1439,103 @@ public class BillServiceImpl implements BillService {
         BigDecimal previousPaidAmount = bill.getPaidAmount() != null ? bill.getPaidAmount() : BigDecimal.ZERO;
         
         // 🆕 Xử lý logic mới cho thanh toán từng phần
-        // 1. Thực hiện thanh toán
-        bill.addPayment(request.getPaymentAmount());
-        
-        // 2. Cập nhật dueDate: cộng thêm 30 ngày mỗi lần thanh toán từng phần
-        Instant currentDueDate = bill.getDueDate() != null ? bill.getDueDate() : 
+        // 1. Tính lãi suất trước khi thanh toán
+        Instant currentDate = Instant.now();
+        Instant dueDate = bill.getDueDate() != null ? bill.getDueDate() : 
             bill.getToDate().plusSeconds(7 * 24 * 60 * 60); // toDate + 7 days (default)
         
-        // Cộng thêm 30 ngày cho thanh toán từng phần
-        Instant newDueDate = currentDueDate.plusSeconds(30 * 24 * 60 * 60); // +30 days
+        BigDecimal interestAmount = interestCalculationService.calculateInterest(
+            outstandingAmount, dueDate, currentDate);
+        
+        int monthsOverdue = interestCalculationService.calculateMonthsOverdue(dueDate, currentDate);
+        
+        // 2. Thực hiện thanh toán
+        bill.addPayment(request.getPaymentAmount());
+        
+        // 3. Cập nhật thông tin lãi suất
+        bill.setInterestAmount(interestAmount);
+        bill.setMonthsOverdue(monthsOverdue);
+        bill.setLastInterestCalculationDate(currentDate);
+        
+        // 4. Cập nhật dueDate: cộng thêm 30 ngày mỗi lần thanh toán từng phần
+        Instant newDueDate = dueDate.plusSeconds(30 * 24 * 60 * 60); // +30 days
         bill.setDueDate(newDueDate);
         
-        // 3. Đánh dấu là thanh toán từng phần
+        // 5. Đánh dấu là thanh toán từng phần
         bill.setIsPartiallyPaid(true);
-        bill.setLastPaymentDate(Instant.now());
+        bill.setLastPaymentDate(currentDate);
+        
+        // 6. Kiểm tra xem hóa đơn đã được thanh toán đầy đủ chưa
+        // Chỉ cập nhật status khi outstandingAmount = 0 (đã thanh toán hết)
+        if (bill.getOutstandingAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            bill.setStatus(true);
+            bill.setPaidDate(currentDate);
+            System.out.println("✅ Hóa đơn #" + bill.getId() + " đã được thanh toán đầy đủ!");
+        } else {
+            // Đảm bảo status = false nếu vẫn còn nợ
+            bill.setStatus(false);
+            System.out.println("⚠️ Hóa đơn #" + bill.getId() + " vẫn còn nợ: " + bill.getOutstandingAmount());
+        }
         
         System.out.println("🆕 Thanh toán từng phần cho hóa đơn #" + bill.getId() + 
-            " - DueDate cũ: " + currentDueDate + 
+            " - DueDate cũ: " + dueDate + 
             " - DueDate mới: " + newDueDate + 
             " - Số tiền thanh toán: " + request.getPaymentAmount() + 
-            " - Số tiền còn nợ: " + bill.getOutstandingAmount());
+            " - Số tiền còn nợ: " + bill.getOutstandingAmount() +
+            " - Lãi suất: " + interestAmount +
+            " - Tháng quá hạn: " + monthsOverdue +
+            " - Trạng thái: " + bill.getStatus());
         
         // Lưu hóa đơn
         Bill savedBill = billRepository.save(bill);
+        
+        // 🆕 Tạo lịch sử thanh toán và cập nhật phí thanh toán từng phần
+        // Chỉ tạo PaymentHistory nếu không có flag skipPaymentHistoryCreation
+        if (!Boolean.TRUE.equals(request.getSkipPaymentHistoryCreation())) {
+            try {
+                // Tính tổng số tiền (bao gồm phí)
+                BigDecimal totalAmount = request.getPaymentAmount();
+                BigDecimal partialPaymentFee = BigDecimal.ZERO;
+                BigDecimal overdueInterest = BigDecimal.ZERO;
+                
+                // Tính phí thanh toán từng phần nếu có
+                if (Boolean.TRUE.equals(bill.getIsPartiallyPaid())) {
+                    int paymentCount = getPaymentCount(bill.getId());
+                    partialPaymentFee = calculateNextPaymentFee(paymentCount);
+                    totalAmount = totalAmount.add(partialPaymentFee);
+                    
+                    // 🆕 Cộng phí thanh toán từng phần vào trường riêng
+                    bill.addPartialPaymentFee(partialPaymentFee);
+                    System.out.println("💰 Đã cộng phí thanh toán từng phần: " + partialPaymentFee + 
+                        " vào tổng phí đã thu: " + bill.getPartialPaymentFeesCollected());
+                }
+                
+                // Tính lãi suất quá hạn nếu có
+                if (interestAmount.compareTo(BigDecimal.ZERO) > 0) {
+                    overdueInterest = interestAmount;
+                    totalAmount = totalAmount.add(overdueInterest);
+                }
+                
+                // Tạo lịch sử thanh toán
+                paymentHistoryService.createPaymentHistory(
+                    bill.getId(),
+                    request.getPaymentAmount(), // Số tiền gốc
+                    totalAmount, // Tổng số tiền (bao gồm phí)
+                    partialPaymentFee,
+                    overdueInterest,
+                    request.getPaymentMethod(),
+                    null, // transactionId (sẽ được cập nhật sau nếu cần)
+                    request.getNotes()
+                );
+                
+                System.out.println("📝 Đã tạo lịch sử thanh toán cho hóa đơn #" + bill.getId());
+            } catch (Exception e) {
+                System.out.println("⚠️ Lỗi khi tạo lịch sử thanh toán: " + e.getMessage());
+                // Không throw exception để không ảnh hưởng đến thanh toán chính
+            }
+        } else {
+            System.out.println("🔄 Bỏ qua tạo PaymentHistory (skipPaymentHistoryCreation = true)");
+        }
         
         // Tạo response
         PartialPaymentResponse response = new PartialPaymentResponse();
@@ -1432,13 +1548,23 @@ public class BillServiceImpl implements BillService {
         response.setPaymentDate(Instant.now());
         response.setPaymentMethod(request.getPaymentMethod());
         response.setNotes(request.getNotes());
+        response.setInterestAmount(interestAmount);
+        response.setMonthsOverdue(monthsOverdue);
         
         // Tạo message
         if (bill.getStatus()) {
             response.setMessage("Thanh toán thành công! Hóa đơn đã được thanh toán đầy đủ.");
         } else {
-            response.setMessage("Thanh toán thành công! Số tiền còn nợ: " + formatCurrency(bill.getOutstandingAmount()) + 
-                ". Hạn thanh toán đã được gia hạn thêm 30 ngày.");
+            String message = "Thanh toán thành công! Số tiền còn nợ: " + formatCurrency(bill.getOutstandingAmount()) + 
+                ". Hạn thanh toán đã được gia hạn thêm 30 ngày.";
+            
+            // Thêm thông tin lãi suất nếu có
+            if (interestAmount.compareTo(BigDecimal.ZERO) > 0) {
+                message += " Lãi suất áp dụng: " + formatCurrency(interestAmount) + 
+                    " (quá hạn " + monthsOverdue + " tháng).";
+            }
+            
+            response.setMessage(message);
         }
         
         // Gửi thông báo
@@ -2434,6 +2560,67 @@ public class BillServiceImpl implements BillService {
         }
         
         return totalOutstanding;
+    }
+
+    @Override
+    public int getPaymentCount(Long billId) {
+        // Đếm số record trong payment_history cho hóa đơn này
+        try {
+            long count = paymentHistoryService.countPaymentsByBillId(billId);
+            return (int) count;
+        } catch (Exception e) {
+            System.err.println("Lỗi khi đếm số lần thanh toán cho hóa đơn " + billId + ": " + e.getMessage());
+            return 0;
+        }
+    }
+
+    @Override
+    public BigDecimal calculateNextPaymentFee(int paymentCount) {
+        switch (paymentCount) {
+            case 0:
+                return new BigDecimal("200000"); // 200.000 VNĐ cho lần thanh toán đầu tiên
+            case 1:
+                return new BigDecimal("500000"); // 500.000 VNĐ cho lần thanh toán thứ 2
+            case 2:
+                return new BigDecimal("1000000"); // 1.000.000 VNĐ cho lần thanh toán thứ 3
+            default:
+                return new BigDecimal("1000000"); // Tối đa 1.000.000 VNĐ cho các lần sau
+        }
+    }
+
+    // Helper methods for localization
+    private String getPaymentMethodDisplay(String paymentMethod) {
+        if ("VNPAY".equals(paymentMethod)) {
+            return "VNPAY";
+        } else if ("CASH".equals(paymentMethod)) {
+            return "Tiền mặt";
+        } else if ("BANK_TRANSFER".equals(paymentMethod)) {
+            return "Chuyển khoản";
+        } else {
+            return paymentMethod;
+        }
+    }
+
+    private String getStatusDisplay(String status) {
+        if ("SUCCESS".equals(status)) {
+            return "Thành công";
+        } else if ("FAILED".equals(status)) {
+            return "Thất bại";
+        } else if ("PENDING".equals(status)) {
+            return "Đang xử lý";
+        } else if ("COMPLETED".equals(status)) {
+            return "Hoàn thành";
+        } else {
+            return status;
+        }
+    }
+
+    private String getPaymentTypeDisplay(Boolean isPartialPayment) {
+        if (Boolean.TRUE.equals(isPartialPayment)) {
+            return "Thanh toán từng phần";
+        } else {
+            return "Thanh toán đầy đủ";
+        }
     }
 
 }

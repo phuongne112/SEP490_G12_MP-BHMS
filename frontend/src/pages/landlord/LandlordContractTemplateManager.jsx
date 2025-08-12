@@ -149,7 +149,7 @@ export default function LandlordContractTemplateManager() {
               Đặt mặc định
             </Button>
           )}
-                          <Popconfirm title="Xóa mẫu này?" onConfirm={() => handleDelete(record.id)} okText="Xóa" cancelText="Hủy">
+          <Popconfirm title="Xóa mẫu này?" onConfirm={() => handleDelete(record.id)} okText="Xóa" cancelText="Không">
             <Button 
               icon={<DeleteOutlined />}
               type="primary"

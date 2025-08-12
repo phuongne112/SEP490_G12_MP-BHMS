@@ -20,6 +20,11 @@ public class VnPayService {
     private BillRepository billRepository;
 
     public String createPaymentUrl(Long billId, Long amount, String orderInfo) throws Exception {
+        // Đảm bảo số tiền hợp lệ
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("Số tiền không hợp lệ: " + amount);
+        }
+
         // Nếu billId hợp lệ, đồng bộ lại tổng tiền hóa đơn
         if (billId != null && billId > 0) {
             Bill bill = billRepository.findById(billId).orElse(null);
@@ -30,13 +35,12 @@ public class VnPayService {
                 if (bill.getTotalAmount() == null || bill.getTotalAmount().compareTo(sum) != 0) {
                     bill.setTotalAmount(sum);
                     billRepository.save(bill);
+                    // Chỉ cập nhật amount nếu không có amount được truyền vào
+                    if (amount == null || amount <= 0) {
                     amount = sum.longValue();
                 }
             }
         }
-
-        if (amount == null || amount <= 0) {
-            throw new IllegalArgumentException("Số tiền không hợp lệ");
         }
 
         // Làm sạch orderInfo: chỉ cho phép chữ, số, khoảng trắng
@@ -44,6 +48,12 @@ public class VnPayService {
         String vnp_TxnRef = billId + "-" + System.currentTimeMillis();
         String vnp_OrderType = "other";
         String vnp_Amount = String.valueOf(amount * 100); // VNPay yêu cầu x100
+        
+        // Debug logging
+        System.out.println("[VNPay] BillId: " + billId);
+        System.out.println("[VNPay] Original Amount: " + amount);
+        System.out.println("[VNPay] VNP Amount (x100): " + vnp_Amount);
+        System.out.println("[VNPay] OrderInfo: " + vnp_OrderInfo);
 
         // ✅ Dùng thời gian thực tế
         String vnp_CreateDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"))
