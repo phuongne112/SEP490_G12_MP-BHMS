@@ -36,16 +36,16 @@ const { Title } = Typography;
 const getRelativeTimeInVietnamese = (date) => {
   const now = dayjs();
   const targetDate = dayjs(date);
-  const diffInSeconds = now.diff(targetDate, 'second');
-  const diffInMinutes = now.diff(targetDate, 'minute');
-  const diffInHours = now.diff(targetDate, 'hour');
-  const diffInDays = now.diff(targetDate, 'day');
-  const diffInWeeks = now.diff(targetDate, 'week');
-  const diffInMonths = now.diff(targetDate, 'month');
-  const diffInYears = now.diff(targetDate, 'year');
+  const diffInSeconds = now.diff(targetDate, "second");
+  const diffInMinutes = now.diff(targetDate, "minute");
+  const diffInHours = now.diff(targetDate, "hour");
+  const diffInDays = now.diff(targetDate, "day");
+  const diffInWeeks = now.diff(targetDate, "week");
+  const diffInMonths = now.diff(targetDate, "month");
+  const diffInYears = now.diff(targetDate, "year");
 
   if (diffInSeconds < 60) {
-    return 'Vừa xong';
+    return "Vừa xong";
   } else if (diffInMinutes < 60) {
     return `${diffInMinutes} phút trước`;
   } else if (diffInHours < 24) {
@@ -203,11 +203,11 @@ export default function Header() {
           // Lấy thêm fullName từ account API
           try {
             const accountRes = await getAccountInfo();
-            const updatedUser = { 
-              ...user, 
-              ...res, 
+            const updatedUser = {
+              ...user,
+              ...res,
               fullName: accountRes?.fullName,
-              role: res.role 
+              role: res.role,
             };
             setUser(updatedUser);
             localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -326,7 +326,7 @@ export default function Header() {
     </div>
   );
 
-  const navItems = ["Phòng", "Dịch vụ", "Người thuê", "Liên hệ", "Giới thiệu"];
+  const navItems = ["Phòng", "Liên hệ", "Giới thiệu"];
 
   return (
     <header
@@ -371,7 +371,10 @@ export default function Header() {
             onMouseOut={(e) => (e.target.style.color = "#cbd5e1")}
             onClick={() => {
               if (label === "Phòng") {
-                if (window.location.pathname === "/" || window.location.pathname === "/home") {
+                if (
+                  window.location.pathname === "/" ||
+                  window.location.pathname === "/home"
+                ) {
                   setTimeout(() => {
                     const el = document.getElementById("room-list-section");
                     if (el) el.scrollIntoView({ behavior: "smooth" });
@@ -385,7 +388,10 @@ export default function Header() {
                 }
               }
               if (label === "Liên hệ") {
-                if (window.location.pathname === "/" || window.location.pathname === "/home") {
+                if (
+                  window.location.pathname === "/" ||
+                  window.location.pathname === "/home"
+                ) {
                   setTimeout(() => {
                     const el = document.getElementById("footer");
                     if (el) el.scrollIntoView({ behavior: "smooth" });
@@ -575,14 +581,20 @@ export default function Header() {
         <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
           Tiêu đề:{" "}
           <span style={{ fontWeight: 400 }}>
-            {selectedNoti?.title === 'Booking Confirmed' ? 'Đặt lịch đã xác nhận' : selectedNoti?.title}
+            {selectedNoti?.title === "Booking Confirmed"
+              ? "Đặt lịch đã xác nhận"
+              : selectedNoti?.title}
           </span>
         </div>
         <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
           Nội dung:{" "}
           <span style={{ fontWeight: 400 }}>
-            {selectedNoti?.message && selectedNoti?.message.startsWith('Your booking for room') && selectedNoti?.message.includes('has been confirmed by the landlord')
-              ? `Lịch hẹn của bạn cho phòng ${selectedNoti?.message.match(/room (\d+)/)?.[1] || ''} đã được chủ nhà xác nhận!`
+            {selectedNoti?.message &&
+            selectedNoti?.message.startsWith("Your booking for room") &&
+            selectedNoti?.message.includes("has been confirmed by the landlord")
+              ? `Lịch hẹn của bạn cho phòng ${
+                  selectedNoti?.message.match(/room (\d+)/)?.[1] || ""
+                } đã được chủ nhà xác nhận!`
               : selectedNoti?.message}
           </span>
         </div>
