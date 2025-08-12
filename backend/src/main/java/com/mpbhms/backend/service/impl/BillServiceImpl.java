@@ -2,6 +2,8 @@ package com.mpbhms.backend.service.impl;
 
 import com.mpbhms.backend.dto.BillDetailResponse;
 import com.mpbhms.backend.dto.BillResponse;
+import com.mpbhms.backend.dto.PartialPaymentRequest;
+import com.mpbhms.backend.dto.PartialPaymentResponse;
 import com.mpbhms.backend.entity.*;
 import com.mpbhms.backend.enums.BillItemType;
 import com.mpbhms.backend.enums.BillType;
@@ -177,21 +179,51 @@ public class BillServiceImpl implements BillService {
                     totalAmount = totalAmount.add(amount);
                 }
             } else if (service.getServiceType() == ServiceType.WATER || service.getServiceType() == ServiceType.OTHER) {
-                // Nước & dịch vụ khác: tính cố định
+                // Nước & dịch vụ khác: tính theo đầu người
                 BigDecimal unitPrice = serviceService.getServicePriceAtDate(service.getId(), fromDate);
+                
+                // Tính số người trong phòng
+                int numberOfPeople = 1; // Mặc định 1 người
+                try {
+                    if (contract.getRoomUsers() != null) {
+                        numberOfPeople = (int) contract.getRoomUsers().stream()
+                            .filter(ru -> Boolean.TRUE.equals(ru.getIsActive()))
+                            .count();
+                        if (numberOfPeople == 0) numberOfPeople = 1; // Đảm bảo ít nhất 1 người
+                    }
+                } catch (Exception e) {
+                    // Nếu có lỗi, mặc định 1 người
+                    numberOfPeople = 1;
+                }
+                
+                BigDecimal serviceAmount = unitPrice.multiply(BigDecimal.valueOf(numberOfPeople));
+                
                 BillDetail fixedDetail = new BillDetail();
                 fixedDetail.setItemType(BillItemType.SERVICE);
-                fixedDetail.setDescription("Dịch vụ cố định: " + service.getServiceName() + " từ " + fromDate + " đến " + toDate);
+                fixedDetail.setDescription("Dịch vụ " + service.getServiceName() + " (" + numberOfPeople + " người) từ " + fromDate + " đến " + toDate);
                 fixedDetail.setService(service);
                 fixedDetail.setUnitPriceAtBill(unitPrice);
-                fixedDetail.setItemAmount(unitPrice);
+                fixedDetail.setConsumedUnits(BigDecimal.valueOf(numberOfPeople));
+                fixedDetail.setItemAmount(serviceAmount);
                 fixedDetail.setCreatedDate(Instant.now());
                 details.add(fixedDetail);
-                totalAmount = totalAmount.add(unitPrice);
+                totalAmount = totalAmount.add(serviceAmount);
             }
         }
 
-        // 5. Tạo Bill
+        // 5. Kiểm tra và cộng số tiền nợ từ hóa đơn trước
+        BigDecimal outstandingDebt = getOutstandingDebtFromPreviousBills(contract, fromDate);
+        if (outstandingDebt.compareTo(BigDecimal.ZERO) > 0) {
+            BillDetail debtDetail = new BillDetail();
+            debtDetail.setItemType(BillItemType.SERVICE);
+            debtDetail.setDescription("Số tiền nợ từ hóa đơn trước");
+            debtDetail.setItemAmount(outstandingDebt);
+            debtDetail.setCreatedDate(Instant.now());
+            details.add(debtDetail);
+            totalAmount = totalAmount.add(outstandingDebt);
+        }
+
+        // 6. Tạo Bill
         Bill bill = new Bill();
         bill.setContract(contract);
         bill.setRoom(room);
@@ -380,25 +412,40 @@ public class BillServiceImpl implements BillService {
                     }
                 } else if (service.getServiceType() == ServiceType.WATER || service.getServiceType() == ServiceType.OTHER) {
                     BigDecimal unitPrice = serviceService.getServicePriceAtDate(service.getId(), fromDate);
-                    BillDetail fixedDetail = new BillDetail();
-                    fixedDetail.setItemType(BillItemType.SERVICE);
-                    fixedDetail.setDescription("Dịch vụ cố định: " + service.getServiceName() + " từ " + fromDate + " đến " + toDate);
-                    fixedDetail.setService(service);
-                    fixedDetail.setUnitPriceAtBill(unitPrice);
                     
-                    // Tính toán tiền dịch vụ cố định theo tỷ lệ thời gian
+                    // Tính số người trong phòng
+                    int numberOfPeople = 1; // Mặc định 1 người
+                    try {
+                        if (contract.getRoomUsers() != null) {
+                            numberOfPeople = (int) contract.getRoomUsers().stream()
+                                .filter(ru -> Boolean.TRUE.equals(ru.getIsActive()))
+                                .count();
+                            if (numberOfPeople == 0) numberOfPeople = 1; // Đảm bảo ít nhất 1 người
+                        }
+                    } catch (Exception e) {
+                        // Nếu có lỗi, mặc định 1 người
+                        numberOfPeople = 1;
+                    }
+                    
+                    // Tính toán tiền dịch vụ theo đầu người và tỷ lệ thời gian
                     BigDecimal serviceAmount;
                     if (isCustomPeriod) {
                         // Với khoảng ngày tùy chọn, tính theo tỷ lệ
                         long daysBetween = ChronoUnit.DAYS.between(fromDate, toDate) + 1;
                         double ratio = daysBetween / 30.0; // Tỷ lệ so với 1 tháng
-                        serviceAmount = unitPrice.multiply(BigDecimal.valueOf(ratio));
+                        serviceAmount = unitPrice.multiply(BigDecimal.valueOf(numberOfPeople)).multiply(BigDecimal.valueOf(ratio));
                     } else {
                         // Với chu kỳ chuẩn, tính theo số tháng chu kỳ
                         int cycleMonths = countMonths(cycle);
-                        serviceAmount = unitPrice.multiply(BigDecimal.valueOf(cycleMonths));
+                        serviceAmount = unitPrice.multiply(BigDecimal.valueOf(numberOfPeople)).multiply(BigDecimal.valueOf(cycleMonths));
                     }
                     
+                    BillDetail fixedDetail = new BillDetail();
+                    fixedDetail.setItemType(BillItemType.SERVICE);
+                    fixedDetail.setDescription("Dịch vụ " + service.getServiceName() + " (" + numberOfPeople + " người) từ " + fromDate + " đến " + toDate);
+                    fixedDetail.setService(service);
+                    fixedDetail.setUnitPriceAtBill(unitPrice);
+                    fixedDetail.setConsumedUnits(BigDecimal.valueOf(numberOfPeople));
                     fixedDetail.setItemAmount(serviceAmount);
                     fixedDetail.setCreatedDate(Instant.now());
                     details.add(fixedDetail);
@@ -416,6 +463,12 @@ public class BillServiceImpl implements BillService {
         bill.setRoom(room);
         bill.setFromDate(fromDate.atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant());
         bill.setToDate(toDate.atTime(23, 59).atZone(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant());
+        
+        // 🆕 Tự động set dueDate = toDate + 7 ngày cho hóa đơn bình thường
+        Instant dueDate = toDate.atTime(23, 59).atZone(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant()
+            .plusSeconds(7 * 24 * 60 * 60); // +7 days
+        bill.setDueDate(dueDate);
+        
         bill.setPaymentCycle(cycle);
         // Nếu billType là CONTRACT_TOTAL nhưng không có dòng tiền phòng, thì chuyển thành SERVICE
         boolean hasRoomRent = details.stream().anyMatch(d -> d.getItemType() == BillItemType.ROOM_RENT);
@@ -571,9 +624,30 @@ public class BillServiceImpl implements BillService {
     @Override
     @Transactional
     public BillResponse toResponse(Bill bill) {
+        if (bill == null) {
+            throw new RuntimeException("Bill object is null");
+        }
+        
+        // Đảm bảo outstandingAmount được tính đúng
+        try {
+            bill.calculateOutstandingAmount();
+        } catch (Exception e) {
+            System.err.println("Lỗi khi tính outstandingAmount cho bill #" + bill.getId() + ": " + e.getMessage());
+        }
+        
         BillResponse response = new BillResponse();
         response.setId(bill.getId());
+        
+        // Kiểm tra contract
+        if (bill.getContract() != null) {
         response.setContractId(bill.getContract().getId());
+        } else {
+            System.err.println("Contract is null cho bill #" + bill.getId());
+            response.setContractId(null);
+        }
+        
+        // Kiểm tra room
+        if (bill.getRoom() != null) {
         response.setRoomId(bill.getRoom().getId());
         
         // Fetch room để tránh lazy loading
@@ -583,6 +657,11 @@ public class BillServiceImpl implements BillService {
             response.setRoomNumber(room.getRoomNumber());
         } catch (Exception e) {
             System.err.println("Lỗi khi fetch room cho bill #" + bill.getId() + ": " + e.getMessage());
+                response.setRoomNumber("N/A");
+            }
+        } else {
+            System.err.println("Room is null cho bill #" + bill.getId());
+            response.setRoomId(null);
             response.setRoomNumber("N/A");
         }
         
@@ -595,6 +674,12 @@ public class BillServiceImpl implements BillService {
         response.setPaidDate(bill.getPaidDate());
         response.setTotalAmount(bill.getTotalAmount());
         response.setStatus(bill.getStatus());
+        
+        // Thông tin thanh toán từng phần
+        response.setPaidAmount(bill.getPaidAmount());
+        response.setOutstandingAmount(bill.getOutstandingAmount());
+        response.setIsPartiallyPaid(bill.getIsPartiallyPaid());
+        response.setLastPaymentDate(bill.getLastPaymentDate());
 
         // Thông tin phạt quá hạn
         if (bill.getOriginalBill() != null) {
@@ -603,19 +688,27 @@ public class BillServiceImpl implements BillService {
         response.setPenaltyRate(bill.getPenaltyRate());
         
         // Tính toán số ngày quá hạn cho tất cả hóa đơn
+        try {
         if (bill.getOverdueDays() != null) {
             // Nếu đã có giá trị (hóa đơn phạt), sử dụng giá trị đó
             response.setOverdueDays(bill.getOverdueDays());
         } else {
             // Tính toán số ngày quá hạn cho hóa đơn thường
             response.setOverdueDays(calculateOverdueDays(bill));
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi khi tính overdueDays cho bill #" + bill.getId() + ": " + e.getMessage());
+            response.setOverdueDays(0);
         }
         
         response.setPenaltyAmount(bill.getPenaltyAmount());
         response.setNotes(bill.getNotes());
 
         List<BillDetailResponse> detailResponses = new ArrayList<>();
+        try {
+            if (bill.getBillDetails() != null) {
         for (BillDetail detail : bill.getBillDetails()) {
+                    if (detail != null) {
             BillDetailResponse d = new BillDetailResponse();
             d.setItemType(detail.getItemType());
             d.setDescription(detail.getDescription());
@@ -626,6 +719,11 @@ public class BillServiceImpl implements BillService {
                 d.setServiceName(detail.getService().getServiceName());
             }
             detailResponses.add(d);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi khi xử lý billDetails cho bill #" + bill.getId() + ": " + e.getMessage());
         }
         response.setDetails(detailResponses);
         return response;
@@ -676,12 +774,31 @@ public class BillServiceImpl implements BillService {
             } else if (service.getServiceType() == ServiceType.WATER || service.getServiceType() == ServiceType.OTHER) {
                 LocalDate billDate = LocalDate.of(year, month, 1);
                 BigDecimal unitPrice = serviceService.getServicePriceAtDate(service.getId(), billDate);
+                
+                // Tính số người trong phòng
+                int numberOfPeople = 1; // Mặc định 1 người
+                try {
+                    Contract activeContract = contractRepository.findActiveByRoomId(roomId).orElse(null);
+                    if (activeContract != null && activeContract.getRoomUsers() != null) {
+                        numberOfPeople = (int) activeContract.getRoomUsers().stream()
+                            .filter(ru -> Boolean.TRUE.equals(ru.getIsActive()))
+                            .count();
+                        if (numberOfPeople == 0) numberOfPeople = 1; // Đảm bảo ít nhất 1 người
+                    }
+                } catch (Exception e) {
+                    // Nếu có lỗi, mặc định 1 người
+                    numberOfPeople = 1;
+                }
+                
+                BigDecimal totalAmount = unitPrice.multiply(BigDecimal.valueOf(numberOfPeople));
+                
                 BillDetailResponse detail = new BillDetailResponse();
                 detail.setItemType(BillItemType.SERVICE);
-                detail.setDescription("Dịch vụ cố định: " + service.getServiceName() + " tháng " + String.format("%02d/%d", month, year));
+                detail.setDescription("Dịch vụ " + service.getServiceName() + " (" + numberOfPeople + " người) tháng " + String.format("%02d/%d", month, year));
                 detail.setServiceName(service.getServiceName());
                 detail.setUnitPriceAtBill(unitPrice);
-                detail.setItemAmount(unitPrice);
+                detail.setConsumedUnits(BigDecimal.valueOf(numberOfPeople));
+                detail.setItemAmount(totalAmount);
                 result.add(detail);
             }
         }
@@ -739,15 +856,33 @@ public class BillServiceImpl implements BillService {
             } else if (service.getServiceType() == ServiceType.WATER || service.getServiceType() == ServiceType.OTHER) {
                 LocalDate billDate = LocalDate.of(year, month, 1);
                 BigDecimal unitPrice = serviceService.getServicePriceAtDate(service.getId(), billDate);
+                
+                // Tính số người trong phòng
+                int numberOfPeople = 1; // Mặc định 1 người
+                try {
+                    if (contract.getRoomUsers() != null) {
+                        numberOfPeople = (int) contract.getRoomUsers().stream()
+                            .filter(ru -> Boolean.TRUE.equals(ru.getIsActive()))
+                            .count();
+                        if (numberOfPeople == 0) numberOfPeople = 1; // Đảm bảo ít nhất 1 người
+                    }
+                } catch (Exception e) {
+                    // Nếu có lỗi, mặc định 1 người
+                    numberOfPeople = 1;
+                }
+                
+                BigDecimal serviceAmount = unitPrice.multiply(BigDecimal.valueOf(numberOfPeople));
+                
                 BillDetail detail = new BillDetail();
                 detail.setItemType(BillItemType.SERVICE);
-                detail.setDescription("Dịch vụ cố định: " + service.getServiceName() + " tháng " + String.format("%02d/%d", month, year));
+                detail.setDescription("Dịch vụ " + service.getServiceName() + " (" + numberOfPeople + " người) tháng " + String.format("%02d/%d", month, year));
                 detail.setService(service);
                 detail.setUnitPriceAtBill(unitPrice);
-                detail.setItemAmount(unitPrice);
+                detail.setConsumedUnits(BigDecimal.valueOf(numberOfPeople));
+                detail.setItemAmount(serviceAmount);
                 detail.setCreatedDate(Instant.now());
                 details.add(detail);
-                totalAmount = totalAmount.add(unitPrice);
+                totalAmount = totalAmount.add(serviceAmount);
             }
         }
         Bill bill = new Bill();
@@ -755,6 +890,10 @@ public class BillServiceImpl implements BillService {
         bill.setContract(contract);
         bill.setFromDate(fromInstant);
         bill.setToDate(toInstant);
+        
+        // 🆕 Tự động set dueDate = toDate + 7 ngày cho hóa đơn dịch vụ
+        bill.setDueDate(toInstant.plusSeconds(7 * 24 * 60 * 60)); // +7 days
+        
         bill.setBillType(BillType.SERVICE);
         bill.setBillDate(Instant.now());
         bill.setTotalAmount(totalAmount);
@@ -820,6 +959,10 @@ public class BillServiceImpl implements BillService {
         bill.setBillDate(Instant.now());
         bill.setFromDate(fromDate);
         bill.setToDate(toDate);
+        
+        // 🆕 Tự động set dueDate = toDate + 7 ngày cho hóa đơn tùy chỉnh
+        bill.setDueDate(toDate.plusSeconds(7 * 24 * 60 * 60)); // +7 days
+        
         bill.setTotalAmount(amount);
         bill.setStatus(false);
         bill.setPaymentCycle(contract.getPaymentCycle());
@@ -1118,7 +1261,13 @@ public class BillServiceImpl implements BillService {
                 paymentTable.addCell(new PdfPCell(new Phrase("VNPay / Tiền mặt", normalFont)));
                 
                 paymentTable.addCell(new PdfPCell(new Phrase("Hạn thanh toán:", normalFont)));
-                paymentTable.addCell(new PdfPCell(new Phrase("Ngay sau khi nhận hóa đơn", normalFont)));
+                String dueDateText;
+                if (bill.getDueDate() != null) {
+                    dueDateText = dateFormatter.format(bill.getDueDate().atZone(ZoneId.systemDefault()));
+                } else {
+                    dueDateText = "Chưa thiết lập";
+                }
+                paymentTable.addCell(new PdfPCell(new Phrase(dueDateText, normalFont)));
                 
                 document.add(paymentTable);
             }
@@ -1222,6 +1371,184 @@ public class BillServiceImpl implements BillService {
     }
 
     @Override
+    @Transactional
+    public PartialPaymentResponse makePartialPayment(PartialPaymentRequest request) {
+        // Tìm hóa đơn
+        Bill bill = billRepository.findById(request.getBillId())
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy hóa đơn với ID: " + request.getBillId()));
+        
+        // Kiểm tra hóa đơn đã thanh toán hết chưa
+        if (Boolean.TRUE.equals(bill.getStatus())) {
+            throw new BusinessException("Hóa đơn đã được thanh toán đầy đủ");
+        }
+        
+        // Kiểm tra số tiền thanh toán hợp lệ
+        if (request.getPaymentAmount() == null || request.getPaymentAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("Số tiền thanh toán phải lớn hơn 0");
+        }
+        
+        // Kiểm tra số tiền thanh toán không vượt quá số tiền còn nợ
+        BigDecimal outstandingAmount = bill.getOutstandingAmount() != null ? bill.getOutstandingAmount() : bill.getTotalAmount();
+        if (request.getPaymentAmount().compareTo(outstandingAmount) > 0) {
+            throw new BusinessException("Số tiền thanh toán không được vượt quá số tiền còn nợ: " + formatCurrency(outstandingAmount));
+        }
+        
+        // Lưu số tiền đã thanh toán trước đó
+        BigDecimal previousPaidAmount = bill.getPaidAmount() != null ? bill.getPaidAmount() : BigDecimal.ZERO;
+        
+        // 🆕 Xử lý logic mới cho thanh toán từng phần
+        // 1. Thực hiện thanh toán
+        bill.addPayment(request.getPaymentAmount());
+        
+        // 2. Cập nhật dueDate: cộng thêm 30 ngày mỗi lần thanh toán từng phần
+        Instant currentDueDate = bill.getDueDate() != null ? bill.getDueDate() : 
+            bill.getToDate().plusSeconds(7 * 24 * 60 * 60); // toDate + 7 days (default)
+        
+        // Cộng thêm 30 ngày cho thanh toán từng phần
+        Instant newDueDate = currentDueDate.plusSeconds(30 * 24 * 60 * 60); // +30 days
+        bill.setDueDate(newDueDate);
+        
+        // 3. Đánh dấu là thanh toán từng phần
+        bill.setIsPartiallyPaid(true);
+        bill.setLastPaymentDate(Instant.now());
+        
+        System.out.println("🆕 Thanh toán từng phần cho hóa đơn #" + bill.getId() + 
+            " - DueDate cũ: " + currentDueDate + 
+            " - DueDate mới: " + newDueDate + 
+            " - Số tiền thanh toán: " + request.getPaymentAmount() + 
+            " - Số tiền còn nợ: " + bill.getOutstandingAmount());
+        
+        // Lưu hóa đơn
+        Bill savedBill = billRepository.save(bill);
+        
+        // Tạo response
+        PartialPaymentResponse response = new PartialPaymentResponse();
+        response.setBillId(bill.getId());
+        response.setPaymentAmount(request.getPaymentAmount());
+        response.setPreviousPaidAmount(previousPaidAmount);
+        response.setNewPaidAmount(bill.getPaidAmount());
+        response.setOutstandingAmount(bill.getOutstandingAmount());
+        response.setIsFullyPaid(bill.getStatus());
+        response.setPaymentDate(Instant.now());
+        response.setPaymentMethod(request.getPaymentMethod());
+        response.setNotes(request.getNotes());
+        
+        // Tạo message
+        if (bill.getStatus()) {
+            response.setMessage("Thanh toán thành công! Hóa đơn đã được thanh toán đầy đủ.");
+        } else {
+            response.setMessage("Thanh toán thành công! Số tiền còn nợ: " + formatCurrency(bill.getOutstandingAmount()) + 
+                ". Hạn thanh toán đã được gia hạn thêm 30 ngày.");
+        }
+        
+        // Gửi thông báo
+        sendPartialPaymentNotification(savedBill, request.getPaymentAmount());
+        
+        return response;
+    }
+    
+    // Gửi thông báo thanh toán từng phần
+    private void sendPartialPaymentNotification(Bill bill, BigDecimal paymentAmount) {
+        try {
+            // Gửi thông báo cho tất cả người thuê trong phòng
+            if (bill.getContract().getRoomUsers() != null) {
+                for (RoomUser roomUser : bill.getContract().getRoomUsers()) {
+                    if (roomUser.getUser() != null && Boolean.TRUE.equals(roomUser.getIsActive())) {
+                        NotificationDTO notification = new NotificationDTO();
+                        notification.setTitle("Thanh toán hóa đơn thành công");
+                        String notificationMessage = "Bạn đã thanh toán " + formatCurrency(paymentAmount) + " cho hóa đơn #" + bill.getId() + 
+                            ". Số tiền còn nợ: " + formatCurrency(bill.getOutstandingAmount());
+                        
+                        if (!bill.getStatus()) {
+                            notificationMessage += ". Hạn thanh toán đã được gia hạn thêm 30 ngày.";
+                        }
+                        
+                        notification.setMessage(notificationMessage);
+                        notification.setType(NotificationType.ANNOUNCEMENT);
+                        notification.setRecipientId(roomUser.getUser().getId());
+                        notification.setMetadata("{\"billId\":" + bill.getId() + ",\"paymentAmount\":" + paymentAmount + ",\"outstandingAmount\":" + bill.getOutstandingAmount() + "}");
+                        
+                        notificationService.createAndSend(notification);
+                    }
+                }
+            }
+            
+            // Gửi email thông báo cho người thuê chính
+            if (bill.getContract().getRoomUsers() != null && !bill.getContract().getRoomUsers().isEmpty()) {
+                RoomUser mainRenter = bill.getContract().getRoomUsers().stream()
+                    .filter(ru -> ru.getUser() != null && Boolean.TRUE.equals(ru.getIsActive()))
+                    .findFirst()
+                    .orElse(null);
+                
+                if (mainRenter != null && mainRenter.getUser().getEmail() != null) {
+                    String emailContent = buildPartialPaymentEmailContent(bill, paymentAmount);
+                    emailService.sendNotificationEmail(
+                        mainRenter.getUser().getEmail(),
+                        "Thanh toán hóa đơn thành công - Hóa đơn #" + bill.getId(),
+                        emailContent
+                    );
+                }
+            }
+            
+            // Tạo thông báo cho chủ nhà
+            NotificationDTO landlordNotification = new NotificationDTO();
+            landlordNotification.setTitle("Thanh toán hóa đơn từ người thuê");
+            landlordNotification.setMessage("Người thuê phòng " + bill.getRoom().getRoomNumber() + 
+                " đã thanh toán " + formatCurrency(paymentAmount) + " cho hóa đơn #" + bill.getId());
+            landlordNotification.setType(NotificationType.ANNOUNCEMENT);
+            landlordNotification.setRecipientId(bill.getRoom().getLandlord().getId());
+            landlordNotification.setMetadata("{\"billId\":" + bill.getId() + ",\"roomNumber\":\"" + bill.getRoom().getRoomNumber() + "\",\"paymentAmount\":" + paymentAmount + "}");
+            
+            notificationService.createAndSend(landlordNotification);
+            
+        } catch (Exception e) {
+            System.err.println("Lỗi khi gửi thông báo thanh toán từng phần: " + e.getMessage());
+        }
+    }
+    
+    // Tạo nội dung email thanh toán từng phần
+    private String buildPartialPaymentEmailContent(Bill bill, BigDecimal paymentAmount) {
+        StringBuilder content = new StringBuilder();
+        content.append("<html><body>");
+        content.append("<h2>Thanh toán hóa đơn thành công</h2>");
+        
+        // Lấy tên người thuê từ RoomUser
+        String renterName = "Người thuê";
+        if (bill.getContract().getRoomUsers() != null && !bill.getContract().getRoomUsers().isEmpty()) {
+            RoomUser firstRenter = bill.getContract().getRoomUsers().stream()
+                .filter(ru -> ru.getUser() != null && Boolean.TRUE.equals(ru.getIsActive()))
+                .findFirst()
+                .orElse(null);
+            if (firstRenter != null && firstRenter.getUser() != null && firstRenter.getUser().getUserInfo() != null) {
+                renterName = firstRenter.getUser().getUserInfo().getFullName();
+            }
+        }
+        
+        content.append("<p>Xin chào " + renterName + ",</p>");
+        content.append("<p>Bạn đã thanh toán thành công <strong>" + formatCurrency(paymentAmount) + "</strong> cho hóa đơn #" + bill.getId() + ".</p>");
+        content.append("<h3>Chi tiết hóa đơn:</h3>");
+        content.append("<ul>");
+        content.append("<li><strong>Phòng:</strong> " + bill.getRoom().getRoomNumber() + "</li>");
+        content.append("<li><strong>Tổng tiền:</strong> " + formatCurrency(bill.getTotalAmount()) + "</li>");
+        content.append("<li><strong>Đã thanh toán:</strong> " + formatCurrency(bill.getPaidAmount()) + "</li>");
+        content.append("<li><strong>Còn nợ:</strong> " + formatCurrency(bill.getOutstandingAmount()) + "</li>");
+        content.append("<li><strong>Ngày thanh toán:</strong> " + formatDateTime(bill.getLastPaymentDate()) + "</li>");
+        content.append("</ul>");
+        
+        if (bill.getStatus()) {
+            content.append("<p style='color: green;'><strong>🎉 Chúc mừng! Hóa đơn đã được thanh toán đầy đủ.</strong></p>");
+        } else {
+            content.append("<p style='color: orange;'><strong>⚠️ Lưu ý: Vẫn còn nợ " + formatCurrency(bill.getOutstandingAmount()) + ".</strong></p>");
+            content.append("<p style='color: blue;'><strong>📅 Hạn thanh toán đã được gia hạn thêm 30 ngày. Phạt quá hạn sẽ chỉ áp dụng sau 37 ngày kể từ hạn thanh toán mới.</strong></p>");
+        }
+        
+        content.append("<p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>");
+        content.append("</body></html>");
+        
+        return content.toString();
+    }
+
+    @Override
     public BillResponse createLatePenaltyBill(Long originalBillId) {
         Bill originalBill = billRepository.findById(originalBillId)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy hóa đơn gốc với ID: " + originalBillId));
@@ -1231,9 +1558,16 @@ public class BillServiceImpl implements BillService {
             throw new BusinessException("Không thể tạo phạt cho hóa đơn phạt. Chỉ có thể tạo phạt cho hóa đơn gốc.");
         }
         
-        // Kiểm tra hóa đơn gốc chưa thanh toán
+        // 🆕 Sửa: Kiểm tra hóa đơn gốc chưa thanh toán (bao gồm cả thanh toán từng phần)
         if (Boolean.TRUE.equals(originalBill.getStatus())) {
-            throw new BusinessException("Không thể tạo phạt cho hóa đơn đã thanh toán");
+            throw new BusinessException("Không thể tạo phạt cho hóa đơn đã thanh toán đầy đủ");
+        }
+        
+        // Kiểm tra xem có còn nợ không (cho thanh toán từng phần)
+        BigDecimal outstandingAmount = originalBill.getOutstandingAmount() != null ? 
+            originalBill.getOutstandingAmount() : originalBill.getTotalAmount();
+        if (outstandingAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("Không thể tạo phạt cho hóa đơn đã thanh toán hết");
         }
         
         // Tính toán số ngày quá hạn từ hóa đơn gốc
@@ -1260,7 +1594,16 @@ public class BillServiceImpl implements BillService {
         }
         
         // Tính toán phạt với số ngày quá hạn hiện tại
-        BigDecimal penaltyAmount = calculateLatePenalty(originalBill.getTotalAmount(), overdueDays);
+        // 🆕 Sửa: Tính phạt trên outstandingAmount thay vì totalAmount
+        BigDecimal amountToCalculatePenalty = originalBill.getOutstandingAmount() != null ? 
+            originalBill.getOutstandingAmount() : originalBill.getTotalAmount();
+        BigDecimal penaltyAmount = calculateLatePenalty(amountToCalculatePenalty, overdueDays);
+        
+        System.out.println("Tính phạt cho hóa đơn #" + originalBill.getId() + 
+            " - TotalAmount: " + originalBill.getTotalAmount() + 
+            " - OutstandingAmount: " + originalBill.getOutstandingAmount() + 
+            " - Amount tính phạt: " + amountToCalculatePenalty + 
+            " - Phạt: " + penaltyAmount);
         
         // Tạo hóa đơn phạt mới
         Bill penaltyBill = new Bill();
@@ -1280,13 +1623,13 @@ public class BillServiceImpl implements BillService {
         penaltyBill.setOverdueDays(overdueDays);
         
         penaltyBill.setPenaltyAmount(penaltyAmount);
-        penaltyBill.setNotes("Phạt quá hạn cho hóa đơn #" + originalBill.getId() + " - Quá hạn " + overdueDays + " ngày (Tỷ lệ: " + penaltyBill.getPenaltyRate() + "%)");
+        penaltyBill.setNotes("Phạt quá hạn cho hóa đơn #" + originalBill.getId() + " - Quá hạn " + overdueDays + " ngày (Tỷ lệ: " + penaltyBill.getPenaltyRate() + "%) - Tính trên số tiền còn nợ: " + formatCurrency(amountToCalculatePenalty));
         
         // Tạo chi tiết hóa đơn phạt
         List<BillDetail> penaltyDetails = new ArrayList<>();
         BillDetail penaltyDetail = new BillDetail();
         penaltyDetail.setItemType(BillItemType.LATE_PENALTY);
-        penaltyDetail.setDescription("Phạt quá hạn hóa đơn #" + originalBill.getId() + " - " + overdueDays + " ngày quá hạn (" + penaltyBill.getPenaltyRate() + "%)");
+        penaltyDetail.setDescription("Phạt quá hạn hóa đơn #" + originalBill.getId() + " - " + overdueDays + " ngày quá hạn (" + penaltyBill.getPenaltyRate() + "%) - Tính trên số tiền còn nợ: " + formatCurrency(amountToCalculatePenalty));
         penaltyDetail.setItemAmount(penaltyAmount);
         penaltyDetail.setCreatedDate(Instant.now());
         penaltyDetail.setBill(penaltyBill);
@@ -1633,20 +1976,33 @@ public class BillServiceImpl implements BillService {
     @Override
     public List<Bill> getOverdueBills() {
         Instant now = Instant.now();
-        // Tính thời điểm 7 ngày trước để tìm hóa đơn có toDate < (now - 7 days)
-        // Điều này tương đương với hóa đơn có (toDate + 7 days) < now
-        Instant sevenDaysAgo = now.minusSeconds(7 * 24 * 60 * 60);
         
-        System.out.println("Tìm hóa đơn quá hạn - Thời gian hiện tại: " + now);
-        System.out.println("Tìm hóa đơn có toDate < " + sevenDaysAgo + " (từ ngày thứ 7 trở đi)");
+        // 🆕 Logic mới: Lấy tất cả hóa đơn chưa thanh toán và kiểm tra từng cái
+        // vì hóa đơn thanh toán từng phần có dueDate được gia hạn
+        List<Bill> allUnpaidBills = billRepository.findByStatusFalse();
+        List<Bill> overdueBills = new ArrayList<>();
         
-        List<Bill> overdueBills = billRepository.findByStatusFalseAndToDateBefore(sevenDaysAgo);
+        System.out.println("🆕 Tìm hóa đơn quá hạn - Thời gian hiện tại: " + now);
+        System.out.println("Tổng số hóa đơn chưa thanh toán: " + allUnpaidBills.size());
         
-        System.out.println("Tìm thấy " + overdueBills.size() + " hóa đơn quá hạn:");
-        for (Bill bill : overdueBills) {
+        for (Bill bill : allUnpaidBills) {
             int overdueDays = calculateOverdueDays(bill);
-            System.out.println("  - Hóa đơn #" + bill.getId() + " - toDate: " + bill.getToDate() + " - Quá hạn: " + overdueDays + " ngày");
+            
+            // Chỉ coi là quá hạn nếu overdueDays > 0 (sau khi đã áp dụng logic 37 ngày cho thanh toán từng phần)
+            if (overdueDays > 0) {
+                overdueBills.add(bill);
+                
+                Instant dueDate = bill.getDueDate() != null ? bill.getDueDate() : 
+                    bill.getToDate().plusSeconds(7 * 24 * 60 * 60);
+                
+                System.out.println("  - Hóa đơn #" + bill.getId() + 
+                    " - DueDate: " + dueDate + 
+                    " - Thanh toán từng phần: " + (Boolean.TRUE.equals(bill.getIsPartiallyPaid()) ? "Có" : "Không") +
+                    " - Quá hạn: " + overdueDays + " ngày");
+            }
         }
+        
+        System.out.println("Tìm thấy " + overdueBills.size() + " hóa đơn quá hạn (sau khi áp dụng logic mới)");
         
         return overdueBills;
     }
@@ -1677,17 +2033,26 @@ public class BillServiceImpl implements BillService {
         }
         
         long daysDiff = java.time.Duration.between(dueDate, now).toDays();
-        return (int) daysDiff;
+        int overdueDays = (int) daysDiff;
+        
+        // 🆕 Logic mới: Đối với hóa đơn thanh toán từng phần, trừ đi 37 ngày trước khi tính phạt
+        if (Boolean.TRUE.equals(bill.getIsPartiallyPaid())) {
+            overdueDays = Math.max(0, overdueDays - 37); // Trừ 37 ngày, tối thiểu là 0
+            System.out.println("🆕 Hóa đơn #" + bill.getId() + " đã thanh toán từng phần - Ngày quá hạn thực tế: " + 
+                (int) daysDiff + " - Sau khi trừ 37 ngày: " + overdueDays);
+        }
+        
+        return overdueDays;
     }
 
     // Tính toán tỷ lệ phạt dựa trên số ngày quá hạn
     private BigDecimal calculatePenaltyRate(int overdueDays) {
-        // Logic phạt chuẩn: 
-        // - Tuần đầu tiên (1-7 ngày): 2% 
-        // - Tuần thứ 2 (8-14 ngày): 4%
-        // - Tuần thứ 3 (15-21 ngày): 6%
-        // - Tuần thứ 4 (22-28 ngày): 8%
-        // - Từ tuần thứ 5 trở đi: 10%
+        // 🆕 Logic phạt mới (giảm xuống tối đa 5%): 
+        // - Tuần đầu tiên (1-7 ngày): 1% 
+        // - Tuần thứ 2 (8-14 ngày): 2%
+        // - Tuần thứ 3 (15-21 ngày): 3%
+        // - Tuần thứ 4 (22-28 ngày): 4%
+        // - Từ tuần thứ 5 trở đi: 5%
         
         if (overdueDays <= 0) {
             return BigDecimal.ZERO;
@@ -1698,19 +2063,19 @@ public class BillServiceImpl implements BillService {
         BigDecimal penaltyRate;
         switch (weeks) {
             case 1:
-                penaltyRate = BigDecimal.valueOf(2); // 2%
+                penaltyRate = BigDecimal.valueOf(1); // 1%
                 break;
             case 2:
-                penaltyRate = BigDecimal.valueOf(4); // 4%
+                penaltyRate = BigDecimal.valueOf(2); // 2%
                 break;
             case 3:
-                penaltyRate = BigDecimal.valueOf(6); // 6%
+                penaltyRate = BigDecimal.valueOf(3); // 3%
                 break;
             case 4:
-                penaltyRate = BigDecimal.valueOf(8); // 8%
+                penaltyRate = BigDecimal.valueOf(4); // 4%
                 break;
             default:
-                penaltyRate = BigDecimal.valueOf(10); // 10% cho tuần thứ 5 trở đi
+                penaltyRate = BigDecimal.valueOf(5); // 5% cho tuần thứ 5 trở đi (tối đa)
                 break;
         }
         
@@ -2040,6 +2405,35 @@ public class BillServiceImpl implements BillService {
     private String shortenUrl(String url) {
         if (url == null || url.length() <= 50) return url;
         return url.substring(0, 47) + "...";
+    }
+    
+    // Lấy số tiền nợ từ hóa đơn trước
+    private BigDecimal getOutstandingDebtFromPreviousBills(Contract contract, LocalDate currentFromDate) {
+        BigDecimal totalOutstanding = BigDecimal.ZERO;
+        
+        try {
+            // Lấy tất cả hóa đơn của hợp đồng này
+            List<Bill> allBills = billRepository.findAll().stream()
+                .filter(bill -> bill.getContract().getId().equals(contract.getId()))
+                .sorted((b1, b2) -> b2.getFromDate().compareTo(b1.getFromDate())) // Sắp xếp theo fromDate giảm dần
+                .toList();
+            
+            for (Bill bill : allBills) {
+                // Chỉ xét hóa đơn có fromDate < currentFromDate (hóa đơn trước)
+                LocalDate billFromDate = bill.getFromDate().atZone(ZoneId.of("Asia/Ho_Chi_Minh")).toLocalDate();
+                if (billFromDate.isBefore(currentFromDate)) {
+                    // Tính số tiền còn nợ của hóa đơn này
+                    BigDecimal outstandingAmount = bill.getOutstandingAmount() != null ? bill.getOutstandingAmount() : BigDecimal.ZERO;
+                    if (outstandingAmount.compareTo(BigDecimal.ZERO) > 0) {
+                        totalOutstanding = totalOutstanding.add(outstandingAmount);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi khi tính toán số tiền nợ từ hóa đơn trước: " + e.getMessage());
+        }
+        
+        return totalOutstanding;
     }
 
 }

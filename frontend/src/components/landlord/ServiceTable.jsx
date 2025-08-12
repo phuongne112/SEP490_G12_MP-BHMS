@@ -89,7 +89,7 @@ export default function ServiceTable({ services, pagination, loading, onEdit, on
             description="Bạn có chắc muốn xóa dịch vụ này?"
             onConfirm={() => onDelete(record.id)}
             okText="Xóa"
-            cancelText="Không"
+                            cancelText="Hủy"
           >
             <Button
               icon={<DeleteOutlined />}

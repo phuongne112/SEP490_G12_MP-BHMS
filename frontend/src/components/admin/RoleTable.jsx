@@ -177,7 +177,7 @@ export default function RoleTable({
                         description="Bạn có chắc muốn xóa vai trò này?"
                         onConfirm={() => onDeleteRole(record)}
                         okText="Xóa"
-                        cancelText="Không"
+                        cancelText="Hủy"
                       >
                         <Button
                           icon={<DeleteOutlined />}

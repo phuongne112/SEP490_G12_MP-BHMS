@@ -536,7 +536,7 @@ export default function AdminRoleListPage() {
                       title="Bạn có chắc chắn muốn cập nhật vai trò này không?"
                       onConfirm={() => form.submit()}
                       okText="Có"
-                      cancelText="Không"
+                      cancelText="Hủy"
                     >
                       <Button type="primary">Cập nhật</Button>
                     </Popconfirm>

@@ -20,6 +20,7 @@ import {
   Radio,
   Divider,
   Drawer,
+  Typography,
 } from "antd";
 import {
   PlusOutlined,
@@ -33,6 +34,7 @@ import {
   ClockCircleOutlined,
   CheckCircleOutlined,
   MenuOutlined,
+  DollarOutlined,
 } from "@ant-design/icons";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
@@ -58,11 +60,13 @@ import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import axiosClient from '../../services/axiosClient';
 import { useMediaQuery } from "react-responsive";
+import PartialPaymentModal from "../../components/common/PartialPaymentModal";
 dayjs.extend(customParseFormat);
 
 const { Sider, Content } = Layout;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
+const { Text } = Typography;
 
 function BillFilterPopover({ onFilter }) {
   const [status, setStatus] = useState();
@@ -173,6 +177,8 @@ export default function LandlordBillListPage() {
   const [existingBills, setExistingBills] = useState([]);
   const [availablePeriodOptions, setAvailablePeriodOptions] = useState([]);
   const [customPeriodValidation, setCustomPeriodValidation] = useState(null);
+  const [partialPaymentModalVisible, setPartialPaymentModalVisible] = useState(false);
+  const [selectedBill, setSelectedBill] = useState(null);
 
   const navigate = useNavigate();
 
@@ -366,12 +372,16 @@ export default function LandlordBillListPage() {
       const response = await getAllBills(params);
       const billsData = response.content || response.result || [];
       
+      console.log('Raw bills data from API:', billsData);
+      
       // Xử lý hóa đơn quá hạn
       const processedBills = billsData.map(bill => ({
         ...bill,
         isOverdue: checkOverdue(bill),
         overdueDays: getOverdueDays(bill)
       }));
+      
+      console.log('Processed bills data:', processedBills);
       
       setBills(processedBills);
       setTotal(response.totalElements || response.meta?.total || 0);
@@ -495,6 +505,30 @@ export default function LandlordBillListPage() {
     } catch (err) {
       message.error("Xóa thất bại");
     }
+  };
+
+  // Xử lý thanh toán từng phần
+  const handlePartialPayment = (bill) => {
+    console.log('handlePartialPayment called with bill:', bill);
+    if (!bill) {
+      message.error('Không tìm thấy thông tin hóa đơn');
+      return;
+    }
+    setSelectedBill(bill);
+    setPartialPaymentModalVisible(true);
+  };
+
+  const handlePartialPaymentSuccess = (paymentData) => {
+    console.log('handlePartialPaymentSuccess called with:', paymentData);
+    setPartialPaymentModalVisible(false);
+    setSelectedBill(null);
+    fetchBills(); // Refresh danh sách
+  };
+
+  const handlePartialPaymentCancel = () => {
+    console.log('handlePartialPaymentCancel called');
+    setPartialPaymentModalVisible(false);
+    setSelectedBill(null);
   };
 
   const handleExport = async (bill) => {
@@ -956,14 +990,56 @@ export default function LandlordBillListPage() {
         align: "center", 
         width: 120,
         render: (date) => formatDate(date)
+      },
+      { 
+        title: "Hạn thanh toán", 
+        dataIndex: "dueDate", 
+        align: "center", 
+        width: 120,
+        render: (date) => {
+          if (!date) {
+            return <span style={{ color: '#faad14', fontStyle: 'italic', fontSize: '11px' }}>Chưa thiết lập</span>;
+          }
+          
+          try {
+            const dueDate = dayjs(date, "YYYY-MM-DD HH:mm:ss A");
+            if (!dueDate.isValid()) {
+              return <span style={{ color: 'red', fontSize: '11px' }}>Không xác định</span>;
+            }
+            
+            return <Text>{dueDate.format("DD/MM/YYYY")}</Text>;
+          } catch (error) {
+            return <span style={{ color: 'red', fontSize: '11px' }}>Lỗi</span>;
+          }
+        }
       }
     ]),
     { 
       title: "Tổng tiền", 
       dataIndex: "totalAmount", 
       align: "center", 
-      width: isMobile ? 100 : 140,
-      render: (amount) => formatCurrency(amount)
+      width: isMobile ? 120 : 180,
+      render: (amount, record) => (
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontWeight: 'bold' }}>{formatCurrency(amount)}</div>
+          {(record.paidAmount || 0) > 0 && (
+            <div style={{ fontSize: '12px', color: '#52c41a' }}>
+              Đã trả: {formatCurrency(record.paidAmount || 0)}
+            </div>
+          )}
+          {(record.outstandingAmount || 0) > 0 && (
+            <div style={{ fontSize: '12px', color: '#ff4d4f' }}>
+              Còn nợ: {formatCurrency(record.outstandingAmount || 0)}
+            </div>
+          )}
+          {record.isPartiallyPaid && (
+            <div style={{ fontSize: '11px', color: '#faad14', fontStyle: 'italic' }}>
+              Thanh toán từng phần
+            </div>
+          )}
+
+        </div>
+      )
     },
     {
       title: "Trạng thái",
@@ -1086,6 +1162,8 @@ export default function LandlordBillListPage() {
                  </Button>
                </Popover>
              )} */}
+            
+
             
             {/* 6. Nút "Xóa" - Luôn hiển thị (cuối cùng) */}
             <Popconfirm
@@ -1669,6 +1747,16 @@ export default function LandlordBillListPage() {
               </Form.Item>
             </Form>
           </Modal>
+
+          {/* Modal thanh toán từng phần */}
+          {selectedBill && (
+            <PartialPaymentModal
+              visible={partialPaymentModalVisible}
+              onCancel={handlePartialPaymentCancel}
+              onSuccess={handlePartialPaymentSuccess}
+              bill={selectedBill}
+            />
+          )}
           </Content>
         </Layout>
         

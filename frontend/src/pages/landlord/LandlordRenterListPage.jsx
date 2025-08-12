@@ -353,19 +353,55 @@ export default function LandlordRenterListPage() {
       // Cập nhật danh sách người thuê ngay lập tức
       setRefreshKey(prev => prev + 1); // Trigger refresh RenterTable
     } catch (err) {
-      // Nếu backend trả về lỗi dạng data object, set lỗi cho từng trường
-      const fieldErrors = err.response?.data?.data;
-      if (fieldErrors && typeof fieldErrors === "object") {
-        addForm.setFields(
-          Object.entries(fieldErrors).map(([field, message]) => ({
+      console.error('Error adding renter:', err);
+      
+      // Xử lý lỗi từ backend
+      if (err.response?.data) {
+        const responseData = err.response.data;
+        
+        // Xử lý lỗi validation cụ thể
+        if (responseData.message && responseData.message.includes('Validation failed')) {
+          // Tìm lỗi validation trong constraint violations
+          if (responseData.message.includes('Số CMND phải có 9 hoặc 12 chữ số')) {
+            message.error("Số CCCD/CMND phải có đúng 9 hoặc 12 chữ số. Vui lòng kiểm tra lại!");
+            addForm.setFields([
+              {
+                name: 'citizenId',
+                errors: ['Số CCCD/CMND phải có đúng 9 hoặc 12 chữ số']
+              }
+            ]);
+            return;
+          }
+          
+          // Xử lý các lỗi validation khác
+          message.error("Thông tin nhập vào không hợp lệ. Vui lòng kiểm tra lại!");
+        } else {
+          // Hiển thị thông báo lỗi chính
+          if (responseData.message) {
+            message.error(responseData.message);
+          }
+        }
+        
+        // Xử lý lỗi validation cho từng trường
+        if (responseData.data && typeof responseData.data === "object") {
+          const fieldErrors = Object.entries(responseData.data).map(([field, errorMsg]) => ({
             name: field === "phone" ? "phoneNumber" : field,
-            errors: [message],
-          }))
-        );
+            errors: [errorMsg],
+          }));
+          
+          if (fieldErrors.length > 0) {
+            addForm.setFields(fieldErrors);
+          }
+        }
+        
         return;
       }
+      
+      // Xử lý lỗi validation của form (frontend)
       if (err?.errorFields) return;
-      message.error("Thêm người thuê thất bại!");
+      
+      // Lỗi khác
+      message.error("Thêm người thuê thất bại! Vui lòng thử lại.");
     } finally {
       setAddLoading(false);
     }
@@ -731,10 +767,18 @@ export default function LandlordRenterListPage() {
                           </Col>
                           <Col span={12}>
                             <Form.Item label="CCCD/CMND" name="citizenId" rules={[
-                              { required: true, message: "Vui lòng nhập CCCD/CMND" },
-                              { pattern: /^\d{9,12}$/, message: "CCCD/CMND phải từ 9-12 số" }
+                              { required: true, message: "Vui lòng nhập CCCD/CMND" }
                             ]}>
-                              <Input placeholder="Nhập số CCCD/CMND" />
+                              <Input 
+                                placeholder="Nhập số CCCD/CMND" 
+                                maxLength={12}
+                                onKeyPress={(e) => {
+                                  // Chỉ cho phép nhập số
+                                  if (!/[0-9]/.test(e.key)) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                              />
                             </Form.Item>
                           </Col>
                           <Col span={12}>

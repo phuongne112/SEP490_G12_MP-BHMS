@@ -140,7 +140,7 @@ export default function PermissionTable({
               description="Bạn có chắc muốn xóa quyền này?"
               onConfirm={() => onDeletePermission(record)}
               okText="Xóa"
-              cancelText="Không"
+                              cancelText="Hủy"
             >
               <Button
                 icon={<DeleteOutlined />}

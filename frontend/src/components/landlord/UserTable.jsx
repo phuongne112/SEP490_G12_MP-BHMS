@@ -41,7 +41,7 @@ export default function UserTable({ users, loading, pagination, onChangeRenter }
               title="Bạn có chắc muốn chuyển người dùng này thành người thuê?"
               onConfirm={() => onChangeRenter(record)}
               okText="Có"
-              cancelText="Không"
+                              cancelText="Hủy"
             >
               <Button type="primary">Chuyển thành người thuê</Button>
             </Popconfirm>
