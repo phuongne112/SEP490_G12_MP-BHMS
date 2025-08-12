@@ -69,14 +69,20 @@ public interface BillService {
     // Lấy danh sách hóa đơn quá hạn
     List<Bill> getOverdueBills();
     
+    // Lấy tất cả hóa đơn phạt
+    List<Bill> getAllPenaltyBills();
+
+    // Lấy số lần thanh toán đã thực hiện cho một hóa đơn
+    int getPaymentCount(Long billId);
+
+    // Tính phí thanh toán tiếp theo dựa trên số lần đã thanh toán
+    java.math.BigDecimal calculateNextPaymentFee(int paymentCount);
+    
     // Gửi thông báo cảnh báo hóa đơn quá hạn
     void sendOverdueWarningNotification(Bill bill);
     
     // 🆕 Gửi cảnh báo cho hóa đơn quá hạn 7 ngày
     void sendOverdueWarningFor7Days();
-    
-    // Lấy tất cả hóa đơn phạt
-    List<Bill> getAllPenaltyBills();
     
     // Tính số ngày quá hạn
     int calculateOverdueDays(Bill bill);

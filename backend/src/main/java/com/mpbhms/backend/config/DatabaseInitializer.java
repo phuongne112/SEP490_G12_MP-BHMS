@@ -153,6 +153,14 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Create Late Penalty Bill", "/mpbhms/bills/{id}/create-penalty", "POST", "Bill"));
             permissions.add(new Permission("Check And Create Late Penalties", "/mpbhms/bills/check-and-create-penalties", "POST", "Bill"));
             permissions.add(new Permission("Get Overdue Bills", "/mpbhms/bills/overdue", "GET", "Bill"));
+            permissions.add(new Permission("Partial Payment", "/mpbhms/bills/partial-payment", "POST", "Bill"));
+            permissions.add(new Permission("Partial Payment VNPay", "/mpbhms/bills/partial-payment/vnpay", "POST", "Bill"));
+            permissions.add(new Permission("Get Payment Count", "/mpbhms/bills/{id}/payment-count", "GET", "Bill"));
+            permissions.add(new Permission("Cash Partial Payment", "/mpbhms/bills/cash-partial-payment", "POST", "Bill"));
+            permissions.add(new Permission("Confirm Cash Payment", "/mpbhms/bills/{billId}/confirm-cash-payment/{paymentHistoryId}", "POST", "Bill"));
+            //Payment History
+            permissions.add(new Permission("Get Payment Statistics", "/mpbhms/payment-history/bill/{billId}/statistics", "GET", "payment-history"));
+            permissions.add(new Permission("Get Payment History Page", "/mpbhms/payment-history/bill/{billId}/page", "GET", "payment-history"));
             //Renter
             permissions.add(new Permission("Get Renter List", "/mpbhms/renters", "GET", "Renter"));
             permissions.add(new Permission("Create new Renter", "/mpbhms/renters", "POST", "Renter"));
@@ -233,7 +241,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             List<Permission> adminPermissions = new ArrayList<>(permissionRepository.findAll()
                     .stream()
                     .filter(p ->
-                            List.of("User", "Role", "Permission", "Notification", "Service", "Renter", "Schedule", "Bill", "Asset").contains(p.getModule()) ||
+                            List.of("User", "Role", "Permission", "Notification", "Service", "Renter", "Schedule", "Bill", "Asset", "payment-history").contains(p.getModule()) ||
                                     (p.getModule().equals("Room") && p.getMethod().equals("GET"))
                     )// hoặc theo API cụ thể
                     .toList());
@@ -316,6 +324,29 @@ public class DatabaseInitializer implements CommandLineRunner {
             //Payment
             Permission createVnpayUrl = permissionRepository.findByModuleAndApiPathAndMethod("Payment", "/mpbhms/payment/create-vnpay-url", "POST");
             if (createVnpayUrl != null) renterPermission.add(createVnpayUrl);
+            
+            // Bill permissions for RENTER
+            Permission partialPayment = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/partial-payment", "POST");
+            if (partialPayment != null) renterPermission.add(partialPayment);
+            
+            Permission partialPaymentVnpay = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/partial-payment/vnpay", "POST");
+            if (partialPaymentVnpay != null) renterPermission.add(partialPaymentVnpay);
+            
+            Permission getPaymentCount = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/{id}/payment-count", "GET");
+            if (getPaymentCount != null) renterPermission.add(getPaymentCount);
+            
+            Permission cashPartialPayment = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/cash-partial-payment", "POST");
+            if (cashPartialPayment != null) renterPermission.add(cashPartialPayment);
+            
+            Permission confirmCashPayment = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/{billId}/confirm-cash-payment/{paymentHistoryId}", "POST");
+            if (confirmCashPayment != null) renterPermission.add(confirmCashPayment);
+            
+            // Payment History permissions for RENTER
+            Permission getPaymentStatistics = permissionRepository.findByModuleAndApiPathAndMethod("payment-history", "/mpbhms/payment-history/bill/{billId}/statistics", "GET");
+            if (getPaymentStatistics != null) renterPermission.add(getPaymentStatistics);
+            
+            Permission getPaymentHistoryPage = permissionRepository.findByModuleAndApiPathAndMethod("payment-history", "/mpbhms/payment-history/bill/{billId}/page", "GET");
+            if (getPaymentHistoryPage != null) renterPermission.add(getPaymentHistoryPage);
             //Ocr
             if (ocrCccdPermission != null) {
                 renterPermission.add(ocrCccdPermission);
@@ -419,6 +450,43 @@ public class DatabaseInitializer implements CommandLineRunner {
             if (landlordCheckoutAsset != null && !landlordPermission.contains(landlordCheckoutAsset)) {
                 landlordPermission.add(landlordCheckoutAsset);
             }
+            
+            // Bill permissions for LANDLORD
+            Permission landlordPartialPayment = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/partial-payment", "POST");
+            if (landlordPartialPayment != null && !landlordPermission.contains(landlordPartialPayment)) {
+                landlordPermission.add(landlordPartialPayment);
+            }
+            
+            Permission landlordPartialPaymentVnpay = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/partial-payment/vnpay", "POST");
+            if (landlordPartialPaymentVnpay != null && !landlordPermission.contains(landlordPartialPaymentVnpay)) {
+                landlordPermission.add(landlordPartialPaymentVnpay);
+            }
+            
+            Permission landlordGetPaymentCount = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/{id}/payment-count", "GET");
+            if (landlordGetPaymentCount != null && !landlordPermission.contains(landlordGetPaymentCount)) {
+                landlordPermission.add(landlordGetPaymentCount);
+            }
+            
+            Permission landlordCashPartialPayment = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/cash-partial-payment", "POST");
+            if (landlordCashPartialPayment != null && !landlordPermission.contains(landlordCashPartialPayment)) {
+                landlordPermission.add(landlordCashPartialPayment);
+            }
+            
+            Permission landlordConfirmCashPayment = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/{billId}/confirm-cash-payment/{paymentHistoryId}", "POST");
+            if (landlordConfirmCashPayment != null && !landlordPermission.contains(landlordConfirmCashPayment)) {
+                landlordPermission.add(landlordConfirmCashPayment);
+            }
+            
+            // Payment History permissions for LANDLORD
+            Permission landlordGetPaymentStatistics = permissionRepository.findByModuleAndApiPathAndMethod("payment-history", "/mpbhms/payment-history/bill/{billId}/statistics", "GET");
+            if (landlordGetPaymentStatistics != null && !landlordPermission.contains(landlordGetPaymentStatistics)) {
+                landlordPermission.add(landlordGetPaymentStatistics);
+            }
+            
+            Permission landlordGetPaymentHistoryPage = permissionRepository.findByModuleAndApiPathAndMethod("payment-history", "/mpbhms/payment-history/bill/{billId}/page", "GET");
+            if (landlordGetPaymentHistoryPage != null && !landlordPermission.contains(landlordGetPaymentHistoryPage)) {
+                landlordPermission.add(landlordGetPaymentHistoryPage);
+            }
             landlordRole.setPermissionEntities(landlordPermission);
             roleRepository.save(landlordRole);
 
@@ -426,7 +494,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             subAdminRole.setRoleName("SUBADMIN");
             List<Permission> subAdminPermission = new ArrayList<>(permissionRepository.findAll()
                     .stream()
-                    .filter(p -> List.of("User", "Role", "Permission", "Notification", "Service", "Renter", "Schedule", "Bill", "Asset", "Room").contains(p.getModule())) // hoặc theo API cụ thể
+                    .filter(p -> List.of("User", "Role", "Permission", "Notification", "Service", "Renter", "Schedule", "Bill", "Asset", "Room", "payment-history").contains(p.getModule())) // hoặc theo API cụ thể
                     .toList());
             if (viewMyNotification != null && !subAdminPermission.contains(viewMyNotification)) {
                 subAdminPermission.add(viewMyNotification);

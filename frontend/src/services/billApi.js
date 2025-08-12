@@ -128,4 +128,36 @@ export const createPartialPaymentVnPayUrl = async (request) => {
   } catch (error) {
     throw error;
   }
+};
+
+// Lấy số lần thanh toán đã thực hiện cho một hóa đơn
+export const getPaymentCount = async (billId) => {
+  try {
+    const response = await axiosClient.get(`/bills/${billId}/payment-count`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Thanh toán từng phần bằng tiền mặt
+export const createCashPartialPayment = async (paymentData) => {
+  try {
+    const response = await axiosClient.post('/bills/cash-partial-payment', paymentData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating cash partial payment:', error);
+    throw error;
+  }
+};
+
+// Xác nhận thanh toán tiền mặt (cho landlord)
+export const confirmCashPayment = async (billId, paymentHistoryId) => {
+  try {
+    const response = await axiosClient.post(`/bills/${billId}/confirm-cash-payment/${paymentHistoryId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error confirming cash payment:', error);
+    throw error;
+  }
 }; 
