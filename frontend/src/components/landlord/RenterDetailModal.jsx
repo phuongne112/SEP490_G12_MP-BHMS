@@ -152,7 +152,7 @@ export default function RenterDetailModal({ visible, onClose, renterData }) {
                   <span style={{ fontWeight: 500 }}>Giới tính:</span>
                 </div>
                 <div style={{ marginLeft: 24, color: "#262626" }}>
-                  {renterData.userInfo.gender === "MALE" ? "Nam" : renterData.userInfo.gender === "FEMALE" ? "Nữ" : "Khác"}
+                  {renterData.userInfo.gender === "Nam" ? "Nam" : renterData.userInfo.gender === "Nữ" ? "Nữ" : "Khác"}
                 </div>
               </Col>
             )}

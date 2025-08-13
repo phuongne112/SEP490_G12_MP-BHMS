@@ -243,8 +243,10 @@ export default function AdminUserListPage() {
               background: "white", 
               borderRadius: "8px", 
               boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-              overflow: "hidden",
-              maxHeight: "calc(100vh - 300px)"
+              overflow: "visible",
+              minHeight: "400px",
+              display: "flex",
+              flexDirection: "column"
             }}>
               <UserTable
                 pageSize={pageSize}

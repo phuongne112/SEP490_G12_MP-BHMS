@@ -10,4 +10,5 @@ public interface RoomAssetRepository extends JpaRepository<RoomAsset, Long> {
     List<RoomAsset> findByRoom(Room room);
     List<RoomAsset> findByAsset(Asset asset);
     RoomAsset findByRoomAndAsset(Room room, Asset asset);
+    boolean existsByAssetId(Long assetId);
 } 

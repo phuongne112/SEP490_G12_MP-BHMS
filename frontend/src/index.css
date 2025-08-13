@@ -120,63 +120,221 @@ code {
   transition: all 0.3s ease;
 }
 
-/* Custom scrollbar for better visual */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Pagination Fixes */
+/* Ensure pagination container has proper spacing and doesn't overflow */
+.ant-pagination {
+  margin: 16px 0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  min-height: 32px !important;
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+/* Fix pagination item spacing */
+.ant-pagination-item,
+.ant-pagination-prev,
+.ant-pagination-next,
+.ant-pagination-jump-prev,
+.ant-pagination-jump-next {
+  margin: 0 4px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  line-height: 30px !important;
+  border-radius: 6px !important;
 }
 
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(45deg, #FF6B35, #F7931E);
-  border-radius: 4px;
+/* Ensure pagination options don't overlap */
+.ant-pagination-options {
+  margin-left: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(45deg, #E55A2B, #E8841A);
+.ant-pagination-options-quick-jumper {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
 }
 
-/* FB-like loading animation */
-@keyframes pulse360 {
-  0% {
-    transform: scale(1);
-    opacity: 1;
+.ant-pagination-options-size-changer {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+/* Fix pagination total display */
+.ant-pagination-total-text {
+  margin-right: 16px !important;
+  white-space: nowrap !important;
+}
+
+/* Responsive pagination fixes */
+@media (max-width: 768px) {
+  .ant-pagination {
+    flex-direction: column !important;
+    gap: 12px !important;
+    align-items: center !important;
   }
-  50% {
-    transform: scale(1.05);
-    opacity: 0.8;
+  
+  .ant-pagination-options {
+    margin-left: 0 !important;
+    margin-top: 8px !important;
+    justify-content: center !important;
   }
-  100% {
-    transform: scale(1);
-    opacity: 1;
+  
+  .ant-pagination-total-text {
+    margin-right: 0 !important;
+    margin-bottom: 8px !important;
+    text-align: center !important;
+  }
+  
+  /* Ensure pagination items don't wrap awkwardly on mobile */
+  .ant-pagination-item,
+  .ant-pagination-prev,
+  .ant-pagination-next,
+  .ant-pagination-jump-prev,
+  .ant-pagination-jump-next {
+    margin: 0 2px !important;
+    min-width: 28px !important;
+    height: 28px !important;
+    line-height: 26px !important;
+    font-size: 12px !important;
   }
 }
 
-.image-360-modal .ant-spin-dot {
-  animation: pulse360 1.5s ease-in-out infinite !important;
+/* Table pagination container fixes */
+.ant-table-pagination {
+  margin: 16px 0 !important;
+  padding: 16px !important;
+  background: #fff !important;
+  border-top: 1px solid #f0f0f0 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 12px !important;
 }
 
-/* FB-style gradient effects */
-@keyframes gradientShift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+/* Ensure table pagination doesn't overflow */
+.ant-table-wrapper {
+  overflow: hidden !important;
 }
 
-.gradient-animated {
-  background: linear-gradient(-45deg, #FF6B35, #F7931E, #FF8A65, #FFB74D);
-  background-size: 400% 400%;
-  animation: gradientShift 3s ease infinite;
+.ant-table {
+  overflow-x: auto !important;
+}
+
+/* Fix for pagination when showSizeChanger is false */
+.ant-pagination.ant-pagination-simple {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+/* Fix for pagination when showQuickJumper is false */
+.ant-pagination:not(.ant-pagination-simple) {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+/* Ensure pagination is always visible when needed */
+.ant-pagination:not([style*="display: none"]) {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Fix for overlapping pagination elements */
+.ant-pagination * {
+  box-sizing: border-box !important;
+}
+
+.ant-pagination-item-link {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Ensure proper spacing for pagination with size changer */
+.ant-pagination-options-size-changer .ant-select {
+  margin: 0 8px !important;
+}
+
+/* Fix for pagination total text positioning */
+.ant-pagination-total-text {
+  display: inline-block !important;
+  vertical-align: middle !important;
+}
+
+/* Ensure pagination container has proper z-index */
+.ant-pagination {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Fix for pagination in modal or drawer contexts */
+.ant-modal .ant-pagination,
+.ant-drawer .ant-pagination {
+  margin: 16px 0 !important;
+  padding: 0 !important;
+}
+
+/* Specific fixes for AdminUserListPage pagination */
+.ant-table-wrapper .ant-table-pagination {
+  margin: 16px 0 !important;
+  padding: 16px !important;
+  background: #fff !important;
+  border-top: 1px solid #f0f0f0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 12px !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* Ensure pagination is always visible in table containers */
+.ant-table-wrapper .ant-pagination {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  margin: 16px 0 !important;
+  padding: 8px 16px !important;
+  background: #fff !important;
+  border-top: 1px solid #f0f0f0 !important;
+}
+
+/* Fix for pagination options in table context */
+.ant-table-wrapper .ant-pagination-options {
+  margin-left: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Ensure pagination items don't get cut off */
+.ant-table-wrapper .ant-pagination-item,
+.ant-table-wrapper .ant-pagination-prev,
+.ant-table-wrapper .ant-pagination-next,
+.ant-table-wrapper .ant-pagination-jump-prev,
+.ant-table-wrapper .ant-pagination-jump-next {
+  flex-shrink: 0 !important;
+  margin: 0 4px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  line-height: 30px !important;
+  border-radius: 6px !important;
 } 
 
  

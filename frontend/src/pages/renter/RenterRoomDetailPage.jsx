@@ -62,15 +62,24 @@ export default function RenterRoomDetailPage() {
       try {
         const room = await getMyRoom();
         setRoomInfo(room);
-        // Chỉ lấy tài sản nếu đã có roomId hợp lệ
-        let realRoomId = null;
+        // Lấy tài sản sử dụng roomId hoặc roomNumber
         if (room) {
-          if (typeof room.id === 'number' && !isNaN(room.id)) realRoomId = room.id;
-          else if (typeof room.roomId === 'number' && !isNaN(room.roomId)) realRoomId = room.roomId;
-        }
-        if (realRoomId) {
-          const assetRes = await getAssetsByRoom(realRoomId);
-          setAssets(assetRes?.data || []);
+          try {
+            let assetRes;
+            if (room.id || room.roomId) {
+              const roomId = room.id || room.roomId;
+              assetRes = await getAssetsByRoom(roomId);
+            } else if (room.roomNumber) {
+              assetRes = await getAssetsByRoomNumber(room.roomNumber);
+            } else {
+              setAssets([]);
+              return;
+            }
+            setAssets(assetRes?.data || []);
+          } catch (assetError) {
+            console.error("Error fetching assets:", assetError);
+            setAssets([]);
+          }
         } else {
           setAssets([]);
         }
@@ -94,9 +103,17 @@ export default function RenterRoomDetailPage() {
     let assetList = assets;
     if (!assets || assets.length === 0) {
       try {
-        const assetRes = await getAssetsByRoom(roomInfo.id);
-        assetList = assetRes?.data || [];
-        setAssets(assetList);
+        let assetRes;
+        if (roomInfo.id || roomInfo.roomId) {
+          const roomId = roomInfo.id || roomInfo.roomId;
+          assetRes = await getAssetsByRoom(roomId);
+        } else if (roomInfo.roomNumber) {
+          assetRes = await getAssetsByRoomNumber(roomInfo.roomNumber);
+        }
+        if (assetRes) {
+          assetList = assetRes?.data || [];
+          setAssets(assetList);
+        }
       } catch {
         assetList = [];
       }
@@ -105,9 +122,10 @@ export default function RenterRoomDetailPage() {
       contractId: roomInfo.contract?.contractId || roomInfo.contract?.id,
       assets: assetList
     };
-    if (roomInfo.id) {
-      stateData.roomId = roomInfo.id;
-    } else if (roomInfo.roomNumber) {
+    if (roomInfo.id || roomInfo.roomId) {
+      stateData.roomId = roomInfo.id || roomInfo.roomId;
+    }
+    if (roomInfo.roomNumber) {
       stateData.roomNumber = roomInfo.roomNumber;
     }
     if (type === 'checkin') {

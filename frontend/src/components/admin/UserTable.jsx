@@ -268,10 +268,14 @@ export default function UserTable({
         current: pagination.current,
         total: pagination.total,
         pageSize,
-        onChange: (page) => fetchData(page),
+        showSizeChanger: false,
+        showQuickJumper: false,
+        showTotal: (total, range) => `${range[0]}-${range[1]} trên tổng số ${total} người dùng`,
+        pageSizeOptions: ['5', '10', '20', '50'],
+        onChange: (page) => fetchData(page)
       }}
-      style={{ background: "#fff", borderRadius: 8, padding: 8 }}
-      scroll={{ x: 1200, y: 400 }}
+      style={{ background: "#fff", borderRadius: 8 }}
+      scroll={{ x: 1200 }}
       bordered
     />
   );

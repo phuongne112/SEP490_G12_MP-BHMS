@@ -217,9 +217,13 @@ export default function RoleTable({
           current: pagination.current,
           total: pagination.total,
           pageSize,
-          onChange: (page) => fetchData(page),
+          showSizeChanger: false,
+          showQuickJumper: true,
+          showTotal: (total, range) => `${range[0]}-${range[1]} trên tổng số ${total} vai trò`,
+          pageSizeOptions: ['5', '10', '20', '50'],
+          onChange: (page) => fetchData(page)
         }}
-        style={{ background: "#fff", borderRadius: 8, padding: 16 }}
+        style={{ background: "#fff", borderRadius: 8 }}
         scroll={{ x: 800 }}
         bordered
         rowKey="id"

@@ -238,13 +238,13 @@ export default function LandlordRenterListPage() {
       }
       
       // Xử lý giới tính từ OCR
-      let genderValue = "OTHER";
+      let genderValue = "Khác";
       if (ocrData.gender) {
         const genderText = ocrData.gender.toLowerCase().trim();
         if (genderText === "nam") {
-          genderValue = "MALE";
+          genderValue = "Nam";
         } else if (genderText === "nữ" || genderText === "nu") {
-          genderValue = "FEMALE";
+          genderValue = "Nữ";
         }
       }
       
@@ -743,8 +743,18 @@ export default function LandlordRenterListPage() {
                               { required: true, message: "Vui lòng chọn ngày sinh" },
                               { validator: (_, value) => {
                                   if (!value) return Promise.resolve();
-                                  if (value.isAfter && value.isAfter(new Date(), 'day')) {
-                                    return Promise.reject(new Error("Ngày sinh không hợp lệ"));
+                                  if (value.isAfter && value.isAfter(dayjs(), 'day')) {
+                                    return Promise.reject(new Error("Ngày sinh không được lớn hơn ngày hiện tại"));
+                                  }
+                                  // Kiểm tra tuổi tối thiểu (16 tuổi)
+                                  const minAge = dayjs().subtract(16, 'year');
+                                  if (value.isAfter(minAge)) {
+                                    return Promise.reject(new Error('Bạn phải ít nhất 16 tuổi'));
+                                  }
+                                  // Kiểm tra tuổi tối đa (100 tuổi)
+                                  const maxAge = dayjs().subtract(100, 'year');
+                                  if (value.isBefore(maxAge)) {
+                                    return Promise.reject(new Error('Ngày sinh không hợp lệ'));
                                   }
                                   return Promise.resolve();
                                 }
@@ -757,6 +767,12 @@ export default function LandlordRenterListPage() {
                                   style={{ width: '100%' }} 
                                   placeholder="Chọn ngày sinh" 
                                   format="DD/MM/YYYY"
+                                  disabledDate={(current) => {
+                                    const today = dayjs();
+                                    const minAge = today.subtract(16, 'year');
+                                    const maxAge = today.subtract(100, 'year');
+                                    return current && (current.isAfter(today) || current.isAfter(minAge) || current.isBefore(maxAge));
+                                  }}
                                   onChange={(date) => {
                                     addForm.setFieldsValue({ dateOfBirth: date });
                                     setOcrDateOfBirth(date);
@@ -792,20 +808,39 @@ export default function LandlordRenterListPage() {
                             </Form.Item>
                           </Col>
                           <Col span={12}>
-                            <Form.Item label="Ngày cấp CCCD" name="nationalIDIssueDate">
+                            <Form.Item label="Ngày cấp CCCD" name="nationalIDIssueDate" rules={[
+                              { required: true, message: "Vui lòng chọn ngày cấp CCCD" },
+                              { validator: (_, value) => {
+                                  if (!value) return Promise.resolve();
+                                  const birthDate = addForm.getFieldValue('dateOfBirth');
+                                  if (birthDate && value.isBefore(birthDate)) {
+                                    return Promise.reject(new Error('Ngày cấp không được trước ngày sinh'));
+                                  }
+                                  if (value.isAfter(dayjs(), 'day')) {
+                                    return Promise.reject(new Error('Ngày cấp không được lớn hơn ngày hiện tại'));
+                                  }
+                                  return Promise.resolve();
+                                }
+                              }
+                            ]}>
                               <DatePicker 
                                 placeholder="Chọn ngày cấp CCCD" 
                                 format="DD/MM/YYYY"
                                 style={{ width: '100%' }}
+                                disabledDate={(current) => {
+                                  const birthDate = addForm.getFieldValue('dateOfBirth');
+                                  const today = dayjs();
+                                  return current && (current.isBefore(birthDate) || current.isAfter(today));
+                                }}
                               />
                             </Form.Item>
                           </Col>
                           <Col span={12}>
                             <Form.Item label="Giới tính" name="gender">
                               <Select placeholder="Chọn giới tính">
-                                <Select.Option value="MALE">Nam</Select.Option>
-                                <Select.Option value="FEMALE">Nữ</Select.Option>
-                                <Select.Option value="OTHER">Khác</Select.Option>
+                                <Select.Option value="Nam">Nam</Select.Option>
+                                <Select.Option value="Nữ">Nữ</Select.Option>
+                                <Select.Option value="Khác">Khác</Select.Option>
                               </Select>
                             </Form.Item>
                           </Col>

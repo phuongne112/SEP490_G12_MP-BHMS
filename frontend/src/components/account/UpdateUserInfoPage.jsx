@@ -349,10 +349,10 @@ export default function UpdateUserInfoModal({
       const res = await ocrCccd(frontFile, backFile);
       const data = res?.data || res;
       console.log('Kết quả OCR:', data);
-      let genderValue = "Other";
+      let genderValue = "Khác";
       const genderText = (data.gender || "").toLowerCase().trim().normalize("NFC");
-      if (genderText === "nam") genderValue = "Male";
-      else if (genderText === "nữ" || genderText === "nu") genderValue = "Female";
+      if (genderText === "nam") genderValue = "Nam";
+      else if (genderText === "nữ" || genderText === "nu") genderValue = "Nữ";
       // Chuẩn hóa ngày sinh
       let birthDateValue = null;
       if (data.birthDate) {
@@ -460,9 +460,9 @@ export default function UpdateUserInfoModal({
             rules={[{ required: true, message: "Vui lòng chọn giới tính" }]}
           >
             <Select placeholder="Chọn giới tính">
-              <Select.Option value="Male">Nam</Select.Option>
-              <Select.Option value="Female">Nữ</Select.Option>
-              <Select.Option value="Other">Khác</Select.Option>
+              <Select.Option value="Nam">Nam</Select.Option>
+              <Select.Option value="Nữ">Nữ</Select.Option>
+              <Select.Option value="Khác">Khác</Select.Option>
             </Select>
           </Form.Item>
           <Form.Item name="birthDate" label="Ngày sinh"
