@@ -161,14 +161,14 @@ public class RenterServiceImpl implements RenterService {
         }
         info.setPermanentAddress(dto.getPermanentAddress());
         if (dto.getGender() != null) {
-            // Chuyển đổi từ MALE/FEMALE/OTHER sang Male/Female/Other
+            // Chuyển đổi từ MALE/FEMALE/OTHER sang Nam/Nữ/Khác
             String genderStr = dto.getGender().toUpperCase();
             if ("MALE".equals(genderStr)) {
-                info.setGender(Gender.Male);
+                info.setGender(Gender.Nam);
             } else if ("FEMALE".equals(genderStr)) {
-                info.setGender(Gender.Female);
+                info.setGender(Gender.Nữ);
             } else if ("OTHER".equals(genderStr)) {
-                info.setGender(Gender.Other);
+                info.setGender(Gender.Khác);
             }
         }
         

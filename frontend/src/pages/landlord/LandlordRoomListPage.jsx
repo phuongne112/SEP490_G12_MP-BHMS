@@ -360,12 +360,12 @@ export default function LandlordRoomListPage() {
           )}
           
           {/* Content Area */}
-          <div style={{ 
-            flex: 1, 
-            padding: isMobile ? 16 : 24,
-            backgroundColor: "#f5f5f5",
-            minHeight: isMobile ? "calc(100vh - 60px)" : "100vh"
-          }}>
+          <div         style={{
+          flex: 1,
+          padding: isMobile ? 16 : 24,
+          backgroundColor: "#f5f5f5",
+          minHeight: isMobile ? "calc(100vh - 60px)" : "100vh"
+        }}>
             {/* Page Title - Only show on desktop */}
             {!isMobile && (
               <div style={{ 
@@ -446,12 +446,12 @@ export default function LandlordRoomListPage() {
             </div>
 
             {/* Room cards */}
-            <div style={{ 
-              backgroundColor: "#fff", 
-              borderRadius: "8px", 
-              padding: isMobile ? "16px" : "24px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-            }}>
+            <div         style={{
+          backgroundColor: "#fff",
+          borderRadius: "8px",
+          padding: isMobile ? "16px" : "24px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+        }}>
               <RoomTable rooms={rooms} loading={loading} onRoomsUpdate={fetchRooms} />
             </div>
 
@@ -462,27 +462,40 @@ export default function LandlordRoomListPage() {
               backgroundColor: "#fff",
               borderRadius: "8px",
               padding: "16px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              minHeight: "80px",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center"
             }}>
-                             <Pagination
-                 current={currentPage}
-                 pageSize={pageSize}
-                 total={total}
-                 onChange={(page, size) => {
-                   setCurrentPage(page);
-                   if (size && size !== pageSize) {
-                     setPageSize(size);
-                   }
-                 }}
-                 onShowSizeChange={(current, size) => {
-                   setPageSize(size);
-                   setCurrentPage(1); // Reset về trang đầu khi thay đổi pageSize
-                 }}
-                 size={isMobile ? "small" : "default"}
-                 showSizeChanger={!isMobile}
-                 showQuickJumper={!isMobile}
-                 pageSizeOptions={['5', '10', '20', '50', '100']}
-               />
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={total}
+                onChange={(page, size) => {
+                  setCurrentPage(page);
+                  if (size && size !== pageSize) {
+                    setPageSize(size);
+                  }
+                }}
+                onShowSizeChange={(current, size) => {
+                  setPageSize(size);
+                  setCurrentPage(1); // Reset về trang đầu khi thay đổi pageSize
+                }}
+                size={isMobile ? "small" : "default"}
+                showSizeChanger={true}
+                showQuickJumper={!isMobile}
+                showTotal={(total, range) => `${range[0]}-${range[1]} trên tổng số ${total} phòng`}
+                pageSizeOptions={['5', '10', '20', '50', '100']}
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: "8px"
+                }}
+              />
             </div>
 
             {/* Add Room Modal */}

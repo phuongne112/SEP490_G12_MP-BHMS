@@ -13,4 +13,8 @@ public interface RoomUserService {
      * Lấy thông tin phòng chi tiết của người đang đăng nhập
      */
     java.util.Map<String, Object> getCurrentRenterRoomDetail();
+    /**
+     * Người thuê rời phòng
+     */
+    void leaveRoom(Long roomUserId);
 }

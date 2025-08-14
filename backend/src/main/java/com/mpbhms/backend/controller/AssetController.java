@@ -107,9 +107,14 @@ public class AssetController {
     @GetMapping("/check-duplicate")
     public ResponseEntity<Map<String, Boolean>> checkDuplicateAssetName(
             @RequestParam String assetName,
-            @RequestParam(required = false) Long excludeId
-    ) {
+            @RequestParam(required = false) Long excludeId) {
         boolean isDuplicate = assetService.isAssetNameDuplicate(assetName, excludeId);
         return ResponseEntity.ok(Map.of("isDuplicate", isDuplicate));
+    }
+
+    @GetMapping("/{id}/in-use")
+    public ResponseEntity<Map<String, Boolean>> checkAssetInUse(@PathVariable Long id) {
+        boolean isInUse = assetService.isAssetInUse(id);
+        return ResponseEntity.ok(Map.of("isInUse", isInUse));
     }
 } 

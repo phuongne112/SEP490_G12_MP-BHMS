@@ -8,9 +8,11 @@ import com.mpbhms.backend.entity.Room;
 import com.mpbhms.backend.entity.RoomUser;
 import com.mpbhms.backend.entity.User;
 import com.mpbhms.backend.entity.ContractRenterInfo;
+import com.mpbhms.backend.enums.RoomStatus;
 import com.mpbhms.backend.repository.ContractRepository;
 import com.mpbhms.backend.repository.RoomUserRepository;
 import com.mpbhms.backend.service.ContractService;
+import com.mpbhms.backend.service.RoomService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -75,6 +77,7 @@ public class ContractServiceImpl implements ContractService {
     private final ContractTermRepository contractTermRepository;
     private final ContractLandlordInfoRepository contractLandlordInfoRepository;
     private final ContractTemplateService contractTemplateService;
+    private final RoomService roomService;
     private static final Logger logger = LoggerFactory.getLogger(ContractServiceImpl.class);
 
     @Value("${contract.pending.expire-days:2}")
@@ -1071,8 +1074,9 @@ public class ContractServiceImpl implements ContractService {
                 
                 // Cập nhật trạng thái phòng thành Available
                 Room room = contract.getRoom();
-                room.setRoomStatus(com.mpbhms.backend.enums.RoomStatus.Available);
-                // Lưu room ở đây nếu cần
+                if (room != null) {
+                    roomService.updateRoomStatus(room.getId(), RoomStatus.Available.name());
+                }
                 
                 // Gửi thông báo cho người thuê
                 sendExpirationNotifications(contract);
@@ -1102,8 +1106,9 @@ public class ContractServiceImpl implements ContractService {
         contractRepository.save(contract);
         // Cập nhật trạng thái phòng
         Room room = contract.getRoom();
-        room.setRoomStatus(com.mpbhms.backend.enums.RoomStatus.Occupied);
-        // Lưu room ở đây nếu cần
+        if (room != null) {
+            roomService.updateRoomStatus(room.getId(), RoomStatus.Occupied.name());
+        }
         // Gửi thông báo gia hạn
         sendRenewalNotifications(contract);
     }
@@ -1633,7 +1638,7 @@ public class ContractServiceImpl implements ContractService {
                 
                 // Cập nhật trạng thái phòng
                 if (contract.getRoom() != null) {
-                    contract.getRoom().setRoomStatus(com.mpbhms.backend.enums.RoomStatus.Occupied);
+                    roomService.updateRoomStatus(contract.getRoom().getId(), RoomStatus.Occupied.name());
                 }
                 
                 // Gửi thông báo gia hạn thành công
@@ -1868,8 +1873,7 @@ public class ContractServiceImpl implements ContractService {
             
             // Cập nhật trạng thái phòng thành Available
             if (newContract.getRoom() != null) {
-                newContract.getRoom().setRoomStatus(com.mpbhms.backend.enums.RoomStatus.Available);
-                // Lưu room ở đây nếu cần
+                roomService.updateRoomStatus(newContract.getRoom().getId(), RoomStatus.Available.name());
             }
             
             // Gửi thông báo cho chủ nhà
@@ -1970,6 +1974,10 @@ public class ContractServiceImpl implements ContractService {
             .orElseThrow(() -> new RuntimeException("Không tìm thấy hợp đồng"));
         contract.setContractStatus(ContractStatus.TERMINATED);
         contractRepository.save(contract);
+        
+        Room room = contract.getRoom();
+        boolean hasActiveUsers = false;
+        
         if (contract.getRoomUsers() != null) {
             for (RoomUser ru : contract.getRoomUsers()) {
                 if (ru.getIsActive() != null && ru.getIsActive()) {
@@ -1985,6 +1993,15 @@ public class ContractServiceImpl implements ContractService {
                     contractRenterInfoRepository.save(history);
                     roomUserRepository.delete(ru); // XÓA HẲN khỏi DB
                 }
+            }
+        }
+        
+        // Kiểm tra xem phòng còn người thuê nào không
+        if (room != null) {
+            int activeUserCount = roomUserRepository.countByRoomId(room.getId());
+            if (activeUserCount == 0) {
+                // Nếu không còn người thuê nào, cập nhật trạng thái phòng thành "Available"
+                roomService.updateRoomStatus(room.getId(), RoomStatus.Available.name());
             }
         }
     }

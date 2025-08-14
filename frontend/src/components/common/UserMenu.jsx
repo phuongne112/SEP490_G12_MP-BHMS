@@ -143,7 +143,7 @@ export default function UserMenu() {
           <ul>
             <li><strong>Họ tên:</strong> {infoData.fullName}</li>
             <li><strong>SĐT chính:</strong> {infoData.phoneNumber}</li>
-            <li><strong>Giới tính:</strong> {infoData.gender}</li>
+            <li><strong>Giới tính:</strong> {infoData.gender === "Nam" ? "Nam" : infoData.gender === "Nữ" ? "Nữ" : infoData.gender === "Khác" ? "Khác" : infoData.gender}</li>
             <li><strong>Ngày sinh:</strong> {infoData.birthDate}</li>
             <li><strong>Nơi sinh:</strong> {infoData.birthPlace}</li>
             <li><strong>CCCD:</strong> {infoData.nationalID}</li>

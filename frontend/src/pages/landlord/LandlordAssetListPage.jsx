@@ -26,7 +26,7 @@ import { useMediaQuery } from "react-responsive";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import LandlordAddAssetModal from "../../components/landlord/LandlordAddAssetModal";
-import { getAllAssets, deleteAsset } from "../../services/assetApi";
+import { getAllAssets, deleteAsset, checkAssetInUse } from "../../services/assetApi";
 import AssetFilterPopover from '../../components/landlord/AssetFilterPopover';
 import viVN from 'antd/locale/vi_VN';
 
@@ -41,6 +41,8 @@ export default function LandlordAssetListPage() {
   const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState({});
+  const [filterPopoverOpen, setFilterPopoverOpen] = useState(false);
+  const [assetsInUse, setAssetsInUse] = useState(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [assets, setAssets] = useState([]);
   const [total, setTotal] = useState(0);
@@ -50,7 +52,6 @@ export default function LandlordAssetListPage() {
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [filterPopoverOpen, setFilterPopoverOpen] = useState(false);
 
   // Update pageSize when mobile state changes
   useEffect(() => {
@@ -65,8 +66,23 @@ export default function LandlordAssetListPage() {
     setLoading(true);
     try {
       const res = await getAllAssets(page - 1, size, filters);
-      setAssets(res.data?.result || res.result || []);
+      const assetsData = res.data?.result || res.result || [];
+      setAssets(assetsData);
       setTotal(res.meta?.total || res.data?.meta?.total || 0);
+      
+      // Kiểm tra trạng thái sử dụng của từng tài sản
+      const inUseSet = new Set();
+      for (const asset of assetsData) {
+        try {
+          const inUseRes = await checkAssetInUse(asset.id);
+          if (inUseRes.data?.isInUse) {
+            inUseSet.add(asset.id);
+          }
+        } catch (err) {
+          console.error(`Error checking asset ${asset.id} usage:`, err);
+        }
+      }
+      setAssetsInUse(inUseSet);
     } catch (err) {
       message.error("Không thể tải danh sách tài sản");
     }
@@ -176,32 +192,38 @@ export default function LandlordAssetListPage() {
       key: "actions",
       align: "center",
       width: 200,
-      render: (_, record) => (
-        <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
-          <Button
-            type="default"
-            icon={<EditOutlined />}
-            size="small"
-            style={{ color: "#faad14", borderColor: "#faad14" }}
-            onClick={() => handleEditAsset(record)}
-          >
-            Sửa
-          </Button>
-          <Popconfirm
-            title="Bạn có chắc chắn muốn xóa tài sản này?"
-            okText="Có"
-            cancelText="Không"
-            onConfirm={() => handleDeleteAsset(record.id)}
-          >
-            <Button 
-              icon={<DeleteOutlined />} 
-              type="primary"
-              danger
-              size="small" 
-            />
-          </Popconfirm>
-        </Space>
-      ),
+      render: (_, record) => {
+        const isInUse = assetsInUse.has(record.id);
+        return (
+          <Space size="small" style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
+            <Button
+              type="default"
+              icon={<EditOutlined />}
+              size="small"
+              style={{ color: "#faad14", borderColor: "#faad14" }}
+              onClick={() => handleEditAsset(record)}
+            >
+              Sửa
+            </Button>
+            <Popconfirm
+              title={isInUse ? "Tài sản đang được sử dụng trong phòng, không thể xóa" : "Bạn có chắc chắn muốn xóa tài sản này?"}
+              okText="Có"
+              cancelText="Không"
+              onConfirm={() => !isInUse && handleDeleteAsset(record.id)}
+              disabled={isInUse}
+            >
+              <Button 
+                icon={<DeleteOutlined />} 
+                type="primary"
+                danger
+                size="small"
+                disabled={isInUse}
+                title={isInUse ? "Tài sản đang được sử dụng trong phòng" : "Xóa tài sản"}
+              />
+            </Popconfirm>
+          </Space>
+        );
+      },
     },
   ];
 

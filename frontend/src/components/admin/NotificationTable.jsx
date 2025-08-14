@@ -270,13 +270,14 @@ export default function NotificationTable({
           current: pagination.current,
           total: pagination.total,
           pageSize,
-          onChange: (page) => fetchData(page),
+          showSizeChanger: false,
+          showQuickJumper: false,
+          showTotal: (total, range) => `${range[0]}-${range[1]} trên tổng số ${total} thông báo`,
+          pageSizeOptions: ['5', '10', '20', '50'],
+          onChange: (page) => fetchData(page)
         }}
-        style={{ background: "#fff", borderRadius: 8, padding: 16 }}
-        scroll={{ 
-          x: 800,
-          scrollToFirstRowOnChange: false
-        }}
+        style={{ background: "#fff", borderRadius: 8 }}
+        scroll={{ x: 800 }}
         bordered
         rowKey="id"
         size="middle"

@@ -262,6 +262,19 @@ public class RoomUserController {
     }
 
     /**
+     * Người thuê rời phòng
+     */
+    @PostMapping("/leave/{roomUserId}")
+    public ResponseEntity<ApiResponse<?>> leaveRoom(@PathVariable Long roomUserId) {
+        try {
+            roomUserService.leaveRoom(roomUserId);
+            return ResponseEntity.ok(new ApiResponse<>(200, null, "Người thuê đã rời phòng thành công.", null));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(400, null, "Lỗi: " + e.getMessage(), null));
+        }
+    }
+
+    /**
      * Test trigger thủ công job auto-approve amendment (chỉ dùng cho test)
      */
     @PostMapping("/test-auto-approve-amendments")

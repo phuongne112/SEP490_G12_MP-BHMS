@@ -5,6 +5,7 @@ import com.mpbhms.backend.entity.Asset;
 import com.mpbhms.backend.enums.AssetStatus;
 import com.mpbhms.backend.repository.AssetRepository;
 import com.mpbhms.backend.repository.RoomRepository;
+import com.mpbhms.backend.repository.RoomAssetRepository;
 import com.mpbhms.backend.entity.Room;
 import com.mpbhms.backend.service.AssetService;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import com.mpbhms.backend.dto.AssetResponseDTO;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import com.mpbhms.backend.entity.RoomAsset;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +27,7 @@ public class AssetServiceImpl implements AssetService {
     private static final Logger logger = LoggerFactory.getLogger(AssetServiceImpl.class);
     private final AssetRepository assetRepository;
     private final RoomRepository roomRepository;
+    private final RoomAssetRepository roomAssetRepository;
 
     @Override
     public List<AssetDTO> getAllAssets() {
@@ -81,6 +84,15 @@ public class AssetServiceImpl implements AssetService {
 
     @Override
     public void deleteAsset(Long id) {
+        Asset asset = assetRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy tài sản"));
+        
+        // Kiểm tra xem tài sản có đang được gán vào phòng nào không
+        List<RoomAsset> roomAssets = roomAssetRepository.findByAsset(asset);
+        if (!roomAssets.isEmpty()) {
+            throw new RuntimeException("Không thể xóa tài sản này vì nó đang được gán vào " + roomAssets.size() + " phòng. Vui lòng gỡ bỏ tài sản khỏi các phòng trước khi xóa.");
+        }
+        
         assetRepository.deleteById(id);
     }
 
@@ -124,18 +136,18 @@ public class AssetServiceImpl implements AssetService {
 
     @Override
     public boolean isAssetNameDuplicate(String assetName, Long excludeId) {
-        // Chuẩn hóa tên tài sản về chữ thường để so sánh
-        String normalizedAssetName = assetName.toLowerCase().trim();
-        
-        // Lấy tất cả tài sản và kiểm tra tên đã chuẩn hóa
-        List<Asset> allAssets = assetRepository.findAll();
-        return allAssets.stream()
-            .anyMatch(asset -> {
-                String existingAssetName = asset.getAssetName().toLowerCase().trim();
-                boolean isDuplicate = existingAssetName.equals(normalizedAssetName);
-                boolean shouldExclude = excludeId != null && asset.getId().equals(excludeId);
-                return isDuplicate && !shouldExclude;
-            });
+        List<Asset> assets = assetRepository.findByAssetNameContainingIgnoreCase(assetName);
+        return assets.stream()
+            .anyMatch(asset -> !asset.getId().equals(excludeId) && 
+                asset.getAssetName().equalsIgnoreCase(assetName));
+    }
+
+    @Override
+    public boolean isAssetInUse(Long assetId) {
+        Asset asset = assetRepository.findById(assetId)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy tài sản"));
+        List<RoomAsset> roomAssets = roomAssetRepository.findByAsset(asset);
+        return !roomAssets.isEmpty();
     }
 
     private String normalizeAssetStatus(String status) {

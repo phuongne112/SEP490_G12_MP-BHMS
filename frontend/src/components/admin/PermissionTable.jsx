@@ -167,9 +167,12 @@ export default function PermissionTable({
         total: pagination.total,
         pageSize,
         showSizeChanger: false,
-        onChange: (page) => fetchData(page),
+        showQuickJumper: false,
+        showTotal: (total, range) => `${range[0]}-${range[1]} trên tổng số ${total} quyền`,
+        pageSizeOptions: ['5', '10', '20', '50'],
+        onChange: (page) => fetchData(page)
       }}
-      style={{ background: "#fff", borderRadius: 8, padding: 16 }}
+      style={{ background: "#fff", borderRadius: 8 }}
       scroll={{ x: isMobile ? 600 : 1000 }}
       bordered
     />

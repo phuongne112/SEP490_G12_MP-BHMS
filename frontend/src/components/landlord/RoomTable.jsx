@@ -798,7 +798,7 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
   return (
     <>
       <CenterToast message={centerToast.message} visible={centerToast.visible} />
-      <Row gutter={[16, 16]}>
+            <Row gutter={[16, 16]}>
         {rooms.map((room) => {
           const imageUrl =
             room.images && room.images.length > 0

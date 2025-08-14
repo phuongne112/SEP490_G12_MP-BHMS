@@ -8,6 +8,7 @@ import com.mpbhms.backend.entity.User;
 import com.mpbhms.backend.entity.ContractRenterInfo;
 import com.mpbhms.backend.enums.ContractStatus;
 import com.mpbhms.backend.enums.PaymentCycle;
+import com.mpbhms.backend.enums.RoomStatus;
 import com.mpbhms.backend.repository.ContractRepository;
 import com.mpbhms.backend.repository.RoomRepository;
 import com.mpbhms.backend.repository.RoomUserRepository;
@@ -16,6 +17,7 @@ import com.mpbhms.backend.repository.ContractRenterInfoRepository;
 import com.mpbhms.backend.repository.ServiceRepository;
 import com.mpbhms.backend.repository.ServiceReadingRepository;
 import com.mpbhms.backend.service.RoomUserService;
+import com.mpbhms.backend.service.RoomService;
 import com.mpbhms.backend.util.CurrentUserUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +37,7 @@ public class RoomUserServiceImpl implements RoomUserService {
     private final ContractRenterInfoRepository contractRenterInfoRepository;
     private final ServiceRepository serviceRepository;
     private final ServiceReadingRepository serviceReadingRepository;
+    private final RoomService roomService;
 
     @Override
     @Transactional
@@ -150,6 +153,37 @@ public class RoomUserServiceImpl implements RoomUserService {
                 serviceReadingRepository.save(reading);
             }
         }
+
+        // Cập nhật trạng thái phòng thành "Đã thuê" sau khi gán người thuê thành công
+        if (roomWithServices.getRoomStatus() == RoomStatus.Available) {
+            roomService.updateRoomStatus(roomWithServices.getId(), RoomStatus.Occupied.name());
+        }
+    }
+
+    @Override
+    @Transactional
+    public void leaveRoom(Long roomUserId) {
+        RoomUser roomUser = roomUserRepository.findById(roomUserId)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin người thuê"));
+        
+        if (!Boolean.TRUE.equals(roomUser.getIsActive())) {
+            throw new RuntimeException("Người thuê này không còn hoạt động");
+        }
+        
+        Room room = roomUser.getRoom();
+        if (room == null) {
+            throw new RuntimeException("Không tìm thấy thông tin phòng");
+        }
+        
+        // Xóa RoomUser
+        roomUserRepository.delete(roomUser);
+        
+        // Kiểm tra xem phòng còn người thuê nào không
+        int activeUserCount = roomUserRepository.countByRoomId(room.getId());
+        if (activeUserCount == 0) {
+            // Nếu không còn người thuê nào, cập nhật trạng thái phòng thành "Available"
+            roomService.updateRoomStatus(room.getId(), RoomStatus.Available.name());
+        }
     }
 
 
@@ -203,6 +237,8 @@ public class RoomUserServiceImpl implements RoomUserService {
             room.getImages().stream().map(img -> img.getImageURL() != null ? img.getImageURL() : "").toList() : java.util.Collections.emptyList();
 
         java.util.Map<String, Object> dto = new java.util.HashMap<>();
+        dto.put("id", room.getId());
+        dto.put("roomId", room.getId());
         dto.put("roomNumber", room.getRoomNumber());
         dto.put("building", room.getBuilding());
         dto.put("area", room.getArea());

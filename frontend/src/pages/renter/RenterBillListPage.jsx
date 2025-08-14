@@ -656,8 +656,8 @@ export default function RenterBillListPage() {
                       current: currentPage,
                       pageSize: pageSize,
                       total: total,
-                      showSizeChanger: false,
-                      showQuickJumper: false,
+                      showSizeChanger: true,
+                      showQuickJumper: !isMobile,
                       onChange: (page, size) => {
                         setCurrentPage(page);
                         setPageSize(size);
@@ -668,6 +668,7 @@ export default function RenterBillListPage() {
                         </span>
                       ),
                       position: ["bottomCenter"],
+                      pageSizeOptions: ['5', '10', '20', '50'],
                       itemRender: (page, type, originalElement) => {
                         if (type === "page") {
                           return <span style={{ fontWeight: "normal" }}>{page}</span>;
@@ -677,6 +678,11 @@ export default function RenterBillListPage() {
                       style: {
                         fontWeight: "normal",
                         fontSize: "14px",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        gap: "8px"
                       },
                     }}
                     scroll={{ x: isMobile ? 800 : 1000 }}

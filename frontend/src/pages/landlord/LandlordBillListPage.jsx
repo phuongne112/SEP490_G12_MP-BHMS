@@ -1258,7 +1258,7 @@ export default function LandlordBillListPage() {
           )}
           
           {/* Main Content */}
-          <Content style={{ 
+          <Content         style={{
             padding: isMobile ? 16 : 24, 
             backgroundColor: '#f5f5f5', 
             minHeight: '100vh',
@@ -1501,6 +1501,7 @@ export default function LandlordBillListPage() {
               scroll={{ x: isMobile ? 800 : 1200 }}
               size={isMobile ? "small" : "middle"}
               bordered
+
             />
             
             <div
@@ -1508,8 +1509,12 @@ export default function LandlordBillListPage() {
                 padding: isMobile ? 12 : 16,
                 width: "100%",
                 display: "flex",
-                justifyContent: "flex-end",
-                borderTop: '1px solid #f0f0f0'
+                justifyContent: "center",
+                alignItems: "center",
+                borderTop: '1px solid #f0f0f0',
+                minHeight: "60px",
+                flexWrap: "wrap",
+                gap: "8px"
               }}
             >
               <Pagination
@@ -1521,10 +1526,18 @@ export default function LandlordBillListPage() {
                   setPageSize(size);
                   fetchBills(page, size);
                 }}
-                showSizeChanger={false}
-                showQuickJumper={false}
-                showTotal={!isMobile ? (total, range) => `${range[0]}-${range[1]} trên tổng số ${total} hóa đơn` : undefined}
+                showSizeChanger={true}
+                showQuickJumper={!isMobile}
+                showTotal={(total, range) => `${range[0]}-${range[1]} trên tổng số ${total} hóa đơn`}
                 size={isMobile ? "small" : "default"}
+                pageSizeOptions={['5', '10', '20', '50']}
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: "8px"
+                }}
               />
             </div>
           </div>

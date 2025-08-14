@@ -108,9 +108,17 @@ export default function ServiceTable({ services, pagination, loading, onEdit, on
       columns={columns}
       pagination={{
         ...pagination,
-        showSizeChanger: false,
-        showQuickJumper: false,
+        showSizeChanger: true,
+        showQuickJumper: true,
         showTotal: (total, range) => `${range[0]}-${range[1]} trên tổng số ${total} mục`,
+        pageSizeOptions: ['5', '10', '20', '50'],
+        style: {
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "8px"
+        }
       }}
       rowKey="id"
       loading={loading}

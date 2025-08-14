@@ -33,7 +33,7 @@ public class UserInfo {
     @Pattern(regexp = "^\\d{10}$", message = "Số điện thoại phải có 10 chữ số")
     private String phoneNumber2;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = com.mpbhms.backend.config.GenderConverter.class)
     @Column(length = 20)
     private Gender gender;
 
