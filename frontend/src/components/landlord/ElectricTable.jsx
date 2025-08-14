@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Table, Button, Modal, Upload, message, Input, Switch, InputNumber, Space, Card, Select } from "antd";
-import { CameraOutlined } from "@ant-design/icons";
-import { detectElectricOcr, detectAndSaveElectricOcr, saveImageOnly, saveElectricReading } from "../../services/electricOcrApi";
+import { CameraOutlined, ScanOutlined } from "@ant-design/icons";
+import { detectElectricOcr, detectAndSaveElectricOcr, saveImageOnly, saveElectricReading, manualScanElectricOcr } from "../../services/electricOcrApi";
 import dayjs from "dayjs";
 import CameraCapture from "../common/CameraCapture";
 
@@ -132,7 +132,7 @@ export default function ElectricTable({
     }
   };
 
-  // Only detect, do not save
+  // Manual scan with history logging
   const handleDetect = async () => {
     if (!file) {
       message.error("Vui lòng chọn một ảnh!");
@@ -140,19 +140,20 @@ export default function ElectricTable({
     }
     setDetecting(true);
     try {
-      const res = await detectElectricOcr(file);
+      // Sử dụng API mới để lưu lịch sử quét
+      const res = await manualScanElectricOcr(file, selectedRoom.roomId);
       const result = res.data.data;
       setOcrResult(result);
       setInputValue(result);
       
-              // Show success message with details
-        if (result.match(/^\d{4,5}$/)) {
-          const isFiveDigits = result.length === 5;
-          const messageText = isFiveDigits 
-            ? `Quét thành công! Chỉ số 5 số: ${result}` 
-            : `Quét thành công! Chỉ số 4 số: ${result}`;
-          message.success(messageText);
-        } else {
+      // Show success message with details
+      if (result.match(/^\d{4,5}$/)) {
+        const isFiveDigits = result.length === 5;
+        const messageText = isFiveDigits 
+          ? `Quét thành công! Chỉ số 5 số: ${result}` 
+          : `Quét thành công! Chỉ số 4 số: ${result}`;
+        message.success(messageText);
+      } else {
         message.warning(`Kết quả quét: ${result}`);
       }
     } catch (err) {
@@ -374,6 +375,24 @@ export default function ElectricTable({
         title={`Quét chỉ số điện cho phòng ${selectedRoom?.roomNumber}`}
         footer={null}
       >
+        <div style={{ 
+          padding: 12, 
+          background: '#f6ffed', 
+          borderRadius: 6,
+          border: '1px solid #b7eb8f',
+          marginBottom: 16
+        }}>
+          <div style={{ fontWeight: 500, color: '#52c41a', marginBottom: 4 }}>
+            Hướng dẫn quét chỉ số:
+          </div>
+          <div style={{ fontSize: 13, color: '#666' }}>
+            • Chụp ảnh rõ ràng công tơ điện<br/>
+            • Đảm bảo ánh sáng đủ sáng<br/>
+            • Chỉ số hiển thị rõ ràng trên màn hình<br/>
+            • Hệ thống sẽ tự động lưu lịch sử quét
+          </div>
+        </div>
+
         <Upload
           beforeUpload={(file) => {
             setFile(file);
@@ -383,46 +402,65 @@ export default function ElectricTable({
           maxCount={1}
           showUploadList={file ? [{ name: file.name }] : false}
         >
-          <Button>Chọn ảnh công tơ</Button>
+          <Button icon={<CameraOutlined />} style={{ width: '100%', height: 40, marginBottom: 8 }}>
+            Chọn ảnh công tơ điện
+          </Button>
         </Upload>
+        
         <Button
           type="primary"
+          icon={<ScanOutlined />}
           onClick={handleDetect}
           loading={detecting}
-          style={{ marginTop: 8, marginBottom: 8 }}
+          style={{ width: '100%', height: 40, marginBottom: 8 }}
+          disabled={!file}
         >
-          Quét OCR
+          {detecting ? 'Đang quét...' : 'Quét chỉ số'}
         </Button>
+        
         <Input
           value={inputValue}
           onChange={e => setInputValue(e.target.value)}
-          placeholder="Nhập chỉ số mới"
-          style={{ marginBottom: 8 }}
+          placeholder="Chỉ số điện (có thể chỉnh sửa)"
+          style={{ height: 40, marginBottom: 8 }}
+          disabled={detecting}
         />
+        
         <Button
           type="primary"
           onClick={handleSaveReading}
           loading={saving}
-          block
+          style={{ width: '100%', height: 40 }}
+          disabled={!inputValue || detecting}
         >
-          Lưu
+          {saving ? 'Đang lưu...' : 'Lưu chỉ số'}
         </Button>
+        
         {ocrResult && (
-          <div style={{ marginTop: 16 }}>
+          <div style={{ 
+            marginTop: 16,
+            padding: 12,
+            borderRadius: 6,
+            background: ocrResult.match(/^\d{4,5}$/) ? '#f6ffed' : '#fff2f0',
+            border: ocrResult.match(/^\d{4,5}$/) ? '1px solid #b7eb8f' : '1px solid #ffccc7'
+          }}>
             <div style={{ 
-                              color: ocrResult.match(/^\d{4,5}$/) ? (ocrResult.length === 5 ? 'green' : 'orange') : 'red',
+              color: ocrResult.match(/^\d{4,5}$/) ? (ocrResult.length === 5 ? '#52c41a' : '#fa8c16') : '#ff4d4f',
               fontWeight: 'bold',
               marginBottom: 8
             }}>
-              Kết quả OCR: {ocrResult}
+              Kết quả quét: {ocrResult}
             </div>
-                                            {ocrResult.match(/^\d{4,5}$/) ? (
-                <div style={{ color: ocrResult.length === 5 ? 'green' : 'orange', fontSize: '12px' }}>
-                  {ocrResult.length === 5 ? '✓ Chỉ số 5 số hợp lệ - Có thể lưu' : '⚠ Chỉ số 4 số - Có thể lưu nhưng chưa tối ưu'}
-                </div>
-              ) : (
-              <div style={{ color: 'orange', fontSize: '12px' }}>
-                ⚠ Hệ thống sẽ thử nhiều phương pháp khác nhau để quét chỉ số
+            {ocrResult.match(/^\d{4,5}$/) ? (
+              <div style={{ 
+                color: ocrResult.length === 5 ? '#52c41a' : '#fa8c16', 
+                fontSize: '12px' 
+              }}>
+                {ocrResult.length === 5 ? '✓ Chỉ số 5 số hợp lệ - Có thể lưu' : '⚠ Chỉ số 4 số - Có thể lưu nhưng chưa tối ưu'}
+              </div>
+            ) : (
+              <div style={{ color: '#fa8c16', fontSize: '12px' }}>
+                Hệ thống sẽ thử nhiều phương pháp khác nhau để quét chỉ số
               </div>
             )}
           </div>

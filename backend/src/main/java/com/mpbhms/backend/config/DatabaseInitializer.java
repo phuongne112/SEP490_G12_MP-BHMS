@@ -141,6 +141,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Get Contract Amendments History", "/mpbhms/contracts/amendments/{contractId}", "GET", "Contract"));
             //OCR
             permissions.add(new Permission("OCR", "/mpbhms/ocr/detect-ocr", "POST", "Ocr"));
+            permissions.add(new Permission("Manual Scan", "/mpbhms/ocr/manual-scan", "POST", "Ocr"));
             permissions.add(new Permission("Save Reading", "/mpbhms/ocr/save-reading", "POST", "Ocr"));
             permissions.add(new Permission("Save Image Only", "/mpbhms/ocr/save-image-only", "POST", "Ocr"));
             permissions.add(new Permission("Enable Auto Scan", "/mpbhms/ocr/auto-scan/on", "POST", "Ocr"));
