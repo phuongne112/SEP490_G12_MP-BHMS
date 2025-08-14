@@ -41,6 +41,8 @@ public class SecurityConfiguration {
             "/mpbhms/users/me/account",
             "/mpbhms/users/me/info",
             "/uploads/**",
+            "/src/assets/**",
+            "/img/**",
             "/mpbhms/payment/vnpay-return",
             "/mpbhms/payment/vnpay-ipn",
             "/mpbhms/payment/debug/**"
