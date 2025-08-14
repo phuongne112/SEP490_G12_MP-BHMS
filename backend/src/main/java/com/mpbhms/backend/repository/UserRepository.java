@@ -22,6 +22,8 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     User findByUsername(String username);
 
+    User findByRoleRoleName(String roleName);
+
     @Query("SELECT u FROM User u WHERE u.role.roleName = 'RENTER' " +
            "AND NOT EXISTS (SELECT 1 FROM RoomUser ru WHERE ru.user = u AND ru.isActive = true) " +
            "AND (LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
