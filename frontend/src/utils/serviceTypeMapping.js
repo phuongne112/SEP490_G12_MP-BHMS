@@ -8,3 +8,4 @@ export const getServiceTypeDisplayName = (serviceType) => {
   
   return typeMapping[serviceType] || serviceType;
 };
+

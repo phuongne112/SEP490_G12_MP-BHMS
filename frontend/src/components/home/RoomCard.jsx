@@ -21,7 +21,7 @@ const getStatusTag = (status) => {
             fontWeight: 400
           }}
         >
-          Có sẵn
+          Còn trống
         </Tag>
       );
     case "Occupied":
