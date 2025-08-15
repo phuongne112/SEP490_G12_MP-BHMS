@@ -864,6 +864,13 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
+                          const hasActiveTenant =
+                            (room.roomUsers && room.roomUsers.filter((u) => u.isActive).length > 0) ||
+                            room.roomStatus === "Occupied";
+                          if (hasActiveTenant) {
+                            message.warning("Phòng đã có người thuê. Không thể gán thêm!");
+                            return;
+                          }
                           setSelectedRoomForAssign(room);
                           setAssignRenterModalVisible(true);
                         }}

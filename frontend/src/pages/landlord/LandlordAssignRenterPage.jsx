@@ -423,16 +423,32 @@ export default function LandlordAssignRenterPage() {
                   label="Chọn người thuê"
                   name="renterEmails"
                   rules={[
-                    { required: true, message: "Vui lòng chọn ít nhất một người thuê" }
+                    { required: true, message: "Vui lòng chọn ít nhất một người thuê" },
+                    {
+                      validator: (_, value) => {
+                        if (!value) return Promise.resolve();
+                        if (Array.isArray(value) && value.length > 3) {
+                          return Promise.reject(new Error("Bạn chỉ có thể chọn tối đa 3 người"));
+                        }
+                        return Promise.resolve();
+                      }
+                    }
                   ]}
                 >
                   <Select
                     mode="multiple"
-                    placeholder="Tìm theo tên, email hoặc số điện thoại"
+                    placeholder="Tìm theo tên, email hoặc số điện thoại (tối đa 3 người)"
                     showSearch
                     onSearch={fetchRenters}
                     filterOption={false}
                     notFoundContent="Không tìm thấy người thuê nào"
+                    maxTagCount="responsive"
+                    onChange={(values) => {
+                      if (Array.isArray(values) && values.length > 3) {
+                        message.warning("Chỉ chọn tối đa 3 người");
+                        form.setFieldsValue({ renterEmails: values.slice(0, 3) });
+                      }
+                    }}
                   >
                     {renters.map(renter => (
                       <Option key={renter.email} value={renter.email}>
