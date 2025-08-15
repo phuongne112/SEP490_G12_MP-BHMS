@@ -21,7 +21,7 @@ export default function AssignRenterModal({ visible, onCancel, room, onSuccess }
   const [customEndDate, setCustomEndDate] = useState(null);
   const [depositAmount, setDepositAmount] = useState(0);
   const [shouldClose, setShouldClose] = useState(false);
-  const [selectedRenter, setSelectedRenter] = useState(null);
+  const [selectedRenters, setSelectedRenters] = useState([]);
   const [isClosing, setIsClosing] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -142,28 +142,35 @@ export default function AssignRenterModal({ visible, onCancel, room, onSuccess }
 
   const onFinish = async (values) => {
     if (!room) return;
-    if (loading) {
-      console.log("Đang loading, không cho submit");
-      return; // Ngăn không cho submit khi đang loading
+    if (loading) return;
+
+    // Validate số người không vượt quá giới hạn phòng
+    const currentOccupants = room.roomUsers ? room.roomUsers.filter(u => u.isActive).length : 0;
+    const toAdd = (values.userIds || []).length;
+    if (room.maxOccupants && currentOccupants + toAdd > room.maxOccupants) {
+      message.error(`Không thể gán thêm người thuê. Tối đa ${room.maxOccupants} người.`);
+      return;
     }
 
-    console.log("Bắt đầu gán người thuê...");
     setLoading(true);
     try {
+      const endDateToUse = isCustomEndDate
+        ? customEndDate?.toISOString()
+        : (endDate ? endDate.toISOString() : null);
+
       const requestData = {
         roomId: room.id,
-        userId: values.userId,
-        startDate: startDate?.toISOString(),
-        endDate: isCustomEndDate ? customEndDate?.toISOString() : (endDate ? endDate.toISOString() : null),
+        userIds: values.userIds,
+        contractStartDate: startDate?.toISOString(),
+        contractEndDate: endDateToUse,
         paymentCycle: cycle,
         depositAmount: depositAmount
       };
 
-      const response = await axiosClient.post("/room-users/assign", requestData);
-      
-      // Backend trả về string thành công, không phải object
+      await axiosClient.post("/room-users/add-many", requestData);
+
       message.success("Đã gán người thuê vào phòng thành công!");
-        
+
       // Reset form và state
       form.resetFields();
       setStartDate(null);
@@ -172,17 +179,13 @@ export default function AssignRenterModal({ visible, onCancel, room, onSuccess }
       setDepositAmount(room.pricePerMonth || 0);
       setCycle("MONTHLY");
       setIsCustomEndDate(false);
-      
-      // Gọi callback để refresh data
+      setSelectedRenters([]);
+
       onSuccess?.();
-      
-      // Đóng modal thông qua useEffect
-      console.log("Đang đóng modal...");
       setLoading(false);
       setSuccess(true);
-      return; // Thoát khỏi function ngay lập tức
+      return;
     } catch (err) {
-      console.error("Error assigning renter:", err);
       const errorMessage = err.response?.data?.message || err.response?.data || "Gán người thuê vào phòng thất bại";
       message.error(errorMessage);
     } finally {
@@ -219,9 +222,9 @@ export default function AssignRenterModal({ visible, onCancel, room, onSuccess }
     setDepositAmount(value || 0);
   };
 
-  const handleRenterSelect = (value) => {
-    const renter = renters.find(r => r.id === value);
-    setSelectedRenter(renter);
+  const handleRenterSelect = (values) => {
+    const selected = renters.filter(r => values.includes(r.id));
+    setSelectedRenters(selected);
   };
 
   const handleCloseModal = useCallback(() => {
@@ -325,10 +328,11 @@ export default function AssignRenterModal({ visible, onCancel, room, onSuccess }
               >
                 <Form.Item
                   label="Chọn người thuê"
-                  name="userId"
-                  rules={[{ required: true, message: 'Vui lòng chọn người thuê!' }]}
+                  name="userIds"
+                  rules={[{ required: true, message: 'Vui lòng chọn ít nhất một người thuê!' }]}
                 >
                   <Select
+                    mode="multiple"
                     showSearch
                     placeholder="Tìm theo tên, email hoặc số điện thoại"
                     optionFilterProp="children"
@@ -337,14 +341,14 @@ export default function AssignRenterModal({ visible, onCancel, room, onSuccess }
                     onChange={handleRenterSelect}
                     style={{ width: '100%' }}
                   >
-                                         {renters.map((renter) => (
-                       <Option key={renter.id} value={renter.id}>
-                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                           <span style={{ fontWeight: 600 }}>{renter.fullName || renter.name}</span>
-                           <span style={{ fontSize: 12, color: '#666' }}>{renter.email}</span>
-                         </div>
-                       </Option>
-                     ))}
+                    {renters.map((renter) => (
+                      <Option key={renter.id} value={renter.id}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontWeight: 600 }}>{renter.fullName || renter.name}</span>
+                          <span style={{ fontSize: 12, color: '#666' }}>{renter.email}</span>
+                        </div>
+                      </Option>
+                    ))}
                   </Select>
                 </Form.Item>
 
@@ -507,8 +511,7 @@ export default function AssignRenterModal({ visible, onCancel, room, onSuccess }
                         <div>
                           <div>Bạn có chắc chắn muốn gán người thuê vào phòng <strong>{room?.roomNumber}</strong> không?</div>
                           <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
-                            <div>• Người thuê: <strong>{selectedRenter ? (selectedRenter.fullName || selectedRenter.name) : 'Chưa chọn'}</strong></div>
-                            {selectedRenter && <div style={{ fontSize: 11, color: '#999' }}>  Email: {selectedRenter.email}</div>}
+                            <div>• Người thuê: <strong>{selectedRenters.length > 0 ? selectedRenters.map(r => r.fullName || r.name).join(', ') : 'Chưa chọn'}</strong></div>
                             <div>• Ngày bắt đầu: {startDate ? startDate.format('DD/MM/YYYY') : 'Chưa chọn'}</div>
                             <div>• Chu kỳ thanh toán: {paymentCycleOptions.find(opt => opt.value === cycle)?.label || cycle}</div>
                             <div>• Tiền cọc: {depositAmount?.toLocaleString()} VND</div>
@@ -525,14 +528,14 @@ export default function AssignRenterModal({ visible, onCancel, room, onSuccess }
                       cancelText="Hủy"
                       placement="topRight"
                       open={showConfirm}
-                      disabled={!selectedRenter || !startDate}
+                      disabled={selectedRenters.length === 0 || !startDate}
                     >
                       <Button 
                         type="primary" 
                         loading={loading}
-                        disabled={loading || !selectedRenter || !startDate}
+                        disabled={loading || selectedRenters.length === 0 || !startDate}
                         icon={<UserAddOutlined />}
-                        title={!selectedRenter || !startDate ? "Vui lòng chọn đầy đủ thông tin người thuê và ngày bắt đầu" : ""}
+                        title={selectedRenters.length === 0 || !startDate ? "Vui lòng chọn đầy đủ thông tin người thuê và ngày bắt đầu" : ""}
                         onClick={() => setShowConfirm(true)}
                       >
                         Gán người thuê

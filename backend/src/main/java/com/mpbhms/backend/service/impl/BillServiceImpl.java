@@ -439,10 +439,17 @@ public class BillServiceImpl implements BillService {
                     // Tính toán tiền dịch vụ theo đầu người và tỷ lệ thời gian
                     BigDecimal serviceAmount;
                     if (isCustomPeriod) {
-                        // Với khoảng ngày tùy chọn, tính theo tỷ lệ
-                        long daysBetween = ChronoUnit.DAYS.between(fromDate, toDate) + 1;
-                        double ratio = daysBetween / 30.0; // Tỷ lệ so với 1 tháng
-                        serviceAmount = unitPrice.multiply(BigDecimal.valueOf(numberOfPeople)).multiply(BigDecimal.valueOf(ratio));
+                        // Với khoảng ngày tùy chọn: chỉ cần chạm ngày của một tháng thì tính nguyên giá tháng đó
+                        // Tính số tháng được phủ bởi khoảng [fromDate, toDate) theo các tháng lịch
+                        LocalDate lastIncluded = toDate.minusDays(1);
+                        long monthsTouched = ChronoUnit.MONTHS.between(
+                            fromDate.withDayOfMonth(1),
+                            lastIncluded.withDayOfMonth(1)
+                        ) + 1; // luôn tính ít nhất 1 tháng
+                        if (monthsTouched < 1) monthsTouched = 1;
+                        serviceAmount = unitPrice
+                            .multiply(BigDecimal.valueOf(numberOfPeople))
+                            .multiply(BigDecimal.valueOf(monthsTouched));
                     } else {
                         // Với chu kỳ chuẩn, tính theo số tháng chu kỳ
                         int cycleMonths = countMonths(cycle);
@@ -1073,8 +1080,11 @@ public class BillServiceImpl implements BillService {
                     continue;
                 }
                 
-                // Tạo bill mới
-                Bill newBill = generateBill(contract.getId(), nextPeriodStart, nextPeriodEnd, BillType.CONTRACT_TOTAL);
+                // Tạo bill mới theo chu kỳ: MONTHLY => CONTRACT_TOTAL; QUARTERLY/YEARLY => chỉ tiền phòng
+                BillType billTypeToGenerate = (cycle == PaymentCycle.MONTHLY)
+                    ? BillType.CONTRACT_TOTAL
+                    : BillType.CONTRACT_ROOM_RENT;
+                Bill newBill = generateBill(contract.getId(), nextPeriodStart, nextPeriodEnd, billTypeToGenerate);
                 generatedBills.add(toResponse(newBill));
                 
                 System.out.println("Đã tạo hóa đơn #" + newBill.getId() + " - Số tiền: " + newBill.getTotalAmount() + " VND");
