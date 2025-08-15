@@ -131,7 +131,7 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
   const [assetModalOpen, setAssetModalOpen] = useState(false);
   const [assetList, setAssetList] = useState([]);
   const [assetLoading, setAssetLoading] = useState(false);
-  const [selectedAssetId, setSelectedAssetId] = useState(null);
+  const [selectedAssetIds, setSelectedAssetIds] = useState([]);
   const [assetSearch, setAssetSearch] = useState("");
   const [assetPage, setAssetPage] = useState(1);
   const [assetTotal, setAssetTotal] = useState(0);
@@ -508,13 +508,27 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
     setAssetLoading(false);
   };
 
+  const [addMultipleAssetsModalOpen, setAddMultipleAssetsModalOpen] = useState(false);
+  const [multipleAssetForms, setMultipleAssetForms] = useState([]);
+
   const handleAssetAssign = async () => {
-    if (!selectedAssetId || !assetRoomId) return;
-    const asset = assetList.find((a) => a.id === selectedAssetId);
-    setAssetToAdd(asset);
-    setAddAssetInventoryForm({ quantity: 1, status: "", note: "" });
+    if (!selectedAssetIds || selectedAssetIds.length === 0 || !assetRoomId) return;
+    if (selectedAssetIds.length === 1) {
+      const asset = assetList.find((a) => a.id === selectedAssetIds[0]);
+      setAssetToAdd(asset);
+      setAddAssetInventoryForm({ quantity: 1, status: "", note: "" });
+      setAssetModalOpen(false);
+      setAddAssetInventoryModalOpen(true);
+      return;
+    }
+    // Multiple assets
+    const forms = selectedAssetIds
+      .map((id) => assetList.find((a) => a.id === id))
+      .filter(Boolean)
+      .map((a) => ({ assetId: a.id, assetName: a.assetName, quantity: 1, status: "", note: "" }));
+    setMultipleAssetForms(forms);
     setAssetModalOpen(false);
-    setAddAssetInventoryModalOpen(true);
+    setAddMultipleAssetsModalOpen(true);
   };
 
   const fetchRoomAssets = async (roomId) => {
@@ -553,10 +567,36 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
       message.success("Đã thêm tài sản vào phòng với tình trạng riêng!");
       setAddAssetInventoryModalOpen(false);
       setAssetToAdd(null);
-      setSelectedAssetId(null);
+      setSelectedAssetIds([]);
       fetchRoomAssets(assetRoomId);
     } catch {
       message.error("Lỗi khi thêm tài sản vào phòng!");
+    }
+  };
+
+  const handleConfirmAddMultipleAssets = async () => {
+    if (!assetRoomId || multipleAssetForms.length === 0) return;
+    try {
+      await Promise.all(
+        multipleAssetForms
+          .filter((f) => f.assetId && f.quantity > 0 && f.status)
+          .map((f) =>
+            addAssetToRoom({
+              roomId: assetRoomId,
+              assetId: f.assetId,
+              quantity: f.quantity,
+              status: f.status,
+              note: f.note,
+            })
+          )
+      );
+      message.success("Đã thêm các tài sản vào phòng!");
+      setAddMultipleAssetsModalOpen(false);
+      setMultipleAssetForms([]);
+      setSelectedAssetIds([]);
+      fetchRoomAssets(assetRoomId);
+    } catch (e) {
+      message.error("Lỗi khi thêm nhiều tài sản!");
     }
   };
 
@@ -1233,11 +1273,11 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
         title="Chọn tài sản để thêm vào phòng"
         onCancel={() => {
           setAssetModalOpen(false);
-          setSelectedAssetId(null);
+          setSelectedAssetIds([]);
         }}
         onOk={handleAssetAssign}
         okText="Thêm vào phòng"
-        okButtonProps={{ disabled: !selectedAssetId }}
+        okButtonProps={{ disabled: !selectedAssetIds || selectedAssetIds.length === 0 }}
         width={700}
       >
         <Input.Search
@@ -1261,9 +1301,9 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
             onChange: (page) => fetchAssetList(page, assetSearch),
           }}
           rowSelection={{
-            type: "radio",
-            selectedRowKeys: selectedAssetId ? [selectedAssetId] : [],
-            onChange: (selectedRowKeys) => setSelectedAssetId(selectedRowKeys[0]),
+            type: "checkbox",
+            selectedRowKeys: selectedAssetIds,
+            onChange: (selectedRowKeys) => setSelectedAssetIds(selectedRowKeys),
           }}
           columns={[
             { title: "Tên tài sản", dataIndex: "assetName", key: "assetName" },
@@ -1273,6 +1313,54 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
               dataIndex: "conditionNote",
               key: "conditionNote",
             },
+          ]}
+        />
+      </Modal>
+
+      {/* Modal thêm nhiều tài sản */}
+      <Modal
+        open={addMultipleAssetsModalOpen}
+        title="Thêm nhiều tài sản vào phòng"
+        onCancel={() => setAddMultipleAssetsModalOpen(false)}
+        onOk={handleConfirmAddMultipleAssets}
+        okText="Thêm vào phòng"
+        okButtonProps={{ disabled: multipleAssetForms.length === 0 || multipleAssetForms.some(f => !f.status || !f.quantity) }}
+        width={600}
+      >
+        <Table
+          dataSource={multipleAssetForms}
+          rowKey={(r) => r.assetId}
+          pagination={false}
+          columns={[
+            { title: 'Tài sản', dataIndex: 'assetName', key: 'assetName' },
+            { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity',
+              render: (val, record) => (
+                <Input type="number" min={1} value={record.quantity} onChange={(e)=>{
+                  const v = e.target.value;
+                  setMultipleAssetForms(prev => prev.map(f => f.assetId===record.assetId ? { ...f, quantity: v } : f));
+                }} style={{ width: 90 }} />
+              )
+            },
+            { title: 'Tình trạng', dataIndex: 'status', key: 'status',
+              render: (val, record) => (
+                <Select value={record.status} onChange={(v)=>{
+                  setMultipleAssetForms(prev => prev.map(f => f.assetId===record.assetId ? { ...f, status: v } : f));
+                }} style={{ width: 120 }}>
+                  <Select.Option value="Tốt">Tốt</Select.Option>
+                  <Select.Option value="Hư hỏng">Hư hỏng</Select.Option>
+                  <Select.Option value="Mất">Mất</Select.Option>
+                  <Select.Option value="Bảo trì">Bảo trì</Select.Option>
+                </Select>
+              )
+            },
+            { title: 'Ghi chú', dataIndex: 'note', key: 'note',
+              render: (val, record) => (
+                <Input value={record.note} onChange={(e)=>{
+                  const v = e.target.value;
+                  setMultipleAssetForms(prev => prev.map(f => f.assetId===record.assetId ? { ...f, note: v } : f));
+                }} />
+              )
+            }
           ]}
         />
       </Modal>

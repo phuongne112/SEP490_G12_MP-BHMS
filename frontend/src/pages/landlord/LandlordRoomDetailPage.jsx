@@ -176,8 +176,20 @@ export default function LandlordRoomDetailPage() {
   const fetchContracts = async () => {
     setContractsLoading(true);
     try {
-      const contracts = await getContractHistoryByRoom(id);
-      setContracts(contracts || []);
+      const res = await getContractHistoryByRoom(id);
+      const list = Array.isArray(res) ? res : (res?.data || res?.result || []);
+      if (!list || list.length === 0) {
+        setContracts([]);
+      } else {
+        // Ưu tiên hợp đồng ACTIVE mới nhất, nếu không có thì lấy mới nhất bất kỳ
+        const byDate = (c) => new Date(
+          c.updatedDate || c.createdDate || c.startDate || c.contractStartDate || 0
+        ).getTime();
+        const active = list.filter(c => (c.contractStatus || c.status) === 'ACTIVE');
+        const latest = (active.length > 0 ? active : list)
+          .sort((a, b) => byDate(b) - byDate(a))[0];
+        setContracts(latest ? [latest] : []);
+      }
     } catch (error) {
       setContracts([]);
     }
@@ -499,59 +511,46 @@ export default function LandlordRoomDetailPage() {
     }
   };
 
-  // Contract columns
+  // Contract columns (align with Contract list page)
   const contractColumns = [
     {
       title: 'Mã hợp đồng',
-      dataIndex: 'contractCode',
-      key: 'contractCode',
-      render: (text) => text || `HĐ#${id}`
-    },
-    {
-      title: 'Người thuê',
-      dataIndex: 'roomUsers',
-      key: 'roomUsers',
-      render: (roomUsers) => (
-        <div>
-          {roomUsers?.map((ru, index) => (
-            <div key={ru.id} style={{ marginBottom: index > 0 ? 8 : 0 }}>
-              <Text strong>{ru.user?.fullName}</Text>
-              <br />
-              <Text type="secondary">{ru.user?.phoneNumber}</Text>
-            </div>
-          ))}
-        </div>
-      )
+      key: 'contractNumber',
+      render: (_, record) => `HĐ#${record.id || record.contractNumber}`
     },
     {
       title: 'Ngày bắt đầu',
-      dataIndex: 'startDate',
-      key: 'startDate',
-      render: (date) => dayjs(date).format('DD/MM/YYYY')
+      dataIndex: 'contractStartDate',
+      key: 'contractStartDate',
+      render: (date) => (date ? dayjs(date).format('DD/MM/YYYY') : '-')
     },
     {
       title: 'Ngày kết thúc',
-      dataIndex: 'endDate',
-      key: 'endDate',
-      render: (date) => dayjs(date).format('DD/MM/YYYY')
+      dataIndex: 'contractEndDate',
+      key: 'contractEndDate',
+      render: (date) => (date ? dayjs(date).format('DD/MM/YYYY') : '-')
     },
     {
       title: 'Tiền thuê',
       dataIndex: 'rentAmount',
       key: 'rentAmount',
-      render: (amount) => amount?.toLocaleString('vi-VN') + ' VND'
+      render: (amount) => (amount !== undefined && amount !== null ? amount.toLocaleString('vi-VN') + ' VND' : '-')
+    },
+    {
+      title: 'Chu kỳ',
+      dataIndex: 'paymentCycle',
+      key: 'paymentCycle',
+      render: (cycle) =>
+        cycle === 'MONTHLY' ? 'Hàng tháng' : cycle === 'QUARTERLY' ? 'Hàng quý' : cycle === 'YEARLY' ? 'Hàng năm' : '-'
     },
     {
       title: 'Trạng thái',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => {
-        const isExpired = dayjs().isAfter(dayjs(contracts.find(c => c.status === status)?.endDate));
-        return (
-          <Tag color={isExpired ? 'red' : 'green'}>
-            {isExpired ? 'Hết hạn' : 'Đang hiệu lực'}
-          </Tag>
-        );
+      dataIndex: 'contractStatus',
+      key: 'contractStatus',
+      render: (status, record) => {
+        const color = status === 'ACTIVE' ? 'green' : status === 'EXPIRED' ? 'red' : status === 'TERMINATED' ? 'orange' : 'default';
+        const label = status === 'ACTIVE' ? 'Đang hiệu lực' : status === 'EXPIRED' ? 'Hết hạn' : status === 'TERMINATED' ? 'Đã chấm dứt' : (status || 'Không xác định');
+        return <Tag color={color}>{label}</Tag>;
       }
     }
   ];
@@ -881,22 +880,6 @@ export default function LandlordRoomDetailPage() {
                           render: (text) => text || `HĐ#${id}`
                         },
                         {
-                          title: 'Người thuê',
-                          dataIndex: 'roomUsers',
-                          key: 'roomUsers',
-                          render: (roomUsers) => (
-                            <div>
-                              {roomUsers?.map((ru, index) => (
-                                <div key={ru.id} style={{ marginBottom: index > 0 ? 8 : 0 }}>
-                                  <Text strong>{ru.user?.fullName}</Text>
-                                  <br />
-                                  <Text type="secondary">{ru.user?.phoneNumber}</Text>
-                                </div>
-                              ))}
-                            </div>
-                          )
-                        },
-                        {
                           title: 'Ngày bắt đầu',
                           dataIndex: 'startDate',
                           key: 'startDate',
@@ -944,12 +927,14 @@ export default function LandlordRoomDetailPage() {
                           dataIndex: 'serviceName',
                           key: 'serviceName',
                         },
-                                {
-          title: 'Loại',
-          dataIndex: 'serviceType',
-          key: 'serviceType',
-          render: (serviceType) => serviceType
-        },
+                        {
+                          title: 'Loại',
+                          dataIndex: 'serviceType',
+                          key: 'serviceType',
+                          render: (type) => (
+                            type === 'ELECTRICITY' ? 'Điện' : type === 'WATER' ? 'Nước' : 'Khác'
+                          )
+                        },
                         {
                           title: 'Đơn giá',
                           dataIndex: 'unitPrice',
@@ -960,6 +945,7 @@ export default function LandlordRoomDetailPage() {
                           title: 'Đơn vị',
                           dataIndex: 'unit',
                           key: 'unit',
+                          render: (u) => (u === 'm3' ? 'm³' : u)
                         },
                         {
                           title: 'Trạng thái',
