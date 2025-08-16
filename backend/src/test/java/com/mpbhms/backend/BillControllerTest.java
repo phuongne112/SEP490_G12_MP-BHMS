@@ -27,6 +27,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import com.mpbhms.backend.repository.BillRepository;
+import com.mpbhms.backend.repository.PaymentHistoryRepository;
+import com.mpbhms.backend.service.PaymentHistoryService;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -56,6 +60,9 @@ public class BillControllerTest {
 
         @Mock
         private EmailService emailService;
+        @Mock private PaymentHistoryService paymentHistoryService;
+        @Mock private BillRepository billRepository;
+        @Mock private PaymentHistoryRepository paymentHistoryRepository;
 
         @Mock
         private VnPayService vnPayService;
@@ -68,12 +75,24 @@ public class BillControllerTest {
         @BeforeEach
         void setUp() {
                 objectMapper = new ObjectMapper();
+
+                BillController controller = new BillController(
+                        billService,
+                        emailService,
+                        vnPayService,
+                        notificationService,
+                        paymentHistoryService,
+                        billRepository,
+                        paymentHistoryRepository
+                );
+
                 mockMvc = MockMvcBuilders
-                                .standaloneSetup(new BillController(billService, emailService, vnPayService, notificationService))
-                                .setControllerAdvice(new GlobalExceptionHandler())
-                                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
-                                .build();
+                        .standaloneSetup(controller)
+                        .setControllerAdvice(new GlobalExceptionHandler())
+                        .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                        .build();
         }
+
 
         // ==================== TEST GENERATE FIRST BILL ====================
 
