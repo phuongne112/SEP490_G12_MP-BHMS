@@ -1314,9 +1314,9 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
             onChange: (page) => fetchAssetList(page, assetSearch),
           }}
           rowSelection={{
-            type: "radio",
-            selectedRowKeys: selectedAssetId ? [selectedAssetId] : [],
-            onChange: (selectedRowKeys) => setSelectedAssetId(selectedRowKeys[0]),
+            type: "checkbox",
+            selectedRowKeys: selectedAssetIds,
+            onChange: (selectedRowKeys) => setSelectedAssetIds(selectedRowKeys),
             getCheckboxProps: (record) => {
               const existingNames = new Set((assetListGoc || []).map(a => (a.assetName || '').toLowerCase().trim()));
               const isDuplicate = existingNames.has((record.assetName || '').toLowerCase().trim());
