@@ -388,7 +388,7 @@ public class PaymentController {
 
                 String html = "<html><body>"
                         + "<h2>Thanh toán thành công!</h2>"
-                        + "<script>window.location='http://localhost:5173/landlord/bills';</script>"
+                        + "<script>window.location='http://52.184.69.15/landlord/bills';</script>"
                         + "</body></html>";
                 return ResponseEntity.ok().body(html);
             } else {
@@ -399,7 +399,7 @@ public class PaymentController {
                 
                 String html = "<html><body>"
                         + "<h2>Thanh toán thất bại hoặc bị hủy!</h2>"
-                        + "<script>window.location='http://localhost:5173/landlord/bills';</script>"
+                        + "<script>window.location='http://52.184.69.15/landlord/bills';</script>"
                         + "</body></html>";
                 return ResponseEntity.ok().body(html);
             }
@@ -409,7 +409,7 @@ public class PaymentController {
             
             String html = "<html><body>"
                     + "<h2>Có lỗi xảy ra: " + e.getMessage() + "</h2>"
-                    + "<script>window.location='http://localhost:5173/landlord/bills';</script>"
+                    + "<script>window.location='http://52.184.69.15/landlord/bills';</script>"
                     + "</body></html>";
             return ResponseEntity.ok().body(html);
         }

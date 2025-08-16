@@ -28,6 +28,7 @@ import UserInfoModal from "../components/account/UserInfoModal";
 import UpdateUserInfoPage from "../components/account/UpdateUserInfoPage";
 import scheduleApi from "../services/scheduleApi";
 import dayjs from "dayjs";
+import { getAssetsByRoomNumber } from "../services/assetApi";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -78,6 +79,8 @@ export default function RoomDetailPage() {
   const [showUpdateInfoModal, setShowUpdateInfoModal] = useState(false);
   const [isCreate, setIsCreate] = useState(false);
   const [ocrData, setOcrData] = useState(null);
+  const [roomAssets, setRoomAssets] = useState([]);
+  const [roomAssetsLoading, setRoomAssetsLoading] = useState(false);
 
   useEffect(() => {
     const hasLandlordInfo = room?.landlordName && room?.landlordPhone;
@@ -152,6 +155,24 @@ export default function RoomDetailPage() {
 
       setImages360(generateImages());
     }
+  }, [room]);
+
+  // Fetch room assets once room information is available
+  useEffect(() => {
+    const loadAssetsForRoom = async () => {
+      if (!room || !room.roomNumber) return;
+      setRoomAssetsLoading(true);
+      try {
+        const res = await getAssetsByRoomNumber(room.roomNumber);
+        const assets = res?.data || res?.result || [];
+        setRoomAssets(Array.isArray(assets) ? assets : []);
+      } catch (error) {
+        setRoomAssets([]);
+      } finally {
+        setRoomAssetsLoading(false);
+      }
+    };
+    loadAssetsForRoom();
   }, [room]);
 
   const fetchRoomFromAPI = async () => {
@@ -330,7 +351,7 @@ export default function RoomDetailPage() {
                     fontWeight: 400
                   }}
                 >
-                  {room.roomStatus === "Available" ? "Có sẵn" :
+                  {room.roomStatus === "Available" ? "Còn trống" :
                    room.roomStatus === "Occupied" ? "Đã thuê" :
                    room.roomStatus === "Maintenance" ? "Bảo trì" :
                    room.roomStatus === "Inactive" ? "Không hoạt động" :
@@ -447,6 +468,46 @@ export default function RoomDetailPage() {
                 >
                   Xem phòng 360°
                 </Button>
+              </div>
+              {/* Assets List under images */}
+              <div
+                style={{
+                  background: "#fff",
+                  borderRadius: 12,
+                  padding: 16,
+                  marginBottom: 16,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  border: "1px solid #f0f0f0",
+                }}
+              >
+                <Title level={4} style={{ marginBottom: 12, fontWeight: 500 }}>
+                  Danh sách tài sản
+                </Title>
+                {roomAssetsLoading ? (
+                  <div style={{ textAlign: "center", padding: 20 }}>
+                    <Spin />
+                  </div>
+                ) : roomAssets && roomAssets.length > 0 ? (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {roomAssets.map((item) => (
+                      <Tag
+                        key={item.id || `${item.assetId}-${item.assetName}`}
+                        color="blue"
+                        style={{
+                          margin: 0,
+                          padding: "4px 8px",
+                          borderRadius: 4,
+                          fontSize: 12,
+                          fontWeight: 400,
+                        }}
+                      >
+                        {(item.assetName || item.name || `Tài sản #${item.assetId}`)}
+                      </Tag>
+                    ))}
+                  </div>
+                ) : (
+                  <Text type="secondary">Chưa có tài sản</Text>
+                )}
               </div>
             </Col>
 

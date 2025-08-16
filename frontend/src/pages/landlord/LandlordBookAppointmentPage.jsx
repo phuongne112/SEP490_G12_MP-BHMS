@@ -269,7 +269,7 @@ export default function LandlordBookAppointmentPage(props) {
                 >
                   {(() => {
                     const status = room.roomStatus || room.status;
-                    if (status === "Available") return "Có sẵn";
+                    if (status === "Available") return "Còn trống";
                     if (status === "Occupied") return "Đã thuê";
                     if (status === "Maintenance") return "Bảo trì";
                     if (status === "Inactive") return "Không hoạt động";
@@ -591,7 +591,7 @@ export default function LandlordBookAppointmentPage(props) {
                     >
                       {(() => {
                         const status = room.roomStatus || room.status;
-                        if (status === "Available") return "Có sẵn";
+                        if (status === "Available") return "Còn trống";
                         if (status === "Occupied") return "Đã thuê";
                         if (status === "Maintenance") return "Bảo trì";
                         if (status === "Inactive") return "Không hoạt động";
