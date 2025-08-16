@@ -28,6 +28,7 @@ import {
 } from "../../services/roomService";
 import { getAllServicesList } from "../../services/serviceApi";
 import { detectElectricOcr } from "../../services/electricOcrApi";
+
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { CheckCircleFilled } from "@ant-design/icons";
@@ -1128,9 +1129,9 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
               (rs) => rs.id === s.id && rs.isActive !== false && !rs.endDate
             );
             return (
-              <Option key={s.id} value={s.id} disabled={isActive}>
-                {s.serviceName} ({s.serviceType}) {isActive ? " - Đã có" : ""}
-              </Option>
+                      <Option key={s.id} value={s.id} disabled={isActive}>
+          {s.serviceName} {isActive ? " - Đã có" : ""}
+        </Option>
             );
           })}
         </Select>
@@ -1153,18 +1154,18 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
                       marginBottom: 4,
                     }}
                   >
-                    <span style={{ flex: 1 }}>
-                      {s.serviceName} ({s.serviceType})
-                      <span
-                        style={{
-                          marginLeft: 8,
-                          fontSize: 13,
-                          color: isActive ? "#52c41a" : "#888",
-                        }}
-                      >
-                        {isActive ? "Đang sử dụng" : "Đã ngừng"}
-                      </span>
-                    </span>
+                            <span style={{ flex: 1 }}>
+          {s.serviceName}
+          <span
+            style={{
+              marginLeft: 8,
+              fontSize: 13,
+              color: isActive ? "#52c41a" : "#888",
+            }}
+          >
+            {isActive ? "Đang sử dụng" : "Đã ngừng"}
+          </span>
+        </span>
                     <Button
                       danger
                       size="small"

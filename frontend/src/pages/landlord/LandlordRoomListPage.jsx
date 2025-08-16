@@ -615,8 +615,8 @@ export default function LandlordRoomListPage() {
                                    { required: true, message: "Vui lòng nhập số người tối đa" },
                                    { 
                                      validator: (_, value) => {
-                                       if (!value) {
-                                         return Promise.reject(new Error("Vui lòng nhập số người tối đa"));
+                                       if (value === undefined || value === null || value === "") {
+                                         return Promise.resolve();
                                        }
                                        const numValue = Number(value);
                                        if (isNaN(numValue) || numValue < 1 || numValue > 3) {

@@ -60,6 +60,7 @@ import { getAllAssets, getAssetsByRoom, addAssetToRoom, deleteRoomAsset, updateR
 import { addServiceToRoom, deactivateServiceForRoom, reactivateServiceForRoom } from "../../services/roomService";
 import { getAllServicesList } from "../../services/serviceApi";
 import { detectElectricOcr } from "../../services/electricOcrApi";
+
 import axiosClient from "../../services/axiosClient";
 
 const { Content } = Layout;
@@ -1036,9 +1037,9 @@ export default function LandlordRoomDetailPage() {
             {allServices.map((s) => {
               const isActive = (room?.services || []).some(rs => rs.id === s.id && rs.isActive !== false && !rs.endDate);
               return (
-                <Option key={s.id} value={s.id} disabled={isActive}>
-                  {s.serviceName} ({s.serviceType}) {isActive ? " - Đã có" : ""}
-                </Option>
+                        <Option key={s.id} value={s.id} disabled={isActive}>
+          {s.serviceName} {isActive ? " - Đã có" : ""}
+        </Option>
               );
             })}
           </Select>
