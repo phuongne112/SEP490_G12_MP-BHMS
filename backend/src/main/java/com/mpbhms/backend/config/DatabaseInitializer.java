@@ -7,6 +7,7 @@ import com.mpbhms.backend.entity.User;
 import com.mpbhms.backend.entity.ContractTemplate;
 import com.mpbhms.backend.entity.ServicePriceHistory;
 import com.mpbhms.backend.entity.Room;
+import com.mpbhms.backend.entity.RoomImage;
 import com.mpbhms.backend.entity.Asset;
 import com.mpbhms.backend.entity.RoomServiceMapping;
 import com.mpbhms.backend.entity.RoomAsset;
@@ -692,6 +693,9 @@ public class DatabaseInitializer implements CommandLineRunner {
         if (countAssets == 0) {
             initializeDefaultAssets();
         }
+
+        // Đảm bảo tất cả phòng đều có đầy đủ tài sản (an toàn, không tạo trùng)
+        ensureAllRoomsHaveAssets();
 
         if (countPermissions > 0 && countRoles > 0 && countUsers > 0 && countServices > 0 && countContractTemplates > 0 && countRooms > 0 && countAssets > 0) {
             System.out.println(">>> SKIP INIT DATABASE <<<");
@@ -1734,6 +1738,24 @@ public class DatabaseInitializer implements CommandLineRunner {
             room.setIsActive(true);
             room.setDeleted(false);
             room.setScanFolder(fullRoomNumber); // Thư mục scan với format A122, B201
+
+            // Thêm ảnh mặc định cho tất cả phòng
+            java.util.List<String> defaultImageUrls = java.util.List.of(
+                "/uploads/Tongquanphong.jpg",
+                "/uploads/Banruabat.jpg",
+                "/uploads/DieuhoaCasper.jpg",
+                "/uploads/Dieukhiendieuhoa.jpg",
+                "/uploads/Giuong.jpg",
+                "/uploads/nhavesinh.jpg",
+                "/uploads/Tudungquanao.jpg",
+                "/uploads/Tulanh.jpg"
+            );
+            for (String url : defaultImageUrls) {
+                RoomImage image = new RoomImage();
+                image.setRoom(room);
+                image.setImageURL(url);
+                room.getImages().add(image);
+            }
             
             // Gán landlord nếu có
             if (landlord != null) {
@@ -1822,15 +1844,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         nhaVeSinh.setAssetImage("/src/assets/Asset/nhavesinh.jpg");
         assets.add(nhaVeSinh);
 
-        // 6. Tổng quan phòng (Overall room view)
-        Asset tongQuanPhong = new Asset();
-        tongQuanPhong.setAssetName("Tổng quan phòng");
-        tongQuanPhong.setQuantity(new BigDecimal("1"));
-        tongQuanPhong.setConditionNote("Tổng thể phòng trọ với đầy đủ tiện nghi");
-        tongQuanPhong.setAssetImage("/src/assets/Asset/Tongquan phong.jpg");
-        assets.add(tongQuanPhong);
-
-        // 7. Tủ đựng quần áo (Wardrobe/Closet)
+        // 6. Tủ đựng quần áo (Wardrobe/Closet)
         Asset tuDungQuanAo = new Asset();
         tuDungQuanAo.setAssetName("Tủ đựng quần áo");
         tuDungQuanAo.setQuantity(new BigDecimal("1"));
@@ -1838,7 +1852,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         tuDungQuanAo.setAssetImage("/src/assets/Asset/Tudungquanao.jpg");
         assets.add(tuDungQuanAo);
 
-        // 8. Tủ lạnh (Refrigerator)
+        // 7. Tủ lạnh (Refrigerator)
         Asset tuLanh = new Asset();
         tuLanh.setAssetName("Tủ lạnh");
         tuLanh.setQuantity(new BigDecimal("1"));
@@ -1966,6 +1980,40 @@ public class DatabaseInitializer implements CommandLineRunner {
         System.out.println(">>> ASSIGNED " + allAssets.size() + " ASSETS TO " + rooms.size() + " ROOMS <<<");
         System.out.println(">>> TOTAL ROOM-ASSET MAPPINGS: " + roomAssets.size() + " <<<");
         System.out.println(">>> ASSET NAMES: " + allAssets.stream().map(Asset::getAssetName).collect(java.util.stream.Collectors.joining(", ")) + " <<<");
+    }
+    
+    // Backfill: Đảm bảo mọi phòng đều có đầy đủ tài sản nếu trước đó đã tồn tại phòng/tài sản
+    private void ensureAllRoomsHaveAssets() {
+        List<Room> allRooms = roomRepository.findAll();
+        List<Asset> allAssets = assetRepository.findAll();
+        if (allRooms.isEmpty() || allAssets.isEmpty()) {
+            System.out.println(">>> SKIP BACKFILL ROOM-ASSET: rooms or assets empty <<<");
+            return;
+        }
+
+        List<RoomAsset> newMappings = new ArrayList<>();
+        int existingCount = 0;
+        for (Room room : allRooms) {
+            for (Asset asset : allAssets) {
+                RoomAsset existing = roomAssetRepository.findByRoomAndAsset(room, asset);
+                if (existing == null) {
+                    RoomAsset mapping = new RoomAsset();
+                    mapping.setRoom(room);
+                    mapping.setAsset(asset);
+                    mapping.setQuantity(1);
+                    mapping.setStatus("Good");
+                    mapping.setNote("Auto backfill on startup");
+                    newMappings.add(mapping);
+                } else {
+                    existingCount++;
+                }
+            }
+        }
+
+        if (!newMappings.isEmpty()) {
+            roomAssetRepository.saveAll(newMappings);
+        }
+        System.out.println(">>> BACKFILL ROOM-ASSET DONE. Existing: " + existingCount + ", Created: " + newMappings.size() + " <<<");
     }
     
     private void createElectricServiceReadings(List<Room> rooms) {
