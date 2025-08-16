@@ -557,6 +557,12 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
   const handleConfirmAddAssetInventory = async () => {
     if (!assetToAdd || !assetRoomId) return;
     try {
+      // Prevent duplicate asset names in the room (case-insensitive)
+      const existingNames = new Set((assetListGoc || []).map(a => (a.assetName || '').toLowerCase().trim()));
+      if (existingNames.has((assetToAdd.assetName || '').toLowerCase().trim())) {
+        message.error('Tài sản này đã tồn tại trong phòng (trùng tên). Không thể thêm!');
+        return;
+      }
       await addAssetToRoom({
         roomId: assetRoomId,
         assetId: assetToAdd.id,
@@ -904,6 +910,13 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
+                          const hasActiveTenant =
+                            (room.roomUsers && room.roomUsers.filter((u) => u.isActive).length > 0) ||
+                            room.roomStatus === "Occupied";
+                          if (hasActiveTenant) {
+                            message.warning("Phòng đã có người thuê. Không thể gán thêm!");
+                            return;
+                          }
                           setSelectedRoomForAssign(room);
                           setAssignRenterModalVisible(true);
                         }}
@@ -1301,9 +1314,14 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
             onChange: (page) => fetchAssetList(page, assetSearch),
           }}
           rowSelection={{
-            type: "checkbox",
-            selectedRowKeys: selectedAssetIds,
-            onChange: (selectedRowKeys) => setSelectedAssetIds(selectedRowKeys),
+            type: "radio",
+            selectedRowKeys: selectedAssetId ? [selectedAssetId] : [],
+            onChange: (selectedRowKeys) => setSelectedAssetId(selectedRowKeys[0]),
+            getCheckboxProps: (record) => {
+              const existingNames = new Set((assetListGoc || []).map(a => (a.assetName || '').toLowerCase().trim()));
+              const isDuplicate = existingNames.has((record.assetName || '').toLowerCase().trim());
+              return { disabled: isDuplicate };
+            },
           }}
           columns={[
             { title: "Tên tài sản", dataIndex: "assetName", key: "assetName" },

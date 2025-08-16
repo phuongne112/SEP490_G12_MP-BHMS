@@ -330,7 +330,7 @@ export default function RoomDetailPage() {
                     fontWeight: 400
                   }}
                 >
-                  {room.roomStatus === "Available" ? "Có sẵn" :
+                  {room.roomStatus === "Available" ? "Còn trống" :
                    room.roomStatus === "Occupied" ? "Đã thuê" :
                    room.roomStatus === "Maintenance" ? "Bảo trì" :
                    room.roomStatus === "Inactive" ? "Không hoạt động" :

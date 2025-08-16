@@ -401,7 +401,7 @@ export default function HomePage() {
             >
               <Option value="All">Tất cả trạng thái</Option>
               <Option value="Available">
-                <Badge status="success" text="Có sẵn" />
+                <Badge status="success" text="Còn trống" />
               </Option>
               <Option value="Occupied">
                 <Badge status="error" text="Đã thuê" />
@@ -589,7 +589,7 @@ export default function HomePage() {
             >
               <Option value="All">Tất cả trạng thái</Option>
               <Option value="Available">
-                <Badge status="success" text="Có sẵn" />
+                <Badge status="success" text="Còn trống" />
               </Option>
               <Option value="Occupied">
                 <Badge status="error" text="Đã thuê" />

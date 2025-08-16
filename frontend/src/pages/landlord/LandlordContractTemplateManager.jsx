@@ -176,9 +176,19 @@ export default function LandlordContractTemplateManager() {
       <Layout style={{ minHeight: "100vh" }}>
         {/* Desktop Sidebar - chỉ hiển thị trên desktop */}
         {!isMobile && (
-          <Sider width={220} style={{ position: 'fixed', height: '100vh', zIndex: 1000 }}>
+          <div
+            style={{
+              width: 220,
+              background: '#001529',
+              position: 'fixed',
+              height: '100vh',
+              zIndex: 1000,
+              left: 0,
+              top: 0,
+            }}
+          >
             <LandlordSidebar />
-          </Sider>
+          </div>
         )}
         
         {/* Main Layout */}

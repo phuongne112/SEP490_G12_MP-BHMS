@@ -833,7 +833,7 @@ export default function LandlordRoomDetailPage() {
                             />
                             <div style={{ flex: 1 }}>
                               <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
-                                {roomUser.fullName || 'Chưa có tên'}
+                                {roomUser.fullName || 'Chưa có tên'} {index === 0 ? <Tag color="blue" style={{ marginLeft: 8 }}>Chủ phòng</Tag> : null}
                               </div>
                               <div style={{ color: '#666', fontSize: 14, marginBottom: 2 }}>
                                 <PhoneOutlined style={{ marginRight: 4 }} />
