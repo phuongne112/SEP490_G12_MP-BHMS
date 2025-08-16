@@ -142,14 +142,22 @@ export default function AssignRenterModal({ visible, onCancel, room, onSuccess }
 
   const onFinish = async (values) => {
     if (!room) return;
-    if (loading) {
-      console.log("Đang loading, không cho submit");
-      return; // Ngăn không cho submit khi đang loading
+    if (loading) return;
+
+    // Validate số người không vượt quá giới hạn phòng
+    const currentOccupants = room.roomUsers ? room.roomUsers.filter(u => u.isActive).length : 0;
+    const toAdd = (values.userIds || []).length;
+    if (room.maxOccupants && currentOccupants + toAdd > room.maxOccupants) {
+      message.error(`Không thể gán thêm người thuê. Tối đa ${room.maxOccupants} người.`);
+      return;
     }
 
-    console.log("Bắt đầu gán người thuê...");
     setLoading(true);
     try {
+      const endDateToUse = isCustomEndDate
+        ? customEndDate?.toISOString()
+        : (endDate ? endDate.toISOString() : null);
+
       const requestData = {
         roomId: room.id,
         userIds: values.userIds,
@@ -163,7 +171,7 @@ export default function AssignRenterModal({ visible, onCancel, room, onSuccess }
       
       // Backend trả về string thành công, không phải object
       message.success("Đã gán người thuê vào phòng thành công!");
-        
+
       // Reset form và state
       form.resetFields();
       setStartDate(null);
@@ -172,17 +180,13 @@ export default function AssignRenterModal({ visible, onCancel, room, onSuccess }
       setDepositAmount(room.pricePerMonth || 0);
       setCycle("MONTHLY");
       setIsCustomEndDate(false);
-      
-      // Gọi callback để refresh data
+      setSelectedRenters([]);
+
       onSuccess?.();
-      
-      // Đóng modal thông qua useEffect
-      console.log("Đang đóng modal...");
       setLoading(false);
       setSuccess(true);
-      return; // Thoát khỏi function ngay lập tức
+      return;
     } catch (err) {
-      console.error("Error assigning renter:", err);
       const errorMessage = err.response?.data?.message || err.response?.data || "Gán người thuê vào phòng thất bại";
       message.error(errorMessage);
     } finally {
@@ -219,9 +223,9 @@ export default function AssignRenterModal({ visible, onCancel, room, onSuccess }
     setDepositAmount(value || 0);
   };
 
-  const handleRenterSelect = (value) => {
-    const renter = renters.find(r => r.id === value);
-    setSelectedRenter(renter);
+  const handleRenterSelect = (values) => {
+    const selected = renters.filter(r => values.includes(r.id));
+    setSelectedRenters(selected);
   };
 
   const handleCloseModal = useCallback(() => {
@@ -337,7 +341,7 @@ export default function AssignRenterModal({ visible, onCancel, room, onSuccess }
                         return Promise.resolve();
                       }
                     }
-                  ]}
+                  ]} 
                 >
                   <Select
                     mode="multiple"

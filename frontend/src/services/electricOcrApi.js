@@ -17,6 +17,15 @@ export const detectAndSaveElectricOcr = (file, roomId) => {
   });
 };
 
+export const manualScanElectricOcr = (file, roomId) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("roomId", roomId);
+  return axiosClient.post("/ocr/manual-scan", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+
 export const saveImageOnly = (file, roomId) => {
   const formData = new FormData();
   formData.append("file", file);

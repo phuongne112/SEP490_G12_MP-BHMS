@@ -6,13 +6,24 @@ import com.mpbhms.backend.entity.Role;
 import com.mpbhms.backend.entity.User;
 import com.mpbhms.backend.entity.ContractTemplate;
 import com.mpbhms.backend.entity.ServicePriceHistory;
+import com.mpbhms.backend.entity.Room;
+import com.mpbhms.backend.entity.Asset;
+import com.mpbhms.backend.entity.RoomServiceMapping;
+import com.mpbhms.backend.entity.RoomAsset;
+import com.mpbhms.backend.entity.ServiceReading;
 import com.mpbhms.backend.enums.ServiceType;
+import com.mpbhms.backend.enums.RoomStatus;
 import com.mpbhms.backend.repository.PermissionRepository;
 import com.mpbhms.backend.repository.RoleRepository;
 import com.mpbhms.backend.repository.ServiceRepository;
 import com.mpbhms.backend.repository.ServicePriceHistoryRepository;
 import com.mpbhms.backend.repository.UserRepository;
 import com.mpbhms.backend.repository.ContractTemplateRepository;
+import com.mpbhms.backend.repository.RoomRepository;
+import com.mpbhms.backend.repository.AssetRepository;
+import com.mpbhms.backend.repository.RoomServiceMappingRepository;
+import com.mpbhms.backend.repository.RoomAssetRepository;
+import com.mpbhms.backend.repository.ServiceReadingRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,6 +45,11 @@ public class DatabaseInitializer implements CommandLineRunner {
     private final ServicePriceHistoryRepository servicePriceHistoryRepository;
     private final ContractTemplateRepository contractTemplateRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RoomRepository roomRepository;
+    private final AssetRepository assetRepository;
+    private final RoomServiceMappingRepository roomServiceMappingRepository;
+    private final RoomAssetRepository roomAssetRepository;
+    private final ServiceReadingRepository serviceReadingRepository;
 
     @Override
     public void run(String... args) throws Exception {
@@ -44,6 +60,8 @@ public class DatabaseInitializer implements CommandLineRunner {
         long countUsers = userRepository.count();
         long countServices = serviceRepository.count();
         long countContractTemplates = contractTemplateRepository.count();
+        long countRooms = roomRepository.count();
+        long countAssets = assetRepository.count();
 
         // --- Init Permissions ---
         if (countPermissions == 0) {
@@ -123,6 +141,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Get Contract Amendments History", "/mpbhms/contracts/amendments/{contractId}", "GET", "Contract"));
             //OCR
             permissions.add(new Permission("OCR", "/mpbhms/ocr/detect-ocr", "POST", "Ocr"));
+            permissions.add(new Permission("Manual Scan", "/mpbhms/ocr/manual-scan", "POST", "Ocr"));
             permissions.add(new Permission("Save Reading", "/mpbhms/ocr/save-reading", "POST", "Ocr"));
             permissions.add(new Permission("Save Image Only", "/mpbhms/ocr/save-image-only", "POST", "Ocr"));
             permissions.add(new Permission("Enable Auto Scan", "/mpbhms/ocr/auto-scan/on", "POST", "Ocr"));
@@ -615,7 +634,45 @@ public class DatabaseInitializer implements CommandLineRunner {
             internet.setUnitPrice(new BigDecimal("100000"));
             services.add(internet);
 
+            CustomService parking = new CustomService();
+            parking.setServiceName("Đỗ xe");
+            parking.setServiceType(ServiceType.OTHER);
+            parking.setUnit("tháng");
+            parking.setUnitPrice(new BigDecimal("150000"));
+            services.add(parking);
+
+            CustomService cleaning = new CustomService();
+            cleaning.setServiceName("Dọn dẹp");
+            cleaning.setServiceType(ServiceType.OTHER);
+            cleaning.setUnit("lần");
+            cleaning.setUnitPrice(new BigDecimal("50000"));
+            services.add(cleaning);
+
+            CustomService wifi = new CustomService();
+            wifi.setServiceName("WiFi");
+            wifi.setServiceType(ServiceType.OTHER);
+            wifi.setUnit("tháng");
+            wifi.setUnitPrice(new BigDecimal("80000"));
+            services.add(wifi);
+
+            CustomService security = new CustomService();
+            security.setServiceName("Bảo vệ");
+            security.setServiceType(ServiceType.OTHER);
+            security.setUnit("tháng");
+            security.setUnitPrice(new BigDecimal("200000"));
+            services.add(security);
+
+            CustomService maintenance = new CustomService();
+            maintenance.setServiceName("Bảo trì");
+            maintenance.setServiceType(ServiceType.OTHER);
+            maintenance.setUnit("lần");
+            maintenance.setUnitPrice(new BigDecimal("100000"));
+            services.add(maintenance);
+
             serviceRepository.saveAll(services);
+            
+            System.out.println(">>> INITIALIZED " + services.size() + " SERVICES <<<");
+            System.out.println(">>> SERVICE NAMES: " + services.stream().map(CustomService::getServiceName).collect(java.util.stream.Collectors.joining(", ")) + " <<<");
             
             // Khởi tạo lịch sử giá cho các dịch vụ mặc định
             initializeServicePriceHistory(services);
@@ -626,7 +683,17 @@ public class DatabaseInitializer implements CommandLineRunner {
             initializeDefaultContractTemplates();
         }
 
-        if (countPermissions > 0 && countRoles > 0 && countUsers > 0 && countServices > 0 && countContractTemplates > 0) {
+        // --- Init Rooms ---
+        if (countRooms == 0) {
+            initializeDefaultRooms();
+        }
+
+        // --- Init Assets ---
+        if (countAssets == 0) {
+            initializeDefaultAssets();
+        }
+
+        if (countPermissions > 0 && countRoles > 0 && countUsers > 0 && countServices > 0 && countContractTemplates > 0 && countRooms > 0 && countAssets > 0) {
             System.out.println(">>> SKIP INIT DATABASE <<<");
         }
         System.out.println(">>> INIT DONE <<<");
@@ -1610,5 +1677,322 @@ public class DatabaseInitializer implements CommandLineRunner {
 </body>
 </html>
                 """;
+    }
+
+    private void initializeDefaultRooms() {
+        List<Room> rooms = new ArrayList<>();
+        
+        // Lấy landlord đầu tiên để gán cho tất cả phòng
+        User landlord = userRepository.findByRoleRoleName("LANDLORD");
+        if (landlord == null) {
+            System.out.println(">>> WARNING: No LANDLORD found, rooms will be created without landlord <<<");
+        }
+
+        // Tạo danh sách số phòng từ 122 đến 325 (bỏ qua 324 như trong hình)
+        List<String> roomNumbers = new ArrayList<>();
+        
+        // Tầng 1: 122
+        roomNumbers.add("122");
+        
+        // Tầng 2: 201-220 (bỏ qua 204)
+        for (int i = 201; i <= 220; i++) {
+            if (i != 204) {
+                roomNumbers.add(String.valueOf(i));
+            }
+        }
+        
+        // Tầng 2: 221-223, 225
+        roomNumbers.addAll(List.of("221", "222", "223", "225"));
+        
+        // Tầng 3: 301-320
+        for (int i = 301; i <= 320; i++) {
+            roomNumbers.add(String.valueOf(i));
+        }
+        
+        // Tầng 3: 321-323, 325
+        roomNumbers.addAll(List.of("321", "322", "323", "325"));
+
+        // Tạo phòng cho mỗi số phòng
+        for (String roomNumber : roomNumbers) {
+            Room room = new Room();
+            
+            // Phân chia tòa nhà A và B
+            String building = determineBuilding(roomNumber);
+            String fullRoomNumber = building + roomNumber; // A122, B201, etc.
+            
+            room.setRoomNumber(fullRoomNumber); // Room number với format A122, B201
+            room.setArea(new BigDecimal("25.0")); // Diện tích mặc định 25m²
+            room.setPricePerMonth(2500000.0); // Giá thuê mặc định 2.5 triệu/tháng
+            room.setRoomStatus(RoomStatus.Available); // Trạng thái có sẵn
+            room.setNumberOfBedrooms(1); // 1 phòng ngủ
+            room.setNumberOfBathrooms(1); // 1 phòng tắm
+            room.setMaxOccupants(2); // Tối đa 2 người
+            
+            room.setBuilding(building);
+            
+            room.setDescription("Phòng trọ " + fullRoomNumber + " - Tòa nhà " + building + " - Tiện nghi đầy đủ, an ninh 24/7");
+            room.setIsActive(true);
+            room.setDeleted(false);
+            room.setScanFolder(fullRoomNumber); // Thư mục scan với format A122, B201
+            
+            // Gán landlord nếu có
+            if (landlord != null) {
+                room.setLandlord(landlord);
+            }
+            
+            rooms.add(room);
+        }
+
+        // Lưu tất cả phòng vào database
+        roomRepository.saveAll(rooms);
+        
+        System.out.println(">>> INITIALIZED " + rooms.size() + " ROOMS <<<");
+        System.out.println(">>> ROOM NUMBERS: " + String.join(", ", roomNumbers) + " <<<");
+        
+        // Gán dịch vụ cơ bản cho tất cả phòng
+        assignBasicServicesToRooms(rooms);
+        
+        // Gán asset cho tất cả phòng
+        assignAssetsToRooms(rooms);
+        
+        // Tạo service reading cho dịch vụ điện
+        createElectricServiceReadings(rooms);
+        
+        // Tạo folder cho electric reading
+        createElectricReadingFolders(roomNumbers);
+    }
+    
+    private String determineBuilding(String roomNumber) {
+        int roomNum = Integer.parseInt(roomNumber);
+        
+        // Building A: Phòng 122, 201-210, 221-223, 301-310, 321-323
+        if (roomNum == 122 || 
+            (roomNum >= 201 && roomNum <= 210) || 
+            (roomNum >= 221 && roomNum <= 223) || 
+            (roomNum >= 301 && roomNum <= 310) || 
+            (roomNum >= 321 && roomNum <= 323)) {
+            return "A";
+        }
+        // Building B: Phòng 211-220, 225, 311-320, 325
+        else {
+            return "B";
+        }
+    }
+
+    private void initializeDefaultAssets() {
+        List<Asset> assets = new ArrayList<>();
+        
+        // 1. Bàn rửa bát (Dishwashing table/Kitchen sink)
+        Asset banRuaBat = new Asset();
+        banRuaBat.setAssetName("Bàn rửa bát");
+        banRuaBat.setQuantity(new BigDecimal("1"));
+        banRuaBat.setConditionNote("Bàn rửa bát inox, có vòi nước và kệ để đồ");
+        banRuaBat.setAssetImage("/src/assets/Asset/Banruabat.jpg");
+        assets.add(banRuaBat);
+
+        // 2. Điều hòa Casper (Casper Air conditioner)
+        Asset dieuHoaCasper = new Asset();
+        dieuHoaCasper.setAssetName("Điều hòa Casper");
+        dieuHoaCasper.setQuantity(new BigDecimal("1"));
+        dieuHoaCasper.setConditionNote("Điều hòa Casper 1 chiều, công suất 9000 BTU");
+        dieuHoaCasper.setAssetImage("/src/assets/Asset/DieuhoaCasper.jpg");
+        assets.add(dieuHoaCasper);
+
+        // 3. Điều khiển điều hòa (Air conditioner remote control)
+        Asset dieuKhienDieuHoa = new Asset();
+        dieuKhienDieuHoa.setAssetName("Điều khiển điều hòa");
+        dieuKhienDieuHoa.setQuantity(new BigDecimal("1"));
+        dieuKhienDieuHoa.setConditionNote("Remote điều khiển điều hòa Casper, có pin");
+        dieuKhienDieuHoa.setAssetImage("/src/assets/Asset/Dieukhiendieuhoa.jpg");
+        assets.add(dieuKhienDieuHoa);
+
+        // 4. Giường (Bed)
+        Asset giuong = new Asset();
+        giuong.setAssetName("Giường");
+        giuong.setQuantity(new BigDecimal("1"));
+        giuong.setConditionNote("Giường đơn, khung sắt, có ván lót");
+        giuong.setAssetImage("/src/assets/Asset/Giuong.jpg");
+        assets.add(giuong);
+
+        // 5. Nhà vệ sinh (Bathroom)
+        Asset nhaVeSinh = new Asset();
+        nhaVeSinh.setAssetName("Nhà vệ sinh");
+        nhaVeSinh.setQuantity(new BigDecimal("1"));
+        nhaVeSinh.setConditionNote("Nhà vệ sinh riêng, có bồn cầu và vòi sen");
+        nhaVeSinh.setAssetImage("/src/assets/Asset/nhavesinh.jpg");
+        assets.add(nhaVeSinh);
+
+        // 6. Tổng quan phòng (Overall room view)
+        Asset tongQuanPhong = new Asset();
+        tongQuanPhong.setAssetName("Tổng quan phòng");
+        tongQuanPhong.setQuantity(new BigDecimal("1"));
+        tongQuanPhong.setConditionNote("Tổng thể phòng trọ với đầy đủ tiện nghi");
+        tongQuanPhong.setAssetImage("/src/assets/Asset/Tongquan phong.jpg");
+        assets.add(tongQuanPhong);
+
+        // 7. Tủ đựng quần áo (Wardrobe/Closet)
+        Asset tuDungQuanAo = new Asset();
+        tuDungQuanAo.setAssetName("Tủ đựng quần áo");
+        tuDungQuanAo.setQuantity(new BigDecimal("1"));
+        tuDungQuanAo.setConditionNote("Tủ quần áo 2 cánh, có kệ bên trong");
+        tuDungQuanAo.setAssetImage("/src/assets/Asset/Tudungquanao.jpg");
+        assets.add(tuDungQuanAo);
+
+        // 8. Tủ lạnh (Refrigerator)
+        Asset tuLanh = new Asset();
+        tuLanh.setAssetName("Tủ lạnh");
+        tuLanh.setQuantity(new BigDecimal("1"));
+        tuLanh.setConditionNote("Tủ lạnh 2 cửa, dung tích 150L");
+        tuLanh.setAssetImage("/src/assets/Asset/Tulanh.jpg");
+        assets.add(tuLanh);
+
+        // Lưu tất cả asset vào database
+        assetRepository.saveAll(assets);
+        
+        System.out.println(">>> INITIALIZED " + assets.size() + " ASSETS <<<");
+        System.out.println(">>> ASSET NAMES: " + assets.stream().map(Asset::getAssetName).collect(java.util.stream.Collectors.joining(", ")) + " <<<");
+    }
+    
+    private void assignBasicServicesToRooms(List<Room> rooms) {
+        // Lấy các dịch vụ cơ bản (Điện và Nước)
+        CustomService electricityService = serviceRepository.findByServiceType(ServiceType.ELECTRICITY);
+        CustomService waterService = serviceRepository.findByServiceType(ServiceType.WATER);
+        
+        if (electricityService == null || waterService == null) {
+            System.out.println(">>> WARNING: Basic services (Electricity/Water) not found <<<");
+            return;
+        }
+        
+        List<RoomServiceMapping> mappings = new ArrayList<>();
+        
+        for (Room room : rooms) {
+            // Gán dịch vụ điện
+            RoomServiceMapping electricityMapping = new RoomServiceMapping();
+            electricityMapping.setRoom(room);
+            electricityMapping.setService(electricityService);
+            electricityMapping.setIsActive(true);
+            electricityMapping.setNote("Dịch vụ điện cơ bản");
+            mappings.add(electricityMapping);
+            
+            // Gán dịch vụ nước
+            RoomServiceMapping waterMapping = new RoomServiceMapping();
+            waterMapping.setRoom(room);
+            waterMapping.setService(waterService);
+            waterMapping.setIsActive(true);
+            waterMapping.setNote("Dịch vụ nước cơ bản");
+            mappings.add(waterMapping);
+        }
+        
+        // Lưu tất cả mappings
+        roomServiceMappingRepository.saveAll(mappings);
+        
+        System.out.println(">>> ASSIGNED BASIC SERVICES TO " + rooms.size() + " ROOMS <<<");
+        System.out.println(">>> SERVICES: Điện, Nước <<<");
+    }
+    
+    private void createElectricReadingFolders(List<String> roomNumbers) {
+        String baseDir = System.getProperty("user.dir") + "/frontend/public/img/ocr/";
+        java.io.File baseDirectory = new java.io.File(baseDir);
+        
+        if (!baseDirectory.exists()) {
+            baseDirectory.mkdirs();
+            System.out.println(">>> CREATED BASE DIRECTORY: " + baseDir + " <<<");
+        }
+        
+        int createdFolders = 0;
+        
+        for (String roomNumber : roomNumbers) {
+            // Tạo folder name với format A122, B201
+            String building = determineBuilding(roomNumber);
+            String folderName = building + roomNumber;
+            
+            String roomDir = baseDir + folderName + "/";
+            java.io.File roomDirectory = new java.io.File(roomDir);
+            
+            if (!roomDirectory.exists()) {
+                roomDirectory.mkdirs();
+                createdFolders++;
+                
+                // Tạo file README.txt trong mỗi folder
+                try {
+                    java.io.File readmeFile = new java.io.File(roomDir + "README.txt");
+                    java.io.FileWriter writer = new java.io.FileWriter(readmeFile);
+                    writer.write("OCR Reading Folder for Room " + folderName + "\n");
+                    writer.write("Building: " + building + "\n");
+                    writer.write("Room Number: " + roomNumber + "\n");
+                    writer.write("Created: " + java.time.LocalDateTime.now() + "\n");
+                    writer.write("Purpose: Store OCR readings and related images\n");
+                    writer.write("Format: YYYY-MM-DD_HH-MM-SS_reading.jpg\n");
+                    writer.write("Access URL: /img/ocr/" + folderName + "/\n");
+                    writer.close();
+                } catch (Exception e) {
+                    System.out.println(">>> WARNING: Could not create README for room " + folderName + ": " + e.getMessage() + " <<<");
+                }
+            }
+        }
+        
+        System.out.println(">>> CREATED " + createdFolders + " OCR READING FOLDERS <<<");
+        System.out.println(">>> BASE PATH: " + baseDir + " <<<");
+        System.out.println(">>> FOLDER FORMAT: A122, A201, B211, etc. <<<");
+        System.out.println(">>> ACCESS URL: /img/ocr/{folderName}/ <<<");
+    }
+    
+    private void assignAssetsToRooms(List<Room> rooms) {
+        // Lấy tất cả asset từ database
+        List<Asset> allAssets = assetRepository.findAll();
+        
+        if (allAssets.isEmpty()) {
+            System.out.println(">>> WARNING: No assets found to assign to rooms <<<");
+            return;
+        }
+        
+        List<RoomAsset> roomAssets = new ArrayList<>();
+        
+        for (Room room : rooms) {
+            for (Asset asset : allAssets) {
+                RoomAsset roomAsset = new RoomAsset();
+                roomAsset.setRoom(room);
+                roomAsset.setAsset(asset);
+                roomAsset.setQuantity(1); // Mỗi phòng có 1 asset mỗi loại
+                roomAsset.setStatus("Good"); // Trạng thái tốt
+                roomAsset.setNote("Asset được gán tự động khi khởi tạo phòng");
+                roomAssets.add(roomAsset);
+            }
+        }
+        
+        // Lưu tất cả room assets
+        roomAssetRepository.saveAll(roomAssets);
+        
+        System.out.println(">>> ASSIGNED " + allAssets.size() + " ASSETS TO " + rooms.size() + " ROOMS <<<");
+        System.out.println(">>> TOTAL ROOM-ASSET MAPPINGS: " + roomAssets.size() + " <<<");
+        System.out.println(">>> ASSET NAMES: " + allAssets.stream().map(Asset::getAssetName).collect(java.util.stream.Collectors.joining(", ")) + " <<<");
+    }
+    
+    private void createElectricServiceReadings(List<Room> rooms) {
+        // Lấy dịch vụ điện
+        CustomService electricityService = serviceRepository.findByServiceType(ServiceType.ELECTRICITY);
+        
+        if (electricityService == null) {
+            System.out.println(">>> WARNING: Electricity service not found <<<");
+            return;
+        }
+        
+        List<ServiceReading> serviceReadings = new ArrayList<>();
+        
+        for (Room room : rooms) {
+            ServiceReading reading = new ServiceReading();
+            reading.setRoom(room);
+            reading.setService(electricityService);
+            reading.setOldReading(new BigDecimal("0.000")); // Bắt đầu từ 0
+            reading.setNewReading(new BigDecimal("0.000")); // Chưa có reading mới
+            serviceReadings.add(reading);
+        }
+        
+        // Lưu tất cả service readings
+        serviceReadingRepository.saveAll(serviceReadings);
+        
+        System.out.println(">>> CREATED " + serviceReadings.size() + " ELECTRIC SERVICE READINGS <<<");
+        System.out.println(">>> SERVICE: " + electricityService.getServiceName() + " (" + electricityService.getUnit() + ") <<<");
+        System.out.println(">>> INITIAL READING: 0.000 <<<");
     }
 }

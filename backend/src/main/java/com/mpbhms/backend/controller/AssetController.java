@@ -52,12 +52,12 @@ public class AssetController {
         assetDTO.setConditionNote(conditionNote);
         if (assetImage != null && !assetImage.isEmpty()) {
             String fileName = System.currentTimeMillis() + "_" + assetImage.getOriginalFilename();
-            String uploadDir = System.getProperty("user.dir") + "/uploads/";
+            String uploadDir = System.getProperty("user.dir") + "/frontend/src/assets/Asset/";
             java.io.File uploadPath = new java.io.File(uploadDir);
             if (!uploadPath.exists()) uploadPath.mkdirs();
             try {
                 assetImage.transferTo(new java.io.File(uploadDir + fileName));
-                assetDTO.setAssetImage("/uploads/" + fileName);
+                assetDTO.setAssetImage("/src/assets/Asset/" + fileName);
             } catch (Exception e) {
                 throw new RuntimeException("Lỗi khi lưu file ảnh: " + e.getMessage());
             }
@@ -79,12 +79,12 @@ public class AssetController {
         assetDTO.setConditionNote(conditionNote);
         if (assetImage != null && !assetImage.isEmpty()) {
             String fileName = System.currentTimeMillis() + "_" + assetImage.getOriginalFilename();
-            String uploadDir = System.getProperty("user.dir") + "/uploads/";
+            String uploadDir = System.getProperty("user.dir") + "/frontend/src/assets/Asset/";
             java.io.File uploadPath = new java.io.File(uploadDir);
             if (!uploadPath.exists()) uploadPath.mkdirs();
             try {
                 assetImage.transferTo(new java.io.File(uploadDir + fileName));
-                assetDTO.setAssetImage("/uploads/" + fileName);
+                assetDTO.setAssetImage("/src/assets/Asset/" + fileName);
             } catch (Exception e) {
                 throw new RuntimeException("Lỗi khi lưu file ảnh: " + e.getMessage());
             }

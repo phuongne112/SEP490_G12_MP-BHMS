@@ -1,9 +1,16 @@
 package com.mpbhms.backend.controller;
 
 import com.mpbhms.backend.entity.ScanLog;
+import com.mpbhms.backend.entity.ServiceReading;
+import com.mpbhms.backend.entity.Room;
+import com.mpbhms.backend.entity.CustomService;
+import com.mpbhms.backend.enums.ServiceType;
 import com.mpbhms.backend.service.AutoElectricMeterScanner;
 import com.mpbhms.backend.service.ScanLogService;
 import com.mpbhms.backend.service.OcrCccdService;
+import com.mpbhms.backend.repository.RoomRepository;
+import com.mpbhms.backend.repository.ServiceReadingRepository;
+import com.mpbhms.backend.repository.ServiceRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -22,11 +29,18 @@ public class OcrControlController {
     private final AutoElectricMeterScanner scanner;
     private final ScanLogService scanLogService;
     private final OcrCccdService ocrCccdService;
+    private final RoomRepository roomRepository;
+    private final ServiceReadingRepository serviceReadingRepository;
+    private final ServiceRepository serviceRepository;
 
-    public OcrControlController(AutoElectricMeterScanner scanner, ScanLogService scanLogService, OcrCccdService ocrCccdService) {
+    public OcrControlController(AutoElectricMeterScanner scanner, ScanLogService scanLogService, OcrCccdService ocrCccdService,
+                               RoomRepository roomRepository, ServiceReadingRepository serviceReadingRepository, ServiceRepository serviceRepository) {
         this.scanner = scanner;
         this.scanLogService = scanLogService;
         this.ocrCccdService = ocrCccdService;
+        this.roomRepository = roomRepository;
+        this.serviceReadingRepository = serviceReadingRepository;
+        this.serviceRepository = serviceRepository;
     }
 
     @PostMapping("/auto-scan/on")
@@ -123,6 +137,111 @@ public class OcrControlController {
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error processing CCCD: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/manual-electric-reading")
+    public ResponseEntity<?> manualElectricReading(
+            @RequestParam("roomId") Long roomId,
+            @RequestParam("newReading") java.math.BigDecimal newReading,
+            @RequestParam(value = "image", required = false) org.springframework.web.multipart.MultipartFile image) {
+        try {
+            // Tìm phòng
+            Room room = roomRepository.findById(roomId)
+                    .orElseThrow(() -> new RuntimeException("Room not found with id: " + roomId));
+
+            // Tìm dịch vụ điện
+            CustomService electricityService = serviceRepository.findByServiceType(ServiceType.ELECTRICITY);
+            if (electricityService == null) {
+                return ResponseEntity.badRequest().body("Electricity service not found");
+            }
+
+            // Tìm service reading hiện tại
+            java.util.List<ServiceReading> existingReadings = serviceReadingRepository.findByRoomAndService(room, electricityService);
+            ServiceReading currentReading;
+            
+            if (existingReadings.isEmpty()) {
+                // Tạo mới nếu chưa có
+                currentReading = new ServiceReading();
+                currentReading.setRoom(room);
+                currentReading.setService(electricityService);
+                currentReading.setOldReading(new java.math.BigDecimal("0.000"));
+            } else {
+                // Lấy reading mới nhất
+                currentReading = existingReadings.get(existingReadings.size() - 1);
+            }
+
+            // Lưu ảnh nếu có
+            String imagePath = null;
+            if (image != null && !image.isEmpty()) {
+                String fileName = System.currentTimeMillis() + "_" + image.getOriginalFilename();
+                String uploadDir = System.getProperty("user.dir") + "/frontend/public/img/ocr/" + room.getScanFolder() + "/";
+                java.io.File uploadPath = new java.io.File(uploadDir);
+                if (!uploadPath.exists()) uploadPath.mkdirs();
+                
+                image.transferTo(new java.io.File(uploadDir + fileName));
+                imagePath = "/img/ocr/" + room.getScanFolder() + "/" + fileName;
+            }
+
+            // Tạo service reading mới
+            ServiceReading newServiceReading = new ServiceReading();
+            newServiceReading.setRoom(room);
+            newServiceReading.setService(electricityService);
+            newServiceReading.setOldReading(currentReading.getNewReading());
+            newServiceReading.setNewReading(newReading);
+
+            // Lưu service reading
+            serviceReadingRepository.save(newServiceReading);
+
+            // Tạo scan log
+            String fileName = imagePath != null ? imagePath : "manual_reading_" + System.currentTimeMillis();
+            String logResult = "Manual electric reading: " + newReading + " kWh for room " + room.getRoomNumber();
+            ScanLog scanLog = scanLogService.saveLog(fileName, roomId, logResult, null);
+
+            // Tính toán tiêu thụ
+            java.math.BigDecimal consumption = newReading.subtract(currentReading.getNewReading());
+            java.math.BigDecimal cost = consumption.multiply(electricityService.getUnitPrice());
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("roomNumber", room.getRoomNumber());
+            result.put("oldReading", currentReading.getNewReading());
+            result.put("newReading", newReading);
+            result.put("consumption", consumption);
+            result.put("unitPrice", electricityService.getUnitPrice());
+            result.put("cost", cost);
+            result.put("imagePath", imagePath);
+            result.put("scanLogId", scanLog.getId());
+
+            return ResponseEntity.ok(result);
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error processing manual reading: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/electric-readings/{roomId}")
+    public ResponseEntity<?> getElectricReadings(@PathVariable Long roomId) {
+        try {
+            Room room = roomRepository.findById(roomId)
+                    .orElseThrow(() -> new RuntimeException("Room not found with id: " + roomId));
+
+            CustomService electricityService = serviceRepository.findByServiceType(ServiceType.ELECTRICITY);
+            if (electricityService == null) {
+                return ResponseEntity.badRequest().body("Electricity service not found");
+            }
+
+            java.util.List<ServiceReading> readings = serviceReadingRepository.findByRoomAndService(room, electricityService);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("roomNumber", room.getRoomNumber());
+            result.put("readings", readings);
+            result.put("totalReadings", readings.size());
+
+            return ResponseEntity.ok(result);
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error getting readings: " + e.getMessage());
         }
     }
 } 
