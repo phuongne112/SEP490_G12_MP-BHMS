@@ -27,7 +27,7 @@ const { Title, Text } = Typography;
 // Thêm hàm getImageUrl giống RoomDetailPage.jsx
 const isDev = import.meta.env.DEV;
 const BACKEND_URL = isDev
-  ? (import.meta.env.VITE_BACKEND_URL || "http://localhost:8080")
+  ? (import.meta.env.VITE_BACKEND_URL || "hhttp://52.184.69.15")
   : (typeof window !== "undefined" ? window.location.origin : "");
 const getImageUrl = (img) => {
   if (!img) return null;
