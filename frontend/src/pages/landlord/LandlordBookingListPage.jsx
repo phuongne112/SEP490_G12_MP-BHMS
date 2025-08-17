@@ -420,21 +420,20 @@ export default function LandlordBookingListPage() {
             left: 0,
             right: 0,
             zIndex: 1001,
-            background: 'white',
-            borderBottom: '1px solid #f0f0f0',
+            background: '#001529',
             padding: '12px 16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'white' }}>
               <Button
                 type="text"
                 icon={<MenuOutlined />}
                 onClick={() => setSidebarDrawerOpen(true)}
-                style={{ padding: 4 }}
+                style={{ padding: 4, color: 'white', fontSize: 18 }}
               />
-              <div style={{ fontWeight: 600, fontSize: 16 }}>Danh sách đặt lịch</div>
+              <div style={{ fontWeight: 600, fontSize: 16, color: 'white' }}>Danh sách đặt lịch</div>
             </div>
           </div>
         )}

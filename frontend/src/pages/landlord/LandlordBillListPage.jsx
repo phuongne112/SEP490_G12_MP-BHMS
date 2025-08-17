@@ -1219,7 +1219,7 @@ export default function LandlordBillListPage() {
               padding: '12px 16px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justifyContent: 'flex-start',
               position: 'sticky',
               top: 0,
               zIndex: 100,
@@ -1231,6 +1231,15 @@ export default function LandlordBillListPage() {
                 gap: 12,
                 color: 'white'
               }}>
+                <Button
+                  type="text"
+                  icon={<MenuOutlined />}
+                  onClick={() => setSidebarDrawerOpen(true)}
+                  style={{ 
+                    color: 'white',
+                    fontSize: '18px'
+                  }}
+                />
                 <div style={{ 
                   fontWeight: 600, 
                   fontSize: 18,
@@ -1245,15 +1254,6 @@ export default function LandlordBillListPage() {
                   Danh sách hóa đơn
                 </div>
               </div>
-              <Button
-                type="text"
-                icon={<MenuOutlined />}
-                onClick={() => setSidebarDrawerOpen(true)}
-                style={{ 
-                  color: 'white',
-                  fontSize: '18px'
-                }}
-              />
             </div>
           )}
           

@@ -442,11 +442,18 @@ export default function RenterContractPage() {
             padding: "12px 16px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
+            justifyContent: "flex-start",
             position: "sticky",
             top: 0,
             zIndex: 1000,
+            gap: 12
           }}>
+            <Button
+              type="text"
+              icon={<MenuOutlined />}
+              onClick={() => setDrawerVisible(true)}
+              style={{ color: "white", padding: 4 }}
+            />
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ fontWeight: 600, fontSize: 16 }}>
                 MP-BHMS
@@ -455,12 +462,6 @@ export default function RenterContractPage() {
                 Xin chào {user?.fullName || user?.name || "Renter"}
               </div>
             </div>
-            <Button
-              type="text"
-              icon={<MenuOutlined />}
-              onClick={() => setDrawerVisible(true)}
-              style={{ color: "white", padding: 4 }}
-            />
           </div>
         )}
 

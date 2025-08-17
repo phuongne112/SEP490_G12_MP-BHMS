@@ -11,7 +11,7 @@ import AdminNotificationPage from "../pages/admin/AdminNotificationPage";
 import AdminRoleListPage from "../pages/admin/AdminRoleListPage";
 import AdminPermissionListPage from "../pages/admin/AdminPermissionListPage";
 import RoomSection from "../components/home/RoomSection";
-import Error403 from "../pages/Error403";
+// Removed Error403 - redirect to 404 instead
 import Error404 from "../pages/Error404";
 import AdminRoute from "./AdminRoute";
 import LandlordRoute from "./LandlordRoute";
@@ -237,7 +237,7 @@ export default function AppRouter() {
 
       {/* Common Routes */}
       <Route path="/room" element={<RoomSection />} />
-      <Route path="/403" element={<Error403 />} />
+      <Route path="/403" element={<Error404 />} />
       <Route path="/404" element={<Error404 />} />
       <Route path="/" element={<Navigate to="/home" replace />} />
       <Route path="/payment-success" element={<PaymentSuccessPage />} />

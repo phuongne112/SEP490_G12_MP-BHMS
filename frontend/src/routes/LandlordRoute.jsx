@@ -12,8 +12,8 @@ export default function LandlordRoute({ children }) {
 
   // Nếu user hoặc role chưa load → đợi
   if (!user || !user.role || !user.role.roleName) {
-    console.warn("⛔ Không có user hoặc role hợp lệ → chuyển về /403");
-    return <Navigate to="/403" replace />;
+    console.warn("⛔ Không có user hoặc role hợp lệ → chuyển về /404");
+    return <Navigate to="/404" replace />;
   }
 
   const roleName = user?.role?.roleName?.toUpperCase?.();
@@ -21,7 +21,7 @@ export default function LandlordRoute({ children }) {
   
   if (!isLandlord) {
     message.error("Bạn không có quyền truy cập trang này.");
-    return <Navigate to="/403" replace />;
+    return <Navigate to="/404" replace />;
   }
 
   return children;

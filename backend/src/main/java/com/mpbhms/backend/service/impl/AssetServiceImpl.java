@@ -74,6 +74,10 @@ public class AssetServiceImpl implements AssetService {
         asset.setAssetName(assetDTO.getAssetName());
         asset.setQuantity(assetDTO.getQuantity());
         asset.setConditionNote(assetDTO.getConditionNote());
+        // Cập nhật ảnh nếu có ảnh mới được tải lên; nếu không, giữ nguyên ảnh cũ
+        if (assetDTO.getAssetImage() != null && !assetDTO.getAssetImage().isEmpty()) {
+            asset.setAssetImage(assetDTO.getAssetImage());
+        }
         if (assetDTO.getRoomId() != null) {
             Room room = roomRepository.findById(assetDTO.getRoomId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng"));

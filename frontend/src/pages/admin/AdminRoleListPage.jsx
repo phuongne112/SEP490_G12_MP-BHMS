@@ -192,20 +192,23 @@ export default function AdminRoleListPage() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: "16px",
               padding: "12px 16px",
-              background: "white",
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+              background: "#001529",
+              color: "white",
+              position: "sticky",
+              top: 0,
+              zIndex: 999,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              marginBottom: 16
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", color: 'white' }}>
                 <Button
                   type="text"
                   icon={<MenuOutlined />}
                   onClick={() => setMobileMenuOpen(true)}
-                  style={{ fontSize: "16px" }}
+                  style={{ fontSize: "16px", color: 'white' }}
                 />
-                <span style={{ fontSize: "18px", fontWeight: "bold" }}>Danh sách vai trò</span>
+                <span style={{ fontSize: "18px", fontWeight: "bold", color: 'white' }}>Danh sách vai trò</span>
               </div>
             </div>
           )}
