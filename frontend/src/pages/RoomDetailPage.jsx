@@ -632,8 +632,8 @@ export default function RoomDetailPage() {
                   </Space>
                 </div>
 
-                {/* Assets & Services */}
-                {(room.assets?.length > 0 || room.services?.length > 0) && (
+                {/* Services (Ẩn mục Nội thất theo yêu cầu) */}
+                {(room.services?.length > 0) && (
                   <div
                     style={{
                       background: "#fff",
@@ -643,33 +643,6 @@ export default function RoomDetailPage() {
                       border: "1px solid #f0f0f0"
                     }}
                   >
-                    {room.assets?.length > 0 && (
-                      <div style={{ marginBottom: room.services?.length > 0 ? 16 : 0 }}>
-                        <Title level={4} style={{ marginBottom: 12, fontWeight: 500 }}>
-                          Nội thất
-                        </Title>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                          {room.assets.map((asset, index) => (
-                            <Tag
-                              key={index}
-                              style={{
-                                margin: 0,
-                                padding: "4px 8px",
-                                borderRadius: 4,
-                                fontSize: 12,
-                                fontWeight: 400,
-                                background: "#f0f2f5",
-                                color: "#333",
-                                border: "1px solid #d9d9d9"
-                              }}
-                            >
-                              {asset.assetName}
-                            </Tag>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
                     {room.services?.length > 0 && (
                       <div>
                         <Title level={4} style={{ marginBottom: 12, fontWeight: 500 }}>
