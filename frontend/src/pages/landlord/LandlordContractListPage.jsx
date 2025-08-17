@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Layout, message, Button, Popover, Select, Modal, Input, DatePicker, List, Pagination, Tag, Card, Descriptions, Typography } from "antd";
+import { Layout, message, Button, Popover, Select, Modal, Input, DatePicker, List, Pagination, Tag, Card, Descriptions, Typography, Drawer } from "antd";
 import PageHeader from "../../components/common/PageHeader";
 import { getAllContracts, deleteContract, exportContractPdf, buildContractFilterString } from "../../services/contractApi";
 import { useSelector } from "react-redux";
@@ -21,7 +21,8 @@ import {
   rejectAmendment
 } from "../../services/roomUserApi";
 import { getAllRooms } from "../../services/roomService";
-import { FilterOutlined, ReloadOutlined, FileTextOutlined, InfoCircleOutlined, ClockCircleOutlined, DollarOutlined, UserOutlined } from "@ant-design/icons";
+import { FilterOutlined, ReloadOutlined, FileTextOutlined, InfoCircleOutlined, ClockCircleOutlined, DollarOutlined, UserOutlined, MenuOutlined } from "@ant-design/icons";
+import { useMediaQuery } from "react-responsive";
 
 const { Sider, Content } = Layout;
 const { Text } = Typography;
@@ -51,6 +52,8 @@ async function fetchAllContractsAuto(filter = {}) {
 }
 
 export default function LandlordContractListPage() {
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+  const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
@@ -720,11 +723,33 @@ export default function LandlordContractListPage() {
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <Sider width={220}>
-        <LandlordSidebar />
-      </Sider>
+      {!isMobile && (
+        <Sider width={220}>
+          <LandlordSidebar />
+        </Sider>
+      )}
       <Layout>
-        <Content style={{ padding: 24, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+        <Content style={{ padding: isMobile ? '60px 16px 16px' : 24, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+          {isMobile && (
+            <div style={{ 
+              background: '#001529', 
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 100
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'white' }}>
+                <Button type="text" icon={<MenuOutlined />} onClick={() => setSidebarDrawerOpen(true)} style={{ color: 'white', fontSize: 18 }} />
+                <div style={{ fontWeight: 600, fontSize: 18, color: 'white' }}>MP-BHMS</div>
+                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)' }}>Xin chào Landlord</div>
+              </div>
+            </div>
+          )}
           {/* Header Section */}
           <div style={{
             background: 'white',
@@ -733,9 +758,13 @@ export default function LandlordContractListPage() {
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             marginBottom: 20
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <PageHeader title="Danh sách hợp đồng" style={{ margin: 0, padding: 0 }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: "flex", justifyContent: isMobile ? "flex-start" : "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 12, flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 12 : 0 }}>
+              {isMobile ? (
+                <div style={{ fontWeight: 600, fontSize: 16, whiteSpace: 'nowrap' }}>Danh sách hợp đồng</div>
+              ) : (
+                <PageHeader title="Danh sách hợp đồng" style={{ margin: 0, padding: 0 }} />
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                 <Popover
                   content={<ContractFilterPopover onApply={handleFilterApply} rooms={roomContracts} tenants={allRenters} />}
                   title="Bộ lọc hợp đồng"
@@ -1780,6 +1809,18 @@ export default function LandlordContractListPage() {
           </Modal>
         </Content>
       </Layout>
+      {isMobile && (
+        <Drawer
+          title="Menu"
+          placement="left"
+          onClose={() => setSidebarDrawerOpen(false)}
+          open={sidebarDrawerOpen}
+          width={280}
+          bodyStyle={{ padding: 0 }}
+        >
+          <LandlordSidebar isDrawer={true} onMenuClick={() => setSidebarDrawerOpen(false)} />
+        </Drawer>
+      )}
     </Layout>
   );
 }
