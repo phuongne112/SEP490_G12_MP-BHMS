@@ -33,7 +33,10 @@ import { getAssetsByRoomNumber } from "../services/assetApi";
 const { Content } = Layout;
 const { Title, Text } = Typography;
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+const isDev = import.meta.env.DEV;
+const BACKEND_URL = isDev
+  ? (import.meta.env.VITE_BACKEND_URL || "http://localhost:8080")
+  : (typeof window !== "undefined" ? window.location.origin : "");
 
 const getImageUrl = (img) => {
   if (!img) return null;
