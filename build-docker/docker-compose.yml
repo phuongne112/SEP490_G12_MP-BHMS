@@ -4,6 +4,7 @@ services:
     volumes:
       - ../frontend/dist:/usr/share/nginx/html
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - uploads:/usr/share/nginx/html/uploads:ro
 
     ports:
       - "80:80"
@@ -36,5 +37,8 @@ services:
     depends_on:
       - db-mysql
     volumes:
-      - ../upload-docker/:/uploads/
+      - uploads:/uploads/
     # docker compose -p mpbhms-spring-rest up -d
+
+volumes:
+  uploads:

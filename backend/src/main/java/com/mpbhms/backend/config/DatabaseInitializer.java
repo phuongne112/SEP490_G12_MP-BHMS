@@ -214,6 +214,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Delete Asset", "/mpbhms/assets/{id}", "DELETE", "Asset"));
             permissions.add(new Permission("View Assets", "/mpbhms/assets", "GET", "Asset"));
             permissions.add(new Permission("Get Asset by ID", "/mpbhms/assets/{id}", "GET", "Asset"));
+            permissions.add(new Permission("Check Asset In Use", "/mpbhms/assets/{id}/in-use", "GET", "Asset"));
             permissions.add(new Permission("Assign Asset To Room", "/mpbhms/assets/{assetId}/assign-room", "POST", "Asset"));       
             //Electric Reading
             permissions.add(new Permission("Create Electric Reading", "/mpbhms/electric-readings", "POST", "ElectricReading"));
@@ -469,6 +470,12 @@ public class DatabaseInitializer implements CommandLineRunner {
             Permission landlordCheckoutAsset = permissionRepository.findByModuleAndApiPathAndMethod("Asset", "/mpbhms/assets/checkout", "POST");
             if (landlordCheckoutAsset != null && !landlordPermission.contains(landlordCheckoutAsset)) {
                 landlordPermission.add(landlordCheckoutAsset);
+            }
+
+            // Quyền kiểm tra tài sản đang được sử dụng
+            Permission checkAssetInUse = permissionRepository.findByModuleAndApiPathAndMethod("Asset", "/mpbhms/assets/{id}/in-use", "GET");
+            if (checkAssetInUse != null && !landlordPermission.contains(checkAssetInUse)) {
+                landlordPermission.add(checkAssetInUse);
             }
             
             // Bill permissions for LANDLORD
