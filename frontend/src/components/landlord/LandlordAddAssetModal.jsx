@@ -72,7 +72,7 @@ export default function LandlordAddAssetModal({ open, onClose, onSuccess, asset,
       const values = await form.validateFields();
       if (mode === "edit") {
         Modal.confirm({
-          title: "Bạn có chắc muốn cập nhật asset này không?",
+          title: "Bạn có chắc muốn cập nhật tài sản này không?",
           okText: "Có",
           cancelText: "Không",
           onOk: async () => {

@@ -234,7 +234,7 @@ export default function RenterBillDetailPage() {
     try {
       await createCashPartialPayment(paymentData);
       message.success(
-        "Đã gửi yêu cầu thanh toán tiền mặt! Landlord sẽ xác nhận sau."
+        "Đã gửi yêu cầu thanh toán tiền mặt! Chủ Trọ sẽ xác nhận sau."
       );
       setCashPartialPaymentModalVisible(false);
       fetchBill();
@@ -942,7 +942,7 @@ export default function RenterBillDetailPage() {
                   Thanh toán tiền mặt
                 </div>
                 <div style={{ fontSize: "12px", color: "#666" }}>
-                  Thanh toán bằng tiền mặt tại văn phòng (cần landlord xác nhận)
+                  Thanh toán bằng tiền mặt tại văn phòng (cần chủ trọ xác nhận)
                 </div>
               </div>
             </Radio>

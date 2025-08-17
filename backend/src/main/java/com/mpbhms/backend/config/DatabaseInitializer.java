@@ -215,6 +215,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("View Assets", "/mpbhms/assets", "GET", "Asset"));
             permissions.add(new Permission("Get Asset by ID", "/mpbhms/assets/{id}", "GET", "Asset"));
             permissions.add(new Permission("Check Asset In Use", "/mpbhms/assets/{id}/in-use", "GET", "Asset"));
+            permissions.add(new Permission("Check Duplicate Asset Name", "/mpbhms/assets/check-duplicate", "GET", "Asset"));
             permissions.add(new Permission("Assign Asset To Room", "/mpbhms/assets/{assetId}/assign-room", "POST", "Asset"));       
             //Electric Reading
             permissions.add(new Permission("Create Electric Reading", "/mpbhms/electric-readings", "POST", "ElectricReading"));
@@ -476,6 +477,12 @@ public class DatabaseInitializer implements CommandLineRunner {
             Permission checkAssetInUse = permissionRepository.findByModuleAndApiPathAndMethod("Asset", "/mpbhms/assets/{id}/in-use", "GET");
             if (checkAssetInUse != null && !landlordPermission.contains(checkAssetInUse)) {
                 landlordPermission.add(checkAssetInUse);
+            }
+
+            // Quyền kiểm tra trùng tên tài sản
+            Permission checkDuplicateAssetName = permissionRepository.findByModuleAndApiPathAndMethod("Asset", "/mpbhms/assets/check-duplicate", "GET");
+            if (checkDuplicateAssetName != null && !landlordPermission.contains(checkDuplicateAssetName)) {
+                landlordPermission.add(checkDuplicateAssetName);
             }
             
             // Bill permissions for LANDLORD
