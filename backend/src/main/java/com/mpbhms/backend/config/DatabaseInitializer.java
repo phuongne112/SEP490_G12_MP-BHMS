@@ -1823,7 +1823,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         banRuaBat.setAssetName("Bàn rửa bát");
         banRuaBat.setQuantity(new BigDecimal("1"));
         banRuaBat.setConditionNote("Bàn rửa bát inox, có vòi nước và kệ để đồ");
-        banRuaBat.setAssetImage("/src/assets/Asset/Banruabat.jpg");
+        banRuaBat.setAssetImage("/uploads/Banruabat.jpg");
         assets.add(banRuaBat);
 
         // 2. Điều hòa Casper (Casper Air conditioner)
@@ -1831,7 +1831,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         dieuHoaCasper.setAssetName("Điều hòa Casper");
         dieuHoaCasper.setQuantity(new BigDecimal("1"));
         dieuHoaCasper.setConditionNote("Điều hòa Casper 1 chiều, công suất 9000 BTU");
-        dieuHoaCasper.setAssetImage("/src/assets/Asset/DieuhoaCasper.jpg");
+        dieuHoaCasper.setAssetImage("/uploads/DieuhoaCasper.jpg");
         assets.add(dieuHoaCasper);
 
         // 3. Điều khiển điều hòa (Air conditioner remote control)
@@ -1839,7 +1839,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         dieuKhienDieuHoa.setAssetName("Điều khiển điều hòa");
         dieuKhienDieuHoa.setQuantity(new BigDecimal("1"));
         dieuKhienDieuHoa.setConditionNote("Remote điều khiển điều hòa Casper, có pin");
-        dieuKhienDieuHoa.setAssetImage("/src/assets/Asset/Dieukhiendieuhoa.jpg");
+        dieuKhienDieuHoa.setAssetImage("/uploads/Dieukhiendieuhoa.jpg");
         assets.add(dieuKhienDieuHoa);
 
         // 4. Giường (Bed)
@@ -1847,7 +1847,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         giuong.setAssetName("Giường");
         giuong.setQuantity(new BigDecimal("1"));
         giuong.setConditionNote("Giường đơn, khung sắt, có ván lót");
-        giuong.setAssetImage("/src/assets/Asset/Giuong.jpg");
+        giuong.setAssetImage("/uploads/Giuong.jpg");
         assets.add(giuong);
 
         // 5. Nhà vệ sinh (Bathroom)
@@ -1855,7 +1855,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         nhaVeSinh.setAssetName("Nhà vệ sinh");
         nhaVeSinh.setQuantity(new BigDecimal("1"));
         nhaVeSinh.setConditionNote("Nhà vệ sinh riêng, có bồn cầu và vòi sen");
-        nhaVeSinh.setAssetImage("/src/assets/Asset/nhavesinh.jpg");
+        nhaVeSinh.setAssetImage("/uploads/nhavesinh.jpg");
         assets.add(nhaVeSinh);
 
         // 6. Tủ đựng quần áo (Wardrobe/Closet)
@@ -1863,7 +1863,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         tuDungQuanAo.setAssetName("Tủ đựng quần áo");
         tuDungQuanAo.setQuantity(new BigDecimal("1"));
         tuDungQuanAo.setConditionNote("Tủ quần áo 2 cánh, có kệ bên trong");
-        tuDungQuanAo.setAssetImage("/src/assets/Asset/Tudungquanao.jpg");
+        tuDungQuanAo.setAssetImage("/uploads/Tudungquanao.jpg");
         assets.add(tuDungQuanAo);
 
         // 7. Tủ lạnh (Refrigerator)
@@ -1871,7 +1871,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         tuLanh.setAssetName("Tủ lạnh");
         tuLanh.setQuantity(new BigDecimal("1"));
         tuLanh.setConditionNote("Tủ lạnh 2 cửa, dung tích 150L");
-        tuLanh.setAssetImage("/src/assets/Asset/Tulanh.jpg");
+        tuLanh.setAssetImage("/uploads/Tulanh.jpg");
         assets.add(tuLanh);
 
         // Lưu tất cả asset vào database
@@ -1982,8 +1982,8 @@ public class DatabaseInitializer implements CommandLineRunner {
                 roomAsset.setRoom(room);
                 roomAsset.setAsset(asset);
                 roomAsset.setQuantity(1); // Mỗi phòng có 1 asset mỗi loại
-                roomAsset.setStatus("Good"); // Trạng thái tốt
-                roomAsset.setNote("Asset được gán tự động khi khởi tạo phòng");
+                roomAsset.setStatus("Tốt");
+                roomAsset.setNote("Tài sản được gán tự động khi khởi tạo phòng");
                 roomAssets.add(roomAsset);
             }
         }
@@ -2015,8 +2015,8 @@ public class DatabaseInitializer implements CommandLineRunner {
                     mapping.setRoom(room);
                     mapping.setAsset(asset);
                     mapping.setQuantity(1);
-                    mapping.setStatus("Good");
-                    mapping.setNote("Auto backfill on startup");
+                    mapping.setStatus("Tốt");
+                    mapping.setNote("Tự động bổ sung khi khởi tạo");
                     newMappings.add(mapping);
                 } else {
                     existingCount++;

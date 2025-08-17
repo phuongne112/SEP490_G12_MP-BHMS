@@ -259,7 +259,6 @@ const Image360Viewer = ({ images, visible, onClose, roomNumber }) => {
       width="95vw"
       style={{ top: 10 }}
       className="image-360-modal"
-      closeIcon={<CloseOutlined style={{ fontSize: 24, color: '#fff', background: 'rgba(0,0,0,0.5)', borderRadius: '50%', padding: 8 }} />}
       destroyOnClose
     >
       <div style={{ 
@@ -271,7 +270,7 @@ const Image360Viewer = ({ images, visible, onClose, roomNumber }) => {
         display: 'flex',
         flexDirection: 'column'
       }}>
-        {/* FB-style Header with 360° indicator */}
+        {/* Header */}
         <div style={{
           background: 'linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%)',
           color: 'white',
@@ -284,46 +283,16 @@ const Image360Viewer = ({ images, visible, onClose, roomNumber }) => {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                <div style={{ 
-                  background: 'linear-gradient(45deg, #FF6B35, #F7931E)',
-                  borderRadius: 20,
-                  padding: '4px 12px',
-                  fontSize: 12,
-                  fontWeight: 'bold'
-                }}>
-                  360°
-                </div>
-                <h3 style={{ color: 'white', margin: 0, fontSize: 20 }}>
-                  Phòng {roomNumber}
-                </h3>
-              </div>
-                             <Text style={{ color: '#ccc', fontSize: 14 }}>
-                 {imageLoadError ? '❌ Lỗi tải ảnh' : 
-                  loading ? `🔄 Đang tải ảnh... ${loadedImages}/${images?.length}` :
-                  isAutoRotating ? '🔄 Đang tự động xoay...' :
-                  isDragging ? '👆 Đang kéo...' :
-                  dragVelocity !== 0 ? '💫 Đà quay...' :
-                  ''}
-               </Text>
+              <h3 style={{ color: 'white', margin: 0, fontSize: 20 }}>Xem phòng</h3>
+              <Text style={{ color: '#ccc', fontSize: 14 }}>
+                {imageLoadError ? 'Lỗi tải ảnh' :
+                 loading ? `Đang tải ảnh... ${loadedImages}/${images?.length}` :
+                 isAutoRotating ? 'Đang tự động xoay...' :
+                 isDragging ? 'Đang kéo...' :
+                 dragVelocity !== 0 ? 'Đà quay...' : ''}
+              </Text>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Button 
-                icon={isAutoRotating ? <PauseOutlined /> : <PlayCircleOutlined />}
-                onClick={toggleAutoRotation}
-                disabled={loading || imageLoadError}
-                type={isAutoRotating ? "primary" : "default"}
-                style={{ 
-                  background: isAutoRotating ? '#1890ff' : 'rgba(255,255,255,0.2)', 
-                  border: 'none', 
-                  color: 'white',
-                  borderRadius: 20
-                }}
-                size="large"
-              >
-                {isAutoRotating ? 'Dừng' : 'Tự động'}
-              </Button>
-            </div>
+            <div />
           </div>
         </div>
 
@@ -397,45 +366,7 @@ const Image360Viewer = ({ images, visible, onClose, roomNumber }) => {
           )}
         </div>
 
-        {/* FB-style Bottom Controls */}
-        {!loading && !imageLoadError && (
-          <div style={{
-            background: 'linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 100%)',
-            color: 'white',
-            padding: '20px 24px',
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: 16
-          }}>
-            <div style={{ 
-              background: 'rgba(255,255,255,0.15)', 
-              borderRadius: 25, 
-              padding: '12px 20px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              backdropFilter: 'blur(10px)'
-            }}>
-              <div style={{ 
-                width: 12, 
-                height: 12, 
-                background: isAutoRotating ? '#52c41a' : dragVelocity !== 0 ? '#faad14' : '#1890ff', 
-                borderRadius: '50%',
-                boxShadow: `0 0 10px ${isAutoRotating ? '#52c41a' : dragVelocity !== 0 ? '#faad14' : '#1890ff'}`
-              }}></div>
-              <Text style={{ color: 'white', fontSize: 14, fontWeight: 500 }}>
-                {isAutoRotating ? 'Tự động xoay' : 
-                 dragVelocity !== 0 ? 'Đà quay' : 
-                 'Sẵn sàng - Kéo để xoay'}
-              </Text>
-            </div>
-          </div>
-        )}
+        {/* Bottom controls removed */}
 
 
       </div>
