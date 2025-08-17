@@ -142,9 +142,9 @@ export default function HomePage() {
       dsl.push(`roomStatus = '${status}'`);
     }
     if (hasAsset === "true") {
-      dsl.push("assets IS NOT EMPTY");
+      dsl.push("roomAssets IS NOT EMPTY");
     } else if (hasAsset === "false") {
-      dsl.push("assets IS EMPTY");
+      dsl.push("roomAssets IS EMPTY");
     }
     if (building && building.trim() !== "") {
       dsl.push(`building='${building.trim()}'`);
@@ -209,9 +209,9 @@ export default function HomePage() {
       dsl.push(`roomStatus = '${quickFilter.filters.status}'`);
     }
     if (quickFilter.filters.hasAsset === "true") {
-      dsl.push("assets IS NOT EMPTY");
+      dsl.push("roomAssets IS NOT EMPTY");
     } else if (quickFilter.filters.hasAsset === "false") {
-      dsl.push("assets IS EMPTY");
+      dsl.push("roomAssets IS EMPTY");
     }
     if (quickFilter.filters.building && quickFilter.filters.building.trim() !== "") {
       dsl.push(`building='${quickFilter.filters.building.trim()}'`);

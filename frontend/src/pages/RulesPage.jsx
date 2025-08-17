@@ -1,6 +1,10 @@
 import React from "react";
+import { Button } from "antd";
+import { ArrowLeftOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 
 export default function RulesPage() {
+  const navigate = useNavigate();
   const rules = [
     "Mỗi phòng chỉ được ở số sinh viên theo hợp đồng, không được cho khách ở lại qua đêm (nếu có người nhà phải xin phép quản lý nhà trọ). Sau 22h giờ đêm không ra, vào khu nhà trọ.",
     "Đổ rác đúng quy định, ngăn nắp, sạch sẽ trong phòng ở, giữ gìn vệ sinh chung nơi công cộng. Không rửa thực phẩm trong chậu rửa mặt, nghiêm cấm đổ rác, và các vật cứng vào bồn cầu, rác trong nhà tắm phải quét rọn, không cho chảy vào lỗ thoát nước (Nếu tắc, phòng dọ phải tự thông hoặc chịu tiền thông tắc, sửa chữa nếu do lỗi người dùng vào bồn cầu). Toilet phải dùng giấy vệ sinh mềm, dùng xong cho vào thùng rác, không cho vào bồn cầu (gây tắc).",
@@ -22,6 +26,9 @@ export default function RulesPage() {
   return (
     <div style={{ minHeight: "100vh", background: "#0f172a" }}>
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 16px" }}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
+          <Button onClick={() => navigate(-1)} icon={<ArrowLeftOutlined />}>Quay lại</Button>
+        </div>
         <h1 style={{ color: "#fff", textAlign: "center", marginBottom: 24 }}>Nội quy phòng trọ</h1>
         <div style={{ background: "#fff", borderRadius: 8, padding: 24, boxShadow: "0 8px 24px rgba(0,0,0,0.1)" }}>
           <ol style={{ paddingLeft: 18, lineHeight: 1.6 }}>
