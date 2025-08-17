@@ -24,7 +24,7 @@ import { getMyRoom } from "../../services/roomService";
 import { getAllAssets, getAssetsByRoom, getAssetsByRoomNumber } from "../../services/assetApi";
 const isDev = import.meta.env.DEV;
 const BACKEND_URL = isDev
-  ? (import.meta.env.VITE_BACKEND_URL || "http://localhost:8080")
+  ? (import.meta.env.VITE_BACKEND_URL || "http://52.184.69.15")
   : (typeof window !== "undefined" ? window.location.origin : "");
 import { useMediaQuery } from "react-responsive";
 import dayjs from "dayjs";
