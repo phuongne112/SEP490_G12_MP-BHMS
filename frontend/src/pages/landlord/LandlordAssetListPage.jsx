@@ -32,7 +32,10 @@ import viVN from 'antd/locale/vi_VN';
 
 const { Sider, Content } = Layout;
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+const isDev = import.meta.env.DEV;
+const BACKEND_URL = isDev
+  ? (import.meta.env.VITE_BACKEND_URL || "http://52.184.69.15")
+  : (typeof window !== "undefined" ? window.location.origin : "");
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -171,21 +174,20 @@ export default function LandlordAssetListPage() {
       title: "Hình ảnh",
       dataIndex: "assetImage",
       key: "assetImage",
-      render: (url) =>
-        url ? (
+      render: (url) => {
+        if (!url) return <span style={{ color: "#aaa" }}>Không có ảnh</span>;
+        const fullUrl = url.startsWith("http")
+          ? url
+          : `${BACKEND_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+        return (
           <Image
-            src={
-              url.startsWith("http")
-                ? url
-                : `${BACKEND_URL}${url.startsWith("/") ? "" : "/"}${url}`
-            }
+            src={fullUrl}
             width={60}
             height={40}
             style={{ objectFit: "cover" }}
           />
-        ) : (
-          <span style={{ color: "#aaa" }}>Không có ảnh</span>
-        ),
+        );
+      },
     },
     {
       title: "Thao tác",

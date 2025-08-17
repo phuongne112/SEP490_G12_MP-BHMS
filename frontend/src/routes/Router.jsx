@@ -50,6 +50,7 @@ import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
 import LandlordDashboardPage from "../pages/landlord/LandlordDashboardPage";
 import RenterDashboardPage from "../pages/renter/RenterDashboardPage";
 import AboutPage from "../pages/AboutPage";
+import RulesPage from "../pages/RulesPage";
 
 export default function AppRouter() {
   return (
@@ -72,6 +73,7 @@ export default function AppRouter() {
       />
       <Route path="/home" element={<HomePage />} />
       <Route path="/about" element={<AboutPage />} />
+      <Route path="/noi-quy" element={<RulesPage />} />
       <Route path="/rooms/:roomNumber" element={<RoomDetailPage />} />
       <Route path="/forgotPassword" element={<ForgotPasswordPage />} />
       <Route path="/resetPassword" element={<ResetPasswordPage />} />

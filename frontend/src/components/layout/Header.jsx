@@ -326,7 +326,7 @@ export default function Header() {
     </div>
   );
 
-  const navItems = ["Phòng", "Liên hệ", "Giới thiệu"];
+  const navItems = ["Phòng", "Liên hệ", "Giới thiệu", "Nội quy"]; 
 
   return (
     <header
@@ -406,6 +406,9 @@ export default function Header() {
               }
               if (label === "Giới thiệu") {
                 navigate("/about");
+              }
+              if (label === "Nội quy") {
+                navigate("/noi-quy");
               }
             }}
           >
