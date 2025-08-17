@@ -6,6 +6,6 @@ export default function RenterRoute({ children }) {
   const roleName = account?.role?.roleName;
 
   if (!account) return <Navigate to="/login" />;
-  if (roleName !== "RENTER") return <Navigate to="/403" />;
+  if (roleName !== "RENTER") return <Navigate to="/404" />;
   return children;
 }

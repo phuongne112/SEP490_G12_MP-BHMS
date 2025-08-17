@@ -12,8 +12,8 @@ export default function AdminRoute({ children }) {
 
   // Nếu user hoặc role chưa load → đợi
   if (!user || !user.role || !user.role.roleName) {
-    console.warn("⛔ Không có user hoặc role hợp lệ → chuyển về /403");
-    return <Navigate to="/403" replace />;
+    console.warn("⛔ Không có user hoặc role hợp lệ → chuyển về /404");
+    return <Navigate to="/404" replace />;
   }
 
   // const isAdmin = ["ADMIN", "SUBADMIN"].includes(user?.role?.toUpperCase());
@@ -21,7 +21,7 @@ export default function AdminRoute({ children }) {
   const isAdmin = ["ADMIN", "SUBADMIN"].includes(roleName);
   if (!isAdmin) {
     message.error("Bạn không có quyền truy cập trang này.");
-    return <Navigate to="/403" replace />;
+    return <Navigate to="/404" replace />;
   }
 
   return children;

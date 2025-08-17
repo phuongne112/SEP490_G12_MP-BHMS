@@ -176,12 +176,22 @@ export default function RenterRoomDetailPage() {
               padding: '12px 16px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justifyContent: 'flex-start',
               position: 'sticky',
               top: 0,
               zIndex: 100,
-              width: '100%'
+              width: '100%',
+              gap: 12
             }}>
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                onClick={() => setMobileMenuOpen(true)}
+                style={{ 
+                  color: 'white',
+                  fontSize: '18px'
+                }}
+              />
               <div style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -202,15 +212,6 @@ export default function RenterRoomDetailPage() {
                   Xin chào Renter
                 </div>
               </div>
-              <Button
-                type="text"
-                icon={<MenuOutlined />}
-                onClick={() => setMobileMenuOpen(true)}
-                style={{ 
-                  color: 'white',
-                  fontSize: '18px'
-                }}
-              />
             </div>
           )}
           

@@ -174,6 +174,15 @@ const LandlordDashboardPage = () => {
                 gap: 12,
                 color: 'white'
               }}>
+                <Button
+                  type="text"
+                  icon={<MenuOutlined />}
+                  onClick={() => setMobileMenuOpen(true)}
+                  style={{ 
+                    color: 'white',
+                    fontSize: '18px'
+                  }}
+                />
                 <div style={{ 
                   fontWeight: 600, 
                   fontSize: 18,
@@ -188,15 +197,6 @@ const LandlordDashboardPage = () => {
                   Xin chào Landlord
                 </div>
               </div>
-              <Button
-                type="text"
-                icon={<MenuOutlined />}
-                onClick={() => setMobileMenuOpen(true)}
-                style={{ 
-                  color: 'white',
-                  fontSize: '18px'
-                }}
-              />
             </div>
           )}
           

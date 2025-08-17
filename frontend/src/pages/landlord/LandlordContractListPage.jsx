@@ -736,7 +736,7 @@ export default function LandlordContractListPage() {
               padding: '12px 16px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justifyContent: 'flex-start',
               position: 'fixed',
               top: 0,
               left: 0,
