@@ -22,7 +22,10 @@ import RenterSidebar from "../../components/layout/RenterSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import { getMyRoom } from "../../services/roomService";
 import { getAllAssets, getAssetsByRoom, getAssetsByRoomNumber } from "../../services/assetApi";
-import { BACKEND_URL } from "../../services/axiosClient";
+const isDev = import.meta.env.DEV;
+const BACKEND_URL = isDev
+  ? (import.meta.env.VITE_BACKEND_URL || "http://localhost:8080")
+  : (typeof window !== "undefined" ? window.location.origin : "");
 import { useMediaQuery } from "react-responsive";
 import dayjs from "dayjs";
 

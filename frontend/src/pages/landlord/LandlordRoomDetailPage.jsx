@@ -67,7 +67,10 @@ const { Content } = Layout;
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+const isDev = import.meta.env.DEV;
+const BACKEND_URL = isDev
+  ? (import.meta.env.VITE_BACKEND_URL || "http://localhost:8080")
+  : (typeof window !== "undefined" ? window.location.origin : "");
 
 const getStatusProps = (status) => {
   switch (status) {

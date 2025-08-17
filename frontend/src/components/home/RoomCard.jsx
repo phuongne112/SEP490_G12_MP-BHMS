@@ -6,7 +6,10 @@ import image2 from "../../assets/RoomImage/image2.png";
 
 const { Text, Title } = Typography;
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+const isDev = import.meta.env.DEV;
+const IMG_BASE_URL = isDev
+  ? (import.meta.env.VITE_BACKEND_URL || "http://localhost:8080")
+  : (typeof window !== "undefined" ? window.location.origin : "");
 
 const getStatusTag = (status) => {
   switch (status) {
@@ -74,13 +77,13 @@ export default function RoomCard({ room, onClick }) {
     if (!img) return null;
     if (typeof img === "string") {
       if (img.startsWith("http")) return img;
-      if (img.startsWith("/uploads/")) return BACKEND_URL + img;
-      return BACKEND_URL + "/uploads/" + img;
+      if (img.startsWith("/uploads/")) return IMG_BASE_URL + img;
+      return IMG_BASE_URL + "/uploads/" + img;
     }
     if (typeof img === "object" && img.imageUrl) {
       if (img.imageUrl.startsWith("http")) return img.imageUrl;
-      if (img.imageUrl.startsWith("/uploads/")) return BACKEND_URL + img.imageUrl;
-      return BACKEND_URL + "/uploads/" + img.imageUrl;
+      if (img.imageUrl.startsWith("/uploads/")) return IMG_BASE_URL + img.imageUrl;
+      return IMG_BASE_URL + "/uploads/" + img.imageUrl;
     }
     return null;
   };
