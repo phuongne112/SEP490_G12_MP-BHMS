@@ -1,9 +1,10 @@
 package com.mpbhms.backend.service.impl;
 
 import com.mpbhms.backend.dto.*;
-import com.mpbhms.backend.entity.ApiResponse;
+// import com.mpbhms.backend.entity.ApiResponse;
 import com.mpbhms.backend.entity.Room;
 import com.mpbhms.backend.entity.RoomImage;
+import com.mpbhms.backend.entity.Asset;
 import com.mpbhms.backend.exception.IdInvalidException;
 import com.mpbhms.backend.repository.RoomRepository;
 import com.mpbhms.backend.repository.UserRepository;
@@ -25,26 +26,27 @@ import com.mpbhms.backend.enums.ServiceType;
 import com.mpbhms.backend.entity.ServiceReading;
 import com.mpbhms.backend.repository.ServiceReadingRepository;
 import java.math.BigDecimal;
-import jakarta.persistence.criteria.Predicate;
+// import jakarta.persistence.criteria.Predicate;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
+// import java.util.stream.Collectors;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.util.Optional;
 import com.mpbhms.backend.repository.BillDetailRepository;
 import com.mpbhms.backend.repository.RoomServiceMappingRepository;
+import com.mpbhms.backend.repository.RoomAssetRepository;
 import com.mpbhms.backend.entity.RoomServiceMapping;
 import java.time.LocalDate;
 import com.mpbhms.backend.entity.Contract;
 import com.mpbhms.backend.enums.PaymentCycle;
 import com.mpbhms.backend.repository.BillRepository;
 import com.mpbhms.backend.entity.Bill;
-import java.time.ZoneId;
+// import java.time.ZoneId;
 
 @Service
 public class RoomServiceImpl implements RoomService {
@@ -79,6 +81,9 @@ public class RoomServiceImpl implements RoomService {
 
     @Autowired
     private ServiceReadingRepository serviceReadingRepository;
+
+    @Autowired
+    private RoomAssetRepository roomAssetRepository;
 
     @Value("${meter.scan.folder}")
     private String scanRoot;
@@ -243,8 +248,9 @@ public class RoomServiceImpl implements RoomService {
         }).toList();
         dto.setServices(serviceDTOs);
 
-        // ✅ Convert assets
-        List<AssetDTO> assetDTOs = room.getAssets().stream().map(asset -> {
+        // ✅ Convert assets từ bảng mapping room_asset để đảm bảo có dữ liệu
+        List<AssetDTO> assetDTOs = roomAssetRepository.findByRoom(room).stream().map(mapping -> {
+            Asset asset = mapping.getAsset();
             AssetDTO a = new AssetDTO();
             a.setId(asset.getId());
             a.setAssetName(asset.getAssetName());
