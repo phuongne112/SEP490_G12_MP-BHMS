@@ -590,7 +590,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         // --- Init Users ---
         if (countUsers == 0) {
             User admin = new User();
-            admin.setEmail("admin@gmail.com");
+            admin.setEmail("admpbhms@gmail.com");
             admin.setUsername("Administrator");
             admin.setPassword(passwordEncoder.encode("123123123aA@"));
 
@@ -602,7 +602,7 @@ public class DatabaseInitializer implements CommandLineRunner {
 
 
             User landlord  = new User();
-            landlord.setEmail("landlord@gmail.com");
+            landlord.setEmail("lalormpbhms@gmail.com");
             landlord.setUsername("Landlord");
             landlord.setPassword(passwordEncoder.encode("123123123aA@"));
 
