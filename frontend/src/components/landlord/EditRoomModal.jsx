@@ -45,6 +45,12 @@ export default function EditRoomModal({ visible, onCancel, roomId, onSuccess }) 
     }
   }, [visible, roomId]);
 
+  // Build correct base URL for images in prod/dev
+  const isDev = import.meta.env.DEV;
+  const BASE_URL = isDev
+    ? (import.meta.env.VITE_BACKEND_URL || "http://52.184.69.15")
+    : (typeof window !== "undefined" ? window.location.origin : "");
+
   const fetchRoom = async () => {
     setLoading(true);
     try {
@@ -95,7 +101,9 @@ export default function EditRoomModal({ visible, onCancel, roomId, onSuccess }) 
           console.log('Room images:', room.images);
           const imageFiles = room.images.map((img, index) => {
             const imageUrl = img.imageUrl || img.imageURL || img.url;
-            const fullUrl = imageUrl && !imageUrl.startsWith('http') ? `http://localhost:8080${imageUrl}` : imageUrl;
+            const fullUrl = imageUrl
+              ? (imageUrl.startsWith('http') ? imageUrl : `${BASE_URL}${imageUrl}`)
+              : null;
             return {
               uid: `existing-${img.id || index}`,
               name: `image-${index}.jpg`,
@@ -157,9 +165,8 @@ export default function EditRoomModal({ visible, onCancel, roomId, onSuccess }) 
         .filter(img => !img.originFileObj && img.uid.startsWith('existing-'))
         .map(img => parseInt(img.uid.replace('existing-', '')));
       
-      if (existingImageIds.length > 0) {
-        formData.append('keepImageIds', JSON.stringify(existingImageIds));
-      }
+      // Luôn gửi keepImageIds (kể cả mảng rỗng) để cho phép xoá hết ảnh
+      formData.append('keepImageIds', JSON.stringify(existingImageIds));
       
       console.log('Submitting room data with images:', {
         roomData,
