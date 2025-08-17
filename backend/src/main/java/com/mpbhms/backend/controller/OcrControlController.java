@@ -175,7 +175,9 @@ public class OcrControlController {
             String imagePath = null;
             if (image != null && !image.isEmpty()) {
                 String fileName = System.currentTimeMillis() + "_" + image.getOriginalFilename();
-                String uploadDir = System.getProperty("user.dir") + "/frontend/public/img/ocr/" + room.getScanFolder() + "/";
+                // Dùng chung thư mục scan của hệ thống (đã cấu hình cho AutoElectricMeterScanner)
+                String baseScanDir = scanner.getScanFolder();
+                String uploadDir = (baseScanDir.endsWith("/") ? baseScanDir : baseScanDir + "/") + room.getScanFolder() + "/";
                 java.io.File uploadPath = new java.io.File(uploadDir);
                 if (!uploadPath.exists()) uploadPath.mkdirs();
                 
