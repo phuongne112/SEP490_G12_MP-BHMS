@@ -434,14 +434,16 @@ export default function LandlordRoomListPage() {
                     Bộ lọc
                   </Button>
                 </Popover>
-                <Button 
-                  type="primary" 
-                  icon={<PlusOutlined />}
-                  onClick={handleAddRoomModalOpen}
-                  style={{ width: isMobile ? "100%" : "auto" }}
-                >
-                  Thêm phòng
-                </Button>
+                {!(user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") && (
+                  <Button 
+                    type="primary" 
+                    icon={<PlusOutlined />}
+                    onClick={handleAddRoomModalOpen}
+                    style={{ width: isMobile ? "100%" : "auto" }}
+                  >
+                    Thêm phòng
+                  </Button>
+                )}
               </Space>
             </div>
 

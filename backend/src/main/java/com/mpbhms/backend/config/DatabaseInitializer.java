@@ -278,11 +278,6 @@ public class DatabaseInitializer implements CommandLineRunner {
             if (sendMultipleNotificationsAdmin != null && !adminPermissions.contains(sendMultipleNotificationsAdmin)) {
                 adminPermissions.add(sendMultipleNotificationsAdmin);
             }
-            // Ensure ADMIN can create room
-            Permission createRoomPermission = permissionRepository.findByModuleAndApiPathAndMethod("Room", "/mpbhms/rooms", "POST");
-            if (createRoomPermission != null && !adminPermissions.contains(createRoomPermission)) {
-                adminPermissions.add(createRoomPermission);
-            }
             adminRole.setPermissionEntities(adminPermissions);
             roleRepository.save(adminRole);
 
