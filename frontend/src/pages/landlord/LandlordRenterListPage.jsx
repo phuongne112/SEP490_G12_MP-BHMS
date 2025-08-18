@@ -51,6 +51,7 @@ export default function LandlordRenterListPage() {
   const [userList, setUserList] = useState([]);
   const [userLoading, setUserLoading] = useState(false);
   const [grantLoading, setGrantLoading] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
   const [forceUpdate, setForceUpdate] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
   const [ocrDateOfBirth, setOcrDateOfBirth] = useState(null);
@@ -128,14 +129,29 @@ export default function LandlordRenterListPage() {
   const fetchUsersWithoutRole = async () => {
     setUserLoading(true);
     try {
-      // Thay đổi từ "role IS NULL" thành "role.id = 5" để tìm users có role USER
-      const res = await getAllUsers(0, 20, "role.id = 5");
+      // Chỉ lấy các tài khoản USER và áp dụng search theo username/email nếu có
+      let filterStr = "role.id = 5";
+      if (userSearch && userSearch.trim()) {
+        const q = userSearch.trim();
+        filterStr += ` and (username~'*${q}*' or email~'*${q}*')`;
+      }
+      const res = await getAllUsers(0, 20, filterStr);
       setUserList(res.result || []);
     } catch (err) {
       message.error("Không lấy được danh sách user!");
     }
     setUserLoading(false);
   };
+
+  // Tự động tìm khi thay đổi chuỗi tìm kiếm
+  useEffect(() => {
+    // Debounce nhẹ 300ms
+    const t = setTimeout(() => {
+      fetchUsersWithoutRole();
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line
+  }, [userSearch]);
 
   const handleGrantRenter = async (user) => {
     // Hiển thị popup confirm trước khi cấp quyền
@@ -965,6 +981,15 @@ export default function LandlordRenterListPage() {
                         >
                           Tải danh sách tài khoản USER
                         </Button>
+                        <Input
+                          placeholder="Tìm theo tên đăng nhập hoặc email"
+                          value={userSearch}
+                          allowClear
+                          prefix={<SearchOutlined />}
+                          onChange={(e) => setUserSearch(e.target.value)}
+                          onPressEnter={() => fetchUsersWithoutRole()}
+                          style={{ width: 360, marginLeft: 12 }}
+                        />
                         <Table
                           dataSource={userList}
                           loading={userLoading}
