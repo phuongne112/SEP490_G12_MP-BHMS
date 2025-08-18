@@ -1,16 +1,11 @@
 package com.mpbhms.backend.controller;
 
 import com.mpbhms.backend.dto.AssetDTO;
-import com.mpbhms.backend.dto.AssetResponseDTO;
 import com.mpbhms.backend.service.AssetService;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.bind.annotation.RequestPart;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
 import org.springframework.data.domain.PageRequest;
 import java.util.Map;
@@ -19,7 +14,6 @@ import java.util.Map;
 @RequestMapping("/mpbhms/assets")
 @RequiredArgsConstructor
 public class AssetController {
-    private static final Logger logger = LoggerFactory.getLogger(AssetController.class);
     private final AssetService assetService;
 
     @GetMapping
@@ -52,12 +46,12 @@ public class AssetController {
         assetDTO.setConditionNote(conditionNote);
         if (assetImage != null && !assetImage.isEmpty()) {
             String fileName = System.currentTimeMillis() + "_" + assetImage.getOriginalFilename();
-            String uploadDir = System.getProperty("user.dir") + "/uploads/";
+            String uploadDir = System.getProperty("user.dir") + "/uploads/landlord/assets/";
             java.io.File uploadPath = new java.io.File(uploadDir);
             if (!uploadPath.exists()) uploadPath.mkdirs();
             try {
                 assetImage.transferTo(new java.io.File(uploadDir + fileName));
-                assetDTO.setAssetImage("/uploads/" + fileName);
+                assetDTO.setAssetImage("/uploads/landlord/assets/" + fileName);
             } catch (Exception e) {
                 throw new RuntimeException("Lỗi khi lưu file ảnh: " + e.getMessage());
             }
@@ -79,12 +73,12 @@ public class AssetController {
         assetDTO.setConditionNote(conditionNote);
         if (assetImage != null && !assetImage.isEmpty()) {
             String fileName = System.currentTimeMillis() + "_" + assetImage.getOriginalFilename();
-            String uploadDir = System.getProperty("user.dir") + "/uploads/";
+            String uploadDir = System.getProperty("user.dir") + "/uploads/landlord/assets/";
             java.io.File uploadPath = new java.io.File(uploadDir);
             if (!uploadPath.exists()) uploadPath.mkdirs();
             try {
                 assetImage.transferTo(new java.io.File(uploadDir + fileName));
-                assetDTO.setAssetImage("/uploads/" + fileName);
+                assetDTO.setAssetImage("/uploads/landlord/assets/" + fileName);
             } catch (Exception e) {
                 throw new RuntimeException("Lỗi khi lưu file ảnh: " + e.getMessage());
             }
