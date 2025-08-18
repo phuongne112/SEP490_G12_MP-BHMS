@@ -4,7 +4,6 @@ import com.mpbhms.backend.service.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -15,9 +14,8 @@ public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
 
-    //@Value("${app.frontend.reset-url}")
-    //private String resetUrl;
-    private String resetUrl = "http://localhost:5173/resetPassword";
+    // URL frontend reset password (prod domain)
+    private String resetUrl = "http://mpbhms.online/resetPassword";
 
     @Override
     public void sendPasswordResetLink(String toEmail, String token) {
