@@ -343,6 +343,11 @@ public class DatabaseInitializer implements CommandLineRunner {
             if (dashboardBillStats != null && !renterPermission.contains(dashboardBillStats)) {
                 renterPermission.add(dashboardBillStats);
             }
+            // Electricity usage readings (chart) permission for RENTER
+            Permission serviceReadings = permissionRepository.findByModuleAndApiPathAndMethod("Service", "/mpbhms/services/readings", "GET");
+            if (serviceReadings != null && !renterPermission.contains(serviceReadings)) {
+                renterPermission.add(serviceReadings);
+            }
             //Payment
             Permission createVnpayUrl = permissionRepository.findByModuleAndApiPathAndMethod("Payment", "/mpbhms/payment/create-vnpay-url", "POST");
             if (createVnpayUrl != null) renterPermission.add(createVnpayUrl);
