@@ -92,7 +92,7 @@ public class SecurityConfiguration {
                 "http://localhost",
                 "http://20.78.57.200",
                 "http://52.184.69.15",
-                "https://mpbhms.online"
+                "http://mpbhms.online"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE","PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "x-no-retry"));
