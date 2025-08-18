@@ -9,12 +9,15 @@ import org.springframework.web.multipart.MultipartFile;
 import com.mpbhms.backend.dto.ResultPaginationDTO;
 import org.springframework.data.domain.PageRequest;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Value;
 
 @RestController
 @RequestMapping("/mpbhms/assets")
 @RequiredArgsConstructor
 public class AssetController {
     private final AssetService assetService;
+    @Value("${file.upload-dir}")
+    private String uploadDir;
 
     @GetMapping
     public ResponseEntity<ResultPaginationDTO> getAllAssets(
@@ -46,11 +49,11 @@ public class AssetController {
         assetDTO.setConditionNote(conditionNote);
         if (assetImage != null && !assetImage.isEmpty()) {
             String fileName = System.currentTimeMillis() + "_" + assetImage.getOriginalFilename();
-            String uploadDir = System.getProperty("user.dir") + "/uploads/";
-            java.io.File uploadPath = new java.io.File(uploadDir);
+            String resolvedUploadDir = (uploadDir != null && uploadDir.endsWith("/")) ? uploadDir : (uploadDir + "/");
+            java.io.File uploadPath = new java.io.File(resolvedUploadDir);
             if (!uploadPath.exists()) uploadPath.mkdirs();
             try {
-                assetImage.transferTo(new java.io.File(uploadDir + fileName));
+                assetImage.transferTo(new java.io.File(resolvedUploadDir + fileName));
                 assetDTO.setAssetImage("/uploads/" + fileName);
             } catch (Exception e) {
                 throw new RuntimeException("Lỗi khi lưu file ảnh: " + e.getMessage());
@@ -73,11 +76,11 @@ public class AssetController {
         assetDTO.setConditionNote(conditionNote);
         if (assetImage != null && !assetImage.isEmpty()) {
             String fileName = System.currentTimeMillis() + "_" + assetImage.getOriginalFilename();
-            String uploadDir = System.getProperty("user.dir") + "/uploads/";
-            java.io.File uploadPath = new java.io.File(uploadDir);
+            String resolvedUploadDir = (uploadDir != null && uploadDir.endsWith("/")) ? uploadDir : (uploadDir + "/");
+            java.io.File uploadPath = new java.io.File(resolvedUploadDir);
             if (!uploadPath.exists()) uploadPath.mkdirs();
             try {
-                assetImage.transferTo(new java.io.File(uploadDir + fileName));
+                assetImage.transferTo(new java.io.File(resolvedUploadDir + fileName));
                 assetDTO.setAssetImage("/uploads/" + fileName);
             } catch (Exception e) {
                 throw new RuntimeException("Lỗi khi lưu file ảnh: " + e.getMessage());
