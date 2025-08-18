@@ -56,6 +56,8 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(
                         authz -> authz
                                 .requestMatchers(whiteList).permitAll()
+                                // Public room listing/detail endpoints
+                                .requestMatchers(HttpMethod.GET, "/mpbhms/rooms").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/mpbhms/rooms/**").permitAll()
                                 .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults())
@@ -92,7 +94,9 @@ public class SecurityConfiguration {
                 "http://localhost",
                 "http://20.78.57.200",
                 "http://52.184.69.15",
-                "http://mpbhms.online"
+                "http://mpbhms.online",
+                "https://mpbhms.online",
+                "https://www.mpbhms.online"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE","PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "x-no-retry"));
