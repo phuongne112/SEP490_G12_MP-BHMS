@@ -239,7 +239,7 @@ export default function RenterBillDetailPage() {
     try {
       await createCashPartialPayment(paymentData);
       message.success(
-        "Đã gửi yêu cầu thanh toán tiền mặt! Chủ Trọ sẽ xác nhận sau."
+        "Đã gửi yêu cầu thanh toán tiền mặt! Chủ trọ sẽ xác nhận sau."
       );
       setCashPartialPaymentModalVisible(false);
       fetchBill();

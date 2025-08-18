@@ -6,7 +6,10 @@ import { Provider } from "react-redux";
 import store from "./store"; // 🔸 store bạn tạo ở store/index.js
 import { setUser } from "./store/accountSlice"; // 🔸 action để set user
 import "antd/dist/reset.css";
-import { message } from 'antd'
+import { message, ConfigProvider } from 'antd'
+import viVN from 'antd/locale/vi_VN'
+import dayjs from 'dayjs'
+import 'dayjs/locale/vi'
 
 // Configure global message settings
 message.config({
@@ -15,6 +18,9 @@ message.config({
   maxCount: 3,
   rtl: false,
 });
+
+// Thiết lập locale mặc định cho Day.js
+dayjs.locale('vi');
 
 // 🔹 Nếu user đã login trước đó → load từ localStorage
 const storedAccount = localStorage.getItem("account");
@@ -29,8 +35,10 @@ if (storedAccount) {
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <Provider store={store}>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <ConfigProvider locale={viVN}>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </ConfigProvider>
   </Provider>
 );

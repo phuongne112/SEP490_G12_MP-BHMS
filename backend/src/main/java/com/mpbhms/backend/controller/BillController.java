@@ -670,11 +670,19 @@ public class BillController {
                 }
             }
             
+            // Tính tổng tiền an toàn ở backend để tránh phụ thuộc hoàn toàn vào client
+            BigDecimal safeTotalWithFees = request.getTotalWithFees();
+            if (safeTotalWithFees == null || safeTotalWithFees.compareTo(BigDecimal.ZERO) <= 0) {
+                BigDecimal fee = request.getPartialPaymentFee() != null ? request.getPartialPaymentFee() : BigDecimal.ZERO;
+                BigDecimal interest = request.getOverdueInterest() != null ? request.getOverdueInterest() : BigDecimal.ZERO;
+                safeTotalWithFees = request.getOriginalPaymentAmount().add(fee).add(interest);
+            }
+
             // Create payment history record for cash payment (pending status)
             PaymentHistory paymentHistory = new PaymentHistory();
             paymentHistory.setBill(bill);
             paymentHistory.setPaymentAmount(request.getOriginalPaymentAmount());
-            paymentHistory.setTotalAmount(request.getTotalWithFees());
+            paymentHistory.setTotalAmount(safeTotalWithFees);
             paymentHistory.setPartialPaymentFee(request.getPartialPaymentFee());
             paymentHistory.setOverdueInterest(request.getOverdueInterest());
             paymentHistory.setPaymentMethod("CASH");
@@ -697,7 +705,7 @@ public class BillController {
             paymentHistory.setPaidAfter(paidAfter);
             paymentHistory.setStatus("PENDING");
             paymentHistory.setIsPartialPayment(request.getOriginalPaymentAmount().compareTo(bill.getOutstandingAmount()) < 0);
-            paymentHistory.setNotes("Thanh toán tiền mặt - chờ landlord xác nhận");
+            paymentHistory.setNotes("Thanh toán tiền mặt - chờ chủ trọ xác nhận");
             paymentHistory.setMonthsOverdue(calculateOverdueMonths(bill));
 
             // Log thông tin thanh toán (giống VNPAY)
@@ -706,7 +714,7 @@ public class BillController {
             System.out.println("Số tiền thanh toán (gốc): " + request.getOriginalPaymentAmount());
             System.out.println("Phí thanh toán từng phần: " + request.getPartialPaymentFee());
             System.out.println("Lãi suất quá hạn: " + request.getOverdueInterest());
-            System.out.println("Tổng cộng: " + request.getTotalWithFees());
+            System.out.println("Tổng cộng: " + safeTotalWithFees);
             System.out.println("Có phải thanh toán từng phần: " + (request.getOriginalPaymentAmount().compareTo(bill.getOutstandingAmount()) < 0));
             System.out.println("Số tháng quá hạn: " + calculateOverdueMonths(bill));
             System.out.println("Ngày thanh toán khi tạo: " + paymentHistory.getPaymentDate());
@@ -719,7 +727,7 @@ public class BillController {
 
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
-            result.put("message", "Đã tạo yêu cầu thanh toán tiền mặt. Chờ landlord xác nhận.");
+            result.put("message", "Đã tạo yêu cầu thanh toán tiền mặt. Chờ chủ trọ xác nhận.");
             result.put("paymentHistoryId", paymentHistory.getId());
             
             return ResponseEntity.ok(result);
