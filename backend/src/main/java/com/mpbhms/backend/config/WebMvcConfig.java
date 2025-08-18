@@ -1,8 +1,6 @@
 package com.mpbhms.backend.config;
 
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.filter.ForwardedHeaderFilter;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -21,10 +19,4 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addResourceLocations("file:" + System.getProperty("user.dir") + "/frontend/public/img/");
     }
 
-    @Bean
-    public ForwardedHeaderFilter forwardedHeaderFilter() {
-        return new ForwardedHeaderFilter();
-    }
-
 }
- 
