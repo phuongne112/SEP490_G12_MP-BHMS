@@ -40,6 +40,9 @@ public class SecurityConfiguration {
             "/mpbhms/auth/signup",
             "/mpbhms/users/me/account",
             "/mpbhms/users/me/info",
+            // Public rooms endpoints
+            "/mpbhms/rooms",
+            "/mpbhms/rooms/**",
             "/uploads/**",
             "/src/assets/**",
             "/img/**",
@@ -59,6 +62,7 @@ public class SecurityConfiguration {
                                 // Public room listing/detail endpoints
                                 .requestMatchers(HttpMethod.GET, "/mpbhms/rooms").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/mpbhms/rooms/**").permitAll()
+                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                 .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults())
                         .authenticationEntryPoint(caep))
@@ -99,7 +103,8 @@ public class SecurityConfiguration {
                 "https://www.mpbhms.online"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE","PATCH", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "x-no-retry"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "x-no-retry", "X-Requested-With", "Origin"));
+        config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
