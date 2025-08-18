@@ -1,11 +1,19 @@
 import axios from "axios";
 
-// 👉 Lấy biến môi trường từ file .env
-const BASE_URL = `${import.meta.env.VITE_BACKEND_URL}/mpbhms/`;
-export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-console.log("✅ Backend URL:", import.meta.env.VITE_BACKEND_URL);
+// 👉 Chọn BASE_URL theo runtime để tránh mixed-content khi chạy HTTPS
+const isBrowser = typeof window !== "undefined";
+const currentOrigin = isBrowser ? window.location.origin : "";
+const isProdDomain = isBrowser && /mpbhms\.online$/i.test(window.location.hostname);
 
-const REFRESH_URL = `${import.meta.env.VITE_BACKEND_URL}/mpbhms/auth/refresh`;
+// Ưu tiên domain hiện tại khi ở production (HTTPS), fallback sang biến môi trường khi dev
+export const BACKEND_URL = isProdDomain
+  ? currentOrigin
+  : (import.meta.env.VITE_BACKEND_URL || "http://localhost:8080");
+
+const BASE_URL = `${BACKEND_URL}/mpbhms/`;
+const REFRESH_URL = `${BACKEND_URL}/mpbhms/auth/refresh`;
+
+console.log("✅ Backend URL:", BACKEND_URL);
 
 const axiosClient = axios.create({
   baseURL: BASE_URL,
