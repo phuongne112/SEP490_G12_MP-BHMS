@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+dayjs.extend(customParseFormat);
 import { Modal, Form, InputNumber, Button, Alert, Space, Typography } from 'antd';
 import { getPaymentCount } from '../../services/billApi';
 import { message } from 'antd'; // Added message import
@@ -45,12 +48,12 @@ export default function CashPartialPaymentModal({
   // 🆕 Tính số ngày từ lần thanh toán cuối cùng
   const getDaysSinceLastPayment = () => {
     if (!bill || !bill.lastPaymentDate) return null;
-    
     try {
-      const lastPaymentDate = new Date(bill.lastPaymentDate);
-      const currentDate = new Date();
-      const diffTime = currentDate.getTime() - lastPaymentDate.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const parsed = dayjs(bill.lastPaymentDate, 'YYYY-MM-DD HH:mm:ss A', true);
+      const lastPaymentDate = parsed.isValid() ? parsed : dayjs(bill.lastPaymentDate);
+      if (!lastPaymentDate.isValid()) return null;
+      const currentDate = dayjs();
+      const diffDays = currentDate.diff(lastPaymentDate, 'day');
       return Math.max(0, diffDays);
     } catch (error) {
       console.error('Error calculating days since last payment:', error);

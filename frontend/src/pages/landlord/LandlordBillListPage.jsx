@@ -591,12 +591,14 @@ export default function LandlordBillListPage() {
 
     setEmailLoading(prev => ({ ...prev, [id]: true }));
     try {
-      await axiosClient.post(`/bills/send-email/${id}`);
-      message.success("Đã gửi hóa đơn qua email thành công!");
+      const res = await axiosClient.post(`/bills/send-email/${id}`);
+      const msg = typeof res?.data === 'string' ? res.data : (res?.data?.message || 'Đã gửi hóa đơn qua email thành công!');
+      message.success(msg);
       // Mark as sent today after successful sending
       markEmailSentToday(id);
     } catch (err) {
-      message.error("Gửi email thất bại!");
+      const apiMsg = err?.response?.data?.message || err?.response?.data || err?.message || 'Gửi email thất bại!';
+      message.error(apiMsg);
     } finally {
       setEmailLoading(prev => ({ ...prev, [id]: false }));
     }

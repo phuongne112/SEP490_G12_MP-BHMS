@@ -288,6 +288,14 @@ public class DatabaseInitializer implements CommandLineRunner {
             // Contract
             Permission getMyContracts = permissionRepository.findByModuleAndApiPathAndMethod("Contract", "/mpbhms/contracts/my-contracts", "GET");
             if (getMyContracts != null) renterPermission.add(getMyContracts);
+            
+            Permission getReadings = permissionRepository.findByModuleAndApiPathAndMethod(
+                "Service", 
+                "/mpbhms/services/readings", 
+                "GET"
+            );
+            if (getReadings != null) renterPermission.add(getReadings);
+            
 
             // Get My Room permission
             Permission getMyRoom = permissionRepository.findByModuleAndApiPathAndMethod("RoomUser", "/mpbhms/room-users/my-room", "GET");

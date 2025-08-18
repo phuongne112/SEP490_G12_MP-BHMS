@@ -49,6 +49,9 @@ const LandlordDashboardPage = () => {
     monthRevenue: 0,
     unpaid: 0,
     overdue: 0,
+    revenueFromBills: 0,
+    revenueFromFees: 0,
+    partiallyPaidBills: 0,
   });
   const [billStatusPie, setBillStatusPie] = useState([]);
   const [roomPie, setRoomPie] = useState([]);
@@ -93,6 +96,9 @@ const LandlordDashboardPage = () => {
           total: (stats.unpaid || 0) + (stats.overdue || 0) + (stats.paid || 0),
           revenue: stats.revenue || 0,
           monthRevenue: stats.monthRevenue || 0,
+          revenueFromBills: stats.revenueFromBills || 0,
+          revenueFromFees: stats.revenueFromFees || 0,
+          partiallyPaidBills: stats.partiallyPaidBills || 0,
         });
         // Biểu đồ doanh thu 6 tháng gần nhất
         setRevenueByMonth(
@@ -286,7 +292,7 @@ const LandlordDashboardPage = () => {
                 bodyStyle={{ padding: isMobile ? "16px" : "24px" }}
               >
                 <Statistic
-                  title={<span style={{ fontSize: isMobile ? "14px" : "16px", color: "#666" }}>Doanh thu</span>}
+                  title={<span style={{ fontSize: isMobile ? "14px" : "16px", color: "#666" }}>Tổng doanh thu</span>}
                   value={billStats.revenue}
                   suffix="₫"
                   valueStyle={{ 
@@ -296,11 +302,15 @@ const LandlordDashboardPage = () => {
                   }}
                 />
                 <div style={{ 
-                  fontSize: isMobile ? "12px" : "14px", 
+                  fontSize: isMobile ? "11px" : "12px", 
                   color: "#888",
-                  marginTop: "8px"
+                  marginTop: "8px",
+                  lineHeight: "1.4"
                 }}>
-                  Tháng này: {billStats.monthRevenue} ₫
+                  <div>Tháng này: {billStats.monthRevenue?.toLocaleString()} ₫</div>
+                  <div>Từ hóa đơn: {billStats.revenueFromBills?.toLocaleString()} ₫</div>
+                  <div>Từ phí: {billStats.revenueFromFees?.toLocaleString()} ₫</div>
+                  <div>HĐ từng phần: {billStats.partiallyPaidBills} hóa đơn</div>
                 </div>
               </Card>
             </Col>

@@ -1162,8 +1162,8 @@ public class BillServiceImpl implements BillService {
             byte[] fontBytes = fontStream.readAllBytes();
             BaseFont baseFont = BaseFont.createFont("arial.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED, BaseFont.CACHED, fontBytes, null);
             
-            // Simple, clean fonts
-            Font titleFont = new Font(baseFont, 18, Font.BOLD);
+            // Professional fonts
+            Font titleFont = new Font(baseFont, 20, Font.BOLD);
             Font headerFont = new Font(baseFont, 12, Font.BOLD);
             Font normalFont = new Font(baseFont, 10, Font.NORMAL);
             Font smallFont = new Font(baseFont, 9, Font.NORMAL);
@@ -1172,109 +1172,167 @@ public class BillServiceImpl implements BillService {
             document.open();
 
             DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneId.systemDefault());
-            NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
 
-            // Simple header
+            // Professional header with company info
             Paragraph title = new Paragraph("HÓA ĐƠN THANH TOÁN", titleFont);
             title.setAlignment(Element.ALIGN_CENTER);
-            title.setSpacingAfter(20f);
+            title.setSpacingAfter(10f);
             document.add(title);
             
-            // Invoice info
-            PdfPTable infoTable = new PdfPTable(2);
-            infoTable.setWidthPercentage(100);
-            infoTable.setSpacingAfter(20f);
+            Paragraph subtitle = new Paragraph("HỆ THỐNG QUẢN LÝ TÒA NHÀ MP-BHMS", normalFont);
+            subtitle.setAlignment(Element.ALIGN_CENTER);
+            subtitle.setSpacingAfter(25f);
+            document.add(subtitle);
             
-            // Left side - Invoice details
-            infoTable.addCell(new PdfPCell(new Phrase("Số hóa đơn: " + String.format("%06d", bill.getId()), normalFont)));
-            infoTable.addCell(new PdfPCell(new Phrase("Ngày: " + dateFormatter.format(bill.getBillDate().atZone(ZoneId.systemDefault())), normalFont)));
+            // Invoice header info - clean layout
+            PdfPTable headerTable = new PdfPTable(2);
+            headerTable.setWidthPercentage(100);
+            headerTable.setSpacingAfter(25f);
             
-            document.add(infoTable);
+            PdfPCell leftHeader = new PdfPCell();
+            leftHeader.setBorder(Rectangle.NO_BORDER);
+            leftHeader.addElement(new Paragraph("Số hóa đơn: #" + String.format("%06d", bill.getId()), headerFont));
+            leftHeader.addElement(new Paragraph("Ngày lập: " + dateFormatter.format(bill.getBillDate().atZone(ZoneId.systemDefault())), normalFont));
+            
+            PdfPCell rightHeader = new PdfPCell();
+            rightHeader.setBorder(Rectangle.NO_BORDER);
+            rightHeader.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            String statusText = bill.getStatus() ? "ĐÃ THANH TOÁN" : "CHƯA THANH TOÁN";
+            Color statusColor = bill.getStatus() ? new Color(0, 128, 0) : new Color(255, 0, 0);
+            Font statusFont = new Font(baseFont, 12, Font.BOLD, statusColor);
+            rightHeader.addElement(new Paragraph("Trạng thái:", normalFont));
+            rightHeader.addElement(new Paragraph(statusText, statusFont));
+            
+            headerTable.addCell(leftHeader);
+            headerTable.addCell(rightHeader);
+            document.add(headerTable);
 
-            // Customer and Room Information
-            PdfPTable customerRoomTable = new PdfPTable(2);
-            customerRoomTable.setWidthPercentage(100);
-            customerRoomTable.setSpacingAfter(20f);
+            // Customer and Room Information - improved layout
+            PdfPTable infoMainTable = new PdfPTable(2);
+            infoMainTable.setWidthPercentage(100);
+            infoMainTable.setSpacingAfter(25f);
             
-            // Customer Info
+            // Customer Info - TẤT CẢ thành viên trong phòng
             PdfPCell customerCell = new PdfPCell();
-            customerCell.setBorder(Rectangle.NO_BORDER);
+            customerCell.setBorder(Rectangle.BOX);
+            customerCell.setPadding(15f);
             customerCell.setVerticalAlignment(Element.ALIGN_TOP);
             
-            Paragraph customerTitle = new Paragraph("Thông tin khách hàng:", headerFont);
+            Paragraph customerTitle = new Paragraph("THÔNG TIN KHÁCH HÀNG", headerFont);
+            customerTitle.setSpacingAfter(10f);
             customerCell.addElement(customerTitle);
             
             if (bill.getContract() != null && bill.getContract().getRoomUsers() != null) {
+                int memberIndex = 1;
                 for (RoomUser roomUser : bill.getContract().getRoomUsers()) {
-                    if (roomUser.getUser() != null && roomUser.getUser().getUserInfo() != null) {
-                        customerCell.addElement(new Paragraph("Họ tên: " + roomUser.getUser().getUserInfo().getFullName(), normalFont));
-                        customerCell.addElement(new Paragraph("SĐT: " + roomUser.getUser().getUserInfo().getPhoneNumber(), normalFont));
-                        if (roomUser.getUser().getEmail() != null) {
-                            customerCell.addElement(new Paragraph("Email: " + roomUser.getUser().getEmail(), normalFont));
+                    if (roomUser.getUser() != null && roomUser.getUser().getUserInfo() != null && Boolean.TRUE.equals(roomUser.getIsActive())) {
+                        if (memberIndex > 1) {
+                            customerCell.addElement(new Paragraph(" ", normalFont)); // Spacing
                         }
-                        break;
+                        customerCell.addElement(new Paragraph("Thành viên " + memberIndex + ":", new Font(baseFont, 10, Font.BOLD)));
+                        customerCell.addElement(new Paragraph("• Họ tên: " + roomUser.getUser().getUserInfo().getFullName(), normalFont));
+                        customerCell.addElement(new Paragraph("• SĐT: " + roomUser.getUser().getUserInfo().getPhoneNumber(), normalFont));
+                        if (roomUser.getUser().getEmail() != null) {
+                            customerCell.addElement(new Paragraph("• Email: " + roomUser.getUser().getEmail(), normalFont));
+                        }
+                        customerCell.addElement(new Paragraph("• Ngày vào ở: " + (roomUser.getJoinedAt() != null ? dateFormatter.format(roomUser.getJoinedAt().atZone(ZoneId.systemDefault())) : "N/A"), normalFont));
+                        memberIndex++;
                     }
+                }
+                if (memberIndex == 1) {
+                    customerCell.addElement(new Paragraph("Chưa có thành viên nào", normalFont));
                 }
             }
             
             // Room Info
             PdfPCell roomCell = new PdfPCell();
-            roomCell.setBorder(Rectangle.NO_BORDER);
+            roomCell.setBorder(Rectangle.BOX);
+            roomCell.setPadding(15f);
             roomCell.setVerticalAlignment(Element.ALIGN_TOP);
             
-            Paragraph roomTitle = new Paragraph("Thông tin phòng:", headerFont);
+            Paragraph roomTitle = new Paragraph("THÔNG TIN PHÒNG", headerFont);
+            roomTitle.setSpacingAfter(10f);
             roomCell.addElement(roomTitle);
-            roomCell.addElement(new Paragraph("Số phòng: " + bill.getRoom().getRoomNumber(), normalFont));
+            roomCell.addElement(new Paragraph("• Số phòng: " + bill.getRoom().getRoomNumber(), normalFont));
             if (bill.getRoom().getBuilding() != null && !bill.getRoom().getBuilding().isEmpty()) {
-                roomCell.addElement(new Paragraph("Tòa nhà: " + bill.getRoom().getBuilding(), normalFont));
+                roomCell.addElement(new Paragraph("• Tòa nhà: " + bill.getRoom().getBuilding(), normalFont));
             }
             if (bill.getContract() != null) {
-                roomCell.addElement(new Paragraph("Hợp đồng: #" + bill.getContract().getId(), normalFont));
+                roomCell.addElement(new Paragraph("• Hợp đồng: #" + bill.getContract().getId(), normalFont));
             }
             
-            customerRoomTable.addCell(customerCell);
-            customerRoomTable.addCell(roomCell);
-            document.add(customerRoomTable);
-
-            // Billing Period
-            Paragraph periodTitle = new Paragraph("Thời gian tính tiền:", headerFont);
-            periodTitle.setSpacingAfter(5f);
-            document.add(periodTitle);
+            // Thời gian tính tiền
+            roomCell.addElement(new Paragraph(" ", normalFont));
+            roomCell.addElement(new Paragraph("THỜI GIAN TÍNH TIỀN:", new Font(baseFont, 10, Font.BOLD)));
+            roomCell.addElement(new Paragraph("• Từ ngày: " + dateFormatter.format(bill.getFromDate().atZone(ZoneId.systemDefault())), normalFont));
+            roomCell.addElement(new Paragraph("• Đến ngày: " + dateFormatter.format(bill.getToDate().atZone(ZoneId.systemDefault())), normalFont));
             
-            PdfPTable periodTable = new PdfPTable(2);
-            periodTable.setWidthPercentage(100);
-            periodTable.setSpacingAfter(20f);
-            periodTable.addCell(new PdfPCell(new Phrase("Từ ngày: " + dateFormatter.format(bill.getFromDate().atZone(ZoneId.systemDefault())), normalFont)));
-            periodTable.addCell(new PdfPCell(new Phrase("Đến ngày: " + dateFormatter.format(bill.getToDate().atZone(ZoneId.systemDefault())), normalFont)));
-            document.add(periodTable);
+            // Hạn thanh toán
+            String roomDueDateText;
+            if (bill.getDueDate() != null) {
+                roomDueDateText = dateFormatter.format(bill.getDueDate().atZone(ZoneId.systemDefault()));
+            } else {
+                roomDueDateText = dateFormatter.format(bill.getToDate().plusSeconds(7 * 24 * 60 * 60).atZone(ZoneId.systemDefault()));
+            }
+            roomCell.addElement(new Paragraph("• Hạn thanh toán: " + roomDueDateText, normalFont));
+            
+            infoMainTable.addCell(customerCell);
+            infoMainTable.addCell(roomCell);
+            document.add(infoMainTable);
 
-            // Invoice Details
-            Paragraph detailsTitle = new Paragraph("Chi tiết hóa đơn:", headerFont);
-            detailsTitle.setSpacingAfter(10f);
+            // Invoice Details - professional table
+            Paragraph detailsTitle = new Paragraph("CHI TIẾT HÓA ĐƠN", headerFont);
+            detailsTitle.setSpacingAfter(15f);
             document.add(detailsTitle);
             
             PdfPTable detailTable = new PdfPTable(4);
             detailTable.setWidthPercentage(100);
             detailTable.setSpacingAfter(20f);
+            detailTable.setWidths(new float[]{4f, 1.5f, 2f, 2f});
             
-            // Header row
-            detailTable.addCell(new PdfPCell(new Phrase("Diễn giải", headerFont)));
-            detailTable.addCell(new PdfPCell(new Phrase("Số lượng", headerFont)));
-            detailTable.addCell(new PdfPCell(new Phrase("Đơn giá", headerFont)));
-            detailTable.addCell(new PdfPCell(new Phrase("Thành tiền", headerFont)));
+            // Header row with styling
+            PdfPCell[] headerCells = {
+                new PdfPCell(new Phrase("DIỄN GIẢI", headerFont)),
+                new PdfPCell(new Phrase("SỐ LƯỢNG", headerFont)),
+                new PdfPCell(new Phrase("ĐƠN GIÁ", headerFont)),
+                new PdfPCell(new Phrase("THÀNH TIỀN", headerFont))
+            };
+            
+            for (PdfPCell cell : headerCells) {
+                cell.setBackgroundColor(new Color(240, 240, 240));
+                cell.setPadding(8f);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                detailTable.addCell(cell);
+            }
             
             BigDecimal totalAmount = BigDecimal.ZERO;
             for (BillDetail detail : bill.getBillDetails()) {
-                detailTable.addCell(new PdfPCell(new Phrase(detail.getDescription(), normalFont)));
+                // Description
+                PdfPCell descCell = new PdfPCell(new Phrase(detail.getDescription(), normalFont));
+                descCell.setPadding(8f);
+                detailTable.addCell(descCell);
                 
-                String quantity = detail.getConsumedUnits() != null ? detail.getConsumedUnits().toString() : "1";
-                detailTable.addCell(new PdfPCell(new Phrase(quantity, normalFont)));
+                // Quantity - center aligned
+                String quantity = detail.getConsumedUnits() != null ? 
+                    new java.text.DecimalFormat("#,###.##").format(detail.getConsumedUnits()) : "1";
+                PdfPCell qtyCell = new PdfPCell(new Phrase(quantity, normalFont));
+                qtyCell.setPadding(8f);
+                qtyCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                detailTable.addCell(qtyCell);
                 
-                String unitPrice = detail.getUnitPriceAtBill() != null ? currencyFormat.format(detail.getUnitPriceAtBill()) : "-";
-                detailTable.addCell(new PdfPCell(new Phrase(unitPrice, normalFont)));
+                // Unit Price - right aligned
+                String unitPrice = detail.getUnitPriceAtBill() != null ? formatCurrency(detail.getUnitPriceAtBill()) : "-";
+                PdfPCell priceCell = new PdfPCell(new Phrase(unitPrice, normalFont));
+                priceCell.setPadding(8f);
+                priceCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                detailTable.addCell(priceCell);
                 
-                String amount = detail.getItemAmount() != null ? currencyFormat.format(detail.getItemAmount()) : "-";
-                detailTable.addCell(new PdfPCell(new Phrase(amount, normalFont)));
+                // Amount - right aligned
+                String amount = detail.getItemAmount() != null ? formatCurrency(detail.getItemAmount()) : "-";
+                PdfPCell amountCell = new PdfPCell(new Phrase(amount, normalFont));
+                amountCell.setPadding(8f);
+                amountCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                detailTable.addCell(amountCell);
                 
                 if (detail.getItemAmount() != null) {
                     totalAmount = totalAmount.add(detail.getItemAmount());
@@ -1282,53 +1340,97 @@ public class BillServiceImpl implements BillService {
             }
             document.add(detailTable);
 
-            // Total
-            PdfPTable totalTable = new PdfPTable(2);
-            totalTable.setWidthPercentage(40);
-            totalTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
-            totalTable.setSpacingAfter(20f);
+            // Payment Summary - professional layout
+            PdfPTable summaryTable = new PdfPTable(2);
+            summaryTable.setWidthPercentage(60);
+            summaryTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            summaryTable.setSpacingAfter(25f);
+            summaryTable.setWidths(new float[]{3f, 2f});
             
-            totalTable.addCell(new PdfPCell(new Phrase("Tổng cộng:", headerFont)));
-            totalTable.addCell(new PdfPCell(new Phrase(currencyFormat.format(totalAmount), headerFont)));
+            // Total amount
+            PdfPCell totalLabelCell = new PdfPCell(new Phrase("TỔNG CỘNG:", headerFont));
+            totalLabelCell.setPadding(10f);
+            totalLabelCell.setBackgroundColor(new Color(240, 240, 240));
+            totalLabelCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
             
-            document.add(totalTable);
-
-            // Status
-            String status = bill.getStatus() ? "Đã thanh toán" : "Chưa thanh toán";
-            Paragraph statusText = new Paragraph("Trạng thái: " + status, normalFont);
-            statusText.setSpacingAfter(20f);
-            document.add(statusText);
+            PdfPCell totalValueCell = new PdfPCell(new Phrase(formatCurrency(totalAmount), headerFont));
+            totalValueCell.setPadding(10f);
+            totalValueCell.setBackgroundColor(new Color(240, 240, 240));
+            totalValueCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            
+            summaryTable.addCell(totalLabelCell);
+            summaryTable.addCell(totalValueCell);
+            
+            // Thông tin thanh toán từng phần nếu có
+            if (Boolean.TRUE.equals(bill.getIsPartiallyPaid())) {
+                // Đã thanh toán (gốc)
+                summaryTable.addCell(new PdfPCell(new Phrase("Đã thanh toán (gốc):", normalFont)) {{ setPadding(8f); setHorizontalAlignment(Element.ALIGN_RIGHT); }});
+                summaryTable.addCell(new PdfPCell(new Phrase(formatCurrency(bill.getPaidAmount() != null ? bill.getPaidAmount() : BigDecimal.ZERO), normalFont)) {{ setPadding(8f); setHorizontalAlignment(Element.ALIGN_RIGHT); }});
+                
+                // Phí thanh toán từng phần
+                if (bill.getPartialPaymentFeesCollected() != null && bill.getPartialPaymentFeesCollected().compareTo(BigDecimal.ZERO) > 0) {
+                    summaryTable.addCell(new PdfPCell(new Phrase("Phí thanh toán từng phần:", normalFont)) {{ setPadding(8f); setHorizontalAlignment(Element.ALIGN_RIGHT); }});
+                    summaryTable.addCell(new PdfPCell(new Phrase(formatCurrency(bill.getPartialPaymentFeesCollected()), normalFont)) {{ setPadding(8f); setHorizontalAlignment(Element.ALIGN_RIGHT); }});
+                }
+                
+                // Còn nợ
+                Color debtColor = bill.getOutstandingAmount() != null && bill.getOutstandingAmount().compareTo(BigDecimal.ZERO) > 0 ? 
+                    new Color(255, 77, 79) : new Color(82, 196, 26);
+                Font debtFont = new Font(baseFont, 11, Font.BOLD, debtColor);
+                
+                PdfPCell debtLabelCell = new PdfPCell(new Phrase("CÒN NỢ:", debtFont));
+                debtLabelCell.setPadding(10f);
+                debtLabelCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                debtLabelCell.setBackgroundColor(new Color(250, 250, 250));
+                
+                PdfPCell debtValueCell = new PdfPCell(new Phrase(formatCurrency(bill.getOutstandingAmount() != null ? bill.getOutstandingAmount() : BigDecimal.ZERO), debtFont));
+                debtValueCell.setPadding(10f);
+                debtValueCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                debtValueCell.setBackgroundColor(new Color(250, 250, 250));
+                
+                summaryTable.addCell(debtLabelCell);
+                summaryTable.addCell(debtValueCell);
+            }
+            
+            document.add(summaryTable);
 
             // Payment Information (only if not paid)
             if (!bill.getStatus()) {
-                Paragraph paymentTitle = new Paragraph("Thông tin thanh toán:", headerFont);
+                Paragraph paymentTitle = new Paragraph("THÔNG TIN THANH TOÁN", headerFont);
                 paymentTitle.setSpacingAfter(10f);
                 document.add(paymentTitle);
                 
                 PdfPTable paymentTable = new PdfPTable(2);
                 paymentTable.setWidthPercentage(100);
                 paymentTable.setSpacingAfter(20f);
+                paymentTable.setWidths(new float[]{1f, 1f});
                 
-                paymentTable.addCell(new PdfPCell(new Phrase("Phương thức thanh toán:", normalFont)));
-                paymentTable.addCell(new PdfPCell(new Phrase("VNPay / Tiền mặt", normalFont)));
+                PdfPCell methodCell = new PdfPCell(new Phrase("Phương thức thanh toán: VNPay / Tiền mặt", normalFont));
+                methodCell.setPadding(8f);
+                methodCell.setBorder(Rectangle.BOX);
                 
-                paymentTable.addCell(new PdfPCell(new Phrase("Hạn thanh toán:", normalFont)));
-                String dueDateText;
-                if (bill.getDueDate() != null) {
-                    dueDateText = dateFormatter.format(bill.getDueDate().atZone(ZoneId.systemDefault()));
-                } else {
-                    dueDateText = "Chưa thiết lập";
-                }
-                paymentTable.addCell(new PdfPCell(new Phrase(dueDateText, normalFont)));
+                String dueDateText = bill.getDueDate() != null ? 
+                    dateFormatter.format(bill.getDueDate().atZone(ZoneId.systemDefault())) : 
+                    "Chưa thiết lập";
+                PdfPCell dueDateCell = new PdfPCell(new Phrase("Hạn thanh toán: " + dueDateText, normalFont));
+                dueDateCell.setPadding(8f);
+                dueDateCell.setBorder(Rectangle.BOX);
                 
+                paymentTable.addCell(methodCell);
+                paymentTable.addCell(dueDateCell);
                 document.add(paymentTable);
             }
 
-            // Simple footer
-            Paragraph footer = new Paragraph("Cảm ơn quý khách đã sử dụng dịch vụ!", smallFont);
+            // Professional footer
+            Paragraph footer = new Paragraph("Cảm ơn quý khách đã sử dụng dịch vụ của chúng tôi!", smallFont);
             footer.setAlignment(Element.ALIGN_CENTER);
-            footer.setSpacingAfter(10f);
+            footer.setSpacingBefore(30f);
             document.add(footer);
+            
+            Paragraph contactInfo = new Paragraph("Liên hệ: MP-BHMS | Email: support@mpbhms.online", smallFont);
+            contactInfo.setAlignment(Element.ALIGN_CENTER);
+            contactInfo.setSpacingAfter(10f);
+            document.add(contactInfo);
 
             document.close();
         } catch (Exception e) {
@@ -1376,6 +1478,31 @@ public class BillServiceImpl implements BillService {
     public BigDecimal getMonthRevenue(String month) {
         return billRepository.getMonthRevenue(month);
     }
+    
+    @Override
+    public Map<String, BigDecimal> getRevenueBreakdown() {
+        Map<String, BigDecimal> breakdown = new HashMap<>();
+        
+        // Doanh thu từ hóa đơn (tiền gốc)
+        BigDecimal billRevenue = billRepository.getTotalBillRevenue();
+        
+        // Doanh thu từ phí thanh toán từng phần
+        BigDecimal feeRevenue = billRepository.getTotalFeeRevenue();
+        
+        // Tổng số tiền từ thanh toán từng phần (không bao gồm phí)
+        BigDecimal partialPayments = billRevenue;
+        
+        breakdown.put("billRevenue", billRevenue != null ? billRevenue : BigDecimal.ZERO);
+        breakdown.put("feeRevenue", feeRevenue != null ? feeRevenue : BigDecimal.ZERO);
+        breakdown.put("partialPayments", partialPayments != null ? partialPayments : BigDecimal.ZERO);
+        
+        return breakdown;
+    }
+    
+    @Override
+    public long countPartiallyPaidBills() {
+        return billRepository.countPartiallyPaidBills();
+    }
 
     // Gửi notification cho từng user trong phòng ứng với hợp đồng khi gửi bill
     private void sendBillNotificationToAllUsers(Bill bill) {
@@ -1417,6 +1544,13 @@ public class BillServiceImpl implements BillService {
         if (status) {
             warningSentBills.remove(billId);
             System.out.println("[" + java.time.LocalDateTime.now() + "] Đã xóa hóa đơn #" + billId + " khỏi cache cảnh báo (đã thanh toán)");
+
+            // 🆕 Gửi email/notification xác nhận đã thanh toán khi bấm nút "Đã thanh toán"
+            try {
+                sendBillPaidConfirmation(updatedBill);
+            } catch (Exception e) {
+                System.err.println("Lỗi gửi xác nhận đã thanh toán (manual): " + e.getMessage());
+            }
         }
         
         return toResponse(updatedBill);
@@ -1496,6 +1630,49 @@ public class BillServiceImpl implements BillService {
             bill.setStatus(true);
             bill.setPaidDate(currentDate);
             System.out.println("✅ Hóa đơn #" + bill.getId() + " đã được thanh toán đầy đủ!");
+
+            // 🆕 Gửi email + thông báo “đã thanh toán hoàn toàn”
+            try {
+                // Gửi email xác nhận đã thanh toán
+                if (bill.getContract() != null && bill.getContract().getRoomUsers() != null) {
+                    var mainRenter = bill.getContract().getRoomUsers().stream()
+                        .filter(ru -> ru.getUser() != null && Boolean.TRUE.equals(ru.getIsActive()) && ru.getUser().getEmail() != null)
+                        .findFirst().orElse(null);
+                    if (mainRenter != null) {
+                        String content = "<h2>Hóa đơn đã được thanh toán đầy đủ</h2>" +
+                            "<p>Xin chúc mừng! Hóa đơn #" + bill.getId() + " đã được thanh toán đầy đủ.</p>" +
+                            "<ul>" +
+                            "<li><strong>Phòng:</strong> " + bill.getRoom().getRoomNumber() + "</li>" +
+                            "<li><strong>Tổng tiền:</strong> " + formatCurrency(bill.getTotalAmount()) + "</li>" +
+                            "<li><strong>Đã thanh toán (gốc):</strong> " + formatCurrency(bill.getPaidAmount()) + "</li>" +
+                            "<li><strong>Còn nợ:</strong> 0 VNĐ</li>" +
+                            "<li><strong>Ngày thanh toán:</strong> " + formatDateTime(bill.getPaidDate()) + "</li>" +
+                            "</ul>";
+                        emailService.sendNotificationEmail(
+                            mainRenter.getUser().getEmail(),
+                            "Xác nhận đã thanh toán - Hóa đơn #" + bill.getId(),
+                            content
+                        );
+                    }
+                }
+
+                // Notification hệ thống
+                if (bill.getContract() != null && bill.getContract().getRoomUsers() != null) {
+                    for (RoomUser ru : bill.getContract().getRoomUsers()) {
+                        if (ru.getUser() != null && Boolean.TRUE.equals(ru.getIsActive())) {
+                            NotificationDTO noti = new NotificationDTO();
+                            noti.setRecipientId(ru.getUser().getId());
+                            noti.setTitle("Hóa đơn đã được thanh toán");
+                            noti.setMessage("Hóa đơn #" + bill.getId() + " đã thanh toán đầy đủ. Cảm ơn bạn!");
+                            noti.setType(NotificationType.ANNOUNCEMENT);
+                            noti.setMetadata("{\"billId\":" + bill.getId() + "}");
+                            notificationService.createAndSend(noti);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Lỗi gửi xác nhận đã thanh toán: " + e.getMessage());
+            }
         } else {
             // Đảm bảo status = false nếu vẫn còn nợ
             bill.setStatus(false);
@@ -1657,12 +1834,8 @@ public class BillServiceImpl implements BillService {
         }
     }
     
-    // Tạo nội dung email thanh toán từng phần
-    private String buildPartialPaymentEmailContent(Bill bill, BigDecimal paymentAmount) {
-        StringBuilder content = new StringBuilder();
-        content.append("<html><body>");
-        content.append("<h2>Thanh toán hóa đơn thành công</h2>");
-        
+    @Override
+    public String buildPartialPaymentEmailContent(Bill bill, BigDecimal paymentAmount) {
         // Lấy tên người thuê từ RoomUser
         String renterName = "Người thuê";
         if (bill.getContract().getRoomUsers() != null && !bill.getContract().getRoomUsers().isEmpty()) {
@@ -1675,28 +1848,32 @@ public class BillServiceImpl implements BillService {
             }
         }
         
-        content.append("<p>Xin chào " + renterName + ",</p>");
-        content.append("<p>Bạn đã thanh toán thành công <strong>" + formatCurrency(paymentAmount) + "</strong> cho hóa đơn #" + bill.getId() + ".</p>");
-        content.append("<h3>Chi tiết hóa đơn:</h3>");
-        content.append("<ul>");
-        content.append("<li><strong>Phòng:</strong> " + bill.getRoom().getRoomNumber() + "</li>");
-        content.append("<li><strong>Tổng tiền:</strong> " + formatCurrency(bill.getTotalAmount()) + "</li>");
-        content.append("<li><strong>Đã thanh toán:</strong> " + formatCurrency(bill.getPaidAmount()) + "</li>");
-        content.append("<li><strong>Còn nợ:</strong> " + formatCurrency(bill.getOutstandingAmount()) + "</li>");
-        content.append("<li><strong>Ngày thanh toán:</strong> " + formatDateTime(bill.getLastPaymentDate()) + "</li>");
-        content.append("</ul>");
+        StringBuilder contentBody = new StringBuilder();
+        contentBody.append("<div style='background-color: #e6f7ff; border: 1px solid #91d5ff; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+        contentBody.append("<h3 style='color: #0050b3; margin: 0 0 15px 0; font-size: 18px;'>Thông tin hóa đơn</h3>");
+        contentBody.append("<table style='width: 100%; border-collapse: collapse;'>");
+        contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Phòng:</td><td style='padding: 8px 0; color: #666;'>").append(bill.getRoom().getRoomNumber()).append("</td></tr>");
+        contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Mã hóa đơn:</td><td style='padding: 8px 0; color: #666;'>#").append(bill.getId()).append("</td></tr>");
+        contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Tổng tiền:</td><td style='padding: 8px 0; color: #1890ff; font-weight: bold; font-size: 16px;'>").append(formatCurrency(bill.getTotalAmount())).append("</td></tr>");
+        contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Đã thanh toán (gốc):</td><td style='padding: 8px 0; color: #52c41a; font-weight: bold;'>").append(formatCurrency(bill.getPaidAmount())).append("</td></tr>");
+        contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Còn nợ:</td><td style='padding: 8px 0; color: #ff4d4f; font-weight: bold;'>").append(formatCurrency(bill.getOutstandingAmount())).append("</td></tr>");
+        contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Ngày thanh toán:</td><td style='padding: 8px 0; color: #666;'>").append(formatDateTime(bill.getLastPaymentDate())).append("</td></tr>");
+        contentBody.append("</table>");
+        contentBody.append("</div>");
+        
+        // Thông báo
+        contentBody.append("<div style='background-color: #f6ffed; border: 1px solid #b7eb8f; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+        contentBody.append("<h3 style='color: #389e0d; margin: 0 0 15px 0; font-size: 18px;'>Thông báo</h3>");
+        contentBody.append("<p style='margin: 0; color: #389e0d;'>Xin chào ").append(renterName).append(", bạn đã thanh toán thành công <strong>").append(formatCurrency(paymentAmount)).append("</strong> cho hóa đơn #").append(bill.getId()).append(".</p>");
         
         if (bill.getStatus()) {
-            content.append("<p style='color: green;'><strong>🎉 Chúc mừng! Hóa đơn đã được thanh toán đầy đủ.</strong></p>");
+            contentBody.append("<p style='color: #52c41a; font-weight: bold; margin-top: 10px;'>🎉 Chúc mừng! Hóa đơn đã được thanh toán đầy đủ.</p>");
         } else {
-            content.append("<p style='color: orange;'><strong>⚠️ Lưu ý: Vẫn còn nợ " + formatCurrency(bill.getOutstandingAmount()) + ".</strong></p>");
-            content.append("<p style='color: blue;'><strong>📅 Hạn thanh toán đã được gia hạn thêm 30 ngày. Phạt quá hạn sẽ chỉ áp dụng sau 37 ngày kể từ hạn thanh toán mới.</strong></p>");
+            contentBody.append("<p style='color: #faad14; font-weight: bold; margin-top: 10px;'>⚠️ Lưu ý: Vẫn còn nợ ").append(formatCurrency(bill.getOutstandingAmount())).append(". Hạn thanh toán đã được gia hạn thêm 30 ngày.</p>");
         }
+        contentBody.append("</div>");
         
-        content.append("<p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>");
-        content.append("</body></html>");
-        
-        return content.toString();
+        return buildStandardEmailTemplate("THANH TOÁN THÀNH CÔNG", "#52c41a", contentBody.toString());
     }
 
     @Override
@@ -2234,10 +2411,36 @@ public class BillServiceImpl implements BillService {
         return penaltyRate;
     }
 
-    // Helper method để format số tiền VNĐ
+    // Helper method để format số tiền VNĐ (chuẩn hóa)
     private String formatCurrency(BigDecimal amount) {
-        if (amount == null) return "0 VNĐ";
-        return amount.stripTrailingZeros().toPlainString() + " VNĐ";
+        if (amount == null) return "0 ₫";
+        return new java.text.DecimalFormat("#,###").format(amount) + " ₫";
+    }
+
+    // 🆕 Tạo email template chuẩn cho tất cả loại email
+    private String buildStandardEmailTemplate(String title, String headerColor, String content) {
+        StringBuilder email = new StringBuilder();
+        email.append("<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;'>");
+        email.append("<div style='background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>");
+        
+        // Header
+        email.append("<div style='text-align: center; margin-bottom: 30px;'>");
+        email.append("<h1 style='color: ").append(headerColor).append("; margin: 0; font-size: 24px;'>").append(title).append("</h1>");
+        email.append("<div style='width: 60px; height: 3px; background-color: ").append(headerColor).append("; margin: 10px auto;'></div>");
+        email.append("</div>");
+        
+        // Content
+        email.append(content);
+        
+        // Footer
+        email.append("<div style='text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;'>");
+        email.append("<p style='margin: 0; color: #6c757d; font-size: 14px;'>Trân trọng,<br><strong>Ban quản lý tòa nhà MP-BHMS</strong></p>");
+        email.append("</div>");
+        
+        email.append("</div>");
+        email.append("</div>");
+        
+        return email.toString();
     }
 
     // Gửi thông báo và email phạt
@@ -2462,62 +2665,54 @@ public class BillServiceImpl implements BillService {
     
     @Override
     public String buildNormalBillEmailContent(Bill bill, String paymentUrl) {
-        StringBuilder content = new StringBuilder();
-        content.append("<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;'>");
-        content.append("<div style='background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>");
-        
-        // Header
-        content.append("<div style='text-align: center; margin-bottom: 30px;'>");
-        content.append("<h1 style='color: #1890ff; margin: 0; font-size: 24px;'>HÓA ĐƠN MỚI</h1>");
-        content.append("<div style='width: 60px; height: 3px; background-color: #1890ff; margin: 10px auto;'></div>");
-        content.append("</div>");
+        StringBuilder contentBody = new StringBuilder();
         
         // Thông tin hóa đơn
-        content.append("<div style='background-color: #e6f7ff; border: 1px solid #91d5ff; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
-        content.append("<h3 style='color: #0050b3; margin: 0 0 15px 0; font-size: 18px;'>Thông tin hóa đơn</h3>");
-        content.append("<table style='width: 100%; border-collapse: collapse;'>");
-        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Phòng:</td><td style='padding: 8px 0; color: #666;'>").append(bill.getRoom().getRoomNumber()).append("</td></tr>");
-        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Mã hóa đơn:</td><td style='padding: 8px 0; color: #666;'>#").append(bill.getId()).append("</td></tr>");
-        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Loại hóa đơn:</td><td style='padding: 8px 0; color: #666;'>").append(getBillTypeVietnamese(bill.getBillType())).append("</td></tr>");
-        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Từ ngày:</td><td style='padding: 8px 0; color: #666;'>").append(formatDateTime(bill.getFromDate())).append("</td></tr>");
-        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Đến ngày:</td><td style='padding: 8px 0; color: #666;'>").append(formatDateTime(bill.getToDate())).append("</td></tr>");
-        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Hạn thanh toán:</td><td style='padding: 8px 0; color: #faad14; font-weight: bold;'>").append(formatDateTime(bill.getToDate().plusSeconds(7 * 24 * 60 * 60))).append("</td></tr>");
-        content.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Số tiền:</td><td style='padding: 8px 0; color: #1890ff; font-weight: bold; font-size: 16px;'>").append(formatCurrency(bill.getTotalAmount())).append("</td></tr>");
-        content.append("</table>");
-        content.append("</div>");
+        contentBody.append("<div style='background-color: #e6f7ff; border: 1px solid #91d5ff; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+        contentBody.append("<h3 style='color: #0050b3; margin: 0 0 15px 0; font-size: 18px;'>Thông tin hóa đơn</h3>");
+        contentBody.append("<table style='width: 100%; border-collapse: collapse;'>");
+        contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Phòng:</td><td style='padding: 8px 0; color: #666;'>").append(bill.getRoom().getRoomNumber()).append("</td></tr>");
+        contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Mã hóa đơn:</td><td style='padding: 8px 0; color: #666;'>#").append(bill.getId()).append("</td></tr>");
+        contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Loại hóa đơn:</td><td style='padding: 8px 0; color: #666;'>").append(getBillTypeVietnamese(bill.getBillType())).append("</td></tr>");
+        contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Từ ngày:</td><td style='padding: 8px 0; color: #666;'>").append(formatDateTime(bill.getFromDate())).append("</td></tr>");
+        contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Đến ngày:</td><td style='padding: 8px 0; color: #666;'>").append(formatDateTime(bill.getToDate())).append("</td></tr>");
+        // Hạn thanh toán: ưu tiên dueDate nếu có, nếu không thì toDate + 7 ngày
+        java.time.Instant __due = bill.getDueDate() != null ? bill.getDueDate() : bill.getToDate().plusSeconds(7 * 24 * 60 * 60);
+        contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Hạn thanh toán:</td><td style='padding: 8px 0; color: #faad14; font-weight: bold;'>").append(formatDateTime(__due)).append("</td></tr>");
+        // Tổng/đã trả/còn nợ
+        java.math.BigDecimal __total = bill.getTotalAmount();
+        java.math.BigDecimal __paid = bill.getPaidAmount() != null ? bill.getPaidAmount() : java.math.BigDecimal.ZERO;
+        java.math.BigDecimal __outstanding = bill.getOutstandingAmount() != null ? bill.getOutstandingAmount() : __total.subtract(__paid);
+        contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Tổng tiền:</td><td style='padding: 8px 0; color: #1890ff; font-weight: bold; font-size: 16px;'>").append(formatCurrency(__total)).append("</td></tr>");
+        contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Đã thanh toán (gốc):</td><td style='padding: 8px 0; color: #52c41a; font-weight: bold;'>").append(formatCurrency(__paid)).append("</td></tr>");
+        contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Còn nợ:</td><td style='padding: 8px 0; color: #ff4d4f; font-weight: bold;'>").append(formatCurrency(__outstanding)).append("</td></tr>");
+        contentBody.append("</table>");
+        contentBody.append("</div>");
         
         // Thông báo
-        content.append("<div style='background-color: #f6ffed; border: 1px solid #b7eb8f; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
-        content.append("<h3 style='color: #389e0d; margin: 0 0 15px 0; font-size: 18px;'>Thông báo</h3>");
-        content.append("<p style='margin: 0; color: #389e0d;'>Xin chào, vui lòng xem hóa đơn đính kèm.</p>");
-        content.append("</div>");
+        contentBody.append("<div style='background-color: #f6ffed; border: 1px solid #b7eb8f; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+        contentBody.append("<h3 style='color: #389e0d; margin: 0 0 15px 0; font-size: 18px;'>Thông báo</h3>");
+        contentBody.append("<p style='margin: 0; color: #389e0d;'>Xin chào, vui lòng xem hóa đơn đính kèm.</p>");
+        contentBody.append("</div>");
         
         // Thanh toán
         if (paymentUrl != null) {
-            content.append("<div style='background-color: #fff7e6; border: 1px solid #ffd591; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
-            content.append("<h3 style='color: #d46b08; margin: 0 0 15px 0; font-size: 18px;'>Thanh toán</h3>");
-            content.append("<p style='margin: 0 0 10px 0; color: #d46b08;'>Để thanh toán hóa đơn, vui lòng bấm vào nút bên dưới:</p>");
-            content.append("<div style='text-align: center; margin: 15px 0;'>");
-            content.append("<a href='").append(paymentUrl).append("' style='background-color: #1890ff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;'>Thanh toán ngay</a>");
-            content.append("</div>");
-            content.append("<p style='margin: 10px 0 0 0; color: #d46b08; font-size: 14px;'>Hoặc copy link: <span style='background-color: #f5f5f5; padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;'>").append(paymentUrl).append("</span></p>");
-            content.append("</div>");
+            contentBody.append("<div style='background-color: #fff7e6; border: 1px solid #ffd591; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+            contentBody.append("<h3 style='color: #d46b08; margin: 0 0 15px 0; font-size: 18px;'>Thanh toán</h3>");
+            contentBody.append("<p style='margin: 0 0 10px 0; color: #d46b08;'>Để thanh toán hóa đơn, vui lòng bấm vào nút bên dưới:</p>");
+            contentBody.append("<div style='text-align: center; margin: 15px 0;'>");
+            contentBody.append("<a href='").append(paymentUrl).append("' style='background-color: #1890ff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;'>Thanh toán ngay</a>");
+            contentBody.append("</div>");
+            contentBody.append("<p style='margin: 10px 0 0 0; color: #d46b08; font-size: 14px;'>Hoặc copy link: <span style='background-color: #f5f5f5; padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;'>").append(paymentUrl).append("</span></p>");
+            contentBody.append("</div>");
         } else {
-            content.append("<div style='background-color: #fff2f0; border: 1px solid #ffccc7; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
-            content.append("<h3 style='color: #cf1322; margin: 0 0 15px 0; font-size: 18px;'>Lưu ý</h3>");
-            content.append("<p style='margin: 0; color: #cf1322;'>Không tạo được link thanh toán tự động. Vui lòng liên hệ quản lý để thanh toán.</p>");
-            content.append("</div>");
+            contentBody.append("<div style='background-color: #fff2f0; border: 1px solid #ffccc7; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+            contentBody.append("<h3 style='color: #cf1322; margin: 0 0 15px 0; font-size: 18px;'>Lưu ý</h3>");
+            contentBody.append("<p style='margin: 0; color: #cf1322;'>Không tạo được link thanh toán tự động. Vui lòng liên hệ quản lý để thanh toán.</p>");
+            contentBody.append("</div>");
         }
         
-        // Footer
-        content.append("<div style='text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;'>");
-        content.append("<p style='margin: 0; color: #6c757d; font-size: 14px;'>Trân trọng,<br><strong>Ban quản lý tòa nhà</strong></p>");
-        content.append("</div>");
-        
-        content.append("</div>");
-        content.append("</div>");
-        
-        return content.toString();
+        return buildStandardEmailTemplate("HÓA ĐƠN MỚI", "#1890ff", contentBody.toString());
     }
 
     // Helper method để việt hóa loại hóa đơn
@@ -2557,6 +2752,61 @@ public class BillServiceImpl implements BillService {
     private String shortenUrl(String url) {
         if (url == null || url.length() <= 50) return url;
         return url.substring(0, 47) + "...";
+    }
+
+    // 🆕 Helper: gửi email + notification xác nhận đã thanh toán đầy đủ
+    private void sendBillPaidConfirmation(Bill bill) {
+        try {
+            // Email xác nhận dùng template chuẩn
+            if (bill.getContract() != null && bill.getContract().getRoomUsers() != null) {
+                var mainRenter = bill.getContract().getRoomUsers().stream()
+                    .filter(ru -> ru.getUser() != null && Boolean.TRUE.equals(ru.getIsActive()) && ru.getUser().getEmail() != null)
+                    .findFirst().orElse(null);
+                if (mainRenter != null) {
+                    StringBuilder contentBody = new StringBuilder();
+                    contentBody.append("<div style='background-color: #f6ffed; border: 1px solid #b7eb8f; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+                    contentBody.append("<h3 style='color: #389e0d; margin: 0 0 15px 0; font-size: 18px;'>Thông tin hóa đơn</h3>");
+                    contentBody.append("<table style='width: 100%; border-collapse: collapse;'>");
+                    contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Phòng:</td><td style='padding: 8px 0; color: #666;'>").append(bill.getRoom().getRoomNumber()).append("</td></tr>");
+                    contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Mã hóa đơn:</td><td style='padding: 8px 0; color: #666;'>#").append(bill.getId()).append("</td></tr>");
+                    contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Tổng tiền:</td><td style='padding: 8px 0; color: #1890ff; font-weight: bold; font-size: 16px;'>").append(formatCurrency(bill.getTotalAmount())).append("</td></tr>");
+                    contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Đã thanh toán (gốc):</td><td style='padding: 8px 0; color: #52c41a; font-weight: bold;'>").append(formatCurrency(bill.getPaidAmount())).append("</td></tr>");
+                    contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Còn nợ:</td><td style='padding: 8px 0; color: #52c41a; font-weight: bold;'>0 ₫</td></tr>");
+                    contentBody.append("<tr><td style='padding: 8px 0; font-weight: bold; color: #333;'>Ngày thanh toán:</td><td style='padding: 8px 0; color: #666;'>").append(formatDateTime(bill.getPaidDate())).append("</td></tr>");
+                    contentBody.append("</table>");
+                    contentBody.append("</div>");
+                    
+                    contentBody.append("<div style='background-color: #f6ffed; border: 1px solid #b7eb8f; border-radius: 6px; padding: 20px; margin-bottom: 25px;'>");
+                    contentBody.append("<h3 style='color: #389e0d; margin: 0 0 15px 0; font-size: 18px;'>Chúc mừng!</h3>");
+                    contentBody.append("<p style='margin: 0; color: #389e0d; font-weight: bold;'>🎉 Hóa đơn #").append(bill.getId()).append(" đã được thanh toán đầy đủ. Cảm ơn bạn đã sử dụng dịch vụ!</p>");
+                    contentBody.append("</div>");
+                    
+                    String emailContent = buildStandardEmailTemplate("XÁC NHẬN ĐÃ THANH TOÁN", "#52c41a", contentBody.toString());
+                    emailService.sendNotificationEmail(
+                        mainRenter.getUser().getEmail(),
+                        "Xác nhận đã thanh toán - Hóa đơn #" + bill.getId(),
+                        emailContent
+                    );
+                }
+            }
+
+            // Notification hệ thống
+            if (bill.getContract() != null && bill.getContract().getRoomUsers() != null) {
+                for (RoomUser ru : bill.getContract().getRoomUsers()) {
+                    if (ru.getUser() != null && Boolean.TRUE.equals(ru.getIsActive())) {
+                        NotificationDTO noti = new NotificationDTO();
+                        noti.setRecipientId(ru.getUser().getId());
+                        noti.setTitle("Hóa đơn đã được thanh toán");
+                        noti.setMessage("Hóa đơn #" + bill.getId() + " đã thanh toán đầy đủ. Cảm ơn bạn!");
+                        noti.setType(NotificationType.ANNOUNCEMENT);
+                        noti.setMetadata("{\"billId\":" + bill.getId() + "}");
+                        notificationService.createAndSend(noti);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi sendBillPaidConfirmation: " + e.getMessage());
+        }
     }
     
     // Lấy số tiền nợ từ hóa đơn trước

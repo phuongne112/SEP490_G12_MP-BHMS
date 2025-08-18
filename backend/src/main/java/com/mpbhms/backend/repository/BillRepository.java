@@ -47,20 +47,35 @@ public interface BillRepository extends JpaRepository<Bill, Long>, JpaSpecificat
     @Query("SELECT COUNT(b) FROM Bill b WHERE b.status = false AND b.toDate < :sevenDaysAgo")
     long countOverdue(@Param("sevenDaysAgo") Instant sevenDaysAgo);
 
-    // Tổng doanh thu đã thanh toán
-    @Query("SELECT COALESCE(SUM(b.totalAmount),0) FROM Bill b WHERE b.status = true")
+    // Tổng doanh thu đã thanh toán (bao gồm cả thanh toán từng phần và phí)
+    @Query("SELECT COALESCE(SUM(COALESCE(b.paidAmount, 0) + COALESCE(b.partialPaymentFeesCollected, 0)), 0) FROM Bill b WHERE COALESCE(b.paidAmount, 0) > 0")
     BigDecimal getTotalRevenue();
 
-    // Doanh thu theo tháng (6 tháng gần nhất)
-    @Query("SELECT FUNCTION('DATE_FORMAT', b.toDate, '%Y-%m') as month, COALESCE(SUM(b.totalAmount),0) as revenue FROM Bill b WHERE b.status = true AND b.toDate >= :from GROUP BY month ORDER BY month ASC")
+    // Doanh thu theo tháng (6 tháng gần nhất) - tính theo tiền thực thu
+    @Query("SELECT FUNCTION('DATE_FORMAT', COALESCE(b.paidDate, b.lastPaymentDate, b.toDate), '%Y-%m') as month, " +
+           "COALESCE(SUM(COALESCE(b.paidAmount, 0) + COALESCE(b.partialPaymentFeesCollected, 0)), 0) as revenue " +
+           "FROM Bill b WHERE COALESCE(b.paidAmount, 0) > 0 AND COALESCE(b.paidDate, b.lastPaymentDate, b.toDate) >= :from " +
+           "GROUP BY month ORDER BY month ASC")
     List<Object[]> getRevenueByMonth(@Param("from") Instant from);
 
-    // Doanh thu tháng hiện tại
-    @Query("SELECT COALESCE(SUM(b.totalAmount),0) FROM Bill b WHERE b.status = true AND FUNCTION('DATE_FORMAT', b.toDate, '%Y-%m') = :month")
+    // Doanh thu tháng hiện tại - tính theo tiền thực thu
+    @Query("SELECT COALESCE(SUM(COALESCE(b.paidAmount, 0) + COALESCE(b.partialPaymentFeesCollected, 0)), 0) " +
+           "FROM Bill b WHERE COALESCE(b.paidAmount, 0) > 0 AND " +
+           "FUNCTION('DATE_FORMAT', COALESCE(b.paidDate, b.lastPaymentDate, b.toDate), '%Y-%m') = :month")
     BigDecimal getMonthRevenue(@Param("month") String month);
 
     // Kiểm tra đã tồn tại hóa đơn phạt cho hóa đơn gốc
     boolean existsByOriginalBillAndBillType(Bill originalBill, BillType billType);
+    
+    // 🆕 Thống kê doanh thu chi tiết
+    @Query("SELECT COALESCE(SUM(COALESCE(b.paidAmount, 0)), 0) FROM Bill b WHERE COALESCE(b.paidAmount, 0) > 0")
+    BigDecimal getTotalBillRevenue();
+    
+    @Query("SELECT COALESCE(SUM(COALESCE(b.partialPaymentFeesCollected, 0)), 0) FROM Bill b WHERE COALESCE(b.partialPaymentFeesCollected, 0) > 0")
+    BigDecimal getTotalFeeRevenue();
+    
+    @Query("SELECT COUNT(b) FROM Bill b WHERE b.isPartiallyPaid = true")
+    long countPartiallyPaidBills();
 
     // Tìm hóa đơn quá hạn (chưa thanh toán và toDate + 7 ngày < hiện tại)
     @Query("SELECT b FROM Bill b WHERE b.status = false AND b.toDate < :sevenDaysAgo AND b.billType != 'LATE_PENALTY'")
@@ -70,3 +85,75 @@ public interface BillRepository extends JpaRepository<Bill, Long>, JpaSpecificat
     @Query("SELECT b FROM Bill b WHERE b.status = false AND b.billType != 'LATE_PENALTY'")
     List<Bill> findByStatusFalse();
 }
+
+        Instant fromDate,
+
+        Instant toDate
+
+    );
+
+
+
+    // Đếm số hóa đơn chưa thanh toán
+
+    long countByStatusFalse();
+
+    // Đếm số hóa đơn đã thanh toán
+
+    long countByStatusTrue();
+
+    // Đếm số hóa đơn quá hạn (chưa thanh toán và toDate + 7 ngày < hiện tại - từ ngày thứ 7 trở đi)
+
+    @Query("SELECT COUNT(b) FROM Bill b WHERE b.status = false AND b.toDate < :sevenDaysAgo")
+
+    long countOverdue(@Param("sevenDaysAgo") Instant sevenDaysAgo);
+
+
+
+    // Tổng doanh thu đã thanh toán
+
+    @Query("SELECT COALESCE(SUM(b.totalAmount),0) FROM Bill b WHERE b.status = true")
+
+    BigDecimal getTotalRevenue();
+
+
+
+    // Doanh thu theo tháng (6 tháng gần nhất)
+
+    @Query("SELECT FUNCTION('DATE_FORMAT', b.toDate, '%Y-%m') as month, COALESCE(SUM(b.totalAmount),0) as revenue FROM Bill b WHERE b.status = true AND b.toDate >= :from GROUP BY month ORDER BY month ASC")
+
+    List<Object[]> getRevenueByMonth(@Param("from") Instant from);
+
+
+
+    // Doanh thu tháng hiện tại
+
+    @Query("SELECT COALESCE(SUM(b.totalAmount),0) FROM Bill b WHERE b.status = true AND FUNCTION('DATE_FORMAT', b.toDate, '%Y-%m') = :month")
+
+    BigDecimal getMonthRevenue(@Param("month") String month);
+
+
+
+    // Kiểm tra đã tồn tại hóa đơn phạt cho hóa đơn gốc
+
+    boolean existsByOriginalBillAndBillType(Bill originalBill, BillType billType);
+
+
+
+    // Tìm hóa đơn quá hạn (chưa thanh toán và toDate + 7 ngày < hiện tại)
+
+    @Query("SELECT b FROM Bill b WHERE b.status = false AND b.toDate < :sevenDaysAgo AND b.billType != 'LATE_PENALTY'")
+
+    List<Bill> findByStatusFalseAndToDateBefore(@Param("sevenDaysAgo") Instant sevenDaysAgo);
+
+    
+
+    // Tìm tất cả hóa đơn chưa thanh toán (không phải hóa đơn phạt)
+
+    @Query("SELECT b FROM Bill b WHERE b.status = false AND b.billType != 'LATE_PENALTY'")
+
+    List<Bill> findByStatusFalse();
+
+}
+
+
