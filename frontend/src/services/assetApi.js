@@ -100,8 +100,9 @@ export const checkDuplicateAssetName = async (assetName, excludeId = null) => {
   if (excludeId) {
     url += `&excludeId=${excludeId}`;
   }
-  const response = await axiosClient.get(url);
-  return response;
+  const res = await axiosClient.get(url);
+  // axiosClient returns response.data already
+  return Boolean(res?.isDuplicate);
 };
 
 export const checkAssetInUse = async (assetId) => {

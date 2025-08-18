@@ -102,32 +102,28 @@ export default function LandlordAddAssetModal({ open, onClose, onSuccess, asset,
           label="Tên tài sản"
           rules={[
             { required: true, message: "Vui lòng nhập tên tài sản" },
-                         {
-               validator: async (_, value) => {
-                 if (!value || value.trim() === '') {
-                   return Promise.resolve();
-                 }
-                 
-                 try {
-                   // Kiểm tra cả chữ hoa và chữ thường
-                   const normalizedValue = value.trim().toLowerCase();
-                   const isDuplicate = await checkDuplicateAssetName(
-                     normalizedValue, 
-                     mode === "edit" ? asset?.id : null
-                   );
-                   
-                   if (isDuplicate) {
-                     return Promise.reject(new Error("Tên tài sản đã tồn tại (không phân biệt chữ hoa/thường). Vui lòng chọn tên khác."));
-                   }
-                   
-                   return Promise.resolve();
-                 } catch (error) {
-                   console.error("Error checking duplicate asset name:", error);
-                   return Promise.resolve(); // Nếu lỗi API thì cho phép tiếp tục
-                 }
-               },
-               validateTrigger: ['onBlur', 'onChange']
-             }
+            {
+              validator: async (_, value) => {
+                if (!value || value.trim() === '') {
+                  return Promise.resolve();
+                }
+                try {
+                  const nameToCheck = value.trim();
+                  const isDuplicate = await checkDuplicateAssetName(
+                    nameToCheck,
+                    mode === "edit" ? asset?.id : null
+                  );
+                  if (isDuplicate) {
+                    return Promise.reject(new Error("Tên tài sản đã tồn tại (không phân biệt chữ hoa/thường). Vui lòng chọn tên khác."));
+                  }
+                  return Promise.resolve();
+                } catch (error) {
+                  console.error("Error checking duplicate asset name:", error);
+                  return Promise.resolve();
+                }
+              },
+              validateTrigger: ['onBlur', 'onChange']
+            }
           ]}
         >
           <Input />
