@@ -420,7 +420,15 @@ export default function LandlordRoomDetailPage() {
         try {
           await deactivateServiceForRoom(room.id, serviceId);
           message.success("Đã ngừng sử dụng dịch vụ cho phòng!");
-          fetchRoomData();
+          // Cập nhật UI ngay lập tức không cần reload
+          setRoom((prev) => {
+            if (!prev) return prev;
+            const updated = { ...prev };
+            updated.services = (prev.services || []).map((s) =>
+              s.id === serviceId ? { ...s, isActive: false } : s
+            );
+            return updated;
+          });
         } catch (err) {
           const backendMsg = err.response?.data?.message || err.response?.data || err.message;
           if (backendMsg.includes("chỉ được phép ngừng dịch vụ vào ngày cuối kỳ") || backendMsg.includes("ngày 28-31")) {
@@ -455,7 +463,15 @@ export default function LandlordRoomDetailPage() {
         try {
           await reactivateServiceForRoom(room.id, serviceId);
           message.success("Đã sử dụng lại dịch vụ cho phòng!");
-          fetchRoomData();
+          // Cập nhật UI ngay lập tức không cần reload
+          setRoom((prev) => {
+            if (!prev) return prev;
+            const updated = { ...prev };
+            updated.services = (prev.services || []).map((s) =>
+              s.id === serviceId ? { ...s, isActive: true, endDate: null } : s
+            );
+            return updated;
+          });
         } catch (err) {
           const backendMsg = err.response?.data?.message || err.response?.data || err.message;
           message.error("Không thể sử dụng lại dịch vụ: " + backendMsg);

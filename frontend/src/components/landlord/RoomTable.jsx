@@ -686,6 +686,14 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
         try {
           await deactivateServiceForRoom(selectedRoom.id, serviceId);
           message.success("Đã ngừng sử dụng dịch vụ cho phòng!");
+          // Cập nhật UI ngay lập tức để phản ánh trạng thái mới mà không cần reload
+          setSelectedRoom((prev) => {
+            if (!prev) return prev;
+            const updatedServices = (prev.services || []).map((s) =>
+              s.id === serviceId ? { ...s, isActive: false } : s
+            );
+            return { ...prev, services: updatedServices };
+          });
           if (onRoomsUpdate) onRoomsUpdate();
         } catch (err) {
           const backendMsg =
@@ -731,6 +739,14 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
         try {
           await reactivateServiceForRoom(selectedRoom.id, serviceId);
           message.success("Đã sử dụng lại dịch vụ cho phòng!");
+          // Cập nhật UI ngay lập tức để phản ánh trạng thái mới mà không cần reload
+          setSelectedRoom((prev) => {
+            if (!prev) return prev;
+            const updatedServices = (prev.services || []).map((s) =>
+              s.id === serviceId ? { ...s, isActive: true, endDate: null } : s
+            );
+            return { ...prev, services: updatedServices };
+          });
           if (onRoomsUpdate) onRoomsUpdate();
         } catch (err) {
           const backendMsg =
