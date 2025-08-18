@@ -42,7 +42,6 @@ services:
       - MPBHMS_UPLOAD_FILE_BASE_URI=file:///uploads/
       - FILE_UPLOAD_DIR=/uploads
       - TZ=Asia/Ho_Chi_Minh
-      - SERVER_FORWARD_HEADERS_STRATEGY=framework
     depends_on:
       - db-mysql
     volumes:
