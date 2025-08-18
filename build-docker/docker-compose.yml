@@ -10,6 +10,8 @@ services:
       - /home/azureuser/SEP490_G12_MP-BHMS/uploads:/uploads:ro
       # Mount Let's Encrypt certs so HTTPS can start
       - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - backend-spring
 
     ports:
       - "80:80"
