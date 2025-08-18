@@ -103,7 +103,7 @@ public class SecurityConfiguration {
                 "https://www.mpbhms.online"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE","PATCH", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "x-no-retry", "X-Requested-With", "Origin"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "x-no-retry", "X-Requested-With", "Origin", "X-Forwarded-For", "X-Forwarded-Proto", "X-Real-IP"));
         config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
 

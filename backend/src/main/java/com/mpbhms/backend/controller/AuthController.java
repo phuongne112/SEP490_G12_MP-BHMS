@@ -87,6 +87,7 @@ public class AuthController {
                     .secure(true)
                     .sameSite("None")
                     .path("/")
+                    .domain("mpbhms.online")
                     .maxAge(refreshTokenExpiration)
                     .build();
 
@@ -173,6 +174,7 @@ public class AuthController {
                     .secure(true)
                     .sameSite("None")
                     .path("/")
+                    .domain("mpbhms.online")
                     .maxAge(refreshTokenExpiration)
                     .build();
 
@@ -198,6 +200,7 @@ public class AuthController {
                     .secure(true)
                     .sameSite("None")
                     .path("/")
+                    .domain("mpbhms.online")
                     .maxAge(0)
                     .build();
 
