@@ -713,10 +713,14 @@ public class RoomServiceImpl implements RoomService {
         }
         RoomServiceMapping mapping = roomServiceMappingRepository.findByRoomIdAndServiceId(roomId, serviceId)
             .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy dịch vụ này trong phòng."));
-        if (Boolean.TRUE.equals(mapping.getIsActive())) {
+        // Nếu đang active và chưa có endDate thì thực sự đang dùng -> chặn
+        if (Boolean.TRUE.equals(mapping.getIsActive()) && mapping.getEndDate() == null) {
             throw new BusinessException("Dịch vụ này đang được sử dụng.");
         }
+        // Cho phép bật lại nếu đã từng ngừng (có endDate) dù isActive còn true do dữ liệu cũ
         mapping.setIsActive(true);
+        // Khi sử dụng lại dịch vụ, cần xóa ngày kết thúc trước đó để phản ánh trạng thái đang dùng
+        mapping.setEndDate(null);
         roomServiceMappingRepository.save(mapping);
     }
 
