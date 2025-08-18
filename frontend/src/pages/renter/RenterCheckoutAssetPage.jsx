@@ -122,8 +122,20 @@ export default function RenterCheckoutAssetPage() {
     const contractId = Number(location.state?.contractId) || null;
     const roomId = location.state?.roomId || null;
     const roomNumber = location.state?.roomNumber || null;
+    // Bắt buộc chọn tình trạng cho tất cả tài sản chưa kiểm kê trả phòng
+    const pendingAssets = assets.filter(asset => !checkedAssets[asset.assetId || asset.id]);
+    const missingStatus = pendingAssets.filter(a => {
+      const id = a.assetId || a.id;
+      const selected = actualStatusState[id] || a.assetStatus || a.condition;
+      return !selected || String(selected).trim() === "";
+    });
+    if (missingStatus.length > 0) {
+      message.error("Vui lòng chọn tình trạng cho tất cả tài sản trước khi xác nhận!");
+      setConfirming(false);
+      return;
+    }
     // Chỉ gửi asset chưa checkout
-    const result = assets.filter(asset => !checkedAssets[asset.assetId || asset.id]).map(asset => ({
+    const result = pendingAssets.map(asset => ({
       assetId: asset.assetId || asset.id,
       contractId,
       roomId,
@@ -198,18 +210,31 @@ export default function RenterCheckoutAssetPage() {
       ),
     },
     {
-      title: "Ghi chú",
-      dataIndex: "note",
-      key: "note",
-      render: (_, record) => (
-        <Input.TextArea
-          value={notes[record.id] !== undefined ? notes[record.id] : record.note}
-          onChange={(e) => handleNoteChange(record.id, e.target.value)}
-          placeholder="Nhập ghi chú (nếu có)"
-          autoSize
-          disabled={checkedAssets[record.assetId || record.id]}
-        />
-      ),
+      title: "Hình ảnh",
+      dataIndex: "assetImage",
+      key: "assetImage",
+      width: 120,
+      render: (_, record) => {
+        const isDev = import.meta.env.DEV;
+        const BACKEND_URL = isDev
+          ? (import.meta.env.VITE_BACKEND_URL || "http://52.184.69.15")
+          : (typeof window !== "undefined" ? window.location.origin : "");
+        const url = record.assetImage
+          ? (record.assetImage.startsWith("http")
+              ? record.assetImage
+              : `${BACKEND_URL}${record.assetImage.startsWith("/") ? "" : "/"}${record.assetImage}`)
+          : null;
+        return url ? (
+          <img
+            src={url}
+            alt={record.assetName}
+            style={{ width: 80, height: 60, objectFit: "cover", borderRadius: 6 }}
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          />
+        ) : (
+          <span style={{ color: "#aaa" }}>Không có ảnh</span>
+        );
+      },
     },
     {
       title: "Trạng thái kiểm kê",
