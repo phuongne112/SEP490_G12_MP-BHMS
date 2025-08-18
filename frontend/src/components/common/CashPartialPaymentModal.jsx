@@ -243,12 +243,8 @@ export default function CashPartialPaymentModal({
       title="Thanh toán từng phần bằng tiền mặt"
       open={visible}
       onCancel={handleCancel}
-      onOk={handleOk}
-      confirmLoading={loading}
+      footer={null}
       width={600}
-      okText={!canMakePartialPayment() ? `Đợi thêm ${getRemainingDays()} ngày nữa` : "Xác nhận thanh toán"}
-      cancelText="Hủy"
-      okButtonProps={{ disabled: !canMakePartialPayment() }}
     >
       <Form form={form} layout="vertical">
         <Alert

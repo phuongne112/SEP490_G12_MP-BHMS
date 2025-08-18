@@ -66,6 +66,10 @@ public class Room extends BaseEntity {
     @JsonManagedReference
     private List<Asset> assets = new ArrayList<>();
 
+    // Mapping qua bảng trung gian room_asset để phục vụ filter DSL: roomAssets IS [NOT] EMPTY
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<RoomAsset> roomAssets = new ArrayList<>();
+
     @Column(name = "max_occupants")
     private Integer maxOccupants;
 

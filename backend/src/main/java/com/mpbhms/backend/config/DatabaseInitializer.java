@@ -329,6 +329,8 @@ public class DatabaseInitializer implements CommandLineRunner {
             // RoomAsset
             Permission getAssetsByRoomNumber = permissionRepository.findByModuleAndApiPathAndMethod("RoomAsset", "/mpbhms/room-assets/by-room-number", "GET");
             if (getAssetsByRoomNumber != null) renterPermission.add(getAssetsByRoomNumber);
+            Permission getAssetsByRoom = permissionRepository.findByModuleAndApiPathAndMethod("RoomAsset", "/mpbhms/room-assets/by-room", "GET");
+            if (getAssetsByRoom != null) renterPermission.add(getAssetsByRoom);
             // Bill
             Permission getBills = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills", "GET");
             if (getBills != null) renterPermission.add(getBills);
