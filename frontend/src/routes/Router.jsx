@@ -120,24 +120,10 @@ export default function AppRouter() {
           </AdminRoute>
         }
       />
-      <Route
-        path="/admin/rooms"
-        element={
-          <AdminRoute>
-            <LandlordRoomListPage />
-          </AdminRoute>
-        }
-      />
+      {/* Removed admin rooms list route */}
 
 
-      <Route
-        path="/admin/rooms/:roomId/assign"
-        element={
-          <AdminRoute>
-            <LandlordAssignRenterPage />
-          </AdminRoute>
-        }
-      />
+      {/* Removed admin assign renter route */}
       <Route
         path="/admin/contract"
         element={
