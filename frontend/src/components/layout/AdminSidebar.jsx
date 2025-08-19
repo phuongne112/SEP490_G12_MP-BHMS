@@ -52,13 +52,6 @@ export default function AdminSidebar({ isDrawer = false, onMenuClick }) {
       requiredPermissions: ["View Permissions"],
     },
     {
-      key: "/admin/rooms",
-      icon: <TeamOutlined />,
-      label: "Phòng",
-      path: "/admin/rooms",
-      requiredPermissions: ["View Room"],
-    },
-    {
       key: "/admin/contract",
       icon: <SettingOutlined />,
       label: "Hợp đồng",

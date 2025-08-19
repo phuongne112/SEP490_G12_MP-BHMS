@@ -296,11 +296,7 @@ export default function LandlordAssignRenterPage() {
             <Button
               icon={<ArrowLeftOutlined />}
               onClick={() => {
-                if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
-                  navigate("/admin/rooms");
-                } else {
-                  navigate("/landlord/rooms");
-                }
+                navigate("/landlord/rooms");
               }}
               style={{ marginBottom: 16 }}
             >
@@ -715,11 +711,7 @@ export default function LandlordAssignRenterPage() {
                       Gán người thuê
                     </Button>
                     <Button onClick={() => {
-                      if (user?.role?.roleName?.toUpperCase?.() === "ADMIN" || user?.role?.roleName?.toUpperCase?.() === "SUBADMIN") {
-                        navigate("/admin/rooms");
-                      } else {
                         navigate("/landlord/rooms");
-                      }
                     }}>
                       Hủy bỏ
                     </Button>

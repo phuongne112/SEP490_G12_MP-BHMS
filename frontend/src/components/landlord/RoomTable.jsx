@@ -876,14 +876,7 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
               <Card
                 hoverable
                 onClick={() => {
-                  if (
-                    user?.role?.roleName?.toUpperCase?.() === "ADMIN" ||
-                    user?.role?.roleName?.toUpperCase?.() === "SUBADMIN"
-                  ) {
-                    navigate(`/admin/rooms/${room.id}`);
-                  } else {
-                    navigate(`/landlord/rooms/${room.id}`);
-                  }
+                  navigate(`/landlord/rooms/${room.id}`);
                 }}
                 style={{ cursor: "pointer" }}
                 cover={
