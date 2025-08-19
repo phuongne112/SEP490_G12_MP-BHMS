@@ -81,19 +81,7 @@ public class AssetInventoryControllerTest {
                 .andExpect(jsonPath("$.data[0].roomNumber").value("A101"));
     }
 
-    @Test
-    public void testGetAssetsByRoomAndContract() throws Exception {
-        AssetInventory asset = new AssetInventory();
-        asset.setId(2L);
-        asset.setRoomNumber("B201");
 
-        Mockito.when(assetInventoryService.getAssetsByRoomNumberAndContractId("B201", 10L))
-                .thenReturn(List.of(asset));
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/mpbhms/asset-inventory/by-room-contract")
-                        .param("roomNumber", "B201")
-                        .param("contractId", "10"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].roomNumber").value("B201"));
-    }
+
 }

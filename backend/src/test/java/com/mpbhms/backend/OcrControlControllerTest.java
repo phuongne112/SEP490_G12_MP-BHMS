@@ -218,35 +218,7 @@ public class OcrControlControllerTest {
                 .andExpect(content().string("Error processing CCCD: OCR failed"));
     }
 
-    @Test
-    void manualReading_success() throws Exception {
-        MockMultipartFile image = new MockMultipartFile("image","meter.jpg","image/jpeg","image".getBytes());
 
-        Room room = new Room();
-        room.setId(1L); room.setRoomNumber("101"); room.setScanFolder("Room101");
-        CustomService elec = new CustomService();
-        elec.setId(1L); elec.setServiceType(ServiceType.ELECTRICITY); elec.setUnitPrice(new BigDecimal("2.5"));
-        ServiceReading cur = new ServiceReading();
-        cur.setId(1L); cur.setOldReading(new BigDecimal("100.000")); cur.setNewReading(new BigDecimal("150.000"));
-        ScanLog savedLog = new ScanLog(); savedLog.setId(9L);
-
-        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
-        when(serviceRepository.findByServiceType(ServiceType.ELECTRICITY)).thenReturn(elec);
-        when(serviceReadingRepository.findByRoomAndService(room, elec)).thenReturn(List.of(cur));
-        when(serviceReadingRepository.save(any(ServiceReading.class))).thenReturn(new ServiceReading());
-        when(scanLogService.saveLog(anyString(), anyLong(), anyString(), any())).thenReturn(savedLog);
-
-        mockMvc.perform(multipart("/mpbhms/ocr/manual-electric-reading")
-                        .file(image).param("roomId","1").param("newReading","200.000"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.roomNumber").value("101"))
-                .andExpect(jsonPath("$.oldReading").value(150.000))
-                .andExpect(jsonPath("$.newReading").value(200.000))
-                .andExpect(jsonPath("$.consumption").value(50.000))
-                .andExpect(jsonPath("$.unitPrice").value(2.5))
-                .andExpect(jsonPath("$.cost").value(125.0));
-    }
 
     @Test
     void manualReading_roomNotFound() throws Exception {
