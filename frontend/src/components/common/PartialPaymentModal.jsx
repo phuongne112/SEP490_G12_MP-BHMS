@@ -47,10 +47,14 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
     if (visible && bill?.id) {
       fetchPaymentCount();
       
-      // Set giá trị mặc định là tối đa (100% số tiền còn nợ)
-      const maxAmount = getOutstandingAmount();
-      setPaymentAmount(maxAmount);
-      form.setFieldsValue({ paymentAmount: maxAmount });
+      // Set giá trị mặc định là tối thiểu (50% số tiền còn nợ) để đồng bộ với tiền mặt
+      const minAmount = getOutstandingAmount() * 0.5;
+      setPaymentAmount(minAmount);
+      form.setFieldsValue({ paymentAmount: minAmount });
+      // Đồng bộ tính phí/lãi và tổng tiền như logic tiền mặt
+      setTimeout(() => {
+        try { handleAmountChange(minAmount); } catch (_) {}
+      }, 0);
     }
   }, [visible, bill?.id]);
 
@@ -385,66 +389,65 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
         <Form.Item
           label="Số tiền thanh toán"
           name="paymentAmount"
-                      rules={[
-              { required: true, message: 'Vui lòng nhập số tiền thanh toán' },
-              {
-                validator: (_, value) => {
-                  // Kiểm tra số tiền có phải là số không
-                  if (value && isNaN(Number(value))) {
-                    return Promise.reject('Số tiền thanh toán phải là số');
-                  }
-                  
-                  if (value && value <= 0) {
-                    return Promise.reject('Số tiền thanh toán phải lớn hơn 0');
-                  }
-                  if (value && value < minPayment) {
-                    return Promise.reject(`Số tiền thanh toán phải tối thiểu 50% (${formatCurrency(minPayment)})`);
-                  }
-                  if (value && value > maxPayment) {
-                    return Promise.reject(`Số tiền thanh toán không được vượt quá số tiền còn nợ (${formatCurrency(maxPayment)})`);
-                  }
-                  return Promise.resolve();
+          rules={[
+            { required: true, message: 'Vui lòng nhập số tiền thanh toán' },
+            {
+              validator: (_, value) => {
+                // Kiểm tra số tiền có phải là số không
+                if (value && isNaN(Number(value))) {
+                  return Promise.reject('Số tiền thanh toán phải là số');
                 }
+                if (value && value <= 0) {
+                  return Promise.reject('Số tiền thanh toán phải lớn hơn 0');
+                }
+                if (value && value < minPayment) {
+                  return Promise.reject(`Số tiền thanh toán phải tối thiểu 50% (${formatCurrency(minPayment)})`);
+                }
+                if (value && value > maxPayment) {
+                  return Promise.reject(`Số tiền thanh toán không được vượt quá số tiền còn nợ (${formatCurrency(maxPayment)})`);
+                }
+                return Promise.resolve();
               }
-            ]}
+            }
+          ]}
         >
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <InputNumber
-              style={{ flex: 1 }}
-              placeholder={`Tối thiểu ${formatCurrency(minPayment)} - Tối đa ${formatCurrency(maxPayment)} (100%)`}
-              formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={value => {
-                const parsed = value.replace(/\$\s?|(,*)/g, '');
-                return Number(parsed) || 0;
-              }}
-              min={0} // Cho phép nhập từ 0, validation sẽ kiểm tra minPayment
-              max={maxPayment}
-              precision={2} // Cho phép số thập phân đến 2 chữ số
-              onChange={handleAmountChange}
-            />
-            {paymentCount > 0 && (
-              <Button 
-                type="default" 
-                size="small"
-                onClick={() => {
-                  form.setFieldsValue({ paymentAmount: maxPayment });
-                  handleAmountChange(maxPayment);
-                }}
-              >
-                Tối đa
-              </Button>
-            )}
-            <Button 
-              type="default" 
-              size="small"
-              onClick={() => {
-                form.setFieldsValue({ paymentAmount: minPayment });
-                handleAmountChange(minPayment);
-              }}
-            >
-              50%
-            </Button>
-          </div>
+          <InputNumber
+            style={{ width: '100%' }}
+            placeholder={`Từ ${minPayment.toLocaleString()} đến ${maxPayment.toLocaleString()} ₫`}
+            min={0}
+            precision={2}
+            formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+            parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
+            onChange={handleAmountChange}
+            addonAfter={
+              <>
+                <button
+                  type="button"
+                  className="ant-btn ant-btn-default ant-btn-sm"
+                  onClick={() => {
+                    const minAmount = minPayment;
+                    form.setFieldsValue({ paymentAmount: minAmount });
+                    handleAmountChange(minAmount);
+                  }}
+                >
+                  <span>50%</span>
+                </button>
+                {paymentCount > 0 && (
+                  <button
+                    type="button"
+                    className="ant-btn ant-btn-default ant-btn-sm"
+                    onClick={() => {
+                      form.setFieldsValue({ paymentAmount: maxPayment });
+                      handleAmountChange(maxPayment);
+                    }}
+                    style={{ marginLeft: 8 }}
+                  >
+                    <span>Tối đa</span>
+                  </button>
+                )}
+              </>
+            }
+          />
         </Form.Item>
 
         {/* Hiển thị thông tin tính toán */}

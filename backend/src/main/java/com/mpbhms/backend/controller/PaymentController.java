@@ -17,6 +17,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/mpbhms/payment")
 public class PaymentController {
+    private static final String FRONTEND_BILLS_URL = "http://localhost:5173/renter/bills"; // TODO: cấu hình qua properties khi deploy
+    private static final String BRAND_COLOR = "#0ea5e9"; // Màu thương hiệu đồng nhất
     @Autowired
     private VnPayService vnPayService;
 
@@ -388,10 +390,24 @@ public class PaymentController {
                     System.out.println("LỖI: Không tìm thấy hóa đơn với ID: " + billId);
                 }
 
-                String html = "<html><body>"
-                        + "<h2>Thanh toán thành công!</h2>"
-                        + "<script>window.location='http://localhost:5173/renter/bills';</script>"
-                        + "</body></html>";
+                Map<String, String> detailSuccess = new HashMap<>();
+                detailSuccess.put("Mã phản hồi", responseCode);
+                detailSuccess.put("Mô tả", getResponseCodeMessage(responseCode));
+                detailSuccess.put("Mã giao dịch (VNP)", fields.getOrDefault("vnp_TransactionNo", ""));
+                detailSuccess.put("Số tiền", (fields.get("vnp_Amount") != null) ? formatVnd(Long.parseLong(fields.get("vnp_Amount")) / 100) + " VND" : "");
+                detailSuccess.put("Mã hóa đơn", billId != null ? String.valueOf(billId) : "");
+                detailSuccess.put("Mã tham chiếu", fields.getOrDefault("vnp_TxnRef", ""));
+                detailSuccess.put("Ngân hàng", fields.getOrDefault("vnp_BankCode", ""));
+                detailSuccess.put("Thời gian", fields.getOrDefault("vnp_PayDate", ""));
+
+                String html = buildResultHtml(
+                        "Thanh toán thành công",
+                        "success",
+                        "Giao dịch đã được xử lý thành công.",
+                        detailSuccess,
+                        FRONTEND_BILLS_URL,
+                        3
+                );
                 return ResponseEntity.ok().body(html);
             } else {
                 System.out.println("Thanh toán thất bại hoặc không hợp lệ");
@@ -413,20 +429,40 @@ public class PaymentController {
                     System.out.println("Không thể mở khóa hóa đơn: " + unlockEx.getMessage());
                 }
 
-                String html = "<html><body>"
-                        + "<h2>Thanh toán thất bại hoặc bị hủy!</h2>"
-                        + "<script>window.location='http://localhost:5173/renter/bills';</script>"
-                        + "</body></html>";
+                Map<String, String> detailFail = new HashMap<>();
+                detailFail.put("Mã phản hồi", responseCode);
+                detailFail.put("Mô tả", getResponseCodeMessage(responseCode));
+                detailFail.put("Mã giao dịch (VNP)", fields.getOrDefault("vnp_TransactionNo", ""));
+                detailFail.put("Số tiền", fields.get("vnp_Amount") != null ? formatVnd(Long.parseLong(fields.get("vnp_Amount")) / 100) + " VND" : "");
+                detailFail.put("Mã hóa đơn", billId != null ? String.valueOf(billId) : "");
+                detailFail.put("Mã tham chiếu", fields.getOrDefault("vnp_TxnRef", ""));
+                detailFail.put("Ngân hàng", fields.getOrDefault("vnp_BankCode", ""));
+                detailFail.put("Thời gian", fields.getOrDefault("vnp_PayDate", ""));
+
+                String html = buildResultHtml(
+                        "Thanh toán thất bại hoặc bị hủy",
+                        "error",
+                        "Giao dịch không thành công. Bạn có thể tạo lại liên kết thanh toán.",
+                        detailFail,
+                        FRONTEND_BILLS_URL,
+                        2
+                );
                 return ResponseEntity.ok().body(html);
             }
         } catch (Exception e) {
             System.out.println("LỖI trong vnpayReturn: " + e.getMessage());
             e.printStackTrace();
             
-            String html = "<html><body>"
-                    + "<h2>Có lỗi xảy ra: " + e.getMessage() + "</h2>"
-                    + "<script>window.location='http://localhost:5173/renter/bills';</script>"
-                    + "</body></html>";
+            Map<String, String> detailError = new HashMap<>();
+            detailError.put("Thông điệp lỗi", e.getMessage());
+            String html = buildResultHtml(
+                    "Có lỗi xảy ra",
+                    "error",
+                    "Không thể xử lý kết quả thanh toán.",
+                    detailError,
+                    FRONTEND_BILLS_URL,
+                    2
+            );
             return ResponseEntity.ok().body(html);
         }
     }
@@ -462,6 +498,132 @@ public class PaymentController {
         // Bỏ dấu chấm/ngăn nghìn, chỉ giữ số
         String clean = s.replace(".", "").replace(",", "");
         return new java.math.BigDecimal(clean);
+    }
+
+    // ====== UI helpers (HTML result builder) ======
+    private String buildResultHtml(String title, String status, String subtitle, Map<String, String> details,
+                                   String redirectUrl, int seconds) {
+        StringBuilder rows = new StringBuilder();
+        if (details != null) {
+            for (Map.Entry<String, String> entry : details.entrySet()) {
+                String key = entry.getKey();
+                String value = entry.getValue() != null ? entry.getValue() : "";
+                rows.append("<tr>")
+                        .append("<td>" + escapeHtml(key) + "</td>")
+                        .append("<td>" + escapeHtml(value) + "</td>")
+                        .append("</tr>");
+            }
+        }
+
+        String color = BRAND_COLOR; // Đồng bộ một màu
+        String icon = "success".equals(status)
+                ? "<svg width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" viewBox=\"0 0 24 24\"><path d=\"M5 13l4 4L19 7\"/></svg>"
+                : "<svg width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"12\" y1=\"8\" x2=\"12\" y2=\"12\"/><line x1=\"12\" y1=\"16\" x2=\"12.01\" y2=\"16\"/></svg>";
+
+        String logoUrl = getAssetUrl("img/logo.png");
+
+        return "<!doctype html>"
+                + "<html lang=\"vi\">"
+                + "<head>"
+                + "<meta charset=\"utf-8\"/>"
+                + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/>"
+                + "<title>" + escapeHtml(title) + "</title>"
+                + "<style>"
+                + "body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f8fafc;margin:0;padding:24px;color:#0f172a}"
+                + ".card{max-width:720px;margin:40px auto;background:#fff;border-radius:12px;box-shadow:0 10px 20px rgba(2,6,23,.08);overflow:hidden;border-top:4px solid " + color + "}"
+                + ".header{display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid #e2e8f0}"
+                + ".brand{display:flex;align-items:center;gap:10px}"
+                + ".brand h2{margin:0;color:" + color + ";font-size:20px}"
+                + ".subtitle{padding:0 24px 16px 24px;color:#334155}"
+                + ".table{width:100%;border-collapse:collapse}"
+                + ".table th,.table td{padding:12px 16px;border-top:1px solid #e2e8f0;text-align:left}"
+                + ".footer{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;background:#f8fafc}"
+                + ".btn{background:" + color + ";color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:600}"
+                + ".status{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:rgba(14,165,233,.08);color:" + color + ";font-weight:600;font-size:12px}"
+                + ".muted{color:#64748b}"
+                + "</style>"
+                + "</head>"
+                + "<body>"
+                + "<div class=\"card\">"
+                + "<div class=\"header\">"
+                + "  <div class=\"brand\">"
+                + "    <img alt=\"MPBHMS\" src=\"" + escapeHtml(logoUrl) + "\" style=\"height:28px;width:auto\"/>"
+                + "    <h2>" + escapeHtml("MPBHMS • " + title) + "</h2>"
+                + "  </div>"
+                + "  <div class=\"status\">" + icon + "<span>" + ("success".equals(status) ? "Thành công" : "Thất bại") + "</span></div>"
+                + "</div>"
+                + "<p class=\"subtitle\">" + escapeHtml(subtitle) + "</p>"
+                + "<table class=\"table\"><tbody>" + rows + "</tbody></table>"
+                + "<div class=\"footer\">"
+                + "<span class=\"muted\">Tự động quay về trong <span id=\"cd\">" + seconds + "</span>s</span>"
+                + "<a class=\"btn\" href=\"" + escapeHtml(redirectUrl) + "\">Quay về danh sách hóa đơn</a>"
+                + "</div>"
+                + "</div>"
+                + "<script>"
+                + "(function(){var s=" + seconds + ";var el=document.getElementById('cd');var t=setInterval(function(){s--;if(el)el.textContent=s;if(s<=0){clearInterval(t);window.location='" + escapeJs(redirectUrl) + "';}},1000);})();"
+                + "</script>"
+                + "</body></html>";
+    }
+
+    private String getFrontendOrigin() {
+        try {
+            java.net.URI u = new java.net.URI(FRONTEND_BILLS_URL);
+            String scheme = u.getScheme() != null ? u.getScheme() : "http";
+            String host = u.getHost() != null ? u.getHost() : "";
+            int port = u.getPort();
+            if (host.isEmpty()) return "";
+            return scheme + "://" + host + (port != -1 ? ":" + port : "");
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String getAssetUrl(String relativePath) {
+        String origin = getFrontendOrigin();
+        if (origin.isEmpty()) return relativePath;
+        if (!relativePath.startsWith("/")) relativePath = "/" + relativePath;
+        return origin + relativePath;
+    }
+
+    private String escapeHtml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
+    }
+
+    private String escapeJs(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("'", "\\'");
+    }
+
+    private String formatVnd(Long amount) {
+        try {
+            java.text.DecimalFormatSymbols symbols = new java.text.DecimalFormatSymbols(new java.util.Locale("vi", "VN"));
+            symbols.setGroupingSeparator('.');
+            java.text.DecimalFormat df = new java.text.DecimalFormat("#,###", symbols);
+            return df.format(amount);
+        } catch (Exception ex) {
+            return String.valueOf(amount);
+        }
+    }
+
+    private String getResponseCodeMessage(String code) {
+        if (code == null) return "Không xác định";
+        switch (code) {
+            case "00": return "Thành công";
+            case "07": return "Giao dịch nghi ngờ (giữ lại)";
+            case "09": return "Thẻ/Tài khoản chưa đăng ký dịch vụ";
+            case "10": return "Xác thực thông tin thẻ/tài khoản không đúng";
+            case "11": return "Hết hạn mức/thẻ bị khóa";
+            case "12": return "Thẻ/Tài khoản không đủ số dư";
+            case "13": return "Sai mật khẩu";
+            case "24": return "Khách hàng hủy giao dịch";
+            case "51": return "Không đủ số dư";
+            case "65": return "Vượt quá hạn mức giao dịch";
+            case "75": return "Ngân hàng phát hành đang nâng cấp";
+            case "79": return "Nhập sai thông tin nhiều lần";
+            case "99": return "Lỗi không xác định";
+            default: return "Mã phản hồi: " + code;
+        }
     }
 
     // 3. API nhận IPN từ VNPay (URL thông báo)

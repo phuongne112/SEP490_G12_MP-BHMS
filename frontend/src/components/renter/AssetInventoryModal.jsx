@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Modal, Table, Button, Input, Tag, Typography, message, Spin, Space, Select, Checkbox, Image } from "antd";
-import { CheckCircleOutlined, FileDoneOutlined, CameraOutlined, UploadOutlined } from "@ant-design/icons";
+import { CheckCircleOutlined, FileDoneOutlined, UploadOutlined } from "@ant-design/icons";
 import axiosClient from "../../services/axiosClient";
 import { getAssetInventoryByRoomAndContract, uploadAssetInventoryPhoto } from '../../services/assetApi';
-import CameraCapture from '../common/CameraCapture';
 
 const { Title, Text } = Typography;
 
@@ -27,7 +26,6 @@ export default function AssetInventoryModal({
 
   const fileInputRef = React.useRef(null);
   const [currentAssetForPhoto, setCurrentAssetForPhoto] = useState(null);
-  const cameraRefs = React.useRef({}).current;
 
   const statusOptions = [
     { label: "Tốt", value: "Tốt" },
@@ -101,13 +99,7 @@ export default function AssetInventoryModal({
     }
   };
 
-  const handleCapture = async (assetId, file) => {
-    await handleUploadPhoto(assetId, file);
-  };
-
-  const openCameraFor = (assetId) => {
-    cameraRefs[assetId]?.openModal?.();
-  };
+  // Loại bỏ chức năng chụp ảnh; chỉ hỗ trợ tải ảnh từ thiết bị
 
   const handleChooseUpload = (assetId) => {
     setCurrentAssetForPhoto(assetId);
@@ -251,7 +243,7 @@ export default function AssetInventoryModal({
         
         if (isChecked && urls.length > 0) {
           return (
-            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap', justifyContent:'center' }}>
               {urls.map((u, idx)=> (
                 <Image key={idx} src={u} width={60} height={45} style={{ objectFit:'cover', borderRadius: 4, border: "1px solid #f0f0f0" }} />
               ))}
@@ -261,25 +253,23 @@ export default function AssetInventoryModal({
           return <span style={{ color: "#aaa", fontSize: "12px" }}>Không có ảnh minh chứng</span>;
         } else {
           return (
-            <Space direction="vertical" size="small">
-              <Space wrap size="small">
-                <Button size="small" type="dashed" icon={<CameraOutlined />} onClick={() => openCameraFor(id)}>
-                  Chụp ảnh
-                </Button>
-                <Button size="small" type="dashed" icon={<UploadOutlined />} onClick={() => handleChooseUpload(id)}>
-                  Tải ảnh
-                </Button>
-                <CameraCapture ref={(el)=> cameraRefs[id]=el} onCapture={(file)=>handleCapture(id, file)} hideButton />
-                <input type="file" accept="image/*" style={{ display:'none' }} ref={fileInputRef} onChange={onFileSelected} />
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+              <Space direction="vertical" size="small" style={{ alignItems:'center' }}>
+                <Space wrap size="small" style={{ justifyContent:'center' }}>
+                  <Button size="small" type="dashed" icon={<UploadOutlined />} onClick={() => handleChooseUpload(id)}>
+                    Tải ảnh
+                  </Button>
+                  <input type="file" accept="image/*" style={{ display:'none' }} ref={fileInputRef} onChange={onFileSelected} />
+                </Space>
+                {urls.length > 0 && (
+                  <div style={{ display:'flex', gap:4, flexWrap:'wrap', justifyContent:'center' }}>
+                    {urls.map((u, idx)=> (
+                      <Image key={idx} src={u} width={60} height={45} style={{ objectFit:'cover', borderRadius: 4, border: "1px solid #f0f0f0" }} />
+                    ))}
+                  </div>
+                )}
               </Space>
-              {urls.length > 0 && (
-                <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
-                  {urls.map((u, idx)=> (
-                    <Image key={idx} src={u} width={60} height={45} style={{ objectFit:'cover', borderRadius: 4, border: "1px solid #f0f0f0" }} />
-                  ))}
-                </div>
-              )}
-            </Space>
+            </div>
           );
         }
       }
