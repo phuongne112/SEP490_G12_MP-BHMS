@@ -39,7 +39,7 @@ export default function RulesPage() {
           <div style={{ marginTop: 16, fontStyle: "italic" }}>
             Những quy định trên yêu cầu mọi người chấp hành nghiêm; vi phạm sẽ chịu trách nhiệm trước pháp luật và xử phạt của nhà trọ.
           </div>
-          <div style={{ marginTop: 16, fontWeight: 600 }}>Chủ nhà trọ: 0946 882 868 - 0914 361 239</div>
+          <div style={{ marginTop: 16, fontWeight: 600 }}>Chủ nhà trọ: 0946882868</div>
         </div>
       </div>
     </div>
