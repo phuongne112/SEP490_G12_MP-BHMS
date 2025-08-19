@@ -755,7 +755,7 @@ export default function LandlordRoomDetailPage() {
                           <Image
                             src={selectedImage}
                             alt="Room"
-                            style={{ width: '100%', height: 300, objectFit: 'cover', borderRadius: 8 }}
+                            style={{ width: '100%', height: 420, objectFit: 'cover', borderRadius: 8 }}
                             onClick={() => setImageModalVisible(true)}
                           />
                         </div>
@@ -765,8 +765,8 @@ export default function LandlordRoomDetailPage() {
                               key={index}
                               src={getImageUrl(img)}
                               alt={`Room ${index + 1}`}
-                              width={80}
-                              height={60}
+                              width={100}
+                              height={75}
                               style={{ objectFit: 'cover', cursor: 'pointer', borderRadius: 4 }}
                               onClick={() => setSelectedImage(getImageUrl(img))}
                             />
@@ -775,7 +775,7 @@ export default function LandlordRoomDetailPage() {
                       </div>
                     ) : (
                       <div style={{ 
-                        height: 300, 
+                        height: 420, 
                         display: 'flex', 
                         alignItems: 'center', 
                         justifyContent: 'center',

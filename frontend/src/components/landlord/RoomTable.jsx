@@ -1517,7 +1517,8 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
               loading={roomAssetsLoading}
               rowKey="id"
               columns={[
-                { title: "ID tài sản", dataIndex: "assetId", key: "assetId", width: 80 },
+                // Ẩn cột ID tài sản để gọn giao diện
+                // { title: "ID tài sản", dataIndex: "assetId", key: "assetId", width: 80 },
                 { title: "Tên tài sản", dataIndex: "assetName", key: "assetName", width: 150 },
                 { title: "Tình trạng", dataIndex: "status", key: "status", width: 100 },
                 {
@@ -1532,8 +1533,23 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
                   title: "Loại kiểm kê", 
                   dataIndex: "type", 
                   key: "type",
-                  width: 100,
-                  render: (type) => type === "CHECKIN" ? "Nhận phòng" : type === "CHECKOUT" ? "Trả phòng" : type
+                  width: 120,
+                  render: (type) => {
+                    const text = type === "CHECKIN" ? "Nhận phòng" : type === "CHECKOUT" ? "Trả phòng" : (type || "-");
+                    const color = type === "CHECKIN" ? "#16a34a" : type === "CHECKOUT" ? "#dc2626" : "#64748b";
+                    const bg = type === "CHECKIN" ? "#ecfdf5" : type === "CHECKOUT" ? "#fef2f2" : "#f1f5f9";
+                    return (
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        borderRadius: 999,
+                        background: bg,
+                        color,
+                        fontWeight: 600,
+                        fontSize: 12,
+                      }}>{text}</span>
+                    );
+                  }
                 },
                 {
                   title: "Ảnh minh chứng",

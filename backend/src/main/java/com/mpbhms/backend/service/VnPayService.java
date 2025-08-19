@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.time.ZoneId;
 import java.util.*;
@@ -28,6 +30,19 @@ public class VnPayService {
         // Nếu billId hợp lệ, đồng bộ lại tổng tiền hóa đơn
         if (billId != null && billId > 0) {
             Bill bill = billRepository.findById(billId).orElse(null);
+            if (bill == null) {
+                throw new IllegalArgumentException("Không tìm thấy hóa đơn: " + billId);
+            }
+
+            // Kiểm tra khóa tạo URL thanh toán trong 15 phút
+            Instant now = Instant.now();
+            if (bill.getPaymentUrlLockedUntil() != null && now.isBefore(bill.getPaymentUrlLockedUntil())) {
+                long secondsLeft = Duration.between(now, bill.getPaymentUrlLockedUntil()).getSeconds();
+                long minutesLeft = (secondsLeft + 59) / 60; // làm tròn lên phút còn lại
+                throw new IllegalStateException("Bạn đã tạo link thanh toán trước đó. Vui lòng đợi thêm " + minutesLeft + " phút nữa để tạo lại.");
+            }
+
+            // Đồng bộ tổng tiền nếu cần
             if (bill != null) {
                 java.math.BigDecimal sum = bill.getBillDetails().stream()
                         .map(BillDetail::getItemAmount)
@@ -41,6 +56,9 @@ public class VnPayService {
                 }
             }
         }
+            // Đặt khóa 15 phút để chống tạo trùng link
+            bill.setPaymentUrlLockedUntil(now.plus(Duration.ofMinutes(15)));
+            billRepository.save(bill);
         }
 
         // Làm sạch orderInfo: chỉ cho phép chữ, số, khoảng trắng
