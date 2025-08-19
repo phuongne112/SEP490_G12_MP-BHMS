@@ -27,4 +27,8 @@ public class AssetInventory {
     private String note;
     private Instant createdAt;
     private String type; // "CHECKIN" hoặc "CHECKOUT"
+
+    // Danh sách URL ảnh minh chứng, phân tách bằng dấu phẩy
+    @Column(length = 4000)
+    private String photoUrls;
 } 

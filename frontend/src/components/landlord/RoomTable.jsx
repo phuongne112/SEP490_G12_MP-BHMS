@@ -1342,6 +1342,27 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
               dataIndex: "conditionNote",
               key: "conditionNote",
             },
+            {
+              title: "Hình ảnh",
+              dataIndex: "assetImage",
+              key: "assetImage",
+              width: 100,
+              render: (url) =>
+                url ? (
+                  <Image
+                    src={
+                      url.startsWith("http")
+                        ? url
+                        : `${BACKEND_URL}${url.startsWith("/") ? "" : "/"}${url}`
+                    }
+                    width={60}
+                    height={40}
+                    style={{ objectFit: "cover", borderRadius: 4 }}
+                  />
+                ) : (
+                  <span style={{ color: "#aaa", fontSize: "12px" }}>Không có ảnh</span>
+                ),
+            },
           ]}
         />
       </Modal>
@@ -1496,16 +1517,48 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
               loading={roomAssetsLoading}
               rowKey="id"
               columns={[
-                { title: "ID tài sản", dataIndex: "assetId", key: "assetId" },
-                { title: "Tình trạng", dataIndex: "status", key: "status" },
+                { title: "ID tài sản", dataIndex: "assetId", key: "assetId", width: 80 },
+                { title: "Tên tài sản", dataIndex: "assetName", key: "assetName", width: 150 },
+                { title: "Tình trạng", dataIndex: "status", key: "status", width: 100 },
                 {
                   title: "Đủ/Thiếu",
                   dataIndex: "isEnough",
                   key: "isEnough",
+                  width: 80,
                   render: (val) => (val ? "Đủ" : "Thiếu"),
                 },
-                { title: "Ghi chú", dataIndex: "note", key: "note" },
-                { title: "Loại kiểm kê", dataIndex: "type", key: "type" },
+                { title: "Ghi chú", dataIndex: "note", key: "note", width: 150 },
+                { 
+                  title: "Loại kiểm kê", 
+                  dataIndex: "type", 
+                  key: "type",
+                  width: 100,
+                  render: (type) => type === "CHECKIN" ? "Nhận phòng" : type === "CHECKOUT" ? "Trả phòng" : type
+                },
+                {
+                  title: "Ảnh minh chứng",
+                  dataIndex: "photoUrls", 
+                  key: "photoUrls",
+                  width: 150,
+                  render: (photoUrls) => {
+                    if (!photoUrls) return <span style={{ color: "#aaa" }}>Không có ảnh</span>;
+                    const urls = photoUrls.split(',').filter(url => url.trim());
+                    if (urls.length === 0) return <span style={{ color: "#aaa" }}>Không có ảnh</span>;
+                    return (
+                      <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+                        {urls.map((url, idx) => (
+                          <Image 
+                            key={idx} 
+                            src={url} 
+                            width={50} 
+                            height={40} 
+                            style={{ objectFit:'cover', borderRadius: 4 }} 
+                          />
+                        ))}
+                      </div>
+                    );
+                  }
+                },
               ]}
               pagination={false}
             />

@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +38,9 @@ public class AssetInventoryServiceImpl implements AssetInventoryService {
             entity.setNote(req.getNote());
             entity.setCreatedAt(Instant.now());
             entity.setType(req.getType());
+            if (req.getPhotoUrls() != null && !req.getPhotoUrls().isEmpty()) {
+                entity.setPhotoUrls(String.join(",", req.getPhotoUrls()));
+            }
             assetInventoryRepository.save(entity);
         }
     }
@@ -49,5 +53,10 @@ public class AssetInventoryServiceImpl implements AssetInventoryService {
     @Override
     public List<AssetInventory> getAssetsByRoomNumberAndContractId(String roomNumber, Long contractId) {
         return assetInventoryRepository.findByRoomNumberAndContractId(roomNumber, contractId);
+    }
+
+    @Override
+    public List<Map<String, Object>> getAssetInventoryWithAssetNameByRoomAndContract(String roomNumber, Long contractId) {
+        return assetInventoryRepository.findAssetInventoryWithAssetNameByRoomAndContract(roomNumber, contractId);
     }
 } 

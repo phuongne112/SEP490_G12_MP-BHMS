@@ -210,6 +210,7 @@ const CameraCapture = forwardRef(({
   };
 
   const stopContinuousCapture = () => {
+    const wasRunning = isContinuousRunning;
     if (continuousTimerRef.current) {
       clearTimeout(continuousTimerRef.current);
       continuousTimerRef.current = null;
@@ -220,8 +221,8 @@ const CameraCapture = forwardRef(({
     }
     setIsContinuousRunning(false);
     setAutoCaptureCountdown(0);
-    if (!isAutoRunning) {
-    message.info('Dừng chụp tự động');
+    if (!isAutoRunning && wasRunning) {
+      message.info('Dừng chụp tự động');
     }
   };
 

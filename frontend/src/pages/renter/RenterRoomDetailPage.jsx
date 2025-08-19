@@ -22,6 +22,7 @@ import RenterSidebar from "../../components/layout/RenterSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import { getMyRoom } from "../../services/roomService";
 import { getAllAssets, getAssetsByRoom, getAssetsByRoomNumber } from "../../services/assetApi";
+import AssetInventoryModal from "../../components/renter/AssetInventoryModal";
 const isDev = import.meta.env.DEV;
 const BACKEND_URL = isDev
   ? (import.meta.env.VITE_BACKEND_URL || "http://52.184.69.15")
@@ -58,6 +59,10 @@ export default function RenterRoomDetailPage() {
   const [loading, setLoading] = useState(true);
   const [assets, setAssets] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
+  
+  // Asset inventory modal states
+  const [checkinModalOpen, setCheckinModalOpen] = useState(false);
+  const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
 
   useEffect(() => {
     async function fetchRoom() {
@@ -95,48 +100,32 @@ export default function RenterRoomDetailPage() {
     fetchRoom();
   }, []);
 
+  const handleCheckAssets = (type) => {
+    if (!roomInfo?.contract?.id) {
+      message.warning("Không tìm thấy thông tin hợp đồng để thực hiện kiểm kê!");
+      return;
+    }
+    
+    if (type === 'checkin') {
+      setCheckinModalOpen(true);
+    } else {
+      setCheckoutModalOpen(true);
+    }
+  };
+
+  const handleAssetInventorySuccess = () => {
+    message.success("Kiểm kê tài sản thành công!");
+    // Refresh room data if needed
+    // fetchRoom();
+  };
+
   useEffect(() => {
     if (roomInfo && Array.isArray(roomInfo.images) && roomInfo.images.length > 0) {
       setSelectedImage(roomInfo.images[0]);
     }
   }, [roomInfo]);
 
-  // Hàm lấy asset và chuyển trang
-  const handleCheckAssets = async (type) => {
-    let assetList = assets;
-    if (!assets || assets.length === 0) {
-      try {
-        let assetRes;
-        if (roomInfo.id || roomInfo.roomId) {
-          const roomId = roomInfo.id || roomInfo.roomId;
-          assetRes = await getAssetsByRoom(roomId);
-        } else if (roomInfo.roomNumber) {
-          assetRes = await getAssetsByRoomNumber(roomInfo.roomNumber);
-        }
-        if (assetRes) {
-          assetList = assetRes?.data || [];
-          setAssets(assetList);
-        }
-      } catch {
-        assetList = [];
-      }
-    }
-    const stateData = {
-      contractId: roomInfo.contract?.contractId || roomInfo.contract?.id,
-      assets: assetList
-    };
-    if (roomInfo.id || roomInfo.roomId) {
-      stateData.roomId = roomInfo.id || roomInfo.roomId;
-    }
-    if (roomInfo.roomNumber) {
-      stateData.roomNumber = roomInfo.roomNumber;
-    }
-    if (type === 'checkin') {
-      navigate("/renter/rooms/checkin-assets", { state: stateData });
-    } else {
-      navigate("/renter/rooms/checkout-assets", { state: stateData });
-    }
-  };
+
 
   return (
     <div style={{ width: '100%', minHeight: '100vh' }}>
@@ -424,6 +413,33 @@ export default function RenterRoomDetailPage() {
           <RenterSidebar isDrawer={true} onMenuClick={() => setMobileMenuOpen(false)} />
         </Drawer>
       )}
+
+      {/* Asset Inventory Modals */}
+      <AssetInventoryModal
+        open={checkinModalOpen}
+        onCancel={() => setCheckinModalOpen(false)}
+        roomId={roomInfo?.id || roomInfo?.roomId}
+        roomNumber={roomInfo?.roomNumber}
+        contractId={roomInfo?.contract?.id}
+        type="CHECKIN"
+        onSuccess={() => {
+          handleAssetInventorySuccess();
+          setCheckinModalOpen(false);
+        }}
+      />
+
+      <AssetInventoryModal
+        open={checkoutModalOpen}
+        onCancel={() => setCheckoutModalOpen(false)}
+        roomId={roomInfo?.id || roomInfo?.roomId}
+        roomNumber={roomInfo?.roomNumber}
+        contractId={roomInfo?.contract?.id}
+        type="CHECKOUT"
+        onSuccess={() => {
+          handleAssetInventorySuccess();
+          setCheckoutModalOpen(false);
+        }}
+      />
     </div>
   );
 }

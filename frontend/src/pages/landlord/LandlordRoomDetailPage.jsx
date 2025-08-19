@@ -1158,6 +1158,32 @@ export default function LandlordRoomDetailPage() {
               { title: "Tên tài sản", dataIndex: "assetName", key: "assetName" },
               { title: "Số lượng", dataIndex: "quantity", key: "quantity" },
               { title: "Ghi chú", dataIndex: "conditionNote", key: "conditionNote" },
+              {
+                title: "Hình ảnh",
+                dataIndex: "assetImage",
+                key: "assetImage",
+                width: 100,
+                render: (url) => {
+                  const isDev = import.meta.env.DEV;
+                  const BACKEND_URL = isDev
+                    ? (import.meta.env.VITE_BACKEND_URL || "http://52.184.69.15")
+                    : (typeof window !== "undefined" ? window.location.origin : "");
+                  return url ? (
+                    <Image
+                      src={
+                        url.startsWith("http")
+                          ? url
+                          : `${BACKEND_URL}${url.startsWith("/") ? "" : "/"}${url}`
+                      }
+                      width={60}
+                      height={40}
+                      style={{ objectFit: "cover", borderRadius: 4 }}
+                    />
+                  ) : (
+                    <span style={{ color: "#aaa", fontSize: "12px" }}>Không có ảnh</span>
+                  );
+                },
+              },
             ]}
             scroll={{ x: 600 }}
           />
