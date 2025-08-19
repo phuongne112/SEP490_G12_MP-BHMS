@@ -80,9 +80,13 @@ axiosClient.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return axiosClient(originalRequest);
       } catch (refreshErr) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        window.dispatchEvent(new Event("force-logout"));
+        // Chỉ phát force-logout nếu trước đó thực sự có token
+        const hadToken = !!localStorage.getItem("token");
+        if (hadToken) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          window.dispatchEvent(new Event("force-logout"));
+        }
         return Promise.reject(refreshErr);
       }
     }

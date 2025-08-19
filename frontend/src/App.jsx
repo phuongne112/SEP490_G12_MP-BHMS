@@ -38,7 +38,7 @@ function App() {
     return () => window.removeEventListener("force-logout", handleForceLogout);
   }, [navigate, location.pathname]);
 
-  // ✅ Lắng nghe sự kiện đăng xuất từ tab khác qua localStorage
+  // ✅ Lắng nghe sự kiện đăng xuất từ tab khác qua localStorage (tránh lặp vô hạn)
   useEffect(() => {
     const onStorage = (e) => {
       if (e.key === "logout") {
