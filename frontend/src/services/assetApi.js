@@ -51,6 +51,16 @@ export const getAssetInventoryByRoomAndContract = async (roomNumber, contractId)
   return response;
 };
 
+// Upload ảnh kiểm kê tài sản → trả về URL
+export const uploadAssetInventoryPhoto = async (file) => {
+  const form = new FormData();
+  form.append('image', file);
+  const res = await axiosClient.post('/asset-inventory/upload-photo', form, {
+    headers: { 'Content-Type': undefined }
+  });
+  return res;
+};
+
 // RoomAsset APIs
 export const getAssetsByRoom = async (roomId) => {
   const response = await axiosClient.get(`/room-assets/by-room?roomId=${roomId}`);

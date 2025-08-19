@@ -13,4 +13,5 @@ public class AssetInventoryRequest {
     private Boolean isEnough;
     private String note;
     private String type; // "CHECKIN" hoặc "CHECKOUT"
+    private java.util.List<String> photoUrls; // URL ảnh đã upload
 } 

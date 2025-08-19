@@ -227,6 +227,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Asset Checkin/Checkout", "/mpbhms/asset-inventory/checkin", "POST", "AssetInventory"));
             permissions.add(new Permission("Asset List By Room Contract", "/mpbhms/asset-inventory/by-room-contract", "GET", "AssetInventory"));
             permissions.add(new Permission("Asset List By Room ", "/mpbhms/asset-inventory/by-room", "GET", "AssetInventory"));
+            permissions.add(new Permission("Upload Asset Inventory Photo", "/mpbhms/asset-inventory/upload-photo", "POST", "AssetInventory"));
             //Payment
             permissions.add(new Permission("Create VN pay Url", "/mpbhms/payment/create-vnpay-url", "POST", "Payment"));
             permissions.add(new Permission("Payment return", "/mpbhms/payment/vnpay-return", "GET", "Payment"));
@@ -347,6 +348,8 @@ public class DatabaseInitializer implements CommandLineRunner {
             // Allow renter to view assets by room
             Permission assetListByRoom = permissionRepository.findByModuleAndApiPathAndMethod("AssetInventory", "/mpbhms/asset-inventory/by-room", "GET");
             if (assetListByRoom != null && !renterPermission.contains(assetListByRoom)) renterPermission.add(assetListByRoom);
+            Permission uploadInventoryPhoto = permissionRepository.findByModuleAndApiPathAndMethod("AssetInventory", "/mpbhms/asset-inventory/upload-photo", "POST");
+            if (uploadInventoryPhoto != null) renterPermission.add(uploadInventoryPhoto);
             // RoomAsset
             Permission getAssetsByRoomNumber = permissionRepository.findByModuleAndApiPathAndMethod("RoomAsset", "/mpbhms/room-assets/by-room-number", "GET");
             if (getAssetsByRoomNumber != null) renterPermission.add(getAssetsByRoomNumber);
