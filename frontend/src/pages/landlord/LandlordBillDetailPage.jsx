@@ -445,7 +445,7 @@ export default function LandlordBillDetailPage() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>
                             <p style={{ margin: 0, fontWeight: 'bold' }}>
-                              Thanh toán #{payment.paymentNumber} - {payment.paymentDate}
+                              Thanh toán #{payment.paymentNumber} - {payment.paymentDate ? (dayjs(payment.paymentDate).isValid() ? dayjs(payment.paymentDate).format('DD/MM/YYYY HH:mm') : payment.paymentDate) : ''}
                             </p>
                             <p style={{ margin: '4px 0', color: '#666', fontSize: '12px' }}>
                               <Tag color="blue" size="small">{payment.paymentMethodDisplay || 'Tiền mặt'}</Tag>
@@ -465,7 +465,19 @@ export default function LandlordBillDetailPage() {
                               )}
                             </p>
                             <p style={{ margin: '4px 0', color: '#666', fontSize: '12px' }}>
-                              Tổng cộng: {payment.totalAmount?.toLocaleString()} ₫
+                              {(() => {
+                                const base = Number(payment.paymentAmount || 0);
+                                const fee = Number(payment.partialPaymentFee || 0);
+                                const interest = Number(payment.overdueInterest || 0);
+                                const calcTotal = base + fee + interest;
+                                const total = Number(payment.totalAmount || 0);
+                                const displayTotal = total > 0 ? Math.max(total, calcTotal) : calcTotal;
+                                return (
+                                  <span>
+                                    Tổng cộng: {displayTotal.toLocaleString()} ₫
+                                  </span>
+                                );
+                              })()}
                             </p>
                             {payment.notes && (
                               <p style={{ margin: '4px 0', color: '#666', fontSize: '12px', fontStyle: 'italic' }}>
@@ -475,7 +487,7 @@ export default function LandlordBillDetailPage() {
                           </div>
                           <Popconfirm
                             title="Xác nhận thanh toán tiền mặt"
-                            description={`Bạn có chắc muốn xác nhận thanh toán ${payment.paymentAmount?.toLocaleString()} ₫?`}
+                            description={`Bạn có chắc muốn xác nhận thanh toán ${payment.totalAmount?.toLocaleString()} ₫?`}
                             onConfirm={() => handleConfirmCashPayment(payment.id)}
                             okText="Xác nhận"
                             cancelText="Hủy"

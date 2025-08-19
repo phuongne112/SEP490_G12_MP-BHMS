@@ -1,11 +1,17 @@
 services:
   nginx:
     image: nginx:1.23
+    restart: always
     volumes:
       - ../frontend/dist:/usr/share/nginx/html
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
       - /home/azureuser/SEP490_G12_MP-BHMS/img/ocr:/usr/share/nginx/html/img/ocr:rw
-      - /home/azureuser/SEP490_G12_MP-BHMS/uploads:/usr/share/nginx/html/uploads:ro
+      # Mount uploads to a consistent absolute path used by both nginx and backend
+      - /home/azureuser/SEP490_G12_MP-BHMS/uploads:/uploads:ro
+      # Mount Let's Encrypt certs so HTTPS can start
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - backend-spring
 
     ports:
       - "80:80"
@@ -36,6 +42,7 @@ services:
       - MPBHMS_UPLOAD_FILE_BASE_URI=file:///uploads/
       - FILE_UPLOAD_DIR=/uploads
       - TZ=Asia/Ho_Chi_Minh
+      - SERVER_FORWARD_HEADERS_STRATEGY=framework
     depends_on:
       - db-mysql
     volumes:

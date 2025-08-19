@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Form, InputNumber, Input, Button, message, Alert, Divider, Card, Statistic } from 'antd';
 import { createPartialPaymentVnPayUrl, getPaymentCount } from '../../services/billApi';
 import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+dayjs.extend(customParseFormat);
 const { TextArea } = Input;
 
 const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
@@ -68,9 +70,11 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
   // 🆕 Tính số ngày từ lần thanh toán cuối cùng
   const getDaysSinceLastPayment = () => {
     if (!bill || !bill.lastPaymentDate) return null;
-    
     try {
-      const lastPaymentDate = dayjs(bill.lastPaymentDate);
+      // Parse theo định dạng từ backend và fallback ISO
+      const parsed = dayjs(bill.lastPaymentDate, 'YYYY-MM-DD HH:mm:ss A', true);
+      const lastPaymentDate = parsed.isValid() ? parsed : dayjs(bill.lastPaymentDate);
+      if (!lastPaymentDate.isValid()) return null;
       const currentDate = dayjs();
       const daysDiff = currentDate.diff(lastPaymentDate, 'day');
       return Math.max(0, daysDiff);

@@ -1,7 +1,6 @@
 package com.mpbhms.backend.controller;
 
 import com.mpbhms.backend.dto.BillResponse;
-import com.mpbhms.backend.dto.BillDetailResponse;
 import com.mpbhms.backend.dto.PartialPaymentRequest;
 import com.mpbhms.backend.dto.PartialPaymentResponse;
 import com.mpbhms.backend.entity.Bill;
@@ -23,7 +22,6 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -176,19 +174,44 @@ public class BillController {
         Bill bill = billService.getBillById(billId);
         byte[] pdfBytes = billService.generateBillPdf(billId);
         
-        // Lấy email của tất cả người thuê trong hợp đồng
-        List<String> emails = bill.getContract().getRoomUsers().stream()
-            .filter(ru -> ru.getUser() != null && ru.getUser().getEmail() != null)
-            .map(ru -> ru.getUser().getEmail())
-            .distinct()
-            .toList();
+        // Nếu hóa đơn đã từng thanh toán từng phần, kiểm tra giới hạn 30 ngày giữa các lần
+        try {
+            if (Boolean.TRUE.equals(bill.getIsPartiallyPaid()) && bill.getLastPaymentDate() != null) {
+                java.time.Instant currentDate = java.time.Instant.now();
+                java.time.Instant lastPaymentDate = bill.getLastPaymentDate();
+                long daysSinceLastPayment = java.time.Duration.between(lastPaymentDate, currentDate).toDays();
+                if (daysSinceLastPayment < 30) {
+                    long remainingDays = 30 - daysSinceLastPayment;
+                    java.util.Map<String, Object> error = new java.util.HashMap<>();
+                    error.put("success", false);
+                    error.put("message", "Bạn phải đợi thêm " + remainingDays + " ngày nữa mới được gửi email nhắc thanh toán tiếp theo cho hóa đơn này (quy định tối thiểu 30 ngày giữa các lần thanh toán từng phần).");
+                    return ResponseEntity.badRequest().body(error);
+                }
+            }
+        } catch (Exception e) {
+            // Bỏ qua nếu có lỗi tính ngày – không chặn việc gửi
+        }
+
+        // Gửi cho tất cả người thuê trong hợp đồng (lọc active ở vòng lặp bên dưới)
             
         String subject = "Hóa đơn mới - Phòng " + bill.getRoom().getRoomNumber();
         
-        // Tạo payment URL
+        // Tạo payment URL: sử dụng số tiền còn nợ (và phí thanh toán từng phần nếu có)
         String paymentUrl = "";
         try {
-            paymentUrl = vnPayService.createPaymentUrl(bill.getId(), bill.getTotalAmount().longValue(), "Thanh toán hóa đơn #" + bill.getId());
+            java.math.BigDecimal outstanding = bill.getOutstandingAmount() != null ? bill.getOutstandingAmount() : bill.getTotalAmount();
+            long amountForLink = outstanding.longValue();
+            String orderInfo = "Thanh toán hóa đơn #" + bill.getId();
+
+            if (Boolean.TRUE.equals(bill.getIsPartiallyPaid())) {
+                int paymentCount = billService.getPaymentCount(bill.getId());
+                java.math.BigDecimal nextFee = billService.calculateNextPaymentFee(paymentCount);
+                amountForLink = outstanding.add(nextFee).longValue();
+                // Gắn originalAmount để callback xử lý đúng tiền gốc
+                orderInfo += "|originalAmount:" + outstanding.toPlainString();
+            }
+
+            paymentUrl = vnPayService.createPaymentUrl(bill.getId(), amountForLink, orderInfo);
         } catch (Exception e) {
             paymentUrl = null;
         }
@@ -217,8 +240,9 @@ public class BillController {
                     NotificationDTO notification = new NotificationDTO();
                     notification.setRecipientId(roomUser.getUser().getId());
                     notification.setTitle("Hóa đơn mới - Phòng " + bill.getRoom().getRoomNumber());
-                    notification.setMessage("Bạn có hóa đơn mới #" + bill.getId() + " - Số tiền: " + 
-                        bill.getTotalAmount().toString() + " VNĐ. Vui lòng kiểm tra email để xem chi tiết.");
+                    java.math.BigDecimal amountToShow = bill.getOutstandingAmount() != null ? bill.getOutstandingAmount() : bill.getTotalAmount();
+                    notification.setMessage("Bạn có hóa đơn mới #" + bill.getId() + " - Số tiền cần thanh toán: " + 
+                        amountToShow.toString() + " VNĐ. Vui lòng kiểm tra email để xem chi tiết.");
                     notification.setType(NotificationType.ANNOUNCEMENT);
                     notification.setMetadata("{\"billId\":" + bill.getId() + ",\"roomNumber\":\"" + bill.getRoom().getRoomNumber() + "\"}");
                     notificationService.createAndSend(notification);
@@ -245,14 +269,42 @@ public class BillController {
         var revenueByMonth = billService.getRevenueByMonth(6);
         String thisMonth = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM"));
         BigDecimal monthRevenue = billService.getMonthRevenue(thisMonth);
-        return Map.of(
-            "unpaid", unpaid,
-            "paid", paid,
-            "overdue", overdue,
-            "revenue", revenue,
-            "revenueByMonth", revenueByMonth,
-            "monthRevenue", monthRevenue
-        );
+        
+        // 🆕 Thống kê chi tiết cho thanh toán từng phần
+        try {
+            Map<String, BigDecimal> revenueBreakdown = billService.getRevenueBreakdown();
+            long partiallyPaidCount = billService.countPartiallyPaidBills();
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("unpaid", unpaid);
+            result.put("paid", paid);
+            result.put("overdue", overdue);
+            result.put("revenue", revenue);
+            result.put("revenueByMonth", revenueByMonth);
+            result.put("monthRevenue", monthRevenue);
+            
+            // 🆕 Thêm thống kê chi tiết
+            result.put("revenueFromBills", revenueBreakdown.get("billRevenue"));
+            result.put("revenueFromFees", revenueBreakdown.get("feeRevenue"));
+            result.put("totalPartialPayments", revenueBreakdown.get("partialPayments"));
+            result.put("partiallyPaidBills", partiallyPaidCount);
+            
+            return result;
+        } catch (Exception e) {
+            // Fallback nếu có lỗi với thống kê mới
+            return Map.of(
+                "unpaid", unpaid,
+                "paid", paid,
+                "overdue", overdue,
+                "revenue", revenue,
+                "revenueByMonth", revenueByMonth,
+                "monthRevenue", monthRevenue,
+                "revenueFromBills", BigDecimal.ZERO,
+                "revenueFromFees", BigDecimal.ZERO,
+                "totalPartialPayments", BigDecimal.ZERO,
+                "partiallyPaidBills", 0L
+            );
+        }
     }
 
     @PutMapping("/{id}/payment-status")
@@ -618,11 +670,19 @@ public class BillController {
                 }
             }
             
+            // Tính tổng tiền an toàn ở backend để tránh phụ thuộc hoàn toàn vào client
+            BigDecimal safeTotalWithFees = request.getTotalWithFees();
+            if (safeTotalWithFees == null || safeTotalWithFees.compareTo(BigDecimal.ZERO) <= 0) {
+                BigDecimal fee = request.getPartialPaymentFee() != null ? request.getPartialPaymentFee() : BigDecimal.ZERO;
+                BigDecimal interest = request.getOverdueInterest() != null ? request.getOverdueInterest() : BigDecimal.ZERO;
+                safeTotalWithFees = request.getOriginalPaymentAmount().add(fee).add(interest);
+            }
+
             // Create payment history record for cash payment (pending status)
             PaymentHistory paymentHistory = new PaymentHistory();
             paymentHistory.setBill(bill);
             paymentHistory.setPaymentAmount(request.getOriginalPaymentAmount());
-            paymentHistory.setTotalAmount(request.getTotalWithFees());
+            paymentHistory.setTotalAmount(safeTotalWithFees);
             paymentHistory.setPartialPaymentFee(request.getPartialPaymentFee());
             paymentHistory.setOverdueInterest(request.getOverdueInterest());
             paymentHistory.setPaymentMethod("CASH");
@@ -645,7 +705,7 @@ public class BillController {
             paymentHistory.setPaidAfter(paidAfter);
             paymentHistory.setStatus("PENDING");
             paymentHistory.setIsPartialPayment(request.getOriginalPaymentAmount().compareTo(bill.getOutstandingAmount()) < 0);
-            paymentHistory.setNotes("Thanh toán tiền mặt - chờ landlord xác nhận");
+            paymentHistory.setNotes("Thanh toán tiền mặt - chờ chủ trọ xác nhận");
             paymentHistory.setMonthsOverdue(calculateOverdueMonths(bill));
 
             // Log thông tin thanh toán (giống VNPAY)
@@ -654,7 +714,7 @@ public class BillController {
             System.out.println("Số tiền thanh toán (gốc): " + request.getOriginalPaymentAmount());
             System.out.println("Phí thanh toán từng phần: " + request.getPartialPaymentFee());
             System.out.println("Lãi suất quá hạn: " + request.getOverdueInterest());
-            System.out.println("Tổng cộng: " + request.getTotalWithFees());
+            System.out.println("Tổng cộng: " + safeTotalWithFees);
             System.out.println("Có phải thanh toán từng phần: " + (request.getOriginalPaymentAmount().compareTo(bill.getOutstandingAmount()) < 0));
             System.out.println("Số tháng quá hạn: " + calculateOverdueMonths(bill));
             System.out.println("Ngày thanh toán khi tạo: " + paymentHistory.getPaymentDate());
@@ -667,7 +727,7 @@ public class BillController {
 
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
-            result.put("message", "Đã tạo yêu cầu thanh toán tiền mặt. Chờ landlord xác nhận.");
+            result.put("message", "Đã tạo yêu cầu thanh toán tiền mặt. Chờ chủ trọ xác nhận.");
             result.put("paymentHistoryId", paymentHistory.getId());
             
             return ResponseEntity.ok(result);
@@ -747,6 +807,50 @@ public class BillController {
             System.out.println("Ngày thanh toán sau khi cập nhật: " + Instant.now());
             System.out.println("Trạng thái hóa đơn sau khi xác nhận: " + (bill.getStatus() ? "Đã thanh toán" : "Còn nợ"));
             System.out.println("Số tiền còn nợ: " + bill.getOutstandingAmount());
+
+            // 🆕 Gửi email thông báo thanh toán tiền mặt thành công (giống VNPay partial)
+            try {
+                // Email cho người thuê chính
+                if (bill.getContract() != null && bill.getContract().getRoomUsers() != null) {
+                    var mainRenter = bill.getContract().getRoomUsers().stream()
+                        .filter(ru -> ru.getUser() != null && Boolean.TRUE.equals(ru.getIsActive()) && ru.getUser().getEmail() != null)
+                        .findFirst().orElse(null);
+                    if (mainRenter != null) {
+                        String emailContent = billService.buildPartialPaymentEmailContent(bill, originalPaymentAmount);
+                        emailService.sendNotificationEmail(
+                            mainRenter.getUser().getEmail(),
+                            "Thanh toán tiền mặt thành công - Hóa đơn #" + bill.getId(),
+                            emailContent
+                        );
+                    }
+                }
+
+                // Notification trong hệ thống
+                try {
+                    NotificationDTO noti = new NotificationDTO();
+                    noti.setTitle("Thanh toán tiền mặt thành công");
+                    noti.setMessage("Bạn đã thanh toán " + originalPaymentAmount + " cho hóa đơn #" + bill.getId() +
+                        ". Số tiền còn nợ: " + bill.getOutstandingAmount());
+                    noti.setType(NotificationType.ANNOUNCEMENT);
+                    if (bill.getContract() != null && bill.getContract().getRoomUsers() != null) {
+                        bill.getContract().getRoomUsers().stream()
+                            .filter(ru -> ru.getUser() != null && Boolean.TRUE.equals(ru.getIsActive()))
+                            .forEach(ru -> {
+                                NotificationDTO clone = new NotificationDTO();
+                                clone.setRecipientId(ru.getUser().getId());
+                                clone.setTitle(noti.getTitle());
+                                clone.setMessage(noti.getMessage());
+                                clone.setType(noti.getType());
+                                clone.setMetadata("{\"billId\":" + bill.getId() + "}");
+                                notificationService.createAndSend(clone);
+                            });
+                    }
+                } catch (Exception ex) {
+                    System.err.println("Lỗi gửi notification tiền mặt: " + ex.getMessage());
+                }
+            } catch (Exception ex) {
+                System.err.println("Lỗi gửi email thanh toán tiền mặt: " + ex.getMessage());
+            }
 
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);

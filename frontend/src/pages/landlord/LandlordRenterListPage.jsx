@@ -56,6 +56,7 @@ export default function LandlordRenterListPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [ocrDateOfBirth, setOcrDateOfBirth] = useState(null);
   const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
+  const [ocrIssueDate, setOcrIssueDate] = useState(null);
 
   useEffect(() => {
     async function fetchRooms() {
@@ -279,10 +280,13 @@ export default function LandlordRenterListPage() {
       
       // Set state để force update DatePicker
       setOcrDateOfBirth(birthDateValue);
+      setOcrIssueDate(issueDateValue);
       
       console.log('Dữ liệu sẽ set vào form:', formData);
       
       addForm.setFieldsValue(formData);
+      // Set riêng ngày cấp để đảm bảo DatePicker nhận
+      addForm.setFieldsValue({ nationalIDIssueDate: issueDateValue });
       
       // Kiểm tra xem form có được set thành công không
       const currentValues = addForm.getFieldsValue();
@@ -298,13 +302,13 @@ export default function LandlordRenterListPage() {
       
       // Force update DatePicker bằng nhiều cách
       setTimeout(() => {
-        addForm.setFieldsValue({ dateOfBirth: birthDateValue });
-        console.log('Force updated dateOfBirth field - attempt 1');
+        addForm.setFieldsValue({ dateOfBirth: birthDateValue, nationalIDIssueDate: issueDateValue });
+        console.log('Force updated DoB/IssueDate - attempt 1');
       }, 100);
       
       setTimeout(() => {
-        addForm.setFieldsValue({ dateOfBirth: birthDateValue });
-        console.log('Force updated dateOfBirth field - attempt 2');
+        addForm.setFieldsValue({ dateOfBirth: birthDateValue, nationalIDIssueDate: issueDateValue });
+        console.log('Force updated DoB/IssueDate - attempt 2');
       }, 300);
       
       // Thử cách khác: reset form và set lại
@@ -314,9 +318,10 @@ export default function LandlordRenterListPage() {
         setTimeout(() => {
           addForm.setFieldsValue({
             ...currentFormData,
-            dateOfBirth: birthDateValue
+            dateOfBirth: birthDateValue,
+            nationalIDIssueDate: issueDateValue
           });
-          console.log('Reset and set dateOfBirth field');
+          console.log('Reset and set DoB/IssueDate fields');
         }, 50);
       }, 500);
       
@@ -783,6 +788,8 @@ export default function LandlordRenterListPage() {
                                   style={{ width: '100%' }} 
                                   placeholder="Chọn ngày sinh" 
                                   format="DD/MM/YYYY"
+                                  inputReadOnly
+                                  defaultPickerValue={dayjs().subtract(20, 'year')}
                                   disabledDate={(current) => {
                                     const today = dayjs();
                                     const minAge = today.subtract(16, 'year');
@@ -839,16 +846,28 @@ export default function LandlordRenterListPage() {
                                 }
                               }
                             ]}>
-                              <DatePicker 
-                                placeholder="Chọn ngày cấp CCCD" 
-                                format="DD/MM/YYYY"
-                                style={{ width: '100%' }}
-                                disabledDate={(current) => {
-                                  const birthDate = addForm.getFieldValue('dateOfBirth');
-                                  const today = dayjs();
-                                  return current && (current.isBefore(birthDate) || current.isAfter(today));
-                                }}
-                              />
+                              <ConfigProvider locale={locale}>
+                                <DatePicker 
+                                  placeholder="Chọn ngày cấp CCCD" 
+                                  format="DD/MM/YYYY"
+                                  style={{ width: '100%' }}
+                                  key={`issueDate-${forceUpdate}`}
+                                  defaultValue={ocrIssueDate}
+                                  defaultPickerValue={dayjs()}
+                                  inputReadOnly
+                                  onChange={(date) => {
+                                    addForm.setFieldsValue({ nationalIDIssueDate: date });
+                                  }}
+                                  disabledDate={(current) => {
+                                    const birthDate = addForm.getFieldValue('dateOfBirth');
+                                    const today = dayjs();
+                                    if (!birthDate) {
+                                      return current && current.isAfter(today);
+                                    }
+                                    return current && (current.isBefore(birthDate) || current.isAfter(today));
+                                  }}
+                                />
+                              </ConfigProvider>
                             </Form.Item>
                           </Col>
                           <Col span={12}>

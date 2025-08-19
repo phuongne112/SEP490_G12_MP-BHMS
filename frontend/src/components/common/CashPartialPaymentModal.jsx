@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+dayjs.extend(customParseFormat);
 import { Modal, Form, InputNumber, Button, Alert, Space, Typography } from 'antd';
 import { getPaymentCount } from '../../services/billApi';
 import { message } from 'antd'; // Added message import
@@ -28,6 +31,12 @@ export default function CashPartialPaymentModal({
     }
   }, [visible, bill, outstandingAmount]);
 
+  // Đồng bộ lại tổng tiền khi phí/lãi thay đổi (trường hợp phí trả về sau)
+  useEffect(() => {
+    const currentAmount = form.getFieldValue('paymentAmount') || 0;
+    setTotalWithFees(Number(currentAmount) + Number(partialPaymentFee) + Number(overdueInterest));
+  }, [partialPaymentFee, overdueInterest]);
+
   const fetchPaymentCount = async () => {
     try {
       const response = await getPaymentCount(bill.id);
@@ -45,12 +54,12 @@ export default function CashPartialPaymentModal({
   // 🆕 Tính số ngày từ lần thanh toán cuối cùng
   const getDaysSinceLastPayment = () => {
     if (!bill || !bill.lastPaymentDate) return null;
-    
     try {
-      const lastPaymentDate = new Date(bill.lastPaymentDate);
-      const currentDate = new Date();
-      const diffTime = currentDate.getTime() - lastPaymentDate.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const parsed = dayjs(bill.lastPaymentDate, 'YYYY-MM-DD HH:mm:ss A', true);
+      const lastPaymentDate = parsed.isValid() ? parsed : dayjs(bill.lastPaymentDate);
+      if (!lastPaymentDate.isValid()) return null;
+      const currentDate = dayjs();
+      const diffDays = currentDate.diff(lastPaymentDate, 'day');
       return Math.max(0, diffDays);
     } catch (error) {
       console.error('Error calculating days since last payment:', error);
@@ -123,18 +132,23 @@ export default function CashPartialPaymentModal({
     // Lãi suất theo tháng: 2% mỗi tháng
     const monthlyRate = 0.02;
     const interest = overdueMonths > 0 ? Math.min(remainingAmount * monthlyRate * overdueMonths, remainingAmount * 0.05) : 0;
-    setOverdueInterest(Math.round(interest));
+    const roundedInterest = Math.round(interest);
+    setOverdueInterest(roundedInterest);
 
     console.log('Tính toán phí thanh toán (giống VNPAY):', {
       paymentCount: count,
       partialPaymentFee: fee,
       overdueMonths,
-      overdueInterest: interest,
+      overdueInterest: roundedInterest,
       outstandingAmount: outstanding,
       remainingAmount,
       monthlyRate
     });
     console.log('=== KẾT THÚC TÍNH PHÍ ===');
+
+    // Đồng bộ lại tổng tiền ngay sau khi tính được phí/lãi
+    const currentAmount = form.getFieldValue('paymentAmount') || 0;
+    setTotalWithFees(Number(currentAmount) + Number(fee) + Number(roundedInterest));
   };
 
   const calculateOverdueMonths = () => {
@@ -171,7 +185,7 @@ export default function CashPartialPaymentModal({
     const interest = overdueMonths > 0 ? Math.min(remainingAmount * monthlyRate * overdueMonths, remainingAmount * 0.05) : 0;
     setOverdueInterest(Math.round(interest));
 
-    const total = value + partialPaymentFee + Math.round(interest);
+    const total = Number(value) + Number(partialPaymentFee) + Math.round(interest);
     setTotalWithFees(total);
 
     console.log('Tính toán tổng tiền (giống VNPAY):', {
@@ -213,12 +227,13 @@ export default function CashPartialPaymentModal({
       
       setLoading(true);
       
+      const computedTotal = Number(values.paymentAmount) + Number(partialPaymentFee) + Number(overdueInterest);
       const request = {
         billId: bill.id,
         originalPaymentAmount: values.paymentAmount,
         partialPaymentFee: partialPaymentFee,
         overdueInterest: overdueInterest,
-        totalWithFees: totalWithFees,
+        totalWithFees: computedTotal,
         paymentMethod: 'CASH',
         notes: 'Thanh toán tiền mặt'
       };
@@ -243,12 +258,8 @@ export default function CashPartialPaymentModal({
       title="Thanh toán từng phần bằng tiền mặt"
       open={visible}
       onCancel={handleCancel}
-      onOk={handleOk}
-      confirmLoading={loading}
+      footer={null}
       width={600}
-      okText={!canMakePartialPayment() ? `Đợi thêm ${getRemainingDays()} ngày nữa` : "Xác nhận thanh toán"}
-      cancelText="Hủy"
-      okButtonProps={{ disabled: !canMakePartialPayment() }}
     >
       <Form form={form} layout="vertical">
         <Alert
@@ -437,7 +448,7 @@ export default function CashPartialPaymentModal({
 
         <Alert
           message="Lưu ý"
-          description="Sau khi xác nhận, landlord sẽ được thông báo để kiểm tra và xác nhận thanh toán tiền mặt."
+          description="Sau khi xác nhận, chủ trọ sẽ được thông báo để kiểm tra và xác nhận thanh toán tiền mặt."
           type="info"
           showIcon
         />

@@ -40,6 +40,9 @@ public class SecurityConfiguration {
             "/mpbhms/auth/signup",
             "/mpbhms/users/me/account",
             "/mpbhms/users/me/info",
+            // Public rooms endpoints
+            "/mpbhms/rooms",
+            "/mpbhms/rooms/**",
             "/uploads/**",
             "/src/assets/**",
             "/img/**",
@@ -56,7 +59,10 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(
                         authz -> authz
                                 .requestMatchers(whiteList).permitAll()
+                                // Public room listing/detail endpoints
+                                .requestMatchers(HttpMethod.GET, "/mpbhms/rooms").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/mpbhms/rooms/**").permitAll()
+                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                 .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults())
                         .authenticationEntryPoint(caep))
@@ -91,10 +97,14 @@ public class SecurityConfiguration {
                 "http://localhost:5173",
                 "http://localhost",
                 "http://20.78.57.200",
-                "http://52.184.69.15"
+                "http://52.184.69.15",
+                "http://mpbhms.online",
+                "https://mpbhms.online",
+                "https://www.mpbhms.online"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE","PATCH", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "x-no-retry"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "x-no-retry", "X-Requested-With", "Origin", "X-Forwarded-For", "X-Forwarded-Proto", "X-Real-IP"));
+        config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -126,10 +126,15 @@ export default function RenterBillDetailPage() {
   // 🆕 Helper functions cho validation thời gian
   const getDaysSinceLastPayment = () => {
     if (!bill?.lastPaymentDate) return 0;
-    const lastPayment = new Date(bill.lastPaymentDate);
-    const now = new Date();
-    const diffTime = Math.abs(now - lastPayment);
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    try {
+      const parsed = dayjs(bill.lastPaymentDate, "YYYY-MM-DD HH:mm:ss A", true);
+      const lastPayment = parsed.isValid() ? parsed : dayjs(bill.lastPaymentDate);
+      if (!lastPayment.isValid()) return 0;
+      const now = dayjs();
+      return Math.max(0, now.diff(lastPayment, 'day'));
+    } catch {
+      return 0;
+    }
   };
 
   const canMakePayment = () => {
@@ -234,7 +239,7 @@ export default function RenterBillDetailPage() {
     try {
       await createCashPartialPayment(paymentData);
       message.success(
-        "Đã gửi yêu cầu thanh toán tiền mặt! Chủ Trọ sẽ xác nhận sau."
+        "Đã gửi yêu cầu thanh toán tiền mặt! Chủ trọ sẽ xác nhận sau."
       );
       setCashPartialPaymentModalVisible(false);
       fetchBill();

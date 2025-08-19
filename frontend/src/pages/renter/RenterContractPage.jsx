@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Card, Descriptions, Tag, Spin, Typography, Button, message, Row, Col, Modal, List, DatePicker, Alert, Badge, Statistic, Timeline, Divider, Pagination, Drawer } from "antd";
+import { Card, Descriptions, Tag, Spin, Typography, Button, message, Row, Col, Modal, List, DatePicker, Alert, Badge, Statistic, Timeline, Divider, Pagination, Drawer, Select, Radio } from "antd";
 import { FileTextOutlined, HistoryOutlined, ReloadOutlined, BellOutlined, InfoCircleOutlined, ClockCircleOutlined, MenuOutlined } from "@ant-design/icons";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import dayjs from "dayjs";
@@ -30,6 +30,7 @@ export default function RenterContractPage() {
   const [renewModalOpen, setRenewModalOpen] = useState(false);
   const [renewReason, setRenewReason] = useState("");
   const [renewEndDate, setRenewEndDate] = useState(null);
+  const [renewMode, setRenewMode] = useState('cycle'); // 'cycle' | 'custom'
   const [renewingContract, setRenewingContract] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -291,6 +292,13 @@ export default function RenterContractPage() {
     setRenewModalOpen(true);
     setRenewReason("");
     setRenewEndDate(null);
+    setRenewMode('cycle');
+    try {
+      const opts = buildCycleDateOptions();
+      if (opts.length > 0) {
+        setRenewEndDate(opts[0].value);
+      }
+    } catch {}
   };
   const handleSendRenewRequest = async () => {
     if (!renewEndDate) {
@@ -387,6 +395,29 @@ export default function RenterContractPage() {
     } finally {
       setRenewingContract(false);
     }
+  };
+
+  // Tạo danh sách ngày kết thúc theo chu kỳ thanh toán
+  const buildCycleDateOptions = () => {
+    if (!contract?.contractEndDate) return [];
+    const baseEnd = dayjs(contract.contractEndDate);
+    const unitMonths = contract.paymentCycle === 'MONTHLY' ? 1 : contract.paymentCycle === 'QUARTERLY' ? 3 : 12;
+    const maxCycles = contract.paymentCycle === 'MONTHLY' ? 24 : contract.paymentCycle === 'QUARTERLY' ? 8 : 5;
+    const options = [];
+    for (let i = 1; i <= maxCycles; i += 1) {
+      const d = baseEnd.add(unitMonths * i, 'month').endOf('day');
+      options.push({
+        label: d.format('DD/MM/YYYY'),
+        value: d.toISOString(),
+      });
+    }
+    return options;
+  };
+
+  const getCycleText = () => {
+    if (contract?.paymentCycle === 'MONTHLY') return 'Hàng tháng';
+    if (contract?.paymentCycle === 'QUARTERLY') return 'Hàng quý';
+    return 'Hàng năm';
   };
 
   if (loading) {
@@ -1145,17 +1176,39 @@ export default function RenterContractPage() {
             <label style={{ fontWeight: 'bold', marginBottom: 8, display: 'block' }}>
               📅 Ngày kết thúc mới:
             </label>
-            <DatePicker
-              style={{ width: '100%' }}
-              value={renewEndDate ? dayjs(renewEndDate) : null}
-              onChange={d => setRenewEndDate(d ? d.toISOString() : null)}
-              format="DD/MM/YYYY"
-              placeholder="Chọn ngày kết thúc mới"
-              disabledDate={current => {
-                if (!current || !contract.contractEndDate) return true;
-                return current <= dayjs(contract.contractEndDate);
-              }}
-            />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+              <Radio.Group
+                value={renewMode}
+                onChange={(e) => setRenewMode(e.target.value)}
+                optionType="button"
+                buttonStyle="solid"
+              >
+                <Radio.Button value="cycle">{getCycleText()}</Radio.Button>
+                <Radio.Button value="custom">Tùy chỉnh</Radio.Button>
+              </Radio.Group>
+            </div>
+
+            {renewMode === 'cycle' ? (
+              <Select
+                style={{ width: '100%' }}
+                options={buildCycleDateOptions()}
+                value={renewEndDate}
+                onChange={(v) => setRenewEndDate(v)}
+                placeholder={`Chọn ngày theo chu kỳ (${getCycleText()})`}
+              />
+            ) : (
+              <DatePicker
+                style={{ width: '100%' }}
+                value={renewEndDate ? dayjs(renewEndDate) : null}
+                onChange={d => setRenewEndDate(d ? d.toISOString() : null)}
+                format="DD/MM/YYYY"
+                placeholder="Chọn ngày kết thúc mới"
+                disabledDate={current => {
+                  if (!current || !contract.contractEndDate) return true;
+                  return current <= dayjs(contract.contractEndDate);
+                }}
+              />
+            )}
           </div>
           
           <div>

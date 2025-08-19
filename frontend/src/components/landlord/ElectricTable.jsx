@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Table, Button, Modal, Upload, message, Input, Switch, InputNumber, Space, Card, Select } from "antd";
+import { getAllRooms } from "../../services/roomService";
 import { CameraOutlined, ScanOutlined } from "@ant-design/icons";
 import { detectElectricOcr, detectAndSaveElectricOcr, saveImageOnly, saveElectricReading, manualScanElectricOcr } from "../../services/electricOcrApi";
 import dayjs from "dayjs";
@@ -38,6 +39,31 @@ export default function ElectricTable({
   const [autoCaptureSettingsModalOpen, setAutoCaptureSettingsModalOpen] = useState(false);
   const autoCaptureTimerRef = useRef(null);
   const cameraRef = useRef(null);
+
+  // Room options for auto-capture Select (server-side paginated)
+  const [roomOptions, setRoomOptions] = useState([]);
+  const [roomSearch, setRoomSearch] = useState("");
+  const [roomPage, setRoomPage] = useState(0);
+  const [roomPageSize] = useState(20);
+  const [roomTotal, setRoomTotal] = useState(0);
+  const [roomLoading, setRoomLoading] = useState(false);
+
+  const loadRooms = async (page = 0, searchText = "", append = false) => {
+    try {
+      setRoomLoading(true);
+      const filter = searchText ? `roomNumber~${searchText}` : "";
+      const res = await getAllRooms(page, roomPageSize, filter, "roomNumber,asc");
+      const list = res?.result || [];
+      const meta = res?.meta || {};
+      setRoomTotal(meta.total || 0);
+      setRoomPage(page);
+      setRoomOptions(prev => append ? [...prev, ...list] : list);
+    } catch (e) {
+      // ignore
+    } finally {
+      setRoomLoading(false);
+    }
+  };
 
   // Save autoCaptureInterval to localStorage when it changes
   useEffect(() => {
@@ -314,11 +340,36 @@ export default function ElectricTable({
             <Select
               value={autoCaptureTargetRoom}
               onChange={setAutoCaptureTargetRoom}
-              style={{ width: 200 }}
               placeholder="Chọn phòng"
+              style={{ width: 260 }}
+              showSearch
+              filterOption={false}
+              onSearch={(val) => {
+                setRoomSearch(val);
+                loadRooms(0, val, false);
+              }}
+              onDropdownVisibleChange={(open) => {
+                if (open && roomOptions.length === 0) loadRooms(0, roomSearch, false);
+              }}
+              dropdownRender={menu => (
+                <div>
+                  {menu}
+                  <div style={{ padding: 8, textAlign: 'center' }}>
+                    <Button
+                      size="small"
+                      onClick={() => loadRooms(roomPage + 1, roomSearch, true)}
+                      disabled={(roomPage + 1) * roomPageSize >= roomTotal}
+                      loading={roomLoading}
+                    >
+                      Tải thêm
+                    </Button>
+                  </div>
+                </div>
+              )}
+              notFoundContent={roomLoading ? 'Đang tải...' : 'Không có phòng'}
             >
-              {dataSource.map(room => (
-                <Option key={room.roomId} value={room.roomId}>
+              {roomOptions.map(room => (
+                <Option key={room.id || room.roomId} value={room.id || room.roomId}>
                   {room.roomNumber}
                 </Option>
               ))}
@@ -344,8 +395,7 @@ export default function ElectricTable({
             color: '#1890ff',
             fontSize: 14
           }}>
-            Camera sẽ tự động chụp cho phòng {dataSource.find(r => r.roomId === autoCaptureTargetRoom)?.roomNumber || '...'} 
-            mỗi {autoCaptureInterval} giây
+            {`Camera sẽ tự động chụp cho phòng ${dataSource.find(r => r.roomId === autoCaptureTargetRoom)?.roomNumber || '...'}  mỗi ${autoCaptureInterval} giây`}
           </div>
         </Space>
       </Modal>

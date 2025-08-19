@@ -21,6 +21,9 @@ import {
   ocrCccd,
 } from "../../services/userApi";
 import { InboxOutlined } from '@ant-design/icons';
+import { ConfigProvider } from 'antd';
+import viVN from 'antd/es/locale/vi_VN';
+import 'dayjs/locale/vi';
 
 export default function UpdateUserInfoModal({
   open,
@@ -37,6 +40,7 @@ export default function UpdateUserInfoModal({
   const [frontPreview, setFrontPreview] = useState(null);
   const [backPreview, setBackPreview] = useState(null);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(0);
 
   useEffect(() => {
     if (!open) return;
@@ -205,6 +209,8 @@ export default function UpdateUserInfoModal({
         .catch(() => message.error("Không thể tải thông tin cá nhân."))
         .finally(() => setInitialLoading(false));
     }
+    // Force re-render pickers to reflect any programmatic set
+    setForceUpdate((v) => v + 1);
   }, [open, isCreate, ocrData]);
 
   const onFinish = async (values) => {
@@ -409,6 +415,7 @@ export default function UpdateUserInfoModal({
       {initialLoading ? (
         <Spin />
       ) : (
+        <ConfigProvider locale={viVN}>
         <Form layout="vertical" form={form} onFinish={onFinish}>
           <Form.Item
             name="fullName"
@@ -490,9 +497,13 @@ export default function UpdateUserInfoModal({
             ]}
           >
             <DatePicker 
+              key={`dob-${forceUpdate}`}
               style={{ width: "100%" }} 
               format="DD/MM/YYYY" 
               placeholder="Chọn ngày sinh"
+              inputReadOnly
+              defaultPickerValue={dayjs().subtract(20, 'year')}
+              onChange={(d)=>form.setFieldsValue({ birthDate: d })}
               disabledDate={(current) => {
                 const today = dayjs();
                 const minAge = today.subtract(16, 'year');
@@ -547,9 +558,13 @@ export default function UpdateUserInfoModal({
             ]}
           >
             <DatePicker 
+              key={`issue-${forceUpdate}`}
               style={{ width: "100%" }} 
               format="DD/MM/YYYY" 
               placeholder="Chọn ngày cấp"
+              inputReadOnly
+              defaultPickerValue={dayjs()}
+              onChange={(d)=>form.setFieldsValue({ nationalIDIssueDate: d })}
               disabledDate={(current) => {
                 const birthDate = form.getFieldValue('birthDate');
                 const today = dayjs();
@@ -667,6 +682,7 @@ export default function UpdateUserInfoModal({
             </div>
           </Form.Item>
         </Form>
+        </ConfigProvider>
       )}
     </Modal>
   );

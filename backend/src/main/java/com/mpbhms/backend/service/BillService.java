@@ -89,4 +89,13 @@ public interface BillService {
     
     // Tạo nội dung email hóa đơn thông thường
     String buildNormalBillEmailContent(Bill bill, String paymentUrl);
+
+    // Tạo nội dung email thông báo thanh toán từng phần/tiền mặt thành công
+    String buildPartialPaymentEmailContent(com.mpbhms.backend.entity.Bill bill, java.math.BigDecimal paymentAmount);
+    
+    // 🆕 Thống kê doanh thu chi tiết cho dashboard
+    java.util.Map<String, java.math.BigDecimal> getRevenueBreakdown();
+    
+    // 🆕 Đếm số hóa đơn thanh toán từng phần
+    long countPartiallyPaidBills();
 }
