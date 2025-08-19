@@ -1,5 +1,6 @@
 import React from "react";
 import { Card, Row, Col, Typography, Divider, Space, Button } from "antd";
+import Footer from "../components/layout/Footer";
 import { useNavigate } from "react-router-dom";
 import { 
   HomeOutlined, 
@@ -285,7 +286,7 @@ const AboutPage = () => {
                     <div>
                       <Text strong>Điện thoại:</Text>
                       <br />
-                      <Text>+84 123 456 789</Text>
+                      <Text>0946882868</Text>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center" }}>
@@ -332,23 +333,7 @@ const AboutPage = () => {
         </Card>
       </div>
 
-      {/* Footer */}
-      <div style={{ 
-        background: "#001529", 
-        color: "white", 
-        padding: "40px 0", 
-        marginTop: 60,
-        textAlign: "center"
-      }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px" }}>
-          <Paragraph style={{ color: "white", marginBottom: 16 }}>
-            © 2024 MP-BHMS. Tất cả quyền được bảo lưu.
-          </Paragraph>
-          <Paragraph style={{ color: "rgba(255,255,255,0.65)", marginBottom: 0 }}>
-            Hệ thống Quản lý Nhà trọ Minh Phương - Giải pháp quản lý nhà trọ hiện đại
-          </Paragraph>
-        </div>
-      </div>
+      <Footer />
     </div>
   );
 };

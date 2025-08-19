@@ -278,6 +278,16 @@ public class DatabaseInitializer implements CommandLineRunner {
             if (sendMultipleNotificationsAdmin != null && !adminPermissions.contains(sendMultipleNotificationsAdmin)) {
                 adminPermissions.add(sendMultipleNotificationsAdmin);
             }
+            // Bổ sung quyền xem danh sách tài sản theo phòng cho ADMIN
+            Permission viewRoomAssetsByRoom = permissionRepository.findByModuleAndApiPathAndMethod("RoomAsset", "/mpbhms/room-assets/by-room", "GET");
+            Permission viewRoomAssetsByRoomNumber = permissionRepository.findByModuleAndApiPathAndMethod("RoomAsset", "/mpbhms/room-assets/by-room-number", "GET");
+            if (viewRoomAssetsByRoom != null && !adminPermissions.contains(viewRoomAssetsByRoom)) {
+                adminPermissions.add(viewRoomAssetsByRoom);
+            }
+            if (viewRoomAssetsByRoomNumber != null && !adminPermissions.contains(viewRoomAssetsByRoomNumber)) {
+                adminPermissions.add(viewRoomAssetsByRoomNumber);
+            }
+
             adminRole.setPermissionEntities(adminPermissions);
             roleRepository.save(adminRole);
 
@@ -540,6 +550,30 @@ public class DatabaseInitializer implements CommandLineRunner {
                     .stream()
                     .filter(p -> List.of("User", "Role", "Permission", "Notification", "Service", "Renter", "Schedule", "Bill", "Asset", "Room", "payment-history").contains(p.getModule())) // hoặc theo API cụ thể
                     .toList());
+            // Đảm bảo mọi role đều có quyền xem danh sách tài sản (danh mục gốc)
+            Permission viewAssetsPerm = permissionRepository.findByModuleAndApiPathAndMethod("Asset", "/mpbhms/assets", "GET");
+            if (viewAssetsPerm != null) {
+                if (!adminPermissions.contains(viewAssetsPerm)) {
+                    adminPermissions.add(viewAssetsPerm);
+                }
+                if (!subAdminPermission.contains(viewAssetsPerm)) {
+                    subAdminPermission.add(viewAssetsPerm);
+                }
+            }
+
+            // Và xem tài sản theo phòng cho SUBADMIN
+            if (viewRoomAssetsByRoom == null) {
+                viewRoomAssetsByRoom = permissionRepository.findByModuleAndApiPathAndMethod("RoomAsset", "/mpbhms/room-assets/by-room", "GET");
+            }
+            if (viewRoomAssetsByRoomNumber == null) {
+                viewRoomAssetsByRoomNumber = permissionRepository.findByModuleAndApiPathAndMethod("RoomAsset", "/mpbhms/room-assets/by-room-number", "GET");
+            }
+            if (viewRoomAssetsByRoom != null && !subAdminPermission.contains(viewRoomAssetsByRoom)) {
+                subAdminPermission.add(viewRoomAssetsByRoom);
+            }
+            if (viewRoomAssetsByRoomNumber != null && !subAdminPermission.contains(viewRoomAssetsByRoomNumber)) {
+                subAdminPermission.add(viewRoomAssetsByRoomNumber);
+            }
             if (viewMyNotification != null && !subAdminPermission.contains(viewMyNotification)) {
                 subAdminPermission.add(viewMyNotification);
             }
@@ -587,6 +621,28 @@ public class DatabaseInitializer implements CommandLineRunner {
 
             // Quyền xem phòng
             if (viewRoom != null) userPermissions.add(viewRoom);
+
+            // Quyền xem danh sách tài sản cho tất cả mọi người
+            if (viewAssetsPerm == null) {
+                viewAssetsPerm = permissionRepository.findByModuleAndApiPathAndMethod("Asset", "/mpbhms/assets", "GET");
+            }
+            if (viewAssetsPerm != null && !userPermissions.contains(viewAssetsPerm)) {
+                userPermissions.add(viewAssetsPerm);
+            }
+
+            // Quyền xem tài sản theo phòng cho USER (phục vụ hiển thị ở RoomDetailPage, Renter pages)
+            if (viewRoomAssetsByRoom == null) {
+                viewRoomAssetsByRoom = permissionRepository.findByModuleAndApiPathAndMethod("RoomAsset", "/mpbhms/room-assets/by-room", "GET");
+            }
+            if (viewRoomAssetsByRoomNumber == null) {
+                viewRoomAssetsByRoomNumber = permissionRepository.findByModuleAndApiPathAndMethod("RoomAsset", "/mpbhms/room-assets/by-room-number", "GET");
+            }
+            if (viewRoomAssetsByRoom != null && !userPermissions.contains(viewRoomAssetsByRoom)) {
+                userPermissions.add(viewRoomAssetsByRoom);
+            }
+            if (viewRoomAssetsByRoomNumber != null && !userPermissions.contains(viewRoomAssetsByRoomNumber)) {
+                userPermissions.add(viewRoomAssetsByRoomNumber);
+            }
 
             // Quyền OCR CCCD cho USER (không được whitelist nên cần quyền cụ thể)
             if (ocrCccdPermission != null && !userPermissions.contains(ocrCccdPermission)) {
