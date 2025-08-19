@@ -28,6 +28,10 @@ export const logout = async (dispatch) => {
 
   // Dọn localStorage + Redux + redirect
   localStorage.clear();
+  // 🔔 Phát tín hiệu đăng xuất cho các tab khác
+  try {
+    localStorage.setItem("logout", String(Date.now()));
+  } catch (_) {}
   dispatch({ type: "account/logout" });
   window.location.href = "/home";
 };

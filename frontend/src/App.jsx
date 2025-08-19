@@ -17,6 +17,10 @@ function App() {
   useEffect(() => {
     const handleForceLogout = () => {
       hasLoggedOut.current = true;
+      // Xóa Redux user
+      try {
+        dispatch({ type: "account/logout" });
+      } catch (_) {}
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("showWelcome");
@@ -30,6 +34,20 @@ function App() {
     window.addEventListener("force-logout", handleForceLogout);
     return () => window.removeEventListener("force-logout", handleForceLogout);
   }, [navigate, location.pathname]);
+
+  // ✅ Lắng nghe sự kiện đăng xuất từ tab khác qua localStorage
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === "logout") {
+        window.dispatchEvent(new Event("force-logout"));
+      }
+      if (e.key === "token" && e.newValue == null) {
+        window.dispatchEvent(new Event("force-logout"));
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   // ✅ Kiểm tra token định kỳ và refresh nếu cần
   useEffect(() => {
