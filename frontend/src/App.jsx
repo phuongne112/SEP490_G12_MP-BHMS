@@ -24,10 +24,13 @@ function App() {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("showWelcome");
-      // Chỉ redirect về login nếu không phải đang ở trang public
+      // Làm mới tab sau khi đăng xuất từ tab khác
       const publicPaths = ["/home", "/rooms", "/forgotPassword", "/resetPassword"];
-      if (!publicPaths.some((p) => location.pathname.startsWith(p))) {
-        navigate("/login");
+      const isPublic = publicPaths.some((p) => location.pathname.startsWith(p));
+      if (isPublic) {
+        window.location.reload(); // refresh nhẹ ở trang public
+      } else {
+        window.location.href = "/login"; // hard redirect để clear mọi state
       }
     };
 
