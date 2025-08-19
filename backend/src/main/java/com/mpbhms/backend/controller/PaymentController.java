@@ -371,6 +371,8 @@ public class PaymentController {
                             System.out.println("Ngày thanh toán hóa đơn: " + bill.getPaidDate());
                         }
                         
+                        // Xóa khóa tạo URL khi đã thanh toán thành công để không chờ đủ 15 phút
+                        bill.setPaymentUrlLockedUntil(null);
                         Bill savedBill = billRepository.save(bill);
                         System.out.println("Hóa đơn đã được lưu thành công: " + (savedBill != null));
                         System.out.println("Trạng thái hóa đơn đã lưu: " + savedBill.getStatus());
@@ -388,7 +390,7 @@ public class PaymentController {
 
                 String html = "<html><body>"
                         + "<h2>Thanh toán thành công!</h2>"
-                        + "<script>window.location='http://mpbhms.online/renter/bills';</script>"
+                        + "<script>window.location='http://localhost:5173/renter/bills';</script>"
                         + "</body></html>";
                 return ResponseEntity.ok().body(html);
             } else {
@@ -396,10 +398,24 @@ public class PaymentController {
                 System.out.println("Hợp lệ: " + valid);
                 System.out.println("Mã phản hồi: " + responseCode);
                 System.out.println("ID hóa đơn: " + billId);
-                
+
+                // Nếu người dùng hủy hoặc quay lại (không thành công), mở khóa ngay để cho phép tạo link mới
+                try {
+                    if (billId != null) {
+                        Bill billToUnlock = billRepository.findById(billId).orElse(null);
+                        if (billToUnlock != null) {
+                            billToUnlock.setPaymentUrlLockedUntil(null);
+                            billRepository.save(billToUnlock);
+                            System.out.println("Đã mở khóa tạo URL cho hóa đơn " + billId + " do giao dịch không thành công");
+                        }
+                    }
+                } catch (Exception unlockEx) {
+                    System.out.println("Không thể mở khóa hóa đơn: " + unlockEx.getMessage());
+                }
+
                 String html = "<html><body>"
                         + "<h2>Thanh toán thất bại hoặc bị hủy!</h2>"
-                        + "<script>window.location='http://mpbhms.online/renter/bills';</script>"
+                        + "<script>window.location='http://localhost:5173/renter/bills';</script>"
                         + "</body></html>";
                 return ResponseEntity.ok().body(html);
             }
@@ -409,7 +425,7 @@ public class PaymentController {
             
             String html = "<html><body>"
                     + "<h2>Có lỗi xảy ra: " + e.getMessage() + "</h2>"
-                    + "<script>window.location='http://mpbhms.online/renter/bills';</script>"
+                    + "<script>window.location='http://localhost:5173/renter/bills';</script>"
                     + "</body></html>";
             return ResponseEntity.ok().body(html);
         }
@@ -475,6 +491,8 @@ public class PaymentController {
                 if (bill != null && (bill.getStatus() == null || !bill.getStatus())) {
                     bill.setStatus(true);
                     bill.setPaidDate(Instant.now());
+                    // Xóa khóa tạo URL khi IPN báo thành công
+                    bill.setPaymentUrlLockedUntil(null);
                     billRepository.save(bill);
                     System.out.println("Hóa đơn đã được cập nhật thành ĐÃ THANH TOÁN: " + billId);
                 } else {

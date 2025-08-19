@@ -10,7 +10,6 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -102,6 +101,11 @@ public class Bill extends BaseEntity {
     
     @Column(name = "last_interest_calculation_date")
     private Instant lastInterestCalculationDate; // Ngày tính lãi cuối cùng
+
+    // Khóa tạo URL thanh toán để tránh tạo trùng trong khoảng thời gian ngắn
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss a",timezone = "GMT+7")
+    @Column(name = "payment_url_locked_until")
+    private Instant paymentUrlLockedUntil;
 
     @OneToMany(mappedBy = "bill", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
