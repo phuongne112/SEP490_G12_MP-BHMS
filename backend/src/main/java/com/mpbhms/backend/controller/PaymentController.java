@@ -17,7 +17,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/mpbhms/payment")
 public class PaymentController {
-    private static final String FRONTEND_BILLS_URL = "http://localhost:5173/renter/bills"; // TODO: cấu hình qua properties khi deploy
+    private static final String FRONTEND_BILLS_URL = "https://mpbhms.online/renter/bills"; // TODO: cấu hình qua properties khi deploy
     private static final String BRAND_COLOR = "#0ea5e9"; // Màu thương hiệu đồng nhất
     @Autowired
     private VnPayService vnPayService;
