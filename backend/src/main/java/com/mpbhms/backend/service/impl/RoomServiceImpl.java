@@ -109,6 +109,11 @@ public class RoomServiceImpl implements RoomService {
         if (roomRepository.existsByRoomNumber(request.getRoomNumber())) {
             throw new com.mpbhms.backend.exception.BusinessException("Số phòng đã tồn tại");
         }
+        
+        // Kiểm tra số lượng ảnh tối đa (8 ảnh)
+        if (images != null && images.length > 8) {
+            throw new com.mpbhms.backend.exception.BusinessException("Số lượng ảnh không được vượt quá 8 ảnh");
+        }
         Room room = new Room();
         room.setRoomNumber(request.getRoomNumber());
         room.setArea(request.getArea());
@@ -317,6 +322,12 @@ public class RoomServiceImpl implements RoomService {
                         imagesToKeep.add(img);
                     }
                 }
+            }
+            
+            // Kiểm tra tổng số ảnh (ảnh giữ lại + ảnh mới) không được vượt quá 8
+            int totalImages = imagesToKeep.size() + (images != null ? images.length : 0);
+            if (totalImages > 8) {
+                throw new com.mpbhms.backend.exception.BusinessException("Tổng số ảnh không được vượt quá 8 ảnh");
             }
             // Thêm ảnh mới (dùng lại logic kiểm tra trùng hash như addRoom)
             if (images != null && images.length > 0) {

@@ -127,7 +127,27 @@ export default function EditRoomModal({ visible, onCancel, roomId, onSuccess }) 
   };
 
   const handleUploadChange = ({ fileList: newFileList }) => {
-    setExistingImages(newFileList);
+    // Kiểm tra số lượng ảnh tối đa (8 ảnh)
+    if (newFileList.length > 8) {
+      message.error('Số lượng ảnh không được vượt quá 8 ảnh');
+      return;
+    }
+    
+    // Kiểm tra từng file để đảm bảo chỉ có ảnh hợp lệ
+    const validFiles = newFileList.filter(file => {
+      if (file.originFileObj) {
+        const isImage = file.originFileObj.type.startsWith('image/');
+        const isLt2M = file.originFileObj.size / 1024 / 1024 < 2;
+        return isImage && isLt2M;
+      }
+      return true; // Giữ lại ảnh hiện có
+    });
+    
+    if (validFiles.length !== newFileList.length) {
+      message.warning('Một số file không hợp lệ đã được loại bỏ');
+    }
+    
+    setExistingImages(validFiles);
   };
 
 
@@ -348,7 +368,7 @@ export default function EditRoomModal({ visible, onCancel, roomId, onSuccess }) 
         </Card>
         
         <Card 
-          title="Hình ảnh phòng" 
+          title="Hình ảnh phòng (tối đa 8 ảnh)" 
           style={{ 
             flex: 1, 
             minWidth: '400px', 
@@ -356,25 +376,28 @@ export default function EditRoomModal({ visible, onCancel, roomId, onSuccess }) 
             minHeight: '450px'
           }}
         >
+                     
                      <Upload
              listType="picture-card"
              fileList={existingImages}
              onChange={handleUploadChange}
              disabled={hasActiveUser}
              accept="image/*"
-             beforeUpload={(file) => {
-               const isImage = file.type.startsWith('image/');
-               if (!isImage) {
-                 message.error('Chỉ có thể tải lên file ảnh!');
-                 return false;
-               }
-               const isLt2M = file.size / 1024 / 1024 < 2;
-               if (!isLt2M) {
-                 message.error('Ảnh phải nhỏ hơn 2MB!');
-                 return false;
-               }
-               return false; // Prevent auto upload
-             }}
+             multiple
+                           beforeUpload={(file) => {
+                const isImage = file.type.startsWith('image/');
+                if (!isImage) {
+                  message.error('Chỉ có thể tải lên file ảnh!');
+                  return false;
+                }
+                const isLt2M = file.size / 1024 / 1024 < 2;
+                if (!isLt2M) {
+                  message.error('Ảnh phải nhỏ hơn 2MB!');
+                  return false;
+                }
+                
+                return false; // Prevent auto upload
+              }}
            >
             <div>
               <UploadOutlined />

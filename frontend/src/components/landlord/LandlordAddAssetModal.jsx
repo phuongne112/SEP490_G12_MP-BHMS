@@ -140,11 +140,24 @@ export default function LandlordAddAssetModal({ open, onClose, onSuccess, asset,
         </Form.Item>
         <Form.Item name="assetImage" label="Hình ảnh">
           <Upload
-            beforeUpload={() => false}
+            beforeUpload={(file) => {
+              const isImage = file.type.startsWith('image/');
+              if (!isImage) {
+                message.error('Chỉ có thể tải lên file ảnh!');
+                return false;
+              }
+              const isLt2M = file.size / 1024 / 1024 < 2;
+              if (!isLt2M) {
+                message.error('Ảnh phải nhỏ hơn 2MB!');
+                return false;
+              }
+              return false; // Prevent auto upload
+            }}
             fileList={fileList}
             onChange={({ fileList }) => setFileList(fileList.slice(-1))}
             listType="picture"
             maxCount={1}
+            accept="image/*"
           >
             <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
           </Upload>
