@@ -170,12 +170,12 @@ export default function LandlordRenterListPage() {
             username: user.username,
             role: { roleId: 2 }
           });
-          message.success("Cấp quyền renter thành công!");
+          message.success("Đã cấp quyền người thuê thành công!");
           fetchUsersWithoutRole();
           // Cập nhật danh sách người thuê sau khi cấp quyền
           setRefreshKey(prev => prev + 1);
         } catch (err) {
-          message.error("Cấp quyền thất bại!");
+          message.error("Cấp quyền người thuê thất bại!");
         }
         setGrantLoading(false);
       },
@@ -969,7 +969,7 @@ export default function LandlordRenterListPage() {
                 },
                 {
                   key: '2',
-                  label: 'Cấp quyền người thuê cho tài khoản USER',
+                  label: 'Cấp quyền người thuê cho tài khoản người dùng',
                   children: (
                     <div>
                       <div style={{ marginBottom: 16 }}>
@@ -979,7 +979,7 @@ export default function LandlordRenterListPage() {
                           loading={userLoading}
                           style={{ marginBottom: 16 }}
                         >
-                          Tải danh sách tài khoản USER
+                          Tải danh sách tài khoản người dùng
                         </Button>
                         <Input
                           placeholder="Tìm theo tên đăng nhập hoặc email"
@@ -1027,7 +1027,7 @@ export default function LandlordRenterListPage() {
                                   loading={grantLoading}
                                   disabled={!record.isActive}
                                 >
-                                  Cấp quyền Renter
+                                  Cấp quyền người thuê
                                 </Button>
                               ),
                             },
