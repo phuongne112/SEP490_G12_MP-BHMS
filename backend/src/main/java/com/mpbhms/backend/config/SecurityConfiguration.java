@@ -43,6 +43,8 @@ public class SecurityConfiguration {
             // Public rooms endpoints
             "/mpbhms/rooms",
             "/mpbhms/rooms/**",
+            // Public room assets endpoint
+            "/mpbhms/room-assets/by-room-number",
             "/uploads/**",
             "/src/assets/**",
             "/img/**",
