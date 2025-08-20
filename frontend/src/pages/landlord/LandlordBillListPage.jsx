@@ -1674,6 +1674,7 @@ export default function LandlordBillListPage() {
                         <RangePicker 
                           style={{ width: '100%' }}
                           placeholder={['Ngày bắt đầu', 'Ngày kết thúc']}
+                          format="DD/MM/YYYY"
                           onChange={handleCustomDateRangeChange}
                         />
                       </Form.Item>
@@ -1755,7 +1756,11 @@ export default function LandlordBillListPage() {
                     label="Khoảng ngày"
                     rules={[{ required: true, message: 'Vui lòng chọn khoảng ngày' }]}
                   >
-                    <RangePicker style={{ width: '100%' }} placeholder={["Ngày bắt đầu", "Ngày kết thúc"]} />
+                    <RangePicker 
+                      style={{ width: '100%' }} 
+                      placeholder={["Ngày bắt đầu", "Ngày kết thúc"]}
+                      format="DD/MM/YYYY"
+                    />
                   </Form.Item>
                 </>
               )}

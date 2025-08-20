@@ -88,6 +88,16 @@ export default function Header() {
     dateStr = dayjs(selectedNoti.createdDate).format("HH:mm DD/MM/YYYY");
   }
 
+  // Định dạng ngày trong nội dung thông báo (YYYY-MM-DD -> DD/MM/YYYY)
+  const formatDatesInText = (text) => {
+    if (!text) return text;
+    const input = String(text);
+    return input.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, (m, y, mo, d) => {
+      const iso = `${y}-${mo}-${d}`;
+      return dayjs(iso).isValid() ? dayjs(iso).format("DD/MM/YYYY") : m;
+    });
+  };
+
   // ✅ Hàm xác định dashboard path theo role
   const getDashboardPath = () => {
     const role = user?.role?.roleName || user?.role;
@@ -592,13 +602,16 @@ export default function Header() {
         <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
           Nội dung:{" "}
           <span style={{ fontWeight: 400 }}>
-            {selectedNoti?.message &&
-            selectedNoti?.message.startsWith("Your booking for room") &&
-            selectedNoti?.message.includes("has been confirmed by the landlord")
-              ? `Lịch hẹn của bạn cho phòng ${
-                  selectedNoti?.message.match(/room (\d+)/)?.[1] || ""
-                } đã được chủ nhà xác nhận!`
-              : selectedNoti?.message}
+            {(() => {
+              const original = (selectedNoti?.message &&
+                selectedNoti?.message.startsWith("Your booking for room") &&
+                selectedNoti?.message.includes("has been confirmed by the landlord"))
+                ? `Lịch hẹn của bạn cho phòng ${
+                    selectedNoti?.message.match(/room (\d+)/)?.[1] || ""
+                  } đã được chủ nhà xác nhận!`
+                : selectedNoti?.message;
+              return formatDatesInText(original);
+            })()}
           </span>
         </div>
         <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>

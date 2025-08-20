@@ -4,6 +4,7 @@ import { EyeOutlined, DeleteOutlined } from "@ant-design/icons";
 import { getAllNotifications } from "../../services/notificationApi";
 import Access from "../common/Access";
 import { useSelector } from "react-redux";
+import dayjs from 'dayjs';
 
 // Hàm chuyển đổi ngày sang định dạng Việt Nam chuẩn (dd/mm/yyyy)
 const formatDateToVietnamese = (dateString) => {
@@ -34,6 +35,16 @@ const formatDateToVietnamese = (dateString) => {
   const year = date.getFullYear();
   
   return `${day}/${month}/${year}`;
+};
+
+// Định dạng ngày trong message (YYYY-MM-DD -> DD/MM/YYYY)
+const formatDatesInText = (text) => {
+  if (!text) return text;
+  const input = String(text);
+  return input.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, (m, y, mo, d) => {
+    const iso = `${y}-${mo}-${d}`;
+    return dayjs(iso).isValid() ? dayjs(iso).format('DD/MM/YYYY') : m;
+  });
 };
 
 // Hàm tạo DSL filter
@@ -100,7 +111,8 @@ export default function NotificationTable({
           return {
             key: item.id || index + 1 + (page - 1) * pageSize,
             ...item,
-                         createdAt: item.createdDate ? formatDateToVietnamese(item.createdDate) : "",
+            createdAt: item.createdDate ? formatDateToVietnamese(item.createdDate) : "",
+            message: formatDatesInText(item.message),
             recipient: user?.fullName || user?.email || "Không xác định",
           };
         })

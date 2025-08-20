@@ -183,7 +183,15 @@ export default function LandlordBillDetailPage() {
   };
 
   const columns = [
-    { title: "Mô tả", dataIndex: "description" },
+    { title: "Mô tả", dataIndex: "description", render: (text) => {
+      if (!text) return text;
+      const input = String(text);
+      const replaced = input.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, (m, y, mo, d) => {
+        const iso = `${y}-${mo}-${d}`;
+        return dayjs(iso).isValid() ? dayjs(iso).format("DD/MM/YYYY") : m;
+      });
+      return replaced;
+    } },
     { 
       title: "Loại", 
       dataIndex: "itemType",
