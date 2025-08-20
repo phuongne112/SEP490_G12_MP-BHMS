@@ -600,7 +600,7 @@ export default function AdminNotificationPage() {
 
             {/* View Notification Detail Modal */}
             <Modal
-              title="🔔 Chi Tiết Thông Báo"
+              title="Chi Tiết Thông Báo"
               open={isViewModalOpen}
               onCancel={() => setIsViewModalOpen(false)}
               footer={[

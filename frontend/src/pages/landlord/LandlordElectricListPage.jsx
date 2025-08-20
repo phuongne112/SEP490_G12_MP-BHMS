@@ -629,7 +629,7 @@ export default function LandlordElectricListPage() {
       <Modal
         open={logModalVisible}
         onCancel={() => setLogModalVisible(false)}
-        title={`📊 Lịch sử quét chỉ số điện tự động${logRoomId ? ` - Phòng ${roomList.find(r => r.id === logRoomId)?.roomNumber || logRoomId}` : ''}`}
+        title={`Lịch sử quét chỉ số điện tự động${logRoomId ? ` - Phòng ${roomList.find(r => r.id === logRoomId)?.roomNumber || logRoomId}` : ''}`}
         footer={null}
         width={isMobile ? '95%' : 1000}
         style={{ top: isMobile ? 20 : 20 }}

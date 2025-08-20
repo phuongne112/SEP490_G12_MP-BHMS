@@ -1817,7 +1817,15 @@ public class DatabaseInitializer implements CommandLineRunner {
             
             room.setRoomNumber(fullRoomNumber); // Room number với format A122, B201
             room.setArea(new BigDecimal("25.0")); // Diện tích mặc định 25m²
-            room.setPricePerMonth(2500000.0); // Giá thuê mặc định 2.5 triệu/tháng
+            // Thiết lập giá thuê linh hoạt theo tầng/khu
+            double basePrice = 2200000.0; // 2.2 triệu
+            // Tầng càng cao giá càng cao một chút
+            int roomNumInt = Integer.parseInt(roomNumber);
+            int floor = roomNumInt == 122 ? 1 : (roomNumInt / 100); // 122 thuộc tầng 1
+            double floorBonus = (floor - 1) * 100000.0; // +100k mỗi tầng
+            // Building A phụ thu 100k so với B (ví dụ vị trí đẹp hơn)
+            double buildingBonus = "A".equals(building) ? 100000.0 : 0.0;
+            room.setPricePerMonth(basePrice + floorBonus + buildingBonus);
             room.setRoomStatus(RoomStatus.Available); // Trạng thái có sẵn
             room.setNumberOfBedrooms(1); // 1 phòng ngủ
             room.setNumberOfBathrooms(1); // 1 phòng tắm
@@ -1864,6 +1872,8 @@ public class DatabaseInitializer implements CommandLineRunner {
         
         // Gán dịch vụ cơ bản cho tất cả phòng
         assignBasicServicesToRooms(rooms);
+        // Gán thêm các dịch vụ mở rộng (internet, dọn dẹp, bảo vệ, đỗ xe...)
+        assignAdditionalServicesToRooms(rooms);
         
         // Gán asset cho tất cả phòng
         assignAssetsToRooms(rooms);
@@ -1976,7 +1986,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             electricityMapping.setRoom(room);
             electricityMapping.setService(electricityService);
             electricityMapping.setIsActive(true);
-            electricityMapping.setNote("Dịch vụ điện cơ bản");
+            electricityMapping.setNote("Tính tiền theo chỉ số công tơ điện thực tế");
             mappings.add(electricityMapping);
             
             // Gán dịch vụ nước
@@ -1984,7 +1994,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             waterMapping.setRoom(room);
             waterMapping.setService(waterService);
             waterMapping.setIsActive(true);
-            waterMapping.setNote("Dịch vụ nước cơ bản");
+            waterMapping.setNote("Tính tiền theo chỉ số đồng hồ nước thực tế");
             mappings.add(waterMapping);
         }
         
@@ -1993,6 +2003,79 @@ public class DatabaseInitializer implements CommandLineRunner {
         
         System.out.println(">>> ASSIGNED BASIC SERVICES TO " + rooms.size() + " ROOMS <<<");
         System.out.println(">>> SERVICES: Điện, Nước <<<");
+    }
+
+    // Gán thêm các dịch vụ khác (ngoài điện, nước) cho phòng với ghi chú hợp lý
+    private void assignAdditionalServicesToRooms(List<Room> rooms) {
+        // Lấy danh sách dịch vụ đã khởi tạo từ DB
+        List<CustomService> allServices = serviceRepository.findAll();
+        CustomService internet = allServices.stream().filter(s -> "Internet".equalsIgnoreCase(s.getServiceName())).findFirst().orElse(null);
+        CustomService wifi = allServices.stream().filter(s -> "WiFi".equalsIgnoreCase(s.getServiceName())).findFirst().orElse(null);
+        CustomService parking = allServices.stream().filter(s -> "Đỗ xe".equalsIgnoreCase(s.getServiceName())).findFirst().orElse(null);
+        CustomService cleaning = allServices.stream().filter(s -> "Dọn dẹp".equalsIgnoreCase(s.getServiceName())).findFirst().orElse(null);
+        CustomService security = allServices.stream().filter(s -> "Bảo vệ".equalsIgnoreCase(s.getServiceName())).findFirst().orElse(null);
+
+        List<RoomServiceMapping> mappings = new ArrayList<>();
+
+        for (Room room : rooms) {
+            String numberPart = room.getRoomNumber().replaceAll("^[A-Za-z]", "");
+            int floor = 1;
+            try { floor = Integer.parseInt(numberPart.substring(0, 1)); } catch (Exception ignored) {}
+
+            // Internet/WiFi: cung cấp cho tất cả phòng
+            if (internet != null) {
+                RoomServiceMapping internetMap = new RoomServiceMapping();
+                internetMap.setRoom(room);
+                internetMap.setService(internet);
+                internetMap.setIsActive(true);
+                internetMap.setNote("Kết nối Internet cố định trong phòng");
+                mappings.add(internetMap);
+            } else if (wifi != null) { // fallback dùng WiFi nếu không có Internet
+                RoomServiceMapping wifiMap = new RoomServiceMapping();
+                wifiMap.setRoom(room);
+                wifiMap.setService(wifi);
+                wifiMap.setIsActive(true);
+                wifiMap.setNote("WiFi tốc độ cao phủ sóng toàn tòa nhà");
+                mappings.add(wifiMap);
+            }
+
+            // Bảo vệ: áp dụng cho tất cả phòng
+            if (security != null) {
+                RoomServiceMapping secMap = new RoomServiceMapping();
+                secMap.setRoom(room);
+                secMap.setService(security);
+                secMap.setIsActive(true);
+                secMap.setNote("Bảo vệ và camera an ninh 24/7");
+                mappings.add(secMap);
+            }
+
+            // Dọn dẹp: áp dụng cho tất cả phòng (khu vực chung)
+            if (cleaning != null) {
+                RoomServiceMapping cleanMap = new RoomServiceMapping();
+                cleanMap.setRoom(room);
+                cleanMap.setService(cleaning);
+                cleanMap.setIsActive(true);
+                cleanMap.setNote("Dọn dẹp khu vực chung định kỳ hàng tuần");
+                mappings.add(cleanMap);
+            }
+
+            // Đỗ xe: ưu tiên tòa B hoặc tầng 1,2
+            if (parking != null) {
+                boolean shouldAddParking = room.getBuilding() != null && ("B".equals(room.getBuilding()) || floor <= 2);
+                if (shouldAddParking) {
+                    RoomServiceMapping parkMap = new RoomServiceMapping();
+                    parkMap.setRoom(room);
+                    parkMap.setService(parking);
+                    parkMap.setIsActive(true);
+                    parkMap.setNote("Bãi đỗ xe tầng trệt, phí tính theo tháng");
+                    mappings.add(parkMap);
+                }
+            }
+        }
+
+        if (!mappings.isEmpty()) {
+            roomServiceMappingRepository.saveAll(mappings);
+        }
     }
     
     private void createElectricReadingFolders(List<String> roomNumbers) {
@@ -2060,7 +2143,19 @@ public class DatabaseInitializer implements CommandLineRunner {
                 roomAsset.setAsset(asset);
                 roomAsset.setQuantity(1); // Mỗi phòng có 1 asset mỗi loại
                 roomAsset.setStatus("Tốt");
-                roomAsset.setNote("Tài sản được gán tự động khi khởi tạo phòng");
+                // Ghi chú hợp lý theo loại tài sản
+                String note;
+                switch (asset.getAssetName()) {
+                    case "Bàn rửa bát" -> note = "Bàn rửa bát inox kèm chậu và vòi nước";
+                    case "Điều hòa Casper" -> note = "Máy lạnh 1 chiều, công suất phù hợp diện tích phòng";
+                    case "Điều khiển điều hòa" -> note = "Kèm pin, hoạt động tốt";
+                    case "Giường" -> note = "Giường đơn khung sắt chắc chắn";
+                    case "Nhà vệ sinh" -> note = "Khu vệ sinh khép kín, đầy đủ thiết bị cơ bản";
+                    case "Tủ đựng quần áo" -> note = "Tủ 2 cánh, có ngăn kệ bên trong";
+                    case "Tủ lạnh" -> note = "Tủ lạnh 2 cửa, dung tích 150L";
+                    default -> note = "Trang bị tiêu chuẩn của phòng";
+                }
+                roomAsset.setNote(note);
                 roomAssets.add(roomAsset);
             }
         }
