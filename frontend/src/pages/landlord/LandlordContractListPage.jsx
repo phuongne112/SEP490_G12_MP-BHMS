@@ -130,8 +130,9 @@ export default function LandlordContractListPage() {
   const fetchRoomsAndLatestContracts = async (page = currentPage, size = pageSize) => {
     setLoading(true);
     try {
-      const roomRes = await getAllRooms(page - 1, size);
-      const roomsData = roomRes.result || [];
+      // Lấy tất cả phòng (không phân trang)
+      const allRoomsRes = await getAllRooms(0, 1000);
+      const allRoomsData = allRoomsRes.result || [];
 
       // Lấy toàn bộ hợp đồng qua nhiều trang, truyền filter
       let allContracts = [];
@@ -143,7 +144,8 @@ export default function LandlordContractListPage() {
         allContracts = [];
       }
 
-      const data = roomsData.map(room => {
+      // Tạo danh sách tất cả phòng với hợp đồng
+      const allRoomContractsData = allRoomsData.map(room => {
         const contractsOfRoom = allContracts.filter(c => {
           const contractRoomId = c.roomId || (c.room && c.room.id);
           return String(contractRoomId) === String(room.id);
@@ -185,8 +187,14 @@ export default function LandlordContractListPage() {
       })
         .filter(room => room.latestContract); // Chỉ hiển thị phòng có hợp đồng
 
-      setRoomContracts(data);
-      setTotal(roomRes.meta?.total || data.length);
+      // Áp dụng phân trang cho dữ liệu hợp đồng
+      const totalContracts = allRoomContractsData.length;
+      const startIndex = (page - 1) * size;
+      const endIndex = startIndex + size;
+      const paginatedData = allRoomContractsData.slice(startIndex, endIndex);
+
+      setRoomContracts(paginatedData);
+      setTotal(totalContracts);
       setLastUpdated(new Date());
     } catch (err) {
       console.error("Error in fetchRoomsAndLatestContracts:", err);
