@@ -109,6 +109,23 @@ export default function AssetInventoryModal({
   const onFileSelected = async (e) => {
     const file = e.target.files?.[0];
     if (!file || currentAssetForPhoto == null) return;
+    
+    // Kiểm tra định dạng file
+    const isImage = file.type.startsWith('image/');
+    if (!isImage) {
+      message.error('Chỉ có thể tải lên file ảnh!');
+      e.target.value = '';
+      return;
+    }
+    
+    // Kiểm tra kích thước file (2MB)
+    const isLt2M = file.size / 1024 / 1024 < 2;
+    if (!isLt2M) {
+      message.error('Ảnh phải nhỏ hơn 2MB!');
+      e.target.value = '';
+      return;
+    }
+    
     await handleUploadPhoto(currentAssetForPhoto, file);
     e.target.value = '';
   };
