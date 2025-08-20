@@ -972,6 +972,9 @@ export default function LandlordBillListPage() {
         if (billType === 'CONTRACT_TOTAL') {
           return <Tag color="geekblue">Tổng hợp đồng</Tag>;
         }
+        if (billType === 'CUSTOM') {
+          return <Tag color="orange">Tùy chỉnh</Tag>;
+        }
         if (billType === 'LATE_PENALTY') {
           return <Tag color="volcano">Phạt quá hạn</Tag>;
         }

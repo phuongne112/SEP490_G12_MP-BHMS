@@ -481,6 +481,8 @@ export default function RenterBillDetailPage() {
                             ? "purple"
                             : bill.billType === "CONTRACT_TOTAL"
                             ? "geekblue"
+                            : bill.billType === "CUSTOM"
+                            ? "orange"
                             : bill.billType === "LATE_PENALTY"
                             ? "volcano"
                             : "default"
@@ -502,6 +504,8 @@ export default function RenterBillDetailPage() {
                           ? "Đặt cọc"
                           : bill.billType === "CONTRACT_TOTAL"
                           ? "Tổng hợp đồng"
+                          : bill.billType === "CUSTOM"
+                          ? "Tùy chỉnh"
                           : bill.billType === "LATE_PENALTY"
                           ? "Phạt quá hạn"
                           : bill.billType || "Không xác định"}
