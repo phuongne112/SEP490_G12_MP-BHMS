@@ -37,7 +37,7 @@ import java.util.List;
 
 @Service
 @AllArgsConstructor
-public class DatabaseInitializer implements CommandLineRunner {
+public class    DatabaseInitializer implements CommandLineRunner {
 
     private final PermissionRepository permissionRepository;
     private final UserRepository userRepository;

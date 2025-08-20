@@ -85,12 +85,6 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
   
   const columns = [
     {
-      title: "Mã",
-      dataIndex: "id",
-      align: "center",
-      width: isMobile ? 40 : 80
-    },
-    {
       title: "Phòng",
       render: (_, record) => record?.room?.roomNumber || record?.roomNumber || "Không rõ",
       align: "center",
@@ -147,14 +141,14 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
 
         if (now < start) {
           return (
-            <span style={{ color: "#1890ff", fontWeight: 600 }}>
+            <span style={{ color: "#1890ff", fontWeight: 600, whiteSpace: "nowrap" }}>
               Chưa bắt đầu
             </span>
           );
         }
         if (now >= end) {
           return (
-            <span style={{ color: "#ff4d4f", fontWeight: 600 }}>
+            <span style={{ color: "#ff4d4f", fontWeight: 600, whiteSpace: "nowrap" }}>
               Đã hết hạn
             </span>
           );
@@ -168,11 +162,12 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
         return (
           <span style={{
             fontWeight: 600,
-            fontSize: 15,
+            fontSize: 13,
             color,
             minWidth: 60,
             display: "inline-block",
-            textAlign: "center"
+            textAlign: "center",
+            whiteSpace: "nowrap"
           }}>
             <Countdown value={end} format="D [ngày]" style={{ color, fontWeight: 600 }} />
           </span>
@@ -192,8 +187,8 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       key: "tenants",
       render: (users) => users?.map(u => u.fullName).join(", ") || "—",
       align: "center",
-      width: isMobile ? 70 : 120,
-      ellipsis: true
+      width: isMobile ? 70 : 150,
+            ellipsis: false
     },
     {
       title: "SĐT",
@@ -202,7 +197,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       render: (users) => users?.map(u => u.phoneNumber).join(", ") || "—",
       align: "center",
       width: isMobile ? 60 : 110,
-      ellipsis: true
+      ellipsis: false
     },
     {
       title: "Cọc",
@@ -210,7 +205,8 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       key: "deposit",
       render: (amount) => amount ? amount.toLocaleString() + " VND" : "—",
       align: "center",
-      width: isMobile ? 50 : 70
+      width: isMobile ? 50 : 90,
+      ellipsis: false
     },
     {
       title: "Tiền thuê",
@@ -218,7 +214,8 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       key: "rent",
       render: (amount) => amount ? amount.toLocaleString() + " VND" : "—",
       align: "center",
-      width: isMobile ? 60 : 80
+      width: isMobile ? 60 : 90,
+      ellipsis: false
     },
     {
       title: "Chu kỳ",
@@ -226,30 +223,27 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       key: "paymentCycle",
       render: (cycle) => paymentCycleVN[cycle] || cycle || "—",
       align: "center",
-      width: isMobile ? 40 : 60
+      width: isMobile ? 40 : 80,
+      ellipsis: false
     },
-    {
-      title: "Cập nhật",
-      dataIndex: "createdDate",
-      render: (d) => d ? `${new Date(d).toLocaleDateString("vi-VN")} ${new Date(d).toLocaleTimeString("vi-VN", { hour12: false })}` : "—",
-      align: "center",
-      width: isMobile ? 50 : 70
-    },
+
 
     {
       title: "Thao tác",
       align: "center",
-      width: isMobile ? 100 : 140,
+      width: isMobile ? 200 : 400,
       render: (_, record) => {
         const isTerminatedOrExpired = record.contractStatus === "TERMINATED" || record.contractStatus === "EXPIRED";
         return (
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            justifyContent: 'center', 
+          <div style={{
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'center',
             alignItems: 'center',
-            gap: '2px',
-            width: '100%'
+            gap: '4px',
+            flexWrap: 'wrap',
+            width: '100%',
+            padding: '2px 0'
           }}>
             <Button
               type="primary"
@@ -257,7 +251,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
               onClick={() => onViewDetail && onViewDetail(record)}
               size="small"
               title="Xem chi tiết"
-              style={{ width: '100%', marginBottom: '2px' }}
+              style={{ minWidth: 60 }}
             >
               Chi tiết
             </Button>
@@ -266,16 +260,16 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
               icon={<FilePdfOutlined />}
               onClick={() => onExport(record.id)}
               size="small"
-              style={{ width: '100%', marginBottom: '2px' }}
+              style={{ minWidth: 60 }}
             >
-              Xuất PDF
+              PDF
             </Button>
             <Button
               type="default"
               icon={<EditOutlined />}
               onClick={() => onUpdate && onUpdate(record)}
               size="small"
-              style={{ color: "#faad14", borderColor: "#faad14", width: '100%', marginBottom: '2px' }}
+              style={{ color: "#faad14", borderColor: "#faad14", minWidth: 50 }}
               disabled={isTerminatedOrExpired}
             >
               Sửa
@@ -286,7 +280,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
               onClick={() => onViewAmendments && onViewAmendments(record.id)}
               size="small"
               disabled={isTerminatedOrExpired}
-              style={{ width: '100%', marginBottom: '2px' }}
+              style={{ minWidth: 60 }}
             >
               Lịch sử
             </Button>
@@ -297,7 +291,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
                 icon={<StopOutlined />}
                 size="small"
                 disabled={isTerminatedOrExpired}
-                style={{ width: '100%' }}
+                style={{ minWidth: 70 }}
               >
                 Chấm dứt
               </Button>
