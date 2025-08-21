@@ -48,7 +48,14 @@ public class RoomUserServiceImpl implements RoomUserService {
         if (startInstant == null || endInstant == null) {
             throw new RuntimeException("Vui lòng chọn ngày bắt đầu và ngày kết thúc hợp đồng.");
         }
+        
+        // Kiểm tra ngày bắt đầu hợp đồng phải lớn hơn hoặc bằng ngày hiện tại
+        java.time.LocalDate currentDate = java.time.LocalDate.now();
         java.time.LocalDate startDate = startInstant.atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+        if (startDate.isBefore(currentDate)) {
+            throw new RuntimeException("Ngày bắt đầu hợp đồng phải lớn hơn hoặc bằng ngày hiện tại.");
+        }
+        
         java.time.LocalDate endDate = endInstant.atZone(java.time.ZoneId.systemDefault()).toLocalDate();
         long monthsBetween = java.time.temporal.ChronoUnit.MONTHS.between(startDate, endDate);
         switch (request.getPaymentCycle()) {

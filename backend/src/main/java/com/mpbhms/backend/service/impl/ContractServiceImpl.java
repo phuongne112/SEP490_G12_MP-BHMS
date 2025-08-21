@@ -661,6 +661,15 @@ public class ContractServiceImpl implements ContractService {
         Contract contract = contractRepository.findById(dto.getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hợp đồng"));
         
+        // Kiểm tra ngày bắt đầu hợp đồng phải lớn hơn hoặc bằng ngày hiện tại
+        if (dto.getContractStartDate() != null) {
+            java.time.LocalDate currentDate = java.time.LocalDate.now();
+            java.time.LocalDate startDate = dto.getContractStartDate().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+            if (startDate.isBefore(currentDate)) {
+                throw new RuntimeException("Ngày bắt đầu hợp đồng phải lớn hơn hoặc bằng ngày hiện tại.");
+            }
+        }
+        
         contract.setRoom(new com.mpbhms.backend.entity.Room() {{ setId(dto.getRoomId()); }});
         contract.setContractStartDate(dto.getContractStartDate());
         contract.setContractEndDate(dto.getContractEndDate());
@@ -866,6 +875,16 @@ public class ContractServiceImpl implements ContractService {
                 throw new RuntimeException("Phòng này đã có hợp đồng đang hoạt động. Không thể tạo hợp đồng mới.");
             }
         }
+        
+        // Kiểm tra ngày bắt đầu hợp đồng phải lớn hơn hoặc bằng ngày hiện tại
+        if (dto.getContractStartDate() != null) {
+            java.time.LocalDate currentDate = java.time.LocalDate.now();
+            java.time.LocalDate startDate = dto.getContractStartDate().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+            if (startDate.isBefore(currentDate)) {
+                throw new RuntimeException("Ngày bắt đầu hợp đồng phải lớn hơn hoặc bằng ngày hiện tại.");
+            }
+        }
+        
         Contract contract = new Contract();
         contract.setRoom(new com.mpbhms.backend.entity.Room() {{ setId(dto.getRoomId()); }});
         contract.setContractStartDate(dto.getContractStartDate());

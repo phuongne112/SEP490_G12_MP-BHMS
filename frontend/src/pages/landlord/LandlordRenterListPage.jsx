@@ -58,6 +58,10 @@ export default function LandlordRenterListPage() {
   const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
   const [ocrIssueDate, setOcrIssueDate] = useState(null);
 
+  // Pagination states for user list
+  const [userCurrentPage, setUserCurrentPage] = useState(1);
+  const [userPageSize, setUserPageSize] = useState(10);
+  const [userTotal, setUserTotal] = useState(0);
   useEffect(() => {
     async function fetchRooms() {
       try {
@@ -126,7 +130,7 @@ export default function LandlordRenterListPage() {
     setFilter({ ...filterValues }); // clone object để luôn trigger re-render
   };
 
-  const fetchUsersWithoutRole = async () => {
+  const fetchUsersWithoutRole = async (page = userCurrentPage, size = userPageSize) => {
     setUserLoading(true);
     try {
       // Chỉ lấy các tài khoản USER và áp dụng search theo username/email nếu có
@@ -135,8 +139,9 @@ export default function LandlordRenterListPage() {
         const q = userSearch.trim();
         filterStr += ` and (username~'*${q}*' or email~'*${q}*')`;
       }
-      const res = await getAllUsers(0, 20, filterStr);
+      const res = await getAllUsers(page - 1, size, filterStr);
       setUserList(res.result || []);
+      setUserTotal(res.meta?.total || 0);
     } catch (err) {
       message.error("Không lấy được danh sách user!");
     }
@@ -152,6 +157,12 @@ export default function LandlordRenterListPage() {
     return () => clearTimeout(t);
     // eslint-disable-next-line
   }, [userSearch]);
+
+  // Tự động tải lại khi thay đổi pagination
+  useEffect(() => {
+    fetchUsersWithoutRole();
+    // eslint-disable-next-line
+  }, [userCurrentPage, userPageSize]);
 
   const handleGrantRenter = async (user) => {
     // Hiển thị popup confirm trước khi cấp quyền
@@ -994,7 +1005,23 @@ export default function LandlordRenterListPage() {
                           dataSource={userList}
                           loading={userLoading}
                           rowKey="id"
-                          pagination={false}
+                          pagination={{
+                            current: userCurrentPage,
+                            pageSize: userPageSize,
+                            total: userTotal,
+                            showSizeChanger: true,
+                            showQuickJumper: true,
+                            showTotal: (total, range) => `${range[0]}-${range[1]} trên tổng số ${total} tài khoản`,
+                            pageSizeOptions: ['5', '10', '20', '50'],
+                            onChange: (page, size) => {
+                              setUserCurrentPage(page);
+                              setUserPageSize(size);
+                            },
+                            onShowSizeChange: (current, size) => {
+                              setUserCurrentPage(1);
+                              setUserPageSize(size);
+                            }
+                          }}
                           columns={[
                             {
                               title: 'Tên đăng nhập',

@@ -167,6 +167,7 @@ public class    DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Generate", "/mpbhms/bills/service-bill", "POST", "Bill"));
             permissions.add(new Permission("Export Bill", "/mpbhms/bills/{id}/export", "GET", "Bill"));
             permissions.add(new Permission("Send bill to Email", "/mpbhms/bills/send-email/{billId}", "POST", "Bill"));
+            permissions.add(new Permission("Send Bill", "/mpbhms/bills/{id}/send", "POST", "Bill"));
             permissions.add(new Permission("Dashboard Bill Stats", "/mpbhms/bills/dashboard-stats", "GET", "Bill"));
             permissions.add(new Permission("Bulk Generate Bills", "/mpbhms/bills/bulk-generate", "POST", "Bill"));
             permissions.add(new Permission("Update Bill Payment Status", "/mpbhms/bills/{id}/payment-status", "PUT", "Bill"));
@@ -548,6 +549,12 @@ public class    DatabaseInitializer implements CommandLineRunner {
             Permission landlordRejectCashPayment = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/{billId}/reject-cash-payment/{paymentHistoryId}", "POST");
             if (landlordRejectCashPayment != null && !landlordPermission.contains(landlordRejectCashPayment)) {
                 landlordPermission.add(landlordRejectCashPayment);
+            }
+            
+            // Send Bill permission for LANDLORD
+            Permission sendBill = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/{id}/send", "POST");
+            if (sendBill != null && !landlordPermission.contains(sendBill)) {
+                landlordPermission.add(sendBill);
             }
             
             // Payment History permissions for LANDLORD

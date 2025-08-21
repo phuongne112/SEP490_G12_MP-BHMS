@@ -144,6 +144,12 @@ export default function AssignRenterModal({ visible, onCancel, room, onSuccess }
     if (!room) return;
     if (loading) return;
 
+    // Validate ngày bắt đầu hợp đồng phải lớn hơn hoặc bằng ngày hiện tại
+    if (startDate && dayjs(startDate).isBefore(dayjs(), 'day')) {
+      message.error("Ngày bắt đầu hợp đồng phải lớn hơn hoặc bằng ngày hiện tại!");
+      return;
+    }
+
     // Validate số người không vượt quá giới hạn phòng
     const currentOccupants = room.roomUsers ? room.roomUsers.filter(u => u.isActive).length : 0;
     const toAdd = (values.userIds || []).length;
@@ -383,6 +389,7 @@ export default function AssignRenterModal({ visible, onCancel, room, onSuccess }
                     value={startDate}
                     onChange={handleStartDateChange}
                     format="DD/MM/YYYY"
+                    disabledDate={d => d && d < dayjs().startOf('day')}
                   />
                 </Form.Item>
 
