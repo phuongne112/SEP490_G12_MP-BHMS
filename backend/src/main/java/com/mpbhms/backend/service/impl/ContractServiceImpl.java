@@ -1016,7 +1016,6 @@ public class ContractServiceImpl implements ContractService {
     private ContractDTO toDTO(Contract contract) {
         // Đảm bảo ContractRenterInfo tồn tại trước khi chuyển đổi
         ensureContractRenterInfoExists(contract);
-        
         ContractDTO dto = new ContractDTO();
         dto.setId(contract.getId());
         dto.setRoomId(contract.getRoom().getId());
