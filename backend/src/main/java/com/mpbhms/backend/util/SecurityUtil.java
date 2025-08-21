@@ -105,6 +105,32 @@ public class SecurityUtil {
         return Optional.ofNullable(extractPrincipal(securityContext.getAuthentication()));
     }
 
+    /**
+     * Convert role name to Vietnamese display name
+     * @param roleName The role name from database
+     * @return Vietnamese display name
+     */
+    public static String getRoleDisplayName(String roleName) {
+        if (roleName == null) {
+            return "Không có";
+        }
+        
+        switch (roleName.toUpperCase()) {
+            case "RENTER":
+                return "người thuê";
+            case "LANDLORD":
+                return "chủ trọ";
+            case "ADMIN":
+                return "quản trị viên";
+            case "SUBADMIN":
+                return "quản trị viên phụ";
+            case "USER":
+                return "người dùng";
+            default:
+                return roleName;
+        }
+    }
+
     private static String extractPrincipal(Authentication authentication) {
         if (authentication == null) {
             return null;

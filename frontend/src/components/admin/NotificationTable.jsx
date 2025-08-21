@@ -122,7 +122,10 @@ export default function NotificationTable({
       if (onTotalChange) onTotalChange(total);
     } catch (err) {
       console.error("Notification fetch error:", err);
-      setErrorMsg("❌ Không thể tải dữ liệu thông báo. Vui lòng thử lại.");
+      // Không hiển thị error message nữa, chỉ log để debug
+      setData([]);
+      setPagination({ current: 1, total: 0 });
+      if (onTotalChange) onTotalChange(0);
     } finally {
       setLoading(false);
     }
@@ -263,17 +266,6 @@ export default function NotificationTable({
 
   return (
     <>
-      {errorMsg && (
-        <Alert
-          message={errorMsg}
-          type="error"
-          showIcon
-          closable
-          onClose={() => setErrorMsg(null)}
-          style={{ marginBottom: 16 }}
-        />
-      )}
-
       <Table
         columns={columns}
         dataSource={data}

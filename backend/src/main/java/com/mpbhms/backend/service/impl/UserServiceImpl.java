@@ -270,7 +270,25 @@ public class UserServiceImpl implements UserService {
         if (oldRole == null || newRole == null || !oldRole.getId().equals(newRole.getId())) {
             NotificationDTO noti = new NotificationDTO();
             noti.setTitle("Quyền của bạn đã được cập nhật");
-            noti.setMessage("Quyền tài khoản của bạn đã được thay đổi thành: " + (newRole != null ? newRole.getRoleName() : "Không có"));
+            
+            // Xử lý hiển thị tên role bằng tiếng Việt
+            String roleDisplayName = "Không có";
+            if (newRole != null) {
+                String roleName = newRole.getRoleName();
+                if ("RENTER".equals(roleName)) {
+                    roleDisplayName = "người thuê";
+                } else if ("LANDLORD".equals(roleName)) {
+                    roleDisplayName = "chủ trọ";
+                } else if ("ADMIN".equals(roleName)) {
+                    roleDisplayName = "quản trị viên";
+                } else if ("SUBADMIN".equals(roleName)) {
+                    roleDisplayName = "quản trị viên phụ";
+                } else {
+                    roleDisplayName = roleName;
+                }
+            }
+            
+            noti.setMessage("Quyền tài khoản của bạn đã được thay đổi thành: " + roleDisplayName);
             noti.setType(NotificationType.ANNOUNCEMENT);
             noti.setRecipientId(savedUser.getId());
             noti.setRecipientEmail(savedUser.getEmail());

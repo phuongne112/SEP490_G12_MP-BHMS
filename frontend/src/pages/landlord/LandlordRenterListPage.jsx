@@ -168,7 +168,7 @@ export default function LandlordRenterListPage() {
     // Hiển thị popup confirm trước khi cấp quyền
     Modal.confirm({
       title: 'Xác nhận cấp quyền',
-      content: `Bạn có chắc chắn muốn cấp quyền Renter cho tài khoản "${user.username}" (${user.email}) không?`,
+      content: `Bạn có chắc chắn muốn cấp quyền người thuê cho tài khoản "${user.username}" (${user.email}) không?`,
       okText: 'Cấp quyền',
       cancelText: 'Hủy',
       okType: 'primary',
