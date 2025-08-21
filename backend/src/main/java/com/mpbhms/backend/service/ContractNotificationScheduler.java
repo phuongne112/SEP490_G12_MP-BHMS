@@ -35,7 +35,7 @@ public class ContractNotificationScheduler {
     }
 
     // chạy mỗi ngày lúc 8h sáng
-    @Scheduled(cron = "0 45 22 * * ?")
+    @Scheduled(cron = "0 30 01 * * ?")
     @Transactional()
     public void sendUpcomingExpirationNotifications() {
         ZoneId zoneVN = ZoneId.of("Asia/Ho_Chi_Minh");
