@@ -414,7 +414,7 @@ export default function RenterBillDetailPage() {
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ fontWeight: 600, fontSize: 16 }}>MP-BHMS</div>
               <div style={{ fontSize: 14, color: "#e2e8f0" }}>
-                Xin chào {user?.fullName || user?.name || "Người thuê"}
+                Xin chào {user?.fullName || user?.name || "Renter"}
               </div>
             </div>
             <Button
