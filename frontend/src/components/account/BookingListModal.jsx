@@ -25,7 +25,7 @@ export default function BookingListModal({ open, onClose, currentUser }) {
       
       // Sử dụng scheduleApi thay vì axiosClient trực tiếp
       if (currentUser?.role?.roleName === "RENTER" && currentUser?.id) {
-        // Nếu là người thuê, lấy theo renterId
+        // Nếu là renter, lấy theo renterId
         const byId = await scheduleApi.getMySchedules({ renterId: currentUser.id });
         allBookings = byId.data || [];
       }

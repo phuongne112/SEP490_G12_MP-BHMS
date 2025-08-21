@@ -701,7 +701,7 @@ export default function RoomDetailPage() {
                   console.log("Debug - roleName:", roleName);
                   console.log("Debug - normalizedRole:", normalizedRole);
                   
-                  // Chỉ hiển thị cho người thuê và USER
+                  // Chỉ hiển thị cho RENTER và USER
                   if (["RENTER", "USER"].includes(normalizedRole)) {
                     return (
                       <Button

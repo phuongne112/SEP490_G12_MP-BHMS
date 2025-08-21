@@ -490,7 +490,7 @@ export default function RenterContractPage() {
                 MP-BHMS
               </div>
               <div style={{ fontSize: 14, color: "#e2e8f0" }}>
-                Xin chào {user?.fullName || user?.name || "Người thuê"}
+                Xin chào {user?.fullName || user?.name || "Renter"}
               </div>
             </div>
           </div>
