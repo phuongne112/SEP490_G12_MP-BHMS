@@ -471,7 +471,7 @@ export default function RenterBillListPage() {
                 MP-BHMS
               </div>
               <div style={{ fontSize: 14, color: "#e2e8f0" }}>
-                Xin chào {user?.fullName || user?.name || "Renter"}
+                Xin chào {user?.fullName || user?.name || "Người thuê"}
               </div>
             </div>
           </div>

@@ -57,6 +57,11 @@ export default function LandlordRenterListPage() {
   const [ocrDateOfBirth, setOcrDateOfBirth] = useState(null);
   const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
   const [ocrIssueDate, setOcrIssueDate] = useState(null);
+  
+  // Pagination states for user list
+  const [userCurrentPage, setUserCurrentPage] = useState(1);
+  const [userPageSize, setUserPageSize] = useState(10);
+  const [userTotal, setUserTotal] = useState(0);
 
   useEffect(() => {
     async function fetchRooms() {
@@ -126,7 +131,7 @@ export default function LandlordRenterListPage() {
     setFilter({ ...filterValues }); // clone object để luôn trigger re-render
   };
 
-  const fetchUsersWithoutRole = async () => {
+  const fetchUsersWithoutRole = async (page = userCurrentPage, size = userPageSize) => {
     setUserLoading(true);
     try {
       // Chỉ lấy các tài khoản USER và áp dụng search theo username/email nếu có
@@ -135,8 +140,9 @@ export default function LandlordRenterListPage() {
         const q = userSearch.trim();
         filterStr += ` and (username~'*${q}*' or email~'*${q}*')`;
       }
-      const res = await getAllUsers(0, 20, filterStr);
+      const res = await getAllUsers(page - 1, size, filterStr);
       setUserList(res.result || []);
+      setUserTotal(res.meta?.total || 0);
     } catch (err) {
       message.error("Không lấy được danh sách user!");
     }
@@ -147,17 +153,23 @@ export default function LandlordRenterListPage() {
   useEffect(() => {
     // Debounce nhẹ 300ms
     const t = setTimeout(() => {
-      fetchUsersWithoutRole();
+      setUserCurrentPage(1); // Reset về trang đầu khi search
+      fetchUsersWithoutRole(1, userPageSize);
     }, 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line
   }, [userSearch]);
 
+  // Fetch users when pagination changes
+  useEffect(() => {
+    fetchUsersWithoutRole(userCurrentPage, userPageSize);
+  }, [userCurrentPage, userPageSize]);
+
   const handleGrantRenter = async (user) => {
     // Hiển thị popup confirm trước khi cấp quyền
     Modal.confirm({
       title: 'Xác nhận cấp quyền',
-      content: `Bạn có chắc chắn muốn cấp quyền Renter cho tài khoản "${user.username}" (${user.email}) không?`,
+      content: `Bạn có chắc chắn muốn cấp quyền người thuê cho tài khoản "${user.username}" (${user.email}) không?`,
       okText: 'Cấp quyền',
       cancelText: 'Hủy',
       okType: 'primary',
@@ -171,7 +183,7 @@ export default function LandlordRenterListPage() {
             role: { roleId: 2 }
           });
           message.success("Đã cấp quyền người thuê thành công!");
-          fetchUsersWithoutRole();
+          fetchUsersWithoutRole(userCurrentPage, userPageSize);
           // Cập nhật danh sách người thuê sau khi cấp quyền
           setRefreshKey(prev => prev + 1);
         } catch (err) {
@@ -975,7 +987,10 @@ export default function LandlordRenterListPage() {
                       <div style={{ marginBottom: 16 }}>
                         <Button
                           type="primary"
-                          onClick={fetchUsersWithoutRole}
+                          onClick={() => {
+                            setUserCurrentPage(1);
+                            fetchUsersWithoutRole(1, userPageSize);
+                          }}
                           loading={userLoading}
                           style={{ marginBottom: 16 }}
                         >
@@ -994,7 +1009,23 @@ export default function LandlordRenterListPage() {
                           dataSource={userList}
                           loading={userLoading}
                           rowKey="id"
-                          pagination={false}
+                          pagination={{
+                            current: userCurrentPage,
+                            pageSize: userPageSize,
+                            total: userTotal,
+                            showSizeChanger: true,
+                            showQuickJumper: true,
+                            showTotal: (total, range) => `${range[0]}-${range[1]} trên tổng số ${total} tài khoản`,
+                            pageSizeOptions: ['5', '10', '20', '50'],
+                            onChange: (page, size) => {
+                              setUserCurrentPage(page);
+                              setUserPageSize(size);
+                            },
+                            onShowSizeChange: (current, size) => {
+                              setUserCurrentPage(1);
+                              setUserPageSize(size);
+                            }
+                          }}
                           columns={[
                             {
                               title: 'Tên đăng nhập',
