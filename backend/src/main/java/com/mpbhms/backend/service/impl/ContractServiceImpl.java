@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.mpbhms.backend.service.NotificationService;
 import com.mpbhms.backend.service.EmailService;
+import com.mpbhms.backend.service.ContractNotificationScheduler;
 import com.mpbhms.backend.dto.NotificationDTO;
 import com.mpbhms.backend.enums.NotificationType;
 import com.mpbhms.backend.entity.ContractAmendment;
@@ -78,6 +79,7 @@ public class ContractServiceImpl implements ContractService {
     private final ContractLandlordInfoRepository contractLandlordInfoRepository;
     private final ContractTemplateService contractTemplateService;
     private final RoomService roomService;
+    private final ContractNotificationScheduler contractNotificationScheduler;
     private static final Logger logger = LoggerFactory.getLogger(ContractServiceImpl.class);
 
     @Value("${contract.pending.expire-days:2}")
@@ -1130,6 +1132,8 @@ public class ContractServiceImpl implements ContractService {
         }
         // Gửi thông báo gia hạn
         sendRenewalNotifications(contract);
+        // Xóa contract khỏi cache notification để có thể gửi thông báo mới khi sắp hết hạn
+        contractNotificationScheduler.removeContractFromCache(contractId);
     }
     
     @Override
