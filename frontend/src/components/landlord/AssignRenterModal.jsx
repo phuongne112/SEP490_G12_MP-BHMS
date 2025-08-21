@@ -144,11 +144,23 @@ export default function AssignRenterModal({ visible, onCancel, room, onSuccess }
     if (!room) return;
     if (loading) return;
 
-    // Validate ngày bắt đầu hợp đồng phải lớn hơn hoặc bằng ngày hiện tại
-    if (startDate && dayjs(startDate).isBefore(dayjs(), 'day')) {
-      message.error("Ngày bắt đầu hợp đồng phải lớn hơn hoặc bằng ngày hiện tại!");
-      return;
-    }
+         // Validate ngày bắt đầu hợp đồng phải trong khoảng 1 năm trước và cuối năm hiện tại
+         if (startDate) {
+           const today = dayjs().startOf('day');
+       const oneYearAgo = dayjs().subtract(1, 'year').startOf('day');
+       const endOfCurrentYear = dayjs().endOf('year');
+           const selectedDate = dayjs(startDate);
+           
+       if (selectedDate.isBefore(oneYearAgo)) {
+         message.error("Ngày bắt đầu hợp đồng không được quá 1 năm trong quá khứ!");
+             return;
+           }
+           
+       if (selectedDate.isAfter(endOfCurrentYear)) {
+         message.error("Ngày bắt đầu hợp đồng không được quá cuối năm hiện tại!");
+             return;
+           }
+         }
 
     // Validate số người không vượt quá giới hạn phòng
     const currentOccupants = room.roomUsers ? room.roomUsers.filter(u => u.isActive).length : 0;
@@ -389,7 +401,7 @@ export default function AssignRenterModal({ visible, onCancel, room, onSuccess }
                     value={startDate}
                     onChange={handleStartDateChange}
                     format="DD/MM/YYYY"
-                    disabledDate={d => d && d < dayjs().startOf('day')}
+                                         disabledDate={d => d && (d < dayjs().subtract(1, 'year').startOf('day') || d > dayjs().endOf('year'))}
                   />
                 </Form.Item>
 
