@@ -477,7 +477,7 @@ export default function LandlordAssignRenterPage() {
                       setEndDate(null);
                       form.setFieldsValue({ contractEndDate: undefined });
                     }}
-                    disabledDate={d => d && d < dayjs().startOf('day')}
+                                         disabledDate={d => d && (d < dayjs().subtract(1, 'year').startOf('day') || d > dayjs().endOf('year'))}
                   />
                 </Form.Item>
                 

@@ -49,12 +49,18 @@ public class RoomUserServiceImpl implements RoomUserService {
             throw new RuntimeException("Vui lòng chọn ngày bắt đầu và ngày kết thúc hợp đồng.");
         }
         
-        // Kiểm tra ngày bắt đầu hợp đồng phải lớn hơn hoặc bằng ngày hiện tại
-        java.time.LocalDate currentDate = java.time.LocalDate.now();
-        java.time.LocalDate startDate = startInstant.atZone(java.time.ZoneId.systemDefault()).toLocalDate();
-        if (startDate.isBefore(currentDate)) {
-            throw new RuntimeException("Ngày bắt đầu hợp đồng phải lớn hơn hoặc bằng ngày hiện tại.");
-        }
+                 // Kiểm tra ngày bắt đầu hợp đồng phải trong khoảng 1 năm trước và cuối năm hiện tại
+         java.time.LocalDate currentDate = java.time.LocalDate.now();
+         java.time.LocalDate oneYearAgo = currentDate.minusYears(1);
+         java.time.LocalDate endOfCurrentYear = currentDate.withDayOfYear(currentDate.lengthOfYear());
+         java.time.LocalDate startDate = startInstant.atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+         
+         if (startDate.isBefore(oneYearAgo)) {
+             throw new RuntimeException("Ngày bắt đầu hợp đồng không được quá 1 năm trong quá khứ.");
+         }
+         if (startDate.isAfter(endOfCurrentYear)) {
+             throw new RuntimeException("Ngày bắt đầu hợp đồng không được quá cuối năm hiện tại.");
+         }
         
         java.time.LocalDate endDate = endInstant.atZone(java.time.ZoneId.systemDefault()).toLocalDate();
         long monthsBetween = java.time.temporal.ChronoUnit.MONTHS.between(startDate, endDate);
