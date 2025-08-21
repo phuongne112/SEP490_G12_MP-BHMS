@@ -77,7 +77,7 @@ export default function UserMenu() {
     },
     ...(isRenter ? [{
       key: 'renter-dashboard',
-      label: 'Bảng điều khiển (Renter)',
+      label: 'Bảng điều khiển (Người thuê)',
       onClick: () => navigate("/renter/dashboard")
     }] : []),
     ...(isAdmin ? [{
