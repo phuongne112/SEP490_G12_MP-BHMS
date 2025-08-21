@@ -178,6 +178,7 @@ public class    DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Get Payment Count", "/mpbhms/bills/{id}/payment-count", "GET", "Bill"));
             permissions.add(new Permission("Cash Partial Payment", "/mpbhms/bills/cash-partial-payment", "POST", "Bill"));
             permissions.add(new Permission("Confirm Cash Payment", "/mpbhms/bills/{billId}/confirm-cash-payment/{paymentHistoryId}", "POST", "Bill"));
+            permissions.add(new Permission("Reject Cash Payment", "/mpbhms/bills/{billId}/reject-cash-payment/{paymentHistoryId}", "POST", "Bill"));
             //Payment History
             permissions.add(new Permission("Get Payment Statistics", "/mpbhms/payment-history/bill/{billId}/statistics", "GET", "payment-history"));
             permissions.add(new Permission("Get Payment History Page", "/mpbhms/payment-history/bill/{billId}/page", "GET", "payment-history"));
@@ -394,6 +395,8 @@ public class    DatabaseInitializer implements CommandLineRunner {
             Permission confirmCashPayment = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/{billId}/confirm-cash-payment/{paymentHistoryId}", "POST");
             if (confirmCashPayment != null) renterPermission.add(confirmCashPayment);
             
+            // RENTER không cần quyền từ chối thanh toán tiền mặt (chỉ LANDLORD mới có quyền này)
+            
             // Payment History permissions for RENTER
             Permission getPaymentStatistics = permissionRepository.findByModuleAndApiPathAndMethod("payment-history", "/mpbhms/payment-history/bill/{billId}/statistics", "GET");
             if (getPaymentStatistics != null) renterPermission.add(getPaymentStatistics);
@@ -540,6 +543,11 @@ public class    DatabaseInitializer implements CommandLineRunner {
             Permission landlordConfirmCashPayment = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/{billId}/confirm-cash-payment/{paymentHistoryId}", "POST");
             if (landlordConfirmCashPayment != null && !landlordPermission.contains(landlordConfirmCashPayment)) {
                 landlordPermission.add(landlordConfirmCashPayment);
+            }
+            
+            Permission landlordRejectCashPayment = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/{billId}/reject-cash-payment/{paymentHistoryId}", "POST");
+            if (landlordRejectCashPayment != null && !landlordPermission.contains(landlordRejectCashPayment)) {
+                landlordPermission.add(landlordRejectCashPayment);
             }
             
             // Payment History permissions for LANDLORD

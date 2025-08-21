@@ -33,6 +33,8 @@ import java.time.LocalDate;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 @Service
@@ -264,14 +266,18 @@ public class ServiceServiceImpl implements ServiceService {
     }
 
     /**
-     * Gửi thông báo cho tất cả người thuê về việc sắp thay đổi giá dịch vụ
+     * Gửi thông báo cho tất cả người thuê và chủ trọ về việc sắp thay đổi giá dịch vụ
      */
     private void sendServicePriceChangeNotification(CustomService service, ServicePriceHistory newPrice) {
         try {
             // Tìm tất cả hợp đồng đang active
             List<Contract> activeContracts = contractRepository.findByContractStatus(ContractStatus.ACTIVE);
             
+            // Set để tránh gửi thông báo trùng lặp cho cùng một landlord
+            Set<Long> notifiedLandlords = new HashSet<>();
+            
             for (Contract contract : activeContracts) {
+                // Gửi thông báo cho người thuê
                 if (contract.getRoomUsers() != null) {
                     for (RoomUser roomUser : contract.getRoomUsers()) {
                         if (roomUser.getUser() != null && Boolean.TRUE.equals(roomUser.getIsActive())) {
@@ -301,6 +307,40 @@ public class ServiceServiceImpl implements ServiceService {
                             } catch (Exception e) {
                                 System.err.println("Lỗi gửi thông báo thay đổi giá dịch vụ cho user " + roomUser.getUser().getId() + ": " + e.getMessage());
                             }
+                        }
+                    }
+                }
+                
+                // Gửi thông báo cho chủ trọ (nếu chưa gửi)
+                if (contract.getRoom() != null && contract.getRoom().getLandlord() != null) {
+                    Long landlordId = contract.getRoom().getLandlord().getId();
+                    if (!notifiedLandlords.contains(landlordId)) {
+                        try {
+                            NotificationDTO landlordNotification = new NotificationDTO();
+                            landlordNotification.setRecipientId(landlordId);
+                            landlordNotification.setTitle("Thông báo cập nhật giá dịch vụ: " + service.getServiceName());
+                            landlordNotification.setMessage(String.format(
+                                "Bạn đã cập nhật giá dịch vụ %s thành %s VNĐ/%s từ ngày %s. " +
+                                "Lý do: %s",
+                                service.getServiceName(),
+                                newPrice.getUnitPrice().toString(),
+                                service.getUnit(),
+                                newPrice.getEffectiveDate().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                                newPrice.getReason() != null ? newPrice.getReason() : "Không có lý do"
+                            ));
+                            landlordNotification.setType(NotificationType.SERVICE_UPDATE);
+                            landlordNotification.setMetadata(String.format(
+                                "{\"serviceId\":%d,\"serviceName\":\"%s\",\"newPrice\":%s,\"effectiveDate\":\"%s\"}",
+                                service.getId(),
+                                service.getServiceName(),
+                                newPrice.getUnitPrice().toString(),
+                                newPrice.getEffectiveDate().toString()
+                            ));
+                            
+                            notificationService.createAndSend(landlordNotification);
+                            notifiedLandlords.add(landlordId);
+                        } catch (Exception e) {
+                            System.err.println("Lỗi gửi thông báo thay đổi giá dịch vụ cho landlord " + landlordId + ": " + e.getMessage());
                         }
                     }
                 }

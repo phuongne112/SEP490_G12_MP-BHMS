@@ -112,18 +112,6 @@ export default function LandlordContractListPage() {
   // Detect new contracts and show notification
   useEffect(() => {
     const currentContractIds = new Set(roomContracts.map(room => room.latestContract?.id).filter(Boolean));
-
-    if (previousContractIds.size > 0) {
-      const newContractIds = [...currentContractIds].filter(id => !previousContractIds.has(id));
-
-      if (newContractIds.length > 0) {
-        message.success({
-          content: `🔄 Đã phát hiện ${newContractIds.length} hợp đồng mới được tạo sau cập nhật!`,
-          duration: 4,
-        });
-      }
-    }
-
     setPreviousContractIds(currentContractIds);
   }, [roomContracts, previousContractIds]);
 

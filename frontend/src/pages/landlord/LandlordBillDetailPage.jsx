@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Descriptions, Table, Button, Spin, message, Tag, Layout, Popconfirm } from "antd";
-import { getBillDetail, exportBillPdf, createVnPayUrl, updateBillPaymentStatus, confirmCashPayment } from "../../services/billApi";
+import { Card, Descriptions, Table, Button, Spin, message, Tag, Layout, Popconfirm, Modal, Input } from "antd";
+import { getBillDetail, exportBillPdf, createVnPayUrl, updateBillPaymentStatus, confirmCashPayment, rejectCashPayment } from "../../services/billApi";
 import LandlordSidebar from "../../components/layout/LandlordSidebar";
 import PageHeader from "../../components/common/PageHeader";
 import PaymentHistoryModal from "../../components/common/PaymentHistoryModal";
@@ -10,6 +10,7 @@ import customParseFormat from "dayjs/plugin/customParseFormat";
 dayjs.extend(customParseFormat);
 
 const { Sider } = Layout;
+const { TextArea } = Input;
 
 export default function LandlordBillDetailPage() {
   const { id } = useParams();
@@ -20,6 +21,10 @@ export default function LandlordBillDetailPage() {
   const [paymentHistoryVisible, setPaymentHistoryVisible] = useState(false);
   const [pendingCashPayments, setPendingCashPayments] = useState([]);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
+  const [rejectingPayment, setRejectingPayment] = useState(false);
+  const [rejectModalVisible, setRejectModalVisible] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [currentPaymentToReject, setCurrentPaymentToReject] = useState(null);
 
   // Hàm kiểm tra hóa đơn có quá hạn không
   const checkOverdue = (bill) => {
@@ -144,7 +149,22 @@ export default function LandlordBillDetailPage() {
       });
       window.location.href = paymentUrl;
     } catch (err) {
-      alert("Không tạo được link thanh toán!");
+      // Xử lý lỗi từ API
+      let errorMessage = "Không tạo được link thanh toán!";
+      
+      if (err.message) {
+        // Lỗi từ billApi.js (sau khi được xử lý)
+        errorMessage = err.message;
+      } else if (err.response && err.response.data) {
+        // Lỗi trực tiếp từ API
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+        }
+      }
+      
+      message.error(errorMessage);
     }
   };
 
@@ -180,6 +200,35 @@ export default function LandlordBillDetailPage() {
     } finally {
       setConfirmingPayment(false);
     }
+  };
+
+  const handleRejectCashPayment = async (paymentHistoryId) => {
+    try {
+      setRejectingPayment(true);
+      
+      // Gọi API từ chối thanh toán tiền mặt
+      await rejectCashPayment(bill.id, paymentHistoryId, rejectReason);
+      
+      message.success("Đã từ chối thanh toán tiền mặt thành công!");
+      
+      // Reset modal
+      setRejectModalVisible(false);
+      setRejectReason('');
+      setCurrentPaymentToReject(null);
+      
+      // Refresh lại thông tin hóa đơn
+      await fetchBill();
+    } catch (error) {
+      message.error("Không thể từ chối thanh toán tiền mặt!");
+      console.error("Error rejecting cash payment:", error);
+    } finally {
+      setRejectingPayment(false);
+    }
+  };
+
+  const showRejectModal = (payment) => {
+    setCurrentPaymentToReject(payment);
+    setRejectModalVisible(true);
   };
 
   const columns = [
@@ -424,22 +473,25 @@ export default function LandlordBillDetailPage() {
                 </Button>
 
                 {!bill.status && (
-                  <Popconfirm
-                    title="Xác nhận thanh toán"
-                    description="Bạn có chắc muốn đánh dấu hóa đơn này đã được thanh toán?"
-                    onConfirm={handleUpdatePaymentStatus}
-                    okText="Xác nhận"
-                    cancelText="Hủy"
-                  >
-                    <Button
-                      type="default"
-                      style={{ marginLeft: 16 }}
-                      loading={updatingStatus}
-                      title="Đánh dấu đã thanh toán (cho thanh toán tại văn phòng)"
+                  <>
+                    <Popconfirm
+                      title="Xác nhận thanh toán"
+                      description="Bạn có chắc muốn đánh dấu hóa đơn này đã được thanh toán?"
+                      onConfirm={handleUpdatePaymentStatus}
+                      okText="Xác nhận"
+                      cancelText="Hủy"
                     >
-                      Đã thanh toán
-                    </Button>
-                  </Popconfirm>
+                      <Button
+                        type="default"
+                        style={{ marginLeft: 16 }}
+                        loading={updatingStatus}
+                        title="Đánh dấu đã thanh toán (cho thanh toán tại văn phòng)"
+                      >
+                        Đã thanh toán
+                      </Button>
+                    </Popconfirm>
+                    
+                  </>
                 )}
 
                 {/* Danh sách thanh toán tiền mặt pending */}
@@ -497,21 +549,31 @@ export default function LandlordBillDetailPage() {
                               </p>
                             )}
                           </div>
-                          <Popconfirm
-                            title="Xác nhận thanh toán tiền mặt"
-                            description={`Bạn có chắc muốn xác nhận thanh toán ${payment.totalAmount?.toLocaleString()} ₫?`}
-                            onConfirm={() => handleConfirmCashPayment(payment.id)}
-                            okText="Xác nhận"
-                            cancelText="Hủy"
-                          >
-                            <Button
-                              type="primary"
-                              loading={confirmingPayment}
-                              size="small"
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <Popconfirm
+                              title="Xác nhận thanh toán tiền mặt"
+                              description={`Bạn có chắc muốn xác nhận thanh toán ${payment.totalAmount?.toLocaleString()} ₫?`}
+                              onConfirm={() => handleConfirmCashPayment(payment.id)}
+                              okText="Xác nhận"
+                              cancelText="Hủy"
                             >
-                              Xác nhận
+                              <Button
+                                type="primary"
+                                loading={confirmingPayment}
+                                size="small"
+                              >
+                                Xác nhận
+                              </Button>
+                            </Popconfirm>
+                            <Button
+                              type="default"
+                              danger
+                              size="small"
+                              onClick={() => showRejectModal(payment)}
+                            >
+                              Từ chối
                             </Button>
-                          </Popconfirm>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -539,6 +601,41 @@ export default function LandlordBillDetailPage() {
             roomAddress={bill.building}
           />
         )}
+
+        {/* Reject Cash Payment Modal */}
+        <Modal
+          title="Từ chối thanh toán tiền mặt"
+          open={rejectModalVisible}
+          onCancel={() => {
+            setRejectModalVisible(false);
+            setRejectReason('');
+            setCurrentPaymentToReject(null);
+          }}
+          onOk={() => handleRejectCashPayment(currentPaymentToReject?.id)}
+          okText="Từ chối"
+          cancelText="Hủy"
+          confirmLoading={rejectingPayment}
+          okButtonProps={{ danger: true }}
+        >
+          {currentPaymentToReject && (
+            <div>
+              <p><strong>Thanh toán:</strong> #{currentPaymentToReject.paymentNumber}</p>
+              <p><strong>Số tiền:</strong> {currentPaymentToReject.totalAmount?.toLocaleString()} ₫</p>
+              <p><strong>Ngày thanh toán:</strong> {currentPaymentToReject.paymentDate ? (dayjs(currentPaymentToReject.paymentDate).isValid() ? dayjs(currentPaymentToReject.paymentDate).format('DD/MM/YYYY HH:mm') : currentPaymentToReject.paymentDate) : ''}</p>
+              
+              <div style={{ marginTop: 16 }}>
+                <label><strong>Lý do từ chối (tùy chọn):</strong></label>
+                <TextArea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Nhập lý do từ chối thanh toán..."
+                  rows={4}
+                  style={{ marginTop: 8 }}
+                />
+              </div>
+            </div>
+          )}
+        </Modal>
       </div>
     </div>
   );

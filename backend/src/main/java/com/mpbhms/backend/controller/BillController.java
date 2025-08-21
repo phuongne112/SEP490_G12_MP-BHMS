@@ -5,6 +5,7 @@ import com.mpbhms.backend.dto.PartialPaymentRequest;
 import com.mpbhms.backend.dto.PartialPaymentResponse;
 import com.mpbhms.backend.entity.Bill;
 import com.mpbhms.backend.entity.PaymentHistory;
+import com.mpbhms.backend.entity.RoomUser;
 import com.mpbhms.backend.enums.BillType;
 import com.mpbhms.backend.service.BillService;
 import com.mpbhms.backend.service.PaymentHistoryService;
@@ -633,6 +634,17 @@ public class BillController {
                 return ResponseEntity.notFound().build();
             }
 
+            // 🆕 KIỂM TRA KHÓA TẠO URL THANH TOÁN (TƯƠNG TỰ VNPAY)
+            Instant now = Instant.now();
+            if (bill.getPaymentUrlLockedUntil() != null && now.isBefore(bill.getPaymentUrlLockedUntil())) {
+                long secondsLeft = java.time.Duration.between(now, bill.getPaymentUrlLockedUntil()).getSeconds();
+                long minutesLeft = (secondsLeft + 59) / 60; // làm tròn lên phút còn lại
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("message", "Bạn đã tạo yêu cầu thanh toán trước đó. Vui lòng đợi thêm " + minutesLeft + " phút nữa để tạo lại.");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+
             // Validate min/max payment amount
             BigDecimal outstandingAmount = bill.getOutstandingAmount();
             BigDecimal minPayment = outstandingAmount.multiply(new BigDecimal("0.5")); // 50%
@@ -707,6 +719,25 @@ public class BillController {
             paymentHistory.setIsPartialPayment(request.getOriginalPaymentAmount().compareTo(bill.getOutstandingAmount()) < 0);
             paymentHistory.setNotes("Thanh toán tiền mặt - chờ chủ trọ xác nhận");
             paymentHistory.setMonthsOverdue(calculateOverdueMonths(bill));
+
+            // 🆕 ĐẶT KHÓA 15 PHÚT ĐỂ CHỐNG TẠO TRÙNG YÊU CẦU THANH TOÁN TIỀN MẶT
+            bill.setPaymentUrlLockedUntil(now.plus(java.time.Duration.ofMinutes(15)));
+            billRepository.save(bill);
+
+            // 🆕 GỬI THÔNG BÁO CHO LANDLORD VỀ YÊU CẦU THANH TOÁN TIỀN MẶT
+            try {
+                NotificationDTO landlordNotification = new NotificationDTO();
+                landlordNotification.setRecipientId(bill.getRoom().getLandlord().getId());
+                landlordNotification.setTitle("Yêu cầu thanh toán tiền mặt mới");
+                landlordNotification.setMessage("Người thuê phòng " + bill.getRoom().getRoomNumber() + 
+                    " đã gửi yêu cầu thanh toán tiền mặt " + formatCurrencyPlain(request.getOriginalPaymentAmount()) + " cho hóa đơn #" + bill.getId() + 
+                    ". Vui lòng xác nhận sau khi nhận tiền.");
+                landlordNotification.setType(NotificationType.ANNOUNCEMENT);
+                landlordNotification.setMetadata("{\"billId\":" + bill.getId() + ",\"roomNumber\":\"" + bill.getRoom().getRoomNumber() + "\",\"paymentAmount\":" + request.getOriginalPaymentAmount() + ",\"paymentHistoryId\":" + paymentHistory.getId() + "}");
+                notificationService.createAndSend(landlordNotification);
+            } catch (Exception e) {
+                System.err.println("Lỗi gửi thông báo yêu cầu thanh toán tiền mặt cho landlord: " + e.getMessage());
+            }
 
             // Log thông tin thanh toán (giống VNPAY)
             System.out.println("=== TẠO YÊU CẦU THANH TOÁN TIỀN MẶT ===");
@@ -794,8 +825,31 @@ public class BillController {
                 bill.setStatus(false); // Vẫn còn nợ
             }
 
+            // 🆕 MỞ KHÓA TẠO URL THANH TOÁN KHI XÁC NHẬN THÀNH CÔNG
+            bill.setPaymentUrlLockedUntil(null);
+
             // Lưu hóa đơn
             billRepository.save(bill);
+
+            // 🆕 GỬI THÔNG BÁO CHO NGƯỜI THUÊ VỀ THANH TOÁN THÀNH CÔNG
+            try {
+                if (bill.getContract().getRoomUsers() != null) {
+                    for (RoomUser roomUser : bill.getContract().getRoomUsers()) {
+                        if (roomUser.getUser() != null && Boolean.TRUE.equals(roomUser.getIsActive())) {
+                            NotificationDTO renterNotification = new NotificationDTO();
+                            renterNotification.setRecipientId(roomUser.getUser().getId());
+                            renterNotification.setTitle("Thanh toán tiền mặt đã được xác nhận");
+                            renterNotification.setMessage("Chủ trọ đã xác nhận nhận được " + formatCurrencyPlain(originalPaymentAmount) + " thanh toán tiền mặt cho hóa đơn #" + bill.getId() + 
+                                ". Số tiền còn nợ: " + formatCurrencyPlain(bill.getOutstandingAmount()) + ".");
+                            renterNotification.setType(NotificationType.ANNOUNCEMENT);
+                            renterNotification.setMetadata("{\"billId\":" + bill.getId() + ",\"paymentAmount\":" + originalPaymentAmount + ",\"outstandingAmount\":" + bill.getOutstandingAmount() + "}");
+                            notificationService.createAndSend(renterNotification);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Lỗi gửi thông báo xác nhận thanh toán tiền mặt cho renter: " + e.getMessage());
+            }
 
             // Log thông tin xác nhận
             System.out.println("=== XÁC NHẬN THANH TOÁN TIỀN MẶT ===");
@@ -863,6 +917,117 @@ public class BillController {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("message", "Lỗi khi xác nhận thanh toán tiền mặt: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+
+    @PostMapping("/{billId}/reject-cash-payment/{paymentHistoryId}")
+    public ResponseEntity<?> rejectCashPayment(@PathVariable Long billId, @PathVariable Long paymentHistoryId, @RequestBody(required = false) Map<String, String> requestBody) {
+        try {
+            String reason = requestBody != null ? requestBody.get("reason") : "";
+            
+            // Tìm payment history record
+            PaymentHistory paymentHistory = paymentHistoryService.getPaymentHistoryById(paymentHistoryId);
+            if (paymentHistory == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("message", "Không tìm thấy yêu cầu thanh toán tiền mặt");
+                return ResponseEntity.notFound().build();
+            }
+
+            // Kiểm tra xem có phải là thanh toán tiền mặt pending không
+            if (!"CASH".equals(paymentHistory.getPaymentMethod()) || !"PENDING".equals(paymentHistory.getStatus())) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("message", "Yêu cầu thanh toán không hợp lệ");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+
+            // Kiểm tra xem có phải là hóa đơn đúng không
+            if (!billId.equals(paymentHistory.getBill().getId())) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("message", "Hóa đơn không khớp");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+
+            Bill bill = paymentHistory.getBill();
+
+            // Cập nhật trạng thái payment history thành REJECTED
+            paymentHistory.setStatus("REJECTED");
+            paymentHistory.setNotes("Thanh toán tiền mặt bị từ chối" + (reason != null && !reason.trim().isEmpty() ? ": " + reason : ""));
+            paymentHistoryService.savePaymentHistory(paymentHistory);
+
+            // 🆕 MỞ KHÓA TẠO URL THANH TOÁN KHI TỪ CHỐI
+            bill.setPaymentUrlLockedUntil(null);
+            billRepository.save(bill);
+
+            // Log thông tin từ chối
+            System.out.println("=== TỪ CHỐI THANH TOÁN TIỀN MẶT ===");
+            System.out.println("ID hóa đơn: " + bill.getId());
+            System.out.println("ID payment history: " + paymentHistory.getId());
+            System.out.println("Số tiền bị từ chối: " + paymentHistory.getPaymentAmount());
+            System.out.println("Lý do từ chối: " + reason);
+            System.out.println("Ngày từ chối: " + Instant.now());
+
+            // Gửi email thông báo cho người thuê
+            try {
+                if (bill.getContract() != null && bill.getContract().getRoomUsers() != null) {
+                    bill.getContract().getRoomUsers().stream()
+                        .filter(ru -> ru.getUser() != null && Boolean.TRUE.equals(ru.getIsActive()))
+                        .forEach(ru -> {
+                            try {
+                                emailService.sendCashPaymentRejectionEmail(
+                                    ru.getUser().getEmail(),
+                                    ru.getUser().getUserInfo() != null ? ru.getUser().getUserInfo().getFullName() : ru.getUser().getUsername(),
+                                    bill.getRoom().getRoomNumber(),
+                                    paymentHistory.getPaymentAmount(),
+                                    bill.getId(),
+                                    reason
+                                );
+                            } catch (Exception ex) {
+                                System.err.println("Lỗi gửi email từ chối thanh toán tiền mặt: " + ex.getMessage());
+                            }
+                        });
+                }
+
+                // Notification trong hệ thống
+                try {
+                    NotificationDTO noti = new NotificationDTO();
+                    noti.setTitle("Thanh toán tiền mặt bị từ chối");
+                    noti.setMessage("Yêu cầu thanh toán " + paymentHistory.getPaymentAmount() + " cho hóa đơn #" + bill.getId() + " đã bị từ chối" + (reason != null && !reason.trim().isEmpty() ? ". Lý do: " + reason : ""));
+                    noti.setType(NotificationType.ANNOUNCEMENT);
+                    if (bill.getContract() != null && bill.getContract().getRoomUsers() != null) {
+                        bill.getContract().getRoomUsers().stream()
+                            .filter(ru -> ru.getUser() != null && Boolean.TRUE.equals(ru.getIsActive()))
+                            .forEach(ru -> {
+                                NotificationDTO clone = new NotificationDTO();
+                                clone.setRecipientId(ru.getUser().getId());
+                                clone.setTitle(noti.getTitle());
+                                clone.setMessage(noti.getMessage());
+                                clone.setType(noti.getType());
+                                clone.setMetadata("{\"billId\":" + bill.getId() + "}");
+                                notificationService.createAndSend(clone);
+                            });
+                    }
+                } catch (Exception ex) {
+                    System.err.println("Lỗi gửi notification từ chối tiền mặt: " + ex.getMessage());
+                }
+            } catch (Exception ex) {
+                System.err.println("Lỗi gửi email từ chối thanh toán tiền mặt: " + ex.getMessage());
+            }
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("message", "Đã từ chối thanh toán tiền mặt thành công");
+            result.put("billId", bill.getId());
+            result.put("paymentHistoryId", paymentHistory.getId());
+            
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Lỗi khi từ chối thanh toán tiền mặt: " + e.getMessage());
             return ResponseEntity.status(500).body(errorResponse);
         }
     }
@@ -1063,5 +1228,11 @@ public class BillController {
             System.err.println("Lỗi khi tính số tháng quá hạn: " + e.getMessage());
             return 0;
         }
+    }
+
+    // Helper method để format số tiền VNĐ không có dấu phẩy (cho thông báo)
+    private String formatCurrencyPlain(java.math.BigDecimal amount) {
+        if (amount == null) return "0 VNĐ";
+        return amount.toString() + " VNĐ";
     }
 }
