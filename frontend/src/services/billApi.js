@@ -60,12 +60,44 @@ export const getMyBills = async () => {
 };
 
 export const createVnPayUrl = async ({ billId, amount, orderInfo }) => {
-  const res = await axiosClient.post("/payment/create-vnpay-url", {
-    billId,
-    amount,
-    orderInfo,
-  });
-  return res.data.paymentUrl;
+  try {
+    const res = await axiosClient.post("/payment/create-vnpay-url", {
+      billId,
+      amount,
+      orderInfo,
+    });
+    
+    console.log('createVnPayUrl success response:', res);
+    
+    // Xử lý cả 2 trường hợp: axiosClient return data hoặc full response
+    const data = res.data || res;
+    
+    // Kiểm tra nếu response có lỗi
+    if (data.success === false) {
+      throw new Error(data.message);
+    }
+    
+    return data.paymentUrl || res.paymentUrl;
+  } catch (error) {
+    // Debug log để hiểu cấu trúc lỗi
+    console.error('createVnPayUrl error:', error);
+    console.error('error.response:', error.response);
+    
+    // Nếu là lỗi HTTP 400/500, extract message từ response
+    if (error.response) {
+      const errorData = error.response.data;
+      console.log('Error response data:', errorData);
+      
+      if (typeof errorData === 'string') {
+        throw new Error(errorData);
+      } else if (errorData && errorData.message) {
+        throw new Error(errorData.message);
+      }
+    }
+    
+    // Re-throw lỗi gốc nếu không xử lý được
+    throw error;
+  }
 };
 
 // Thống kê hóa đơn cho dashboard
@@ -158,6 +190,19 @@ export const confirmCashPayment = async (billId, paymentHistoryId) => {
     return response.data;
   } catch (error) {
     console.error('Error confirming cash payment:', error);
+    throw error;
+  }
+};
+
+// Từ chối thanh toán tiền mặt (cho landlord)
+export const rejectCashPayment = async (billId, paymentHistoryId, reason = '') => {
+  try {
+    const response = await axiosClient.post(`/bills/${billId}/reject-cash-payment/${paymentHistoryId}`, {
+      reason
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error rejecting cash payment:', error);
     throw error;
   }
 }; 

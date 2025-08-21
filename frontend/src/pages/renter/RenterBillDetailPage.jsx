@@ -209,7 +209,22 @@ export default function RenterBillDetailPage() {
       });
       window.location.href = paymentUrl;
     } catch (err) {
-      message.error("Không tạo được link thanh toán!");
+      // Xử lý lỗi từ API
+      let errorMessage = "Không tạo được link thanh toán!";
+      
+      if (err.message) {
+        // Lỗi từ billApi.js (sau khi được xử lý)
+        errorMessage = err.message;
+      } else if (err.response && err.response.data) {
+        // Lỗi trực tiếp từ API
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+        }
+      }
+      
+      message.error(errorMessage);
     }
   };
 
@@ -244,7 +259,17 @@ export default function RenterBillDetailPage() {
       setCashPartialPaymentModalVisible(false);
       fetchBill();
     } catch (error) {
-      message.error("Không thể gửi yêu cầu thanh toán tiền mặt!");
+      // 🆕 Xử lý lỗi khóa thanh toán
+      if (error.response && error.response.data && error.response.data.message) {
+        const errorMessage = error.response.data.message;
+        if (errorMessage.includes("đã tạo yêu cầu thanh toán trước đó")) {
+          message.error(errorMessage);
+        } else {
+          message.error(errorMessage);
+        }
+      } else {
+        message.error("Không thể gửi yêu cầu thanh toán tiền mặt!");
+      }
       console.error("Error creating cash payment:", error);
     }
   };

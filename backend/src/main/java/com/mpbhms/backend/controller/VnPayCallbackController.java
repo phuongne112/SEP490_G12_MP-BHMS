@@ -1,10 +1,13 @@
 package com.mpbhms.backend.controller;
 
+import com.mpbhms.backend.dto.NotificationDTO;
 import com.mpbhms.backend.entity.Bill;
 import com.mpbhms.backend.entity.PaymentHistory;
+import com.mpbhms.backend.enums.NotificationType;
 import com.mpbhms.backend.repository.BillRepository;
 import com.mpbhms.backend.repository.PaymentHistoryRepository;
 import com.mpbhms.backend.service.BillService;
+import com.mpbhms.backend.service.NotificationService;
 import com.mpbhms.backend.service.PaymentHistoryService;
 import com.mpbhms.backend.service.VnPayService;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +33,7 @@ public class VnPayCallbackController {
     private final PaymentHistoryService paymentHistoryService;
     private final PaymentHistoryRepository paymentHistoryRepository;
     private final BillRepository billRepository;
+    private final NotificationService notificationService;
 
     // Trả về từ trình duyệt sau khi thanh toán
     @GetMapping("/return")
@@ -142,6 +146,26 @@ public class VnPayCallbackController {
             bill.setStatus(bill.getOutstandingAmount().compareTo(BigDecimal.ZERO) <= 0);
             billRepository.save(bill);
 
+            // 🆕 GỬI THÔNG BÁO CHO LANDLORD VỀ THANH TOÁN VNPAY THÀNH CÔNG
+            try {
+                NotificationDTO landlordNotification = new NotificationDTO();
+                landlordNotification.setRecipientId(bill.getRoom().getLandlord().getId());
+                landlordNotification.setTitle("Thanh toán VNPay thành công");
+                String message = "Người thuê phòng " + bill.getRoom().getRoomNumber() + 
+                    " đã thanh toán thành công " + formatCurrencyPlain(originalAmount) + " qua VNPay cho hóa đơn #" + bill.getId();
+                if (bill.getStatus()) {
+                    message += ". Hóa đơn đã được thanh toán hoàn toàn.";
+                } else {
+                    message += ". Số tiền còn nợ: " + formatCurrencyPlain(bill.getOutstandingAmount()) + ".";
+                }
+                landlordNotification.setMessage(message);
+                landlordNotification.setType(NotificationType.ANNOUNCEMENT);
+                landlordNotification.setMetadata("{\"billId\":" + bill.getId() + ",\"roomNumber\":\"" + bill.getRoom().getRoomNumber() + "\",\"paymentAmount\":" + originalAmount + ",\"outstandingAmount\":" + bill.getOutstandingAmount() + ",\"paymentMethod\":\"VNPAY\"}");
+                notificationService.createAndSend(landlordNotification);
+            } catch (Exception e) {
+                System.err.println("Lỗi gửi thông báo thanh toán VNPay cho landlord: " + e.getMessage());
+            }
+
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "Đã ghi nhận thanh toán VNPay thành công",
@@ -212,5 +236,11 @@ public class VnPayCallbackController {
         } catch (Exception e) {
             return 0;
         }
+    }
+
+    // Helper method để format số tiền VNĐ không có dấu phẩy (cho thông báo)
+    private String formatCurrencyPlain(BigDecimal amount) {
+        if (amount == null) return "0 VNĐ";
+        return amount.toString() + " VNĐ";
     }
 }
