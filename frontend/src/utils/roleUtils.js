@@ -3,10 +3,10 @@ export const getRoleDisplayName = (roleName) => {
   if (!roleName) return "";
   
   const roleMap = {
-    "LANDLORD": "Chủ nhà",
-    "RENTER": "Người thuê",
-    "ADMIN": "Quản trị viên",
-    "SUBADMIN": "Phó quản trị viên"
+    "LANDLORD": "chủ trọ",
+    "RENTER": "người thuê",
+    "ADMIN": "quản trị viên",
+    "SUBADMIN": "quản trị viên phụ"
   };
   
   return roleMap[roleName.toUpperCase()] || roleName;

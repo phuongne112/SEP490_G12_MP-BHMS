@@ -30,12 +30,12 @@ export default function NotificationFilterPopover({ onApply }) {
           <Option value="RENT_REMINDER">Nhắc nhở tiền phòng</Option>
           <Option value="MAINTENANCE">Bảo trì</Option>
           <Option value="BOOKING_STATUS">Trạng thái đặt phòng</Option>
+          <Option value="SCHEDULE">Lịch hẹn</Option>
           <Option value="ANNOUNCEMENT">Thông báo chung</Option>
           <Option value="PAYMENT_SUCCESS">Thanh toán thành công</Option>
           <Option value="PAYMENT_FAILED">Thanh toán thất bại</Option>
           <Option value="CONTRACT_EXPIRED">Hợp đồng hết hạn</Option>
           <Option value="CONTRACT_RENEWED">Hợp đồng gia hạn</Option>
-          <Option value="SCHEDULE">Lịch trình</Option>
           <Option value="BILL_CREATED">Hóa đơn mới</Option>
           <Option value="BILL_PAID">Hóa đơn đã thanh toán</Option>
           <Option value="BILL_OVERDUE">Hóa đơn quá hạn</Option>
