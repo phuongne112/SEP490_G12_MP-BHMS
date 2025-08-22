@@ -149,6 +149,7 @@ public class RoomUserServiceImpl implements RoomUserService {
                 info.setPhoneNumber(user.getUserInfo().getPhoneNumber());
                 info.setNationalID(user.getUserInfo().getNationalID());
                 info.setPermanentAddress(user.getUserInfo().getPermanentAddress());
+                info.setEmail(user.getEmail()); // Thêm email
                 contractRenterInfoRepository.save(info);
             }
         }

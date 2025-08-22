@@ -44,6 +44,7 @@ import {
   exportBillPdf,
   sendBillToRenter,
   bulkGenerateBills,
+  autoGenerateServiceBills,
   updateBillPaymentStatus,
   createLatePenaltyBill,
   checkAndCreateLatePenalties,
@@ -143,6 +144,7 @@ export default function LandlordBillListPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [emailLoading, setEmailLoading] = useState({});
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [serviceLoading, setServiceLoading] = useState(false);
   const [bulkPenaltyLoading, setBulkPenaltyLoading] = useState(false);
   const [sentEmailsToday, setSentEmailsToday] = useState(new Set());
   const [autoRefresh, setAutoRefresh] = useState(true); // Tự động refresh
@@ -540,7 +542,11 @@ export default function LandlordBillListPage() {
       const data = await exportBillPdf(bill.id);
       
       // Generate professional filename with room name and bill date range
-      const fromDate = dayjs(bill.fromDate).format('YYYY-MM-DD');
+              const fromDate = bill.fromDate && dayjs(bill.fromDate, "YYYY-MM-DD HH:mm:ss A").isValid() 
+          ? dayjs(bill.fromDate, "YYYY-MM-DD HH:mm:ss A").format('YYYY-MM-DD')
+          : bill.fromDate && dayjs(bill.fromDate).isValid()
+          ? dayjs(bill.fromDate).format('YYYY-MM-DD')
+          : 'N/A';
       const toDate = bill.toDate && dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").isValid() 
         ? dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").format('YYYY-MM-DD')
         : 'Unknown';
@@ -622,6 +628,21 @@ export default function LandlordBillListPage() {
       message.error("Có lỗi xảy ra khi tạo hóa đơn tự động");
     } finally {
       setBulkLoading(false);
+    }
+  };
+
+  const handleAutoGenerateServiceBills = async () => {
+    setServiceLoading(true);
+    try {
+      const result = await autoGenerateServiceBills();
+      // API trả về object với format: { success: true, count: number, generatedBills: array }
+      const count = result && result.count ? result.count : 0;
+      message.success("Đã tạo " + count + " hóa đơn dịch vụ tự động!");
+      fetchBills();
+    } catch (error) {
+      message.error("Có lỗi xảy ra khi tạo hóa đơn dịch vụ tự động");
+    } finally {
+      setServiceLoading(false);
     }
   };
   
@@ -709,8 +730,16 @@ export default function LandlordBillListPage() {
         if (to.isAfter(contractEnd)) to = contractEnd.clone();
         // Kiểm tra nếu đã có bill cho kỳ này thì disable
         const isDisabled = existingBills.some(bill => {
-          const from = dayjs(bill.fromDate).format('YYYY-MM-DD');
-          const toD = dayjs(bill.toDate).format('YYYY-MM-DD');
+                  const from = bill.fromDate && dayjs(bill.fromDate, "YYYY-MM-DD HH:mm:ss A").isValid() 
+          ? dayjs(bill.fromDate, "YYYY-MM-DD HH:mm:ss A").format('YYYY-MM-DD')
+          : bill.fromDate && dayjs(bill.fromDate).isValid()
+          ? dayjs(bill.fromDate).format('YYYY-MM-DD')
+          : 'N/A';
+        const toD = bill.toDate && dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").isValid()
+          ? dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").format('YYYY-MM-DD')
+          : bill.toDate && dayjs(bill.toDate).isValid()
+          ? dayjs(bill.toDate).format('YYYY-MM-DD')
+          : 'N/A';
           return from === current.format('YYYY-MM-DD') && toD === to.format('YYYY-MM-DD');
         });
         periods.push({
@@ -1348,6 +1377,20 @@ export default function LandlordBillListPage() {
                 >
                   Tạo Hóa Đơn Tự Động
                 </Button>
+                <Button
+                  type="default"
+                  style={{ 
+                    background: '#1890ff', 
+                    borderColor: '#1890ff', 
+                    color: '#fff',
+                    width: '100%'
+                  }}
+                  loading={serviceLoading}
+                  onClick={handleAutoGenerateServiceBills}
+                  size="large"
+                >
+                  Tạo HĐ Dịch Vụ Auto
+                </Button>
               </div>
               
               {/* Mobile Status bar */}
@@ -1448,6 +1491,18 @@ export default function LandlordBillListPage() {
                     onClick={handleBulkGenerate}
                   >
                     Tạo Hóa Đơn Tự Động
+                  </Button>
+                  <Button
+                    type="default"
+                    style={{ 
+                      background: '#1890ff', 
+                      borderColor: '#1890ff', 
+                      color: '#fff'
+                    }}
+                    loading={serviceLoading}
+                    onClick={handleAutoGenerateServiceBills}
+                  >
+                    Tạo HĐ Dịch Vụ Auto
                   </Button>
                 </div>
               </div>

@@ -1101,6 +1101,70 @@ public class BillServiceImpl implements BillService {
         return generatedBills;
     }
 
+    @Override
+    public List<BillResponse> autoGenerateServiceBills() {
+        System.out.println("\n🚀 AUTO SERVICE BILL GENERATION STARTED");
+        List<BillResponse> generatedBills = new ArrayList<>();
+        
+        // Lấy tất cả hợp đồng ACTIVE
+        List<Contract> activeContracts = contractRepository.findAll().stream()
+            .filter(contract -> contract.getContractStatus() == ContractStatus.ACTIVE)
+            .toList();
+        
+        System.out.println("📋 Found " + activeContracts.size() + " active contracts");
+        
+        LocalDate today = LocalDate.now();
+        int currentMonth = today.getMonthValue();
+        int currentYear = today.getYear();
+        
+        for (Contract contract : activeContracts) {
+            try {
+                System.out.println("\n--- Processing Service Bill for Contract #" + contract.getId() + " ---");
+                System.out.println("Room: " + contract.getRoom().getRoomNumber());
+                
+                // Kiểm tra hợp đồng có hết hạn chưa
+                LocalDate contractEnd = contract.getContractEndDate().atZone(ZoneId.systemDefault()).toLocalDate();
+                if (today.isAfter(contractEnd)) {
+                    System.out.println("⏭️ Contract expired, skipping");
+                    continue;
+                }
+                
+                // Kiểm tra đã có hóa đơn dịch vụ cho tháng này chưa
+                boolean serviceExistsForMonth = billRepository.findAll().stream()
+                    .anyMatch(bill -> 
+                        bill.getContract().getId().equals(contract.getId()) &&
+                        bill.getBillType() == BillType.SERVICE &&
+                        bill.getFromDate().atZone(ZoneId.systemDefault()).getMonthValue() == currentMonth &&
+                        bill.getFromDate().atZone(ZoneId.systemDefault()).getYear() == currentYear
+                    );
+                
+                if (serviceExistsForMonth) {
+                    System.out.println("Hóa đơn dịch vụ đã tồn tại cho tháng " + currentMonth + "/" + currentYear + ", bỏ qua");
+                    continue;
+                }
+                
+                // Tạo hóa đơn dịch vụ tự động
+                try {
+                    BillResponse serviceBill = createAndSaveServiceBill(contract.getRoom().getId(), currentMonth, currentYear);
+                    generatedBills.add(serviceBill);
+                    System.out.println("✅ Đã tạo hóa đơn dịch vụ #" + serviceBill.getId() + " - Số tiền: " + serviceBill.getTotalAmount() + " VND");
+                } catch (Exception e) {
+                    System.out.println("❌ Lỗi tạo hóa đơn dịch vụ cho phòng " + contract.getRoom().getRoomNumber() + ": " + e.getMessage());
+                    // Tiếp tục với contracts khác
+                }
+                
+            } catch (Exception e) {
+                System.out.println("❌ Lỗi xử lý hợp đồng #" + contract.getId() + ": " + e.getMessage());
+                // Tiếp tục với contracts khác
+            }
+        }
+        
+        System.out.println("\n🏁 HOÀN THÀNH TẠO HÓA ĐƠN DỊCH VỤ TỰ ĐỘNG");
+        System.out.println("Đã tạo " + generatedBills.size() + " hóa đơn dịch vụ mới cho tháng " + currentMonth + "/" + currentYear);
+        
+        return generatedBills;
+    }
+
     /**
      * Tính toán ngày bắt đầu chu kỳ tiếp theo
      */
@@ -1937,8 +2001,8 @@ public class BillServiceImpl implements BillService {
         Bill penaltyBill = new Bill();
         penaltyBill.setRoom(originalBill.getRoom());
         penaltyBill.setContract(originalBill.getContract());
-        penaltyBill.setFromDate(originalBill.getToDate()); // Từ ngày hết hạn hóa đơn gốc
-        penaltyBill.setToDate(Instant.now()); // Đến ngày hiện tại
+        penaltyBill.setFromDate(Instant.now()); // Từ ngày hiện tại (ngày tạo phạt)
+        penaltyBill.setToDate(originalBill.getToDate()); // Đến ngày hết hạn hóa đơn gốc
         penaltyBill.setPaymentCycle(originalBill.getPaymentCycle());
         penaltyBill.setBillType(BillType.LATE_PENALTY);
         penaltyBill.setBillDate(Instant.now());

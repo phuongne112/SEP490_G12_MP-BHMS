@@ -17,6 +17,7 @@ public class ContractRenterInfo {
     private String phoneNumber;
     private String nationalID;
     private String permanentAddress;
+    private String email; // Thêm trường email
     // Thêm các trường khác nếu cần
 
     // Getters và Setters
@@ -37,4 +38,7 @@ public class ContractRenterInfo {
 
     public String getPermanentAddress() { return permanentAddress; }
     public void setPermanentAddress(String permanentAddress) { this.permanentAddress = permanentAddress; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 } 
