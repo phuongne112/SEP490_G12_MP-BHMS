@@ -124,6 +124,7 @@ public class    DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Get Expiring Contracts", "/mpbhms/room-users/expiring-contracts", "GET", "RoomUser"));
             permissions.add(new Permission("Update Contract", "/mpbhms/room-users/update-contract", "POST", "RoomUser"));
             permissions.add(new Permission("Terminate Contract", "/mpbhms/room-users/request-terminate-contract/{contractId}", "POST", "RoomUser"));
+            permissions.add(new Permission("Direct Terminate Contract", "/mpbhms/room-users/terminate-contract/{contractId}", "POST", "RoomUser"));
             permissions.add(new Permission("Approve Amendment", "/mpbhms/room-users/approve-amendment/{amendmentId}", "POST", "RoomUser"));
             permissions.add(new Permission("Reject Amendment", "/mpbhms/room-users/reject-amendment/{amendmentId}", "POST", "RoomUser"));
             permissions.add(new Permission("Get Contract Amendments", "/mpbhms/room-users/contract-amendments/{contractId}", "GET", "RoomUser"));
@@ -566,6 +567,12 @@ public class    DatabaseInitializer implements CommandLineRunner {
             Permission landlordGetPaymentHistoryPage = permissionRepository.findByModuleAndApiPathAndMethod("payment-history", "/mpbhms/payment-history/bill/{billId}/page", "GET");
             if (landlordGetPaymentHistoryPage != null && !landlordPermission.contains(landlordGetPaymentHistoryPage)) {
                 landlordPermission.add(landlordGetPaymentHistoryPage);
+            }
+            
+            // Đảm bảo LANDLORD có quyền chấm dứt hợp đồng trực tiếp
+            Permission landlordDirectTerminateContract = permissionRepository.findByModuleAndApiPathAndMethod("RoomUser", "/mpbhms/room-users/terminate-contract/{contractId}", "POST");
+            if (landlordDirectTerminateContract != null && !landlordPermission.contains(landlordDirectTerminateContract)) {
+                landlordPermission.add(landlordDirectTerminateContract);
             }
             landlordRole.setPermissionEntities(landlordPermission);
             roleRepository.save(landlordRole);
