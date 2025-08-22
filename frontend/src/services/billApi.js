@@ -112,6 +112,12 @@ export const bulkGenerateBills = async () => {
   return response.data;
 };
 
+// Tạo hóa đơn dịch vụ tự động cho tất cả phòng
+export const autoGenerateServiceBills = async () => {
+  const response = await axiosClient.post("/bills/auto-generate-service-bills");
+  return response.data;
+};
+
 // Cập nhật trạng thái thanh toán hóa đơn
 export const updateBillPaymentStatus = async (id, status) => {
   const response = await axiosClient.put(`/bills/${id}/payment-status`, { status });

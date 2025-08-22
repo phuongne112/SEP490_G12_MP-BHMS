@@ -104,7 +104,11 @@ export default function LandlordBillDetailPage() {
       const data = await exportBillPdf(bill.id);
       
       // Generate professional filename with room name and bill date range
-      const fromDate = dayjs(bill.fromDate).format('YYYY-MM-DD');
+              const fromDate = bill.fromDate && dayjs(bill.fromDate, "YYYY-MM-DD HH:mm:ss A").isValid() 
+          ? dayjs(bill.fromDate, "YYYY-MM-DD HH:mm:ss A").format('YYYY-MM-DD')
+          : bill.fromDate && dayjs(bill.fromDate).isValid()
+          ? dayjs(bill.fromDate).format('YYYY-MM-DD')
+          : 'N/A';
       const toDate = bill.toDate && dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").isValid() 
         ? dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").format('YYYY-MM-DD')
         : getFallbackToDate(bill) 
@@ -362,7 +366,21 @@ export default function LandlordBillDetailPage() {
                       : bill.billType || 'Không xác định'}
                   </Tag>
                 </Descriptions.Item>
-                <Descriptions.Item label="Từ ngày">{dayjs(bill.fromDate).format("DD/MM/YYYY")}</Descriptions.Item>
+                <Descriptions.Item label="Từ ngày">
+                  {bill.fromDate && dayjs(bill.fromDate, "YYYY-MM-DD HH:mm:ss A").isValid() ? (
+                    dayjs(bill.fromDate, "YYYY-MM-DD HH:mm:ss A").format("DD/MM/YYYY")
+                  ) : bill.fromDate ? (
+                    <span style={{ color: '#faad14', fontWeight: 500 }}>
+                      {dayjs(bill.fromDate).isValid()
+                        ? dayjs(bill.fromDate).format('DD/MM/YYYY')
+                        : bill.fromDate}
+                    </span>
+                  ) : (
+                    <span style={{ color: 'red', fontWeight: 500 }}>
+                      Không xác định
+                    </span>
+                  )}
+                </Descriptions.Item>
                 <Descriptions.Item label="Đến ngày">
                   {bill.toDate && dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").isValid() ? (
                     dayjs(bill.toDate, "YYYY-MM-DD HH:mm:ss A").format("DD/MM/YYYY")

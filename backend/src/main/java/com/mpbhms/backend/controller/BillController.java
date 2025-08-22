@@ -165,6 +165,28 @@ public class BillController {
         }
     }
 
+    @PostMapping("/auto-generate-service-bills")
+    public ResponseEntity<?> autoGenerateServiceBills() {
+        try {
+            List<BillResponse> generatedBills = billService.autoGenerateServiceBills();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Đã tạo " + generatedBills.size() + " hóa đơn dịch vụ tự động");
+            response.put("generatedBills", generatedBills);
+            response.put("count", generatedBills.size());
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Lỗi khi tạo hóa đơn dịch vụ: " + e.getMessage());
+            errorResponse.put("count", 0);
+            
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+
     @PostMapping("/{billId}/send")
     public ResponseEntity<?> sendBill(@PathVariable Long billId) {
         return sendBillEmail(billId);

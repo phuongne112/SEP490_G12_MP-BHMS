@@ -163,6 +163,7 @@ public class ContractServiceImpl implements ContractService {
                 renter.put("phoneNumber", info.getPhoneNumber());
                 renter.put("nationalID", info.getNationalID());
                 renter.put("permanentAddress", info.getPermanentAddress());
+                renter.put("email", info.getEmail()); // Thêm email
                 renters.add(renter);
             }
         } else {
@@ -177,6 +178,7 @@ public class ContractServiceImpl implements ContractService {
                         renter.put("phoneNumber", roomUser.getUser().getUserInfo().getPhoneNumber());
                         renter.put("nationalID", roomUser.getUser().getUserInfo().getNationalID());
                         renter.put("permanentAddress", roomUser.getUser().getUserInfo().getPermanentAddress());
+                        renter.put("email", roomUser.getUser().getEmail()); // Thêm email
                         renters.add(renter);
                     }
                 }
@@ -916,6 +918,7 @@ public class ContractServiceImpl implements ContractService {
                     info.setPhoneNumber(ru.getUser().getUserInfo().getPhoneNumber());
                     info.setNationalID(ru.getUser().getUserInfo().getNationalID());
                     info.setPermanentAddress(ru.getUser().getUserInfo().getPermanentAddress());
+                    info.setEmail(ru.getUser().getEmail()); // Thêm email
                     contractRenterInfoRepository.save(info);
                 }
             }
@@ -974,6 +977,7 @@ public class ContractServiceImpl implements ContractService {
                         existingInfo.setPhoneNumber(ru.getUser().getUserInfo().getPhoneNumber());
                         existingInfo.setNationalID(ru.getUser().getUserInfo().getNationalID());
                         existingInfo.setPermanentAddress(ru.getUser().getUserInfo().getPermanentAddress());
+                        existingInfo.setEmail(ru.getUser().getEmail()); // Thêm email
                         contractRenterInfoRepository.save(existingInfo);
                         
                         logger.info("[UpdateUserInfo] Updated user info for {} in contract {} (room {})", 
@@ -986,6 +990,7 @@ public class ContractServiceImpl implements ContractService {
                         newInfo.setPhoneNumber(ru.getUser().getUserInfo().getPhoneNumber());
                         newInfo.setNationalID(ru.getUser().getUserInfo().getNationalID());
                         newInfo.setPermanentAddress(ru.getUser().getUserInfo().getPermanentAddress());
+                        newInfo.setEmail(ru.getUser().getEmail()); // Thêm email
                         contractRenterInfoRepository.save(newInfo);
                         
                         logger.info("[UpdateUserInfo] Created new user info for {} in contract {} (room {})", 
@@ -1258,6 +1263,29 @@ public class ContractServiceImpl implements ContractService {
         Long currentUserId = SecurityUtil.getCurrentUserId();
         if (!contract.getRoom().getLandlord().getId().equals(currentUserId)) {
             throw new RuntimeException("Chỉ chủ phòng mới được cập nhật hợp đồng");
+        }
+
+        // ✅ VALIDATE: Ngày kết thúc mới phải là tương lai
+        if (request.getNewEndDate() != null) {
+            java.time.Instant currentTime = java.time.Instant.now();
+            if (request.getNewEndDate().isBefore(currentTime)) {
+                throw new RuntimeException("Ngày kết thúc mới phải là ngày trong tương lai");
+            }
+            
+            // ✅ VALIDATE: Ngày kết thúc mới phải sau ngày hiện tại ít nhất 1 ngày
+            java.time.Instant tomorrow = currentTime.plus(java.time.Duration.ofDays(1));
+            if (request.getNewEndDate().isBefore(tomorrow)) {
+                throw new RuntimeException("Ngày kết thúc mới phải sau ngày hiện tại ít nhất 1 ngày");
+            }
+            
+            // ✅ VALIDATE: Ngày kết thúc mới phải sau ngày bắt đầu hợp đồng
+            if (request.getNewEndDate().isBefore(contract.getContractStartDate())) {
+                throw new RuntimeException("Ngày kết thúc mới không thể trước ngày bắt đầu hợp đồng (" + 
+                    contract.getContractStartDate().toString() + ")");
+            }
+            
+            logger.info("Validated new end date: {} (current contract end date: {})", 
+                request.getNewEndDate(), contract.getContractEndDate());
         }
 
         // Kiểm tra xem có thay đổi quan trọng không (tiền thuê, tiền cọc, ngày kết thúc, người thuê, điều khoản, chu kỳ thanh toán)
@@ -1740,18 +1768,101 @@ public class ContractServiceImpl implements ContractService {
             }
         }
 
-        // Copy ContractRenterInfo từ hợp đồng cũ sang hợp đồng mới (luôn luôn copy để giữ lịch sử)
-        java.util.List<ContractRenterInfo> oldRenterInfos = contractRenterInfoRepository.findByContractId(contract.getId());
-        for (ContractRenterInfo oldInfo : oldRenterInfos) {
-            ContractRenterInfo newInfo = new ContractRenterInfo();
-            newInfo.setContract(newContract);
-            newInfo.setFullName(oldInfo.getFullName());
-            newInfo.setPhoneNumber(oldInfo.getPhoneNumber());
-            newInfo.setNationalID(oldInfo.getNationalID());
-            newInfo.setPermanentAddress(oldInfo.getPermanentAddress());
-            contractRenterInfoRepository.save(newInfo);
+        // Copy ContractRenterInfo từ hợp đồng cũ sang hợp đồng mới (chỉ copy những người được giữ lại)
+        if (amendment.getNewRenterIds() != null) {
+            // Nếu có danh sách người thuê mới, chỉ copy thông tin của những người được giữ lại
+            java.util.Set<Long> newRenterIdsSet = new java.util.HashSet<>(amendment.getNewRenterIds());
+            java.util.List<ContractRenterInfo> oldRenterInfos = contractRenterInfoRepository.findByContractId(contract.getId());
+            
+            for (ContractRenterInfo oldInfo : oldRenterInfos) {
+                // Chỉ copy thông tin của những người thuê có trong danh sách mới
+                boolean shouldCopy = false;
+                for (Long newRenterId : newRenterIdsSet) {
+                    User newRenter = userRepository.findById(newRenterId).orElse(null);
+                    if (newRenter != null && newRenter.getUserInfo() != null) {
+                        // So sánh bằng tên và số điện thoại để xác định cùng một người
+                        if (oldInfo.getFullName().equals(newRenter.getUserInfo().getFullName()) && 
+                            oldInfo.getPhoneNumber().equals(newRenter.getUserInfo().getPhoneNumber())) {
+                            shouldCopy = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (shouldCopy) {
+                    ContractRenterInfo newInfo = new ContractRenterInfo();
+                    newInfo.setContract(newContract);
+                    newInfo.setFullName(oldInfo.getFullName());
+                    newInfo.setPhoneNumber(oldInfo.getPhoneNumber());
+                    newInfo.setNationalID(oldInfo.getNationalID());
+                    newInfo.setPermanentAddress(oldInfo.getPermanentAddress());
+                    newInfo.setEmail(oldInfo.getEmail()); // Thêm email
+                    contractRenterInfoRepository.save(newInfo);
+                    logger.info("Copied ContractRenterInfo for user {} to new contract {}", oldInfo.getFullName(), newContract.getId());
+                } else {
+                    logger.info("Skipped copying ContractRenterInfo for user {} as they are no longer in the contract", oldInfo.getFullName());
+                }
+            }
+        } else {
+            // Nếu không có danh sách người thuê mới, copy tất cả từ hợp đồng cũ
+            java.util.List<ContractRenterInfo> oldRenterInfos = contractRenterInfoRepository.findByContractId(contract.getId());
+            for (ContractRenterInfo oldInfo : oldRenterInfos) {
+                ContractRenterInfo newInfo = new ContractRenterInfo();
+                newInfo.setContract(newContract);
+                newInfo.setFullName(oldInfo.getFullName());
+                newInfo.setPhoneNumber(oldInfo.getPhoneNumber());
+                newInfo.setNationalID(oldInfo.getNationalID());
+                newInfo.setPermanentAddress(oldInfo.getPermanentAddress());
+                newInfo.setEmail(oldInfo.getEmail()); // Thêm email
+                contractRenterInfoRepository.save(newInfo);
+                logger.info("Copied all ContractRenterInfo for user {} to new contract {}", oldInfo.getFullName(), newContract.getId());
+            }
+            
+            // Nếu không có danh sách người thuê mới, không cần thêm người thuê mới
+            logger.info("No new renter list provided, skipping addition of new renters");
+            
+            // Xử lý RoomUser khi không có danh sách người thuê mới
+            if (contract.getRoomUsers() != null) {
+                for (RoomUser roomUser : contract.getRoomUsers()) {
+                    if (roomUser.getIsActive()) {
+                        roomUser.setContract(newContract);
+                        roomUserRepository.save(roomUser);
+                        logger.info("Moved user {} to new contract {}", roomUser.getUser().getId(), newContract.getId());
+                    }
+                }
+            }
+            
+            // Kiểm tra xem có còn người thuê nào trong phòng không sau khi cập nhật
+            java.util.List<RoomUser> remainingRoomUsers = roomUserRepository.findByContractIdAndIsActiveTrue(newContract.getId());
+            if (remainingRoomUsers.isEmpty()) {
+                logger.info("No tenants remaining in room {} after update. Automatically terminating contract {}", 
+                           contract.getRoom().getId(), newContract.getId());
+                
+                // Tự động kết thúc hợp đồng
+                newContract.setContractStatus(ContractStatus.TERMINATED);
+                contractRepository.save(newContract);
+                
+                // Cập nhật trạng thái phòng thành Available
+                if (newContract.getRoom() != null) {
+                    roomService.updateRoomStatus(newContract.getRoom().getId(), RoomStatus.Available.name());
+                }
+                
+                // Gửi thông báo cho chủ nhà
+                if (newContract.getRoom() != null && newContract.getRoom().getLandlord() != null) {
+                    notificationService.createAndSend(new com.mpbhms.backend.dto.NotificationDTO() {{
+                        setRecipientId(newContract.getRoom().getLandlord().getId());
+                        setTitle("Hợp đồng đã được tự động kết thúc");
+                        setMessage("Hợp đồng #" + newContract.getId() + " đã được tự động kết thúc do phòng không còn người thuê.");
+                        setType(com.mpbhms.backend.enums.NotificationType.CUSTOM);
+                    }});
+                }
+                
+                logger.info("Contract {} automatically terminated due to no remaining tenants", newContract.getId());
+            }
+            
+            return; // Thoát sớm để tránh xử lý thêm người thuê mới
         }
-        
+
         // Nếu có người thuê mới, thêm thông tin của họ
         if (amendment.getNewRenterIds() != null) {
             for (Long userId : amendment.getNewRenterIds()) {
@@ -1774,7 +1885,11 @@ public class ContractServiceImpl implements ContractService {
                         newInfo.setPhoneNumber(user.getUserInfo().getPhoneNumber());
                         newInfo.setNationalID(user.getUserInfo().getNationalID());
                         newInfo.setPermanentAddress(user.getUserInfo().getPermanentAddress());
+                        newInfo.setEmail(user.getEmail()); // Thêm email
                         contractRenterInfoRepository.save(newInfo);
+                        logger.info("Added new ContractRenterInfo for user {} to new contract {}", user.getUserInfo().getFullName(), newContract.getId());
+                    } else {
+                        logger.info("ContractRenterInfo for user {} already exists in new contract {}", user.getUserInfo().getFullName(), newContract.getId());
                     }
                 }
             }
@@ -1870,45 +1985,6 @@ public class ContractServiceImpl implements ContractService {
                     }
                 }
             }
-        } else {
-            // Nếu không có danh sách người thuê mới, di chuyển tất cả RoomUser hiện tại
-            if (contract.getRoomUsers() != null) {
-                for (RoomUser roomUser : contract.getRoomUsers()) {
-                    if (roomUser.getIsActive()) {
-                        roomUser.setContract(newContract);
-                        roomUserRepository.save(roomUser);
-                        logger.info("Moved user {} to new contract {}", roomUser.getUser().getId(), newContract.getId());
-                    }
-                }
-            }
-        }
-        
-        // Kiểm tra xem có còn người thuê nào trong phòng không sau khi cập nhật
-        java.util.List<RoomUser> remainingRoomUsers = roomUserRepository.findByContractIdAndIsActiveTrue(newContract.getId());
-        if (remainingRoomUsers.isEmpty()) {
-            logger.info("No tenants remaining in room {} after update. Automatically terminating contract {}", 
-                       contract.getRoom().getId(), newContract.getId());
-            
-            // Tự động kết thúc hợp đồng
-            newContract.setContractStatus(ContractStatus.TERMINATED);
-            contractRepository.save(newContract);
-            
-            // Cập nhật trạng thái phòng thành Available
-            if (newContract.getRoom() != null) {
-                roomService.updateRoomStatus(newContract.getRoom().getId(), RoomStatus.Available.name());
-            }
-            
-            // Gửi thông báo cho chủ nhà
-            if (newContract.getRoom() != null && newContract.getRoom().getLandlord() != null) {
-                notificationService.createAndSend(new com.mpbhms.backend.dto.NotificationDTO() {{
-                    setRecipientId(newContract.getRoom().getLandlord().getId());
-                    setTitle("Hợp đồng đã được tự động kết thúc");
-                    setMessage("Hợp đồng #" + newContract.getId() + " đã được tự động kết thúc do phòng không còn người thuê.");
-                    setType(com.mpbhms.backend.enums.NotificationType.CUSTOM);
-                }});
-            }
-            
-            logger.info("Contract {} automatically terminated due to no remaining tenants", newContract.getId());
         }
     }
 
@@ -2000,28 +2076,63 @@ public class ContractServiceImpl implements ContractService {
         boolean isLandlord = contract.getRoom().getLandlord().getId().equals(currentUserId);
         
         if (!isLandlord) {
-            throw new RuntimeException("Chỉ chủ nhà mới có thể chấm dứt hợp đồng trực tiếp.");
+            throw new RuntimeException("Chỉ chủ phòng mới có thể chấm dứt hợp đồng trực tiếp.");
         }
-        contract.setContractStatus(ContractStatus.TERMINATED);
-        contractRepository.save(contract);
         
-        Room room = contract.getRoom();
-        boolean hasActiveUsers = false;
-        
+        // Lưu lịch sử vào ContractRenterInfo trước khi xóa RoomUser
         if (contract.getRoomUsers() != null) {
             for (RoomUser ru : contract.getRoomUsers()) {
                 if (ru.getIsActive() != null && ru.getIsActive()) {
-                    // Lưu lịch sử vào ContractRenterInfo
-                    ContractRenterInfo history = new ContractRenterInfo();
-                    history.setContract(contract);
-                    if (ru.getUser() != null && ru.getUser().getUserInfo() != null) {
-                        history.setFullName(ru.getUser().getUserInfo().getFullName());
-                        history.setPhoneNumber(ru.getUser().getUserInfo().getPhoneNumber());
-                        history.setNationalID(ru.getUser().getUserInfo().getNationalID());
-                        history.setPermanentAddress(ru.getUser().getUserInfo().getPermanentAddress());
+                    // Kiểm tra xem đã có thông tin lịch sử của user này chưa
+                    boolean alreadyExists = false;
+                    java.util.List<ContractRenterInfo> existingInfos = contractRenterInfoRepository.findByContractId(contract.getId());
+                    
+                    for (ContractRenterInfo existingInfo : existingInfos) {
+                        if (ru.getUser() != null && ru.getUser().getUserInfo() != null) {
+                            if (existingInfo.getFullName().equals(ru.getUser().getUserInfo().getFullName()) && 
+                                existingInfo.getPhoneNumber().equals(ru.getUser().getUserInfo().getPhoneNumber())) {
+                                alreadyExists = true;
+                                break;
+                            }
+                        }
                     }
-                    contractRenterInfoRepository.save(history);
+                    
+                    // Chỉ tạo mới nếu chưa có thông tin lịch sử
+                    if (!alreadyExists) {
+                        ContractRenterInfo history = new ContractRenterInfo();
+                        history.setContract(contract);
+                        if (ru.getUser() != null && ru.getUser().getUserInfo() != null) {
+                            history.setFullName(ru.getUser().getUserInfo().getFullName());
+                            history.setPhoneNumber(ru.getUser().getUserInfo().getPhoneNumber());
+                            history.setNationalID(ru.getUser().getUserInfo().getNationalID());
+                            history.setPermanentAddress(ru.getUser().getUserInfo().getPermanentAddress());
+                            history.setEmail(ru.getUser().getEmail()); // Thêm email
+                        }
+                        contractRenterInfoRepository.save(history);
+                        logger.info("Created ContractRenterInfo history for user {} in terminated contract {}", 
+                            ru.getUser() != null ? ru.getUser().getUserInfo().getFullName() : "Unknown", contract.getId());
+                    } else {
+                        logger.info("ContractRenterInfo history already exists for user {} in contract {}", 
+                            ru.getUser() != null ? ru.getUser().getUserInfo().getFullName() : "Unknown", contract.getId());
+                    }
+                }
+            }
+        }
+        
+        // Cập nhật trạng thái hợp đồng thành TERMINATED
+        contract.setContractStatus(ContractStatus.TERMINATED);
+        contractRepository.save(contract);
+        logger.info("Contract {} terminated successfully", contractId);
+        
+        Room room = contract.getRoom();
+        
+        // Xóa RoomUser sau khi đã lưu lịch sử
+        if (contract.getRoomUsers() != null) {
+            for (RoomUser ru : contract.getRoomUsers()) {
+                if (ru.getIsActive() != null && ru.getIsActive()) {
                     roomUserRepository.delete(ru); // XÓA HẲN khỏi DB
+                    logger.info("Deleted RoomUser {} for user {} in terminated contract {}", 
+                        ru.getId(), ru.getUser() != null ? ru.getUser().getUserInfo().getFullName() : "Unknown", contractId);
                 }
             }
         }
@@ -2032,6 +2143,7 @@ public class ContractServiceImpl implements ContractService {
             if (activeUserCount == 0) {
                 // Nếu không còn người thuê nào, cập nhật trạng thái phòng thành "Available"
                 roomService.updateRoomStatus(room.getId(), RoomStatus.Available.name());
+                logger.info("Room {} status updated to Available after contract termination", room.getId());
             }
         }
     }
@@ -2094,9 +2206,20 @@ public class ContractServiceImpl implements ContractService {
             throw new RuntimeException("Chỉ có thể yêu cầu gia hạn trong vòng 30 ngày trước khi hợp đồng hết hạn.");
         }
         
-        // Kiểm tra ngày kết thúc mới phải hợp lệ (sau ngày kết thúc hiện tại)
+        // ✅ VALIDATE: Ngày kết thúc mới phải hợp lệ (sau ngày kết thúc hiện tại)
         if (newEndDate.isBefore(contract.getContractEndDate())) {
             throw new RuntimeException("Ngày kết thúc mới phải sau ngày kết thúc hiện tại của hợp đồng.");
+        }
+        
+        // ✅ VALIDATE: Ngày kết thúc mới phải là tương lai (sau ngày hiện tại)
+        if (newEndDate.isBefore(now)) {
+            throw new RuntimeException("Ngày kết thúc mới phải là ngày trong tương lai.");
+        }
+        
+        // ✅ VALIDATE: Ngày kết thúc mới phải sau ngày hiện tại ít nhất 1 ngày
+        java.time.Instant tomorrow = now.plus(java.time.Duration.ofDays(1));
+        if (newEndDate.isBefore(tomorrow)) {
+            throw new RuntimeException("Ngày kết thúc mới phải sau ngày hiện tại ít nhất 1 ngày.");
         }
         
         // Kiểm tra ngày kết thúc mới phải đúng chu kỳ thanh toán
@@ -2373,6 +2496,7 @@ public class ContractServiceImpl implements ContractService {
                         info.setPhoneNumber(roomUser.getUser().getUserInfo().getPhoneNumber());
                         info.setNationalID(roomUser.getUser().getUserInfo().getNationalID());
                         info.setPermanentAddress(roomUser.getUser().getUserInfo().getPermanentAddress());
+                        info.setEmail(roomUser.getUser().getEmail()); // Thêm email
                         contractRenterInfoRepository.save(info);
                         logger.info("Đã tạo ContractRenterInfo cho user {} trong hợp đồng {}", 
                             roomUser.getUser().getId(), contract.getId());
