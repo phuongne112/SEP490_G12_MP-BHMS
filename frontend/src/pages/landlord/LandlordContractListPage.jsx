@@ -305,10 +305,35 @@ export default function LandlordContractListPage() {
   };
 
 
-  const handleTerminateContract = (contractId) => {
-    setTerminateContractId(contractId);
-    setTerminateModalOpen(true);
+const handleTerminateContract = (contractId, type = 'bilateral') => {
+    if (type === 'unilateral') {
+      // Chấm dứt đơn phương - hiển thị popconfirm
+      Modal.confirm({
+        title: 'Chấm dứt đơn phương hợp đồng',
+        content: 'Bạn có chắc chắn muốn chấm dứt hợp đồng ngay lập tức? Hành động này không thể hoàn tác.',
+        okText: 'Chấm dứt',
+        cancelText: 'Hủy',
+        okType: 'danger',
+        onOk: async () => {
+          try {
+            setUpdating(true);
+            await terminateContract(contractId);
+            message.success("Đã chấm dứt hợp đồng thành công.");
+            window.location.reload();
+          } catch (error) {
+            message.error("Chấm dứt hợp đồng thất bại!");
+          } finally {
+            setUpdating(false);
+          }
+        }
+      });
+    } else {
+      // Chấm dứt song phương - mở modal nhập lý do
+      setTerminateContractId(contractId);
+      setTerminateModalOpen(true);
+    }
   };
+
 
   const doRequestTerminate = async () => {
     if (!terminateReason) {

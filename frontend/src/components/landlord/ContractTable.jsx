@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { Table, Button, Popconfirm, Statistic, Space, Spin, Tag } from "antd";
-import { FilePdfOutlined, EditOutlined, HistoryOutlined, ReloadOutlined, StopOutlined, EyeOutlined } from "@ant-design/icons";
+import { Table, Button, Popconfirm, Statistic, Space, Spin, Tag, Dropdown  } from "antd";
+import { FilePdfOutlined, EditOutlined, HistoryOutlined, ReloadOutlined, StopOutlined, EyeOutlined, DownOutlined } from "@ant-design/icons";
 import { getContractHistoryByRoom } from "../../services/contractApi";
 import { useMediaQuery } from "react-responsive";
 
@@ -223,7 +223,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       key: "paymentCycle",
       render: (cycle) => paymentCycleVN[cycle] || cycle || "—",
       align: "center",
-      width: isMobile ? 40 : 80,
+      width: isMobile ? 60 : 80,
       ellipsis: false
     },
 
@@ -234,6 +234,34 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
       width: isMobile ? 200 : 400,
       render: (_, record) => {
         const isTerminatedOrExpired = record.contractStatus === "TERMINATED" || record.contractStatus === "EXPIRED";
+         // Tạo menu items cho dropdown chấm dứt
+        const terminateMenuItems = [
+          {
+            key: 'unilateral',
+            label: (
+              <Popconfirm 
+                title="Chấm dứt đơn phương hợp đồng này?" 
+                description="Hợp đồng sẽ được chấm dứt ngay lập tức mà không cần phê duyệt từ người thuê."
+                onConfirm={() => onTerminate && onTerminate(record.id, 'unilateral')} 
+                okText="Chấm dứt" 
+                cancelText="Hủy"
+              >
+                <span style={{ color: '#ff4d4f' }}>
+                  <StopOutlined /> Chấm dứt đơn phương
+                </span>
+              </Popconfirm>
+            ),
+          },
+          {
+            key: 'bilateral',
+            label: (
+              <span onClick={() => onTerminate && onTerminate(record.id, 'bilateral')}>
+                <StopOutlined /> Chấm dứt song phương
+              </span>
+            ),
+          },
+        ];
+
         return (
           <div style={{
             display: 'flex',
@@ -241,7 +269,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
             justifyContent: 'center',
             alignItems: 'center',
             gap: '4px',
-            flexWrap: 'wrap',
+            flexWrap: 'nowrap',
             width: '100%',
             padding: '2px 0'
           }}>
@@ -251,7 +279,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
               onClick={() => onViewDetail && onViewDetail(record)}
               size="small"
               title="Xem chi tiết"
-              style={{ minWidth: 60 }}
+              style={{ minWidth: 50 }}
             >
               Chi tiết
             </Button>
@@ -260,7 +288,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
               icon={<FilePdfOutlined />}
               onClick={() => onExport(record.id)}
               size="small"
-              style={{ minWidth: 60 }}
+              style={{ minWidth: 45 }}
             >
               PDF
             </Button>
@@ -269,7 +297,7 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
               icon={<EditOutlined />}
               onClick={() => onUpdate && onUpdate(record)}
               size="small"
-              style={{ color: "#faad14", borderColor: "#faad14", minWidth: 50 }}
+              style={{ color: "#faad14", borderColor: "#faad14", minWidth: 40 }}
               disabled={isTerminatedOrExpired}
             >
               Sửa
@@ -280,22 +308,25 @@ export default function ContractTable({ rooms = [], onExport, onDelete, onUpdate
               onClick={() => onViewAmendments && onViewAmendments(record.id)}
               size="small"
               disabled={isTerminatedOrExpired}
-              style={{ minWidth: 60 }}
+              style={{ minWidth: 50 }}
             >
               Lịch sử
             </Button>
-            <Popconfirm title="Chấm dứt hợp đồng này?" onConfirm={() => onTerminate(record.id)} okText="Chấm dứt" cancelText="Hủy">
+            <Dropdown
+              menu={{ items: terminateMenuItems }}
+              disabled={isTerminatedOrExpired}
+              placement="bottomRight"
+            >
               <Button
                 type="primary"
                 danger
                 icon={<StopOutlined />}
                 size="small"
-                disabled={isTerminatedOrExpired}
-                style={{ minWidth: 70 }}
+                style={{ minWidth: 60 }}
               >
-                Chấm dứt
+                Chấm dứt <DownOutlined />
               </Button>
-            </Popconfirm>
+            </Dropdown>
           </div>
         );
       },

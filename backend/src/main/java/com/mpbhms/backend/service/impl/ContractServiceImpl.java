@@ -1994,6 +1994,14 @@ public class ContractServiceImpl implements ContractService {
     public void terminateContract(Long contractId) {
         Contract contract = contractRepository.findById(contractId)
             .orElseThrow(() -> new RuntimeException("Không tìm thấy hợp đồng"));
+        
+        // Kiểm tra quyền: chỉ landlord mới có thể chấm dứt hợp đồng trực tiếp
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        boolean isLandlord = contract.getRoom().getLandlord().getId().equals(currentUserId);
+        
+        if (!isLandlord) {
+            throw new RuntimeException("Chỉ chủ nhà mới có thể chấm dứt hợp đồng trực tiếp.");
+        }
         contract.setContractStatus(ContractStatus.TERMINATED);
         contractRepository.save(contract);
         
