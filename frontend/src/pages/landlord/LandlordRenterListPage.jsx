@@ -345,7 +345,24 @@ export default function LandlordRenterListPage() {
       message.success('Nhận diện thành công! Đã tự động điền thông tin.');
     } catch (e) {
       console.error('Lỗi OCR CCCD:', e);
-      const errorMessage = e.response?.data || e.message || 'Nhận diện thất bại. Vui lòng thử lại!';
+      
+      // Xử lý lỗi chi tiết từ backend
+      let errorMessage = 'Nhận diện thất bại. Vui lòng thử lại!';
+      
+      if (e.response?.data) {
+        // Lỗi từ backend
+        const backendError = e.response.data;
+        if (backendError.message) {
+          errorMessage = backendError.message;
+        } else if (typeof backendError === 'string') {
+          errorMessage = backendError;
+        }
+      } else if (e.message) {
+        // Lỗi từ JavaScript
+        errorMessage = e.message;
+      }
+      
+      // Hiển thị thông báo lỗi chi tiết
       message.error(errorMessage);
     }
     setOcrLoading(false);
