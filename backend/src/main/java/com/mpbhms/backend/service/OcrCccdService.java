@@ -27,10 +27,10 @@ public class OcrCccdService {
                 .credential(new AzureKeyCredential(cccdKey))
                 .endpoint(cccdEndpoint)
                 .buildClient();
-
+        byte[] fileBytes = file.getBytes();
         AnalyzeResult result = client.beginAnalyzeDocument(
             "prebuilt-read",
-            BinaryData.fromStream(file.getInputStream(), file.getSize())
+            BinaryData.fromBytes(fileBytes)
         ).getFinalResult();
 
         List<String> lines = new ArrayList<>();
