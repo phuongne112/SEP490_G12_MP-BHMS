@@ -1,7 +1,11 @@
 import React from "react";
-import { Button } from "antd";
+import { Button, Typography, Card } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
+import Header from "../components/layout/Header";
+import Footer from "../components/layout/Footer";
+
+const { Title, Paragraph } = Typography;
 
 export default function RulesPage() {
   const navigate = useNavigate();
@@ -24,24 +28,59 @@ export default function RulesPage() {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0f172a" }}>
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 16px" }}>
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
-          <Button onClick={() => navigate(-1)} icon={<ArrowLeftOutlined />}>Quay lại</Button>
+    <div style={{ minHeight: "100vh", background: "#f5f5f5" }}>
+      <Header />
+      
+      {/* Main Content */}
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 24 }}>
+          <Button 
+            onClick={() => navigate(-1)} 
+            icon={<ArrowLeftOutlined />}
+            style={{ marginRight: 16 }}
+          >
+            Quay lại
+          </Button>
         </div>
-        <h1 style={{ color: "#fff", textAlign: "center", marginBottom: 24 }}>Nội quy phòng trọ</h1>
-        <div style={{ background: "#fff", borderRadius: 8, padding: 24, boxShadow: "0 8px 24px rgba(0,0,0,0.1)" }}>
-          <ol style={{ paddingLeft: 18, lineHeight: 1.6 }}>
-            {rules.map((r, i) => (
-              <li key={i} style={{ marginBottom: 12 }}>{r}</li>
-            ))}
-          </ol>
-          <div style={{ marginTop: 16, fontStyle: "italic" }}>
-            Những quy định trên yêu cầu mọi người chấp hành nghiêm; vi phạm sẽ chịu trách nhiệm trước pháp luật và xử phạt của nhà trọ.
+        
+        <Card style={{ marginBottom: 40 }}>
+          <Title level={2} style={{ textAlign: "center", marginBottom: 32 }}>
+            Nội quy phòng trọ
+          </Title>
+          
+          <div style={{ background: "#fff", borderRadius: 8, padding: 24 }}>
+            <ol style={{ paddingLeft: 18, lineHeight: 1.6 }}>
+              {rules.map((rule, index) => (
+                <li key={index} style={{ marginBottom: 16, fontSize: 15 }}>
+                  {rule}
+                </li>
+              ))}
+            </ol>
+            
+            <div style={{ 
+              marginTop: 24, 
+              padding: 16, 
+              background: "#f0f8ff", 
+              borderRadius: 8, 
+              border: "1px solid #d6e4ff" 
+            }}>
+              <Paragraph style={{ 
+                fontStyle: "italic", 
+                marginBottom: 8, 
+                color: "#1890ff",
+                fontWeight: 500
+              }}>
+                Những quy định trên yêu cầu mọi người chấp hành nghiêm; vi phạm sẽ chịu trách nhiệm trước pháp luật và xử phạt của nhà trọ.
+              </Paragraph>
+              <div style={{ fontWeight: 600, color: "#1890ff" }}>
+                Chủ nhà trọ: 0946882868
+              </div>
+            </div>
           </div>
-          <div style={{ marginTop: 16, fontWeight: 600 }}>Chủ nhà trọ: 0946882868</div>
-        </div>
+        </Card>
       </div>
+
+      <Footer />
     </div>
   );
 }

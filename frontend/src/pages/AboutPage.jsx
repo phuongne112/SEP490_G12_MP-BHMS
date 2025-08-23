@@ -1,6 +1,7 @@
 import React from "react";
 import { Card, Row, Col, Typography, Divider, Space, Button } from "antd";
 import Footer from "../components/layout/Footer";
+import Header from "../components/layout/Header";
 import { useNavigate } from "react-router-dom";
 import { 
   HomeOutlined, 
@@ -23,48 +24,32 @@ const AboutPage = () => {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f5f5f5" }}>
-      {/* Header */}
-      <div style={{ 
-        background: "linear-gradient(135deg, #1890ff 0%, #722ed1 100%)", 
-        color: "white", 
-        padding: "60px 0",
-        textAlign: "center",
-        position: "relative"
-      }}>
-        <div style={{ 
-          position: "absolute", 
-          top: 20, 
-          left: 24, 
-          zIndex: 10 
-        }}>
-          <Button 
-            type="primary" 
-            icon={<ArrowLeftOutlined />} 
-            onClick={() => navigate("/home")}
-            style={{ 
-              background: "rgba(255,255,255,0.2)", 
-              border: "1px solid rgba(255,255,255,0.3)",
-              color: "white"
-            }}
-          >
-            Quay về trang chủ
-          </Button>
-        </div>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px" }}>
-          <Title level={1} style={{ color: "white", marginBottom: 16 }}>
-            MP-BHMS
-          </Title>
-          <Title level={3} style={{ color: "white", fontWeight: "normal", marginBottom: 8 }}>
-            Hệ thống Quản lý Nhà trọ Minh Phương
-          </Title>
-          <Paragraph style={{ color: "white", fontSize: 18, marginBottom: 0 }}>
-            Giải pháp quản lý nhà trọ hiện đại, tiện lợi và hiệu quả
-          </Paragraph>
-        </div>
-      </div>
-
+      <Header />
+      
       {/* Main Content */}
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "40px 24px" }}>
+        
+        {/* Page Header */}
+        <div style={{ 
+          background: "linear-gradient(135deg, #1890ff 0%, #722ed1 100%)", 
+          color: "white", 
+          padding: "40px 0",
+          textAlign: "center",
+          borderRadius: 12,
+          marginBottom: 40
+        }}>
+          <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px" }}>
+            <Title level={1} style={{ color: "white", marginBottom: 16 }}>
+              MP-BHMS
+            </Title>
+            <Title level={3} style={{ color: "white", fontWeight: "normal", marginBottom: 8 }}>
+              Hệ thống Quản lý Nhà trọ Minh Phương
+            </Title>
+            <Paragraph style={{ color: "white", fontSize: 18, marginBottom: 0 }}>
+              Giải pháp quản lý nhà trọ hiện đại, tiện lợi và hiệu quả
+            </Paragraph>
+          </div>
+        </div>
         
         {/* Giới thiệu */}
         <Card style={{ marginBottom: 40 }}>
