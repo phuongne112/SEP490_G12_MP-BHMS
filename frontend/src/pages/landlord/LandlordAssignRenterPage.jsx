@@ -615,8 +615,8 @@ export default function LandlordAssignRenterPage() {
                 >
                   <div>
                                          {/* Preset buttons */}
-                     <div style={{ marginBottom: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                               <Button 
+                                           <div style={{ marginBottom: 8, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                        <Button 
                           size="small" 
                           type="default"
                           onClick={() => {
@@ -634,7 +634,7 @@ export default function LandlordAssignRenterPage() {
                             form.setFieldsValue({ depositAmount: amount });
                           }}
                         >
-                          2 tháng ({(room.pricePerMonth * 2)?.toLocaleString()})
+                          2 tháng ({(room.pricePerMonth * 2).toLocaleString()})
                         </Button>
                         <Button 
                           size="small" 
@@ -644,7 +644,7 @@ export default function LandlordAssignRenterPage() {
                             form.setFieldsValue({ depositAmount: amount });
                           }}
                         >
-                          3 tháng ({(room.pricePerMonth * 3)?.toLocaleString()})
+                          3 tháng ({(room.pricePerMonth * 3).toLocaleString()})
                         </Button>
                         <Button 
                           size="small" 
@@ -655,7 +655,7 @@ export default function LandlordAssignRenterPage() {
                         >
                           Không cọc
                         </Button>
-                     </div>
+                      </div>
                     
                                          {/* Input field */}
                      <InputNumber

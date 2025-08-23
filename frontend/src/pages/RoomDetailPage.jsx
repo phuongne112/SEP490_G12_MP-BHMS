@@ -412,8 +412,8 @@ export default function RoomDetailPage() {
                 {/* Thumbnail Grid */}
                 <Row gutter={[8, 8]}>
                   {room.images?.length > 0 ? (
-                    room.images.slice(0, 6).map((image, index) => (
-                      <Col key={index} span={4}>
+                    room.images.slice(0, 8).map((image, index) => (
+                      <Col key={index} span={3}>
                         <div
                           onClick={() => setSelectedImage(image)}
                           style={{
@@ -469,7 +469,7 @@ export default function RoomDetailPage() {
                     marginTop: 16
                   }}
                 >
-                  Xem phòng 360°
+                  Xem tổng quan phòng
                 </Button>
               </div>
               {/* Assets List under images */}

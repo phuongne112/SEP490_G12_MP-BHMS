@@ -482,32 +482,36 @@ export default function AssignRenterModal({ visible, onCancel, room, onSuccess }
                     <Text type="secondary">Giá phòng: {room?.pricePerMonth?.toLocaleString()} VND/tháng</Text>
                   </div>
                   
-                  <Space wrap style={{ marginBottom: 12 }}>
+                  <div style={{ marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <Button
                       type={depositAmount === room?.pricePerMonth ? "primary" : "default"}
                       onClick={() => handleDepositPreset(room?.pricePerMonth || 0)}
+                      size="small"
                     >
                       1 tháng ({room?.pricePerMonth?.toLocaleString()})
                     </Button>
                     <Button
                       type={depositAmount === (room?.pricePerMonth || 0) * 2 ? "primary" : "default"}
                       onClick={() => handleDepositPreset((room?.pricePerMonth || 0) * 2)}
+                      size="small"
                     >
-                      2 tháng ({(room?.pricePerMonth || 0) * 2?.toLocaleString()})
+                      2 tháng ({((room?.pricePerMonth || 0) * 2).toLocaleString()})
                     </Button>
                     <Button
                       type={depositAmount === (room?.pricePerMonth || 0) * 3 ? "primary" : "default"}
                       onClick={() => handleDepositPreset((room?.pricePerMonth || 0) * 3)}
+                      size="small"
                     >
-                      3 tháng ({(room?.pricePerMonth || 0) * 3?.toLocaleString()})
+                      3 tháng ({((room?.pricePerMonth || 0) * 3).toLocaleString()})
                     </Button>
                     <Button
                       type={depositAmount === 0 ? "primary" : "default"}
                       onClick={() => handleDepositPreset(0)}
+                      size="small"
                     >
                       Không cọc
                     </Button>
-                  </Space>
+                  </div>
 
                   <InputNumber
                     style={{ width: '100%' }}
