@@ -15,7 +15,6 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
   const [totalWithFees, setTotalWithFees] = useState(0);
   const [paymentCount, setPaymentCount] = useState(0);
   const [loadingPaymentCount, setLoadingPaymentCount] = useState(false);
-
   // Debug logs
   console.log('PartialPaymentModal render:', { visible, bill });
 
@@ -250,7 +249,15 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
   };
 
   const getMaxPaymentAmount = () => {
-    return getOutstandingAmount(); // Tối đa là số tiền còn nợ (100%)
+    const outstanding = getOutstandingAmount();
+    // Tính số tiền tối đa dựa trên số lần thanh toán
+    if (paymentCount === 0) {
+      // Lần thanh toán đầu tiên: tối đa 80%
+      return outstanding * 0.8;
+    } else {
+      // Lần thứ 2 trở đi: tối đa 100%
+      return outstanding;
+    }
   };
 
   const handleAmountChange = (value) => {
@@ -284,6 +291,12 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
               <p><strong>Đã thanh toán:</strong> {formatCurrency(bill.paidAmount || 0)}</p>
               <p><strong>Còn nợ:</strong> {formatCurrency(getOutstandingAmount())}</p>
               <p><strong>Lần thanh toán thứ:</strong> {paymentCount + 1}</p>
+              <p><strong>Giới hạn thanh toán:</strong> 
+                {paymentCount === 0 ? 
+                  `50% - 80% (${formatCurrency(minPayment)} - ${formatCurrency(maxPayment)})` : 
+                  `50% - 100% (${formatCurrency(minPayment)} - ${formatCurrency(maxPayment)})`
+                }
+              </p>
               
               {/* 🆕 Hiển thị thông tin về khoảng thời gian 30 ngày */}
               {bill.isPartiallyPaid && bill.lastPaymentDate && (
@@ -338,7 +351,7 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
                 </p>
                 {paymentCount === 0 && (
                   <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#1890ff' }}>
-                    <em>💡 Lần đầu: Thanh toán từ 50% đến 100% số tiền còn nợ. Nút "Tối đa" sẽ xuất hiện từ lần thứ 2.</em>
+                    <em>💡 Lần đầu: Thanh toán từ 50% đến 80% số tiền còn nợ. Từ lần thứ 2 có thể thanh toán tối đa 100%.</em>
                   </p>
                 )}
               </div>
@@ -404,7 +417,8 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
                   return Promise.reject(`Số tiền thanh toán phải tối thiểu 50% (${formatCurrency(minPayment)})`);
                 }
                 if (value && value > maxPayment) {
-                  return Promise.reject(`Số tiền thanh toán không được vượt quá số tiền còn nợ (${formatCurrency(maxPayment)})`);
+                  const maxMessage = paymentCount === 0 ? "80%" : "100%";
+                  return Promise.reject(`Số tiền thanh toán không được vượt quá ${maxMessage} giá trị hóa đơn (${formatCurrency(maxPayment)})`);
                 }
                 return Promise.resolve();
               }
@@ -413,7 +427,7 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
         >
           <InputNumber
             style={{ width: '100%' }}
-            placeholder={`Từ ${minPayment.toLocaleString()} đến ${maxPayment.toLocaleString()} ₫`}
+            placeholder={`Từ ${formatCurrency(minPayment)} đến ${formatCurrency(maxPayment)}`}
             min={0}
             precision={2}
             formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
@@ -432,19 +446,17 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
                 >
                   <span>50%</span>
                 </button>
-                {paymentCount > 0 && (
-                  <button
-                    type="button"
-                    className="ant-btn ant-btn-default ant-btn-sm"
-                    onClick={() => {
-                      form.setFieldsValue({ paymentAmount: maxPayment });
-                      handleAmountChange(maxPayment);
-                    }}
-                    style={{ marginLeft: 8 }}
-                  >
-                    <span>Tối đa</span>
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="ant-btn ant-btn-default ant-btn-sm"
+                  onClick={() => {
+                    form.setFieldsValue({ paymentAmount: maxPayment });
+                    handleAmountChange(maxPayment);
+                  }}
+                  style={{ marginLeft: 8 }}
+                >
+                  <span>{paymentCount === 0 ? '80%' : 'Tối đa'}</span>
+                </button>
               </>
             }
           />
@@ -504,7 +516,7 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
                 fontSize: '12px',
                 color: '#52c41a'
               }}>
-                <strong>✅ Thanh toán tối đa:</strong> 100% số tiền còn nợ - Phí từng phần vẫn được tính theo quy định
+                <strong>✅ Thanh toán tối đa:</strong> {paymentCount === 0 ? '80%' : '100%'} số tiền còn nợ - Phí từng phần vẫn được tính theo quy định
               </div>
             )}
           </Card>

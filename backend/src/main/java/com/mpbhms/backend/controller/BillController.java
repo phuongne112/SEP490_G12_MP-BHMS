@@ -339,28 +339,41 @@ public class BillController {
     @PostMapping("/partial-payment")
     public ResponseEntity<?> makePartialPayment(@RequestBody PartialPaymentRequest request) {
         try {
-            // Kiểm tra thanh toán tối thiểu 50% và tối đa là số tiền còn nợ
+            // Kiểm tra thanh toán theo quy tắc mới: lần 1 tối thiểu 50%, tối đa 80%; lần 2+ tối thiểu 50%, tối đa 100%
             Bill bill = billService.getBillById(request.getBillId());
             BigDecimal totalAmount = bill.getTotalAmount();
             BigDecimal outstandingAmount = bill.getOutstandingAmount() != null ? bill.getOutstandingAmount() : totalAmount;
             BigDecimal minPaymentAmount = outstandingAmount.multiply(new BigDecimal("0.5"));
             
+            // Lấy số lần thanh toán đã thực hiện
+            int paymentCount = billService.getPaymentCount(request.getBillId());
+            
+            // Tính số tiền tối đa được phép thanh toán
+            BigDecimal maxPaymentAmount;
+            if (paymentCount == 0) {
+                // Lần thanh toán đầu tiên: tối đa 80%
+                maxPaymentAmount = outstandingAmount.multiply(new BigDecimal("0.8"));
+            } else {
+                // Lần thứ 2 trở đi: tối đa 100%
+                maxPaymentAmount = outstandingAmount;
+            }
+            
             if (request.getPaymentAmount().compareTo(minPaymentAmount) < 0) {
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("success", false);
                 errorResponse.put("message", "Số tiền thanh toán phải tối thiểu 50% giá trị hóa đơn (" + 
-                    minPaymentAmount.toPlainString() + " VNĐ)");
+                    formatCurrency(minPaymentAmount) + ")");
                 return ResponseEntity.badRequest().body(errorResponse);
             }
             
-            if (request.getPaymentAmount().compareTo(outstandingAmount) > 0) {
+            if (request.getPaymentAmount().compareTo(maxPaymentAmount) > 0) {
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("success", false);
-                errorResponse.put("message", "Số tiền thanh toán không được vượt quá số tiền còn nợ (" + 
-                    outstandingAmount.toPlainString() + " VNĐ)");
+                String maxMessage = paymentCount == 0 ? "80%" : "100%";
+                errorResponse.put("message", "Số tiền thanh toán không được vượt quá " + maxMessage + " giá trị hóa đơn (" + 
+                    formatCurrency(maxPaymentAmount) + ")");
                 return ResponseEntity.badRequest().body(errorResponse);
             }
-            
             // 🆕 KIỂM TRA KHOẢNG THỜI GIAN 30 NGÀY GIỮA CÁC LẦN THANH TOÁN TỪNG PHẦN
             if (Boolean.TRUE.equals(bill.getIsPartiallyPaid()) && bill.getLastPaymentDate() != null) {
                 Instant currentDate = Instant.now();
@@ -444,7 +457,7 @@ public class BillController {
     @PostMapping("/partial-payment/vnpay")
     public ResponseEntity<?> createPartialPaymentVnPayUrl(@RequestBody PartialPaymentRequest request) {
         try {
-            // Kiểm tra thanh toán tối thiểu 50% và tối đa là số tiền còn nợ
+            // Kiểm tra thanh toán theo quy tắc mới: lần 1 tối thiểu 50%, tối đa 80%; lần 2+ tối thiểu 50%, tối đa 100%
             Bill bill = billService.getBillById(request.getBillId());
             BigDecimal totalAmount = bill.getTotalAmount();
             BigDecimal outstandingAmount = bill.getOutstandingAmount() != null ? bill.getOutstandingAmount() : totalAmount;
@@ -454,19 +467,33 @@ public class BillController {
             BigDecimal originalPaymentAmount = request.getOriginalPaymentAmount() != null ? 
                 request.getOriginalPaymentAmount() : request.getPaymentAmount();
             
+            // Lấy số lần thanh toán đã thực hiện
+            int paymentCount = billService.getPaymentCount(request.getBillId());
+            
+            // Tính số tiền tối đa được phép thanh toán
+            BigDecimal maxPaymentAmount;
+            if (paymentCount == 0) {
+                // Lần thanh toán đầu tiên: tối đa 80%
+                maxPaymentAmount = outstandingAmount.multiply(new BigDecimal("0.8"));
+            } else {
+                // Lần thứ 2 trở đi: tối đa 100%
+                maxPaymentAmount = outstandingAmount;
+            }
+            
             if (originalPaymentAmount.compareTo(minPaymentAmount) < 0) {
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("success", false);
                 errorResponse.put("message", "Số tiền thanh toán phải tối thiểu 50% giá trị hóa đơn (" + 
-                    minPaymentAmount.toPlainString() + " VNĐ)");
+                    formatCurrency(minPaymentAmount) + ")");
                 return ResponseEntity.badRequest().body(errorResponse);
             }
             
-            if (originalPaymentAmount.compareTo(outstandingAmount) > 0) {
+            if (originalPaymentAmount.compareTo(maxPaymentAmount) > 0) {
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("success", false);
-                errorResponse.put("message", "Số tiền thanh toán không được vượt quá số tiền còn nợ (" + 
-                    outstandingAmount.toPlainString() + " VNĐ)");
+                String maxMessage = paymentCount == 0 ? "80%" : "100%";
+                errorResponse.put("message", "Số tiền thanh toán không được vượt quá " + maxMessage + " giá trị hóa đơn (" + 
+                    formatCurrency(maxPaymentAmount) + ")");
                 return ResponseEntity.badRequest().body(errorResponse);
             }
             
@@ -667,22 +694,36 @@ public class BillController {
                 return ResponseEntity.badRequest().body(errorResponse);
             }
 
-            // Validate min/max payment amount
+            // Validate min/max payment amount theo quy tắc mới: lần 1 tối thiểu 50%, tối đa 80%; lần 2+ tối thiểu 50%, tối đa 100%
             BigDecimal outstandingAmount = bill.getOutstandingAmount();
             BigDecimal minPayment = outstandingAmount.multiply(new BigDecimal("0.5")); // 50%
-            BigDecimal maxPayment = outstandingAmount;
+            
+            // Lấy số lần thanh toán đã thực hiện
+            int paymentCount = billService.getPaymentCount(request.getBillId());
+            
+            // Tính số tiền tối đa được phép thanh toán
+            BigDecimal maxPayment;
+            if (paymentCount == 0) {
+                // Lần thanh toán đầu tiên: tối đa 80%
+                maxPayment = outstandingAmount.multiply(new BigDecimal("0.8"));
+            } else {
+                // Lần thứ 2 trở đi: tối đa 100%
+                maxPayment = outstandingAmount;
+            }
 
             if (request.getOriginalPaymentAmount().compareTo(minPayment) < 0) {
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("success", false);
-                errorResponse.put("message", "Số tiền thanh toán tối thiểu là " + minPayment.toPlainString() + " VNĐ");
+                errorResponse.put("message", "Số tiền thanh toán tối thiểu là " + formatCurrency(minPayment));
                 return ResponseEntity.badRequest().body(errorResponse);
             }
 
             if (request.getOriginalPaymentAmount().compareTo(maxPayment) > 0) {
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("success", false);
-                errorResponse.put("message", "Số tiền thanh toán không được vượt quá " + maxPayment.toPlainString() + " VNĐ");
+                String maxMessage = paymentCount == 0 ? "80%" : "100%";
+                errorResponse.put("message", "Số tiền thanh toán không được vượt quá " + maxMessage + " giá trị hóa đơn (" + 
+                    formatCurrency(maxPayment) + ")");
                 return ResponseEntity.badRequest().body(errorResponse);
             }
             
@@ -1256,5 +1297,11 @@ public class BillController {
     private String formatCurrencyPlain(java.math.BigDecimal amount) {
         if (amount == null) return "0 VNĐ";
         return amount.toString() + " VNĐ";
+    }
+
+    // Helper method để format số tiền VNĐ (chuẩn hóa)
+    private String formatCurrency(java.math.BigDecimal amount) {
+        if (amount == null) return "0 VNĐ";
+        return new java.text.DecimalFormat("#,###").format(amount) + " VNĐ";
     }
 }

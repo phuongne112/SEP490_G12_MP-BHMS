@@ -87,8 +87,17 @@ export default function CashPartialPaymentModal({
 
   const calculatePaymentLimits = () => {
     const outstanding = Number(String(outstandingAmount).replace(/[^0-9.-]+/g, ""));
-    const min = outstanding * 0.5; // 50% của số tiền còn nợ
-    const max = outstanding; // 100% của số tiền còn nợ
+    const min = outstanding * 0.5; // 50% của số tiền còn nợ (không đổi)
+    
+    // Tính số tiền tối đa dựa trên số lần thanh toán
+    let max;
+    if (paymentCount === 0) {
+      // Lần thanh toán đầu tiên: tối đa 80%
+      max = outstanding * 0.8;
+    } else {
+      // Lần thứ 2 trở đi: tối đa 100%
+      max = outstanding;
+    }
     
     setMinPayment(min);
     setMaxPayment(max);
@@ -101,7 +110,7 @@ export default function CashPartialPaymentModal({
   const calculateFees = (count) => {
     console.log('=== TÍNH PHÍ THANH TOÁN ===');
     console.log('Payment count:', count, 'Type:', typeof count);
-    
+  
     // Tính phí thanh toán từng phần dựa trên số lần thanh toán (giống VNPAY)
     let fee = 0;
     switch (count) {
@@ -277,7 +286,9 @@ export default function CashPartialPaymentModal({
               <p><strong>Tối thiểu thanh toán (50%):</strong> <span style={{ color: '#faad14', fontWeight: 'bold' }}>{formatCurrency(minPayment)}</span></p>
               <p><strong>Tối đa thanh toán:</strong> 
                 <span style={{ color: '#52c41a', fontWeight: 'bold' }}>{formatCurrency(maxPayment)}</span>
-                <span style={{ color: '#52c41a', fontSize: '12px', marginLeft: '8px' }}>(100% số tiền còn nợ)</span>
+                <span style={{ color: '#52c41a', fontSize: '12px', marginLeft: '8px' }}>
+                  ({paymentCount === 0 ? '80%' : '100%'} số tiền còn nợ)
+                </span>
               </p>
               <p><strong>Lần thanh toán thứ:</strong> {paymentCount + 1}</p>
               
@@ -312,7 +323,8 @@ export default function CashPartialPaymentModal({
                   return Promise.reject(`Số tiền tối thiểu là ${minPayment.toLocaleString()} ₫`);
                 }
                 if (value && value > maxPayment) {
-                  return Promise.reject(`Số tiền tối đa là ${maxPayment.toLocaleString()} ₫`);
+                  const maxMessage = paymentCount === 0 ? "80%" : "100%";
+                  return Promise.reject(`Số tiền tối đa là ${formatCurrency(maxPayment)} (${maxMessage} số tiền còn nợ)`);
                 }
                 return Promise.resolve();
               }
@@ -321,7 +333,7 @@ export default function CashPartialPaymentModal({
         >
           <InputNumber
             style={{ width: '100%' }}
-            placeholder={`Từ ${minPayment.toLocaleString()} đến ${maxPayment.toLocaleString()} ₫`}
+            placeholder={`Từ ${formatCurrency(minPayment)} đến ${formatCurrency(maxPayment)}`}
             min={0}
             precision={2}
             formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
@@ -340,18 +352,16 @@ export default function CashPartialPaymentModal({
                 >
                   50%
                 </Button>
-                {paymentCount > 0 && (
-                  <Button
-                    type="default"
-                    size="small"
-                    onClick={() => {
-                      form.setFieldsValue({ paymentAmount: maxPayment });
-                      handleAmountChange(maxPayment);
-                    }}
-                  >
-                    Tối đa
-                  </Button>
-                )}
+                <Button
+                  type="default"
+                  size="small"
+                  onClick={() => {
+                    form.setFieldsValue({ paymentAmount: maxPayment });
+                    handleAmountChange(maxPayment);
+                  }}
+                >
+                  {paymentCount === 0 ? '80%' : 'Tối đa'}
+                </Button>
               </Space>
             }
           />
@@ -388,7 +398,7 @@ export default function CashPartialPaymentModal({
                   </p>
                   {paymentCount === 0 && (
                     <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#1890ff' }}>
-                      <em>💡 Lần đầu: Thanh toán từ 50% đến 100% số tiền còn nợ. Nút "Tối đa" sẽ xuất hiện từ lần thứ 2.</em>
+                      <em>💡 Lần đầu: Thanh toán từ 50% đến 80% số tiền còn nợ. Từ lần thứ 2 có thể thanh toán tối đa 100%.</em>
                     </p>
                   )}
                 </div>

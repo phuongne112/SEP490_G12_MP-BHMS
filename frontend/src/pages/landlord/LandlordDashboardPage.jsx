@@ -83,7 +83,7 @@ const LandlordDashboardPage = () => {
           (c) =>
             c.contractStatus === "ACTIVE" &&
             c.contractEndDate &&
-            dayjs(c.contractEndDate).diff(now, "day") <= 7
+            dayjs(c.contractEndDate).diff(now, "day") <= 30
         ).length;
         setContractStats({ active, expiring });
 
@@ -457,7 +457,7 @@ const LandlordDashboardPage = () => {
                 bodyStyle={{ padding: isMobile ? "16px" : "24px" }}
               >
                 <Statistic
-                  title={<span style={{ fontSize: isMobile ? "14px" : "16px", color: "#666" }}>Hợp đồng sắp hết hạn (7 ngày)</span>}
+                  title={<span style={{ fontSize: isMobile ? "14px" : "16px", color: "#666" }}>Hợp đồng sắp hết hạn (30 ngày)</span>}
                   value={contractStats.expiring}
                   valueStyle={{ 
                     fontSize: isMobile ? "24px" : "28px",
