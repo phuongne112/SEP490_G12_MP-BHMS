@@ -48,154 +48,110 @@ public class OcrCccdService {
             System.out.println("Line " + i + ": " + lines.get(i));
         }
         System.out.println("=== END DEBUG ===");
+        
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
+            
+            // Tìm số CCCD
             if (line.matches(".*Số.*No.*")) {
                 String next = (i + 1 < lines.size()) ? lines.get(i + 1) : "";
                 String id = next.replaceAll("[^0-9]", "");
                 if (id.length() < 8) id = line.replaceAll("[^0-9]", "");
                 info.put("nationalID", id);
             }
+            
+            // Tìm tên
             if (line.matches(".*Họ và tên.*")) {
                 String next = (i + 1 < lines.size()) ? lines.get(i + 1) : "";
                 info.put("fullName", next.trim());
             }
+            
+            // Tìm ngày sinh
             if (line.matches(".*Ngày sinh.*")) {
                 String next = (i + 1 < lines.size()) ? lines.get(i + 1) : "";
                 Matcher m = Pattern.compile("\\d{2}/\\d{2}/\\d{4}").matcher(next + " " + line);
                 if (m.find()) info.put("birthDate", m.group());
             }
+            
             // Cải thiện logic tìm giới tính
-            if (line.matches(".*Giới tính.*") || line.matches(".*Sex.*") || line.matches(".*Gender.*")) {
-                String next = (i + 1 < lines.size()) ? lines.get(i + 1) : "";
-                String currentLine = line.toLowerCase();
-                String nextLine = next.toLowerCase();
+            if (line.matches(".*Giới tính.*") || line.matches(".*Sex.*") ||
+                line.matches(".*Nam.*") || line.matches(".*Nữ.*") ||
+                line.matches(".*Male.*") || line.matches(".*Female.*")) {
                 
-                // Tìm trong dòng hiện tại
-                if (currentLine.contains("nam") || currentLine.contains("male")) {
+                String gender = line.toLowerCase().trim();
+                if (gender.contains("nam") || gender.contains("male")) {
                     info.put("gender", "Nam");
-                } else if (currentLine.contains("nữ") || currentLine.contains("female")) {
+                } else if (gender.contains("nữ") || gender.contains("nu") || gender.contains("female")) {
                     info.put("gender", "Nữ");
+                } else {
+                    // Tìm ở dòng tiếp theo
+                    String next = (i + 1 < lines.size()) ? lines.get(i + 1) : "";
+                    String nextGender = next.toLowerCase().trim();
+                    if (nextGender.contains("nam") || nextGender.contains("male")) {
+                        info.put("gender", "Nam");
+                    } else if (nextGender.contains("nữ") || nextGender.contains("nu") || nextGender.contains("female")) {
+                        info.put("gender", "Nữ");
+                    }
                 }
-                // Tìm trong dòng tiếp theo
-                else if (nextLine.contains("nam") || nextLine.contains("male")) {
-                    info.put("gender", "Nam");
-                } else if (nextLine.contains("nữ") || nextLine.contains("female")) {
-                    info.put("gender", "Nữ");
-                }
-            }
-            if (line.matches(".*Quê quán.*")) {
-                String next = (i + 1 < lines.size()) ? lines.get(i + 1) : "";
-                info.put("birthPlace", next.trim());
             }
             
-            // Tìm địa chỉ thường trú một cách chính xác hơn
-            if (line.matches(".*Nơi thường trú.*")) {
-                System.out.println("=== DEBUG: Tìm thấy 'Nơi thường trú' trong dòng: " + line + " ===");
-                StringBuilder address = new StringBuilder();
+            // Tìm nơi sinh
+            if (line.matches(".*Nơi sinh.*") || line.matches(".*Place of birth.*") ||
+                line.matches(".*Quê quán.*") || line.matches(".*Native place.*")) {
                 
-                // Tìm địa chỉ trong dòng hiện tại sau từ khóa
+                System.out.println("=== DEBUG: Tìm thấy dòng nơi sinh: " + line + " ===");
+                StringBuilder birthPlace = new StringBuilder();
+                
+                // Tìm nơi sinh trong dòng hiện tại sau từ khóa
                 String[] parts = line.split(":");
                 if (parts.length > 1) {
                     String partAfterColon = parts[1].trim();
                     if (!partAfterColon.isEmpty()) {
-                        address.append(partAfterColon);
+                        birthPlace.append(partAfterColon);
                     }
                 }
                 
-                // Thêm tất cả các dòng tiếp theo cho đến khi gặp dòng không phải địa chỉ
-                int j = 1;
-                while (i + j < lines.size()) {
-                    String nextLine = lines.get(i + j).trim();
-                    
-                    // Kiểm tra xem dòng này có phải là địa chỉ không - logic đơn giản hơn
-                    boolean isAddressLine = !nextLine.isEmpty() && 
-                        !nextLine.matches(".*Có giá trị đến.*") &&
-                        !nextLine.matches(".*Date of expiry.*") &&
-                        !nextLine.matches(".*giá trị đến.*") &&
-                        !nextLine.matches(".*\\d{2}/\\d{2}/\\d{4}.*") &&
+                // Thêm dòng tiếp theo nếu cần thiết
+                if (i + 1 < lines.size()) {
+                    String nextLine = lines.get(i + 1).trim();
+                    // Kiểm tra xem dòng tiếp theo có phải là nơi sinh không
+                    boolean isBirthPlaceLine = !nextLine.isEmpty() && 
+                        !nextLine.matches(".*\\d{2}/\\d{2}/\\d{4}.*") && // Không phải ngày
                         !nextLine.matches(".*Ngày.*tháng.*năm.*") &&
                         !nextLine.matches(".*Date.*month.*year.*") &&
                         !nextLine.matches(".*Họ và tên.*") &&
                         !nextLine.matches(".*Full name.*") &&
                         !nextLine.matches(".*Số.*No.*") &&
-                        !nextLine.matches(".*Ngày sinh.*") &&
-                        !nextLine.matches(".*Date of birth.*") &&
                         !nextLine.matches(".*Giới tính.*") &&
                         !nextLine.matches(".*Sex.*") &&
-                        !nextLine.matches(".*Quê quán.*") &&
-                        !nextLine.matches(".*Place of birth.*") &&
-                        !nextLine.matches(".*Quốc tịch.*") &&
-                        !nextLine.matches(".*Nationality.*") &&
+                        !nextLine.matches(".*Địa chỉ thường trú.*") &&
+                        !nextLine.matches(".*Permanent address.*") &&
+                        !nextLine.matches(".*[A-Z]+<<[A-Z]+.*") && // Không phải MRZ
                         nextLine.length() > 2;
                     
-                    System.out.println("=== DEBUG: Kiểm tra dòng " + j + ": '" + nextLine + "' - isAddressLine: " + isAddressLine + " ===");
-                    
-                    if (isAddressLine) {
-                        if (address.length() > 0) {
-                            address.append(", ");
+                    if (isBirthPlaceLine) {
+                        if (birthPlace.length() > 0) {
+                            birthPlace.append(", ");
                         }
-                        address.append(nextLine);
-                        System.out.println("=== DEBUG: Thêm dòng địa chỉ " + j + ": " + nextLine + " ===");
-                        j++;
-                    } else {
-                        // Thay vì dừng ngay, tiếp tục tìm kiếm các dòng địa chỉ phía sau
-                        System.out.println("=== DEBUG: Bỏ qua dòng " + j + " (không phải địa chỉ): " + nextLine + " ===");
-                        j++;
-                        // Tiếp tục tìm kiếm thêm 3 dòng nữa để tìm địa chỉ
-                        int continueSearch = 0;
-                        while (i + j < lines.size() && continueSearch < 3) {
-                            String continueLine = lines.get(i + j).trim();
-                            boolean isContinueAddressLine = !continueLine.isEmpty() && 
-                                !continueLine.matches(".*Có giá trị đến.*") &&
-                                !continueLine.matches(".*Date of expiry.*") &&
-                                !continueLine.matches(".*giá trị đến.*") &&
-                                !continueLine.matches(".*\\d{2}/\\d{2}/\\d{4}.*") &&
-                                !continueLine.matches(".*Họ và tên.*") &&
-                                !continueLine.matches(".*Full name.*") &&
-                                !continueLine.matches(".*Số.*No.*") &&
-                                !continueLine.matches(".*Ngày sinh.*") &&
-                                !continueLine.matches(".*Date of birth.*") &&
-                                !continueLine.matches(".*Giới tính.*") &&
-                                !continueLine.matches(".*Sex.*") &&
-                                !continueLine.matches(".*Quê quán.*") &&
-                                !continueLine.matches(".*Place of birth.*") &&
-                                !continueLine.matches(".*Quốc tịch.*") &&
-                                !continueLine.matches(".*Nationality.*") &&
-                                continueLine.length() > 2;
-                            
-                            System.out.println("=== DEBUG: Tiếp tục tìm kiếm dòng " + j + ": '" + continueLine + "' - isAddressLine: " + isContinueAddressLine + " ===");
-                            
-                            if (isContinueAddressLine) {
-                                if (address.length() > 0) {
-                                    address.append(", ");
-                                }
-                                address.append(continueLine);
-                                System.out.println("=== DEBUG: Thêm dòng địa chỉ tiếp theo " + j + ": " + continueLine + " ===");
-                                j++;
-                                continueSearch = 0; // Reset counter khi tìm thấy địa chỉ
-                            } else {
-                                j++;
-                                continueSearch++;
-                            }
-                        }
-                        break;
+                        birthPlace.append(nextLine);
+                        System.out.println("=== DEBUG: Thêm dòng nơi sinh: " + nextLine + " ===");
                     }
                 }
                 
-                if (address.length() > 0) {
-                    String finalAddress = address.toString().trim();
-                    info.put("permanentAddress", finalAddress);
-                    System.out.println("=== DEBUG: Đã trích xuất địa chỉ thường trú chính xác: " + finalAddress + " ===");
-                    System.out.println("=== DEBUG: Tổng số dòng địa chỉ: " + (j - 1) + " ===");
+                if (birthPlace.length() > 0) {
+                    String finalBirthPlace = birthPlace.toString().trim();
+                    info.put("birthPlace", finalBirthPlace);
+                    System.out.println("=== DEBUG: Đã trích xuất nơi sinh: " + finalBirthPlace + " ===");
                 } else {
-                    System.out.println("=== DEBUG: Không tìm thấy địa chỉ thường trú ===");
+                    System.out.println("=== DEBUG: Không tìm thấy nơi sinh ===");
                 }
             }
             
-            // Thêm logic dự phòng: tìm địa chỉ thường trú bằng cách khác
-            if (line.matches(".*Place of residence.*")) {
-                System.out.println("=== DEBUG: Tìm thấy 'Place of residence' trong dòng: " + line + " ===");
+            // Tìm địa chỉ thường trú - Logic mới đơn giản và hiệu quả hơn
+            if (line.matches(".*Địa chỉ thường trú.*") || line.matches(".*Permanent address.*") ||
+                line.matches(".*Nơi thường trú.*") || line.matches(".*Place of residence.*")) {
+                
+                System.out.println("=== DEBUG: Tìm thấy dòng địa chỉ thường trú: " + line + " ===");
                 StringBuilder address = new StringBuilder();
                 
                 // Tìm địa chỉ trong dòng hiện tại sau từ khóa
@@ -207,98 +163,91 @@ public class OcrCccdService {
                     }
                 }
                 
-                // Thêm tất cả các dòng tiếp theo cho đến khi gặp dòng không phải địa chỉ
+                // Logic mới: Đọc tất cả các dòng tiếp theo cho đến khi gặp dòng rõ ràng không phải địa chỉ
                 int j = 1;
                 while (i + j < lines.size()) {
                     String nextLine = lines.get(i + j).trim();
                     
-                    // Logic đơn giản hơn cho địa chỉ
-                    boolean isAddressLine = !nextLine.isEmpty() && 
-                        !nextLine.matches(".*Có giá trị đến.*") &&
-                        !nextLine.matches(".*Date of expiry.*") &&
-                        !nextLine.matches(".*giá trị đến.*") &&
-                        !nextLine.matches(".*\\d{2}/\\d{2}/\\d{4}.*") &&
-                        !nextLine.matches(".*Họ và tên.*") &&
-                        !nextLine.matches(".*Full name.*") &&
-                        !nextLine.matches(".*Số.*No.*") &&
-                        !nextLine.matches(".*Ngày sinh.*") &&
-                        !nextLine.matches(".*Date of birth.*") &&
-                        !nextLine.matches(".*Giới tính.*") &&
-                        !nextLine.matches(".*Sex.*") &&
-                        !nextLine.matches(".*Quê quán.*") &&
-                        !nextLine.matches(".*Place of birth.*") &&
-                        !nextLine.matches(".*Quốc tịch.*") &&
-                        !nextLine.matches(".*Nationality.*") &&
-                        nextLine.length() > 2;
+                    // Chỉ dừng khi gặp các dòng rõ ràng KHÔNG phải địa chỉ
+                    boolean isDefinitelyNotAddress = 
+                        nextLine.matches(".*Có giá trị đến.*") ||
+                        nextLine.matches(".*Date of expiry.*") ||
+                        nextLine.matches(".*giá trị đến.*") ||
+                        nextLine.matches(".*\\d{2}/\\d{2}/\\d{4}.*") ||
+                        nextLine.matches(".*Ngày.*tháng.*năm.*") ||
+                        nextLine.matches(".*Date.*month.*year.*") ||
+                        nextLine.matches(".*Họ và tên.*") ||
+                        nextLine.matches(".*Full name.*") ||
+                        nextLine.matches(".*Số.*No.*") ||
+                        nextLine.matches(".*Ngày sinh.*") ||
+                        nextLine.matches(".*Date of birth.*") ||
+                        nextLine.matches(".*Giới tính.*") ||
+                        nextLine.matches(".*Sex.*") ||
+                        nextLine.matches(".*Quê quán.*") ||
+                        nextLine.matches(".*Place of birth.*") ||
+                        nextLine.matches(".*Quốc tịch.*") ||
+                        nextLine.matches(".*Nationality.*") ||
+                        nextLine.matches(".*[A-Z]+<<[A-Z]+.*") || // MRZ
+                        nextLine.matches(".*CĂN CƯỚC.*") || // Tiêu đề
+                        nextLine.matches(".*CITIZEN.*") || // Tiêu đề tiếng Anh
+                        nextLine.matches(".*CỘNG HÒA.*") || // Tiêu đề
+                        nextLine.matches(".*SOCIALIST.*") || // Tiêu đề tiếng Anh
+                        nextLine.matches(".*Độc lập.*") || // Khẩu hiệu
+                        nextLine.matches(".*Independence.*") || // Khẩu hiệu tiếng Anh
+                        nextLine.isEmpty() ||
+                        nextLine.length() <= 2;
                     
-                    System.out.println("=== DEBUG: Kiểm tra dòng " + j + ": '" + nextLine + "' - isAddressLine: " + isAddressLine + " ===");
+                    System.out.println("=== DEBUG: Kiểm tra dòng " + j + ": '" + nextLine + "' - isDefinitelyNotAddress: " + isDefinitelyNotAddress + " ===");
                     
-                    if (isAddressLine) {
+                    if (isDefinitelyNotAddress) {
+                        // Dừng khi gặp dòng rõ ràng không phải địa chỉ
+                        System.out.println("=== DEBUG: Dừng ở dòng " + j + " vì rõ ràng không phải địa chỉ: " + nextLine + " ===");
+                        break;
+                    } else {
+                        // Thêm dòng này vào địa chỉ
                         if (address.length() > 0) {
                             address.append(", ");
                         }
                         address.append(nextLine);
                         System.out.println("=== DEBUG: Thêm dòng địa chỉ " + j + ": " + nextLine + " ===");
                         j++;
-                    } else {
-                        // Thay vì dừng ngay, tiếp tục tìm kiếm các dòng địa chỉ phía sau
-                        System.out.println("=== DEBUG: Bỏ qua dòng " + j + " (không phải địa chỉ): " + nextLine + " ===");
-                        j++;
-                        // Tiếp tục tìm kiếm thêm 3 dòng nữa để tìm địa chỉ
-                        int continueSearch = 0;
-                        while (i + j < lines.size() && continueSearch < 3) {
-                            String continueLine = lines.get(i + j).trim();
-                            boolean isContinueAddressLine = !continueLine.isEmpty() && 
-                                !continueLine.matches(".*Có giá trị đến.*") &&
-                                !continueLine.matches(".*Date of expiry.*") &&
-                                !continueLine.matches(".*giá trị đến.*") &&
-                                !continueLine.matches(".*\\d{2}/\\d{2}/\\d{4}.*") &&
-                                !continueLine.matches(".*Họ và tên.*") &&
-                                !continueLine.matches(".*Full name.*") &&
-                                !nextLine.matches(".*Số.*No.*") &&
-                                !continueLine.matches(".*Ngày sinh.*") &&
-                                !continueLine.matches(".*Date of birth.*") &&
-                                !continueLine.matches(".*Giới tính.*") &&
-                                !continueLine.matches(".*Sex.*") &&
-                                !continueLine.matches(".*Quê quán.*") &&
-                                !continueLine.matches(".*Place of birth.*") &&
-                                !continueLine.matches(".*Quốc tịch.*") &&
-                                !continueLine.matches(".*Nationality.*") &&
-                                continueLine.length() > 2;
-                            
-                            System.out.println("=== DEBUG: Tiếp tục tìm kiếm dòng " + j + ": '" + continueLine + "' - isAddressLine: " + isContinueAddressLine + " ===");
-                            
-                            if (isContinueAddressLine) {
-                                if (address.length() > 0) {
-                                    address.append(", ");
-                                }
-                                address.append(continueLine);
-                                System.out.println("=== DEBUG: Thêm dòng địa chỉ tiếp theo " + j + ": " + continueLine + " ===");
-                                j++;
-                                continueSearch = 0; // Reset counter khi tìm thấy địa chỉ
-                            } else {
-                                j++;
-                                continueSearch++;
-                            }
-                        }
-                        break;
                     }
                 }
                 
                 if (address.length() > 0) {
                     String finalAddress = address.toString().trim();
                     info.put("permanentAddress", finalAddress);
-                    System.out.println("=== DEBUG: Đã trích xuất địa chỉ thường trú từ Place of residence: " + finalAddress + " ===");
-                    System.out.println("=== DEBUG: Tổng số dòng địa chỉ: " + (j - 1) + " ===");
+                    System.out.println("=== DEBUG: Đã trích xuất địa chỉ thường trú: " + finalAddress + " ===");
+                } else {
+                    System.out.println("=== DEBUG: Không tìm thấy địa chỉ thường trú ===");
                 }
             }
-
-            if (line.matches(".*giá trị đến.*")) {
+            
+            // Tìm ngày cấp (nếu có ở mặt trước)
+            if (line.matches(".*Ngày.*tháng.*năm.*") || line.matches(".*Date.*month.*year.*")) {
                 String next = (i + 1 < lines.size()) ? lines.get(i + 1) : "";
                 Matcher m = Pattern.compile("\\d{2}/\\d{2}/\\d{4}").matcher(next + " " + line);
-                if (m.find()) info.put("expiryDate", m.group());
+                if (m.find()) {
+                    info.put("issueDate", m.group());
+                    System.out.println("=== DEBUG: Tìm thấy ngày cấp trong mặt trước: " + m.group() + " ===");
+                }
+            }
+            
+            // Tìm tên từ MRZ (Machine Readable Zone) - thường ở cuối mặt trước
+            if (line.matches(".*[A-Z]+<<[A-Z]+.*")) {
+                System.out.println("=== DEBUG: Tìm thấy MRZ line trong mặt trước: " + line + " ===");
+                // Tách tên từ MRZ format: TRAN<<VAN<HOANG<LONG
+                String[] parts = line.split("<<");
+                if (parts.length >= 2) {
+                    String lastName = parts[0].trim();
+                    String firstName = parts[1].replaceAll("<", " ").trim();
+                    String fullNameMRZ = (lastName + " " + firstName).trim();
+                    info.put("fullNameMRZFront", fullNameMRZ);
+                    System.out.println("=== DEBUG: Trích xuất tên từ MRZ mặt trước: " + fullNameMRZ + " ===");
+                }
             }
         }
+        
         return info;
     }
 
@@ -316,48 +265,76 @@ public class OcrCccdService {
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
             
-            // Cải thiện logic tìm nơi cấp CCCD
-            if (line.matches(".*Cục.*Cảnh sát.*") || line.matches(".*Police.*") || 
-                line.matches(".*cấp.*") || line.matches(".*issued.*") || 
-                line.matches(".*Nơi cấp.*") || line.matches(".*Place of issue.*")) {
-                
-                String issuePlace = line.trim();
-                System.out.println("=== DEBUG: Tìm thấy dòng có thể chứa nơi cấp: " + line + " ===");
-                
-                // Loại bỏ các từ không cần thiết và lấy phần sau dấu :
-                if (issuePlace.contains(":")) {
-                    String[] parts = issuePlace.split(":");
-                    if (parts.length > 1) {
-                        issuePlace = parts[1].trim();
-                    }
+            // Tìm số CCCD từ mặt sau (nếu có)
+            if (line.matches(".*[0-9]{9,12}.*")) {
+                String id = line.replaceAll("[^0-9]", "");
+                if (id.length() >= 9 && id.length() <= 12) {
+                    info.put("nationalIDBack", id);
+                    System.out.println("=== DEBUG: Tìm thấy số CCCD ở mặt sau: " + id + " ===");
                 }
-                
-                // Loại bỏ các từ khóa không cần thiết
-                issuePlace = issuePlace.replaceAll(".*cấp.*", "").trim();
-                issuePlace = issuePlace.replaceAll(".*issued.*", "").trim();
-                
-                if (!issuePlace.isEmpty() && issuePlace.length() > 2) {
-                    info.put("nationalIDIssuePlace", issuePlace);
-                    System.out.println("=== DEBUG: Đã tìm thấy nơi cấp: " + issuePlace + " ===");
+            }
+            
+            // Tìm ngày sinh từ mặt sau (nếu có)
+            if (line.matches(".*\\d{2}/\\d{2}/\\d{4}.*")) {
+                Matcher m = Pattern.compile("\\d{2}/\\d{2}/\\d{4}").matcher(line);
+                if (m.find()) {
+                    String birthDate = m.group();
+                    // Kiểm tra xem có phải ngày sinh không (thường ngày sinh < ngày hiện tại)
+                    if (isValidBirthDate(birthDate)) {
+                        info.put("birthDateBack", birthDate);
+                        System.out.println("=== DEBUG: Tìm thấy ngày sinh ở mặt sau: " + birthDate + " ===");
+                    }
                 }
             }
             
             // Tìm ngày cấp từ mặt sau CCCD
-            if (line.matches(".*Ngày.*tháng.*năm.*") || line.matches(".*Date.*month.*year.*")) {
-                String next = (i + 1 < lines.size()) ? lines.get(i + 1) : "";
-                Matcher m = Pattern.compile("\\d{2}/\\d{2}/\\d{4}").matcher(next + " " + line);
+            if (line.matches(".*Ngày.*tháng.*năm.*") || line.matches(".*Date.*month.*year.*") ||
+                line.matches(".*Ngày.*tháng.*năm.*cấp.*") || line.matches(".*Date.*month.*year.*issued.*")) {
+                
+                System.out.println("=== DEBUG: Tìm thấy dòng ngày cấp: " + line + " ===");
+                
+                // Tìm ngày trong dòng hiện tại
+                Matcher m = Pattern.compile("\\d{2}/\\d{2}/\\d{4}").matcher(line);
                 if (m.find()) {
-                    info.put("issueDate", m.group());
-                    break;
+                    String issueDate = m.group();
+                    info.put("issueDate", issueDate);
+                    System.out.println("=== DEBUG: Tìm thấy ngày cấp trong dòng hiện tại: " + issueDate + " ===");
+                } else {
+                    // Tìm ở dòng tiếp theo
+                    String next = (i + 1 < lines.size()) ? lines.get(i + 1) : "";
+                    Matcher m2 = Pattern.compile("\\d{2}/\\d{2}/\\d{4}").matcher(next + " " + line);
+                    if (m2.find()) {
+                        String issueDate = m2.group();
+                        info.put("issueDate", issueDate);
+                        System.out.println("=== DEBUG: Tìm thấy ngày cấp ở dòng tiếp theo: " + issueDate + " ===");
+                    }
                 }
             }
+            
             // Tìm ngày cấp từ các pattern khác
             if (line.matches(".*cấp.*") || line.matches(".*issued.*")) {
-                String next = (i + 1 < lines.size()) ? lines.get(i + 1) : "";
-                Matcher m = Pattern.compile("\\d{2}/\\d{2}/\\d{4}").matcher(next + " " + line);
-                if (m.find()) {
-                    info.put("issueDate", m.group());
-                    break;
+                // Kiểm tra xem có phải là ngày cấp không (không phải nơi cấp)
+                if (!line.matches(".*Nơi cấp.*") && !line.matches(".*Place of issue.*") &&
+                    !line.matches(".*Cục.*Cảnh sát.*") && !line.matches(".*Police.*")) {
+                    
+                    System.out.println("=== DEBUG: Tìm thấy dòng có thể chứa ngày cấp: " + line + " ===");
+                    
+                    // Tìm ngày trong dòng hiện tại
+                    Matcher m = Pattern.compile("\\d{2}/\\d{2}/\\d{4}").matcher(line);
+                    if (m.find()) {
+                        String issueDate = m.group();
+                        info.put("issueDate", issueDate);
+                        System.out.println("=== DEBUG: Tìm thấy ngày cấp từ pattern khác: " + issueDate + " ===");
+                    } else {
+                        // Tìm ở dòng tiếp theo
+                        String next = (i + 1 < lines.size()) ? lines.get(i + 1) : "";
+                        Matcher m2 = Pattern.compile("\\d{2}/\\d{2}/\\d{4}").matcher(next + " " + line);
+                        if (m2.find()) {
+                            String issueDate = m2.group();
+                            info.put("issueDate", issueDate);
+                            System.out.println("=== DEBUG: Tìm thấy ngày cấp từ pattern khác ở dòng tiếp theo: " + issueDate + " ===");
+                        }
+                    }
                 }
             }
             
@@ -372,6 +349,37 @@ public class OcrCccdService {
                     String fullNameMRZ = (lastName + " " + firstName).trim();
                     info.put("fullNameMRZ", fullNameMRZ);
                     System.out.println("=== DEBUG: Trích xuất tên từ MRZ: " + fullNameMRZ + " ===");
+                }
+            }
+            
+            // Tìm tên từ MRZ với format khác (nếu có)
+            if (line.matches(".*[A-Z]+<[A-Z]+.*") && !line.matches(".*[A-Z]+<<[A-Z]+.*")) {
+                System.out.println("=== DEBUG: Tìm thấy MRZ line format khác: " + line + " ===");
+                
+                String mrzLine = line.trim();
+                mrzLine = mrzLine.replaceAll("[^A-Z<]", "");
+                
+                // Xử lý format: DAO<NGOC<MINH
+                String[] parts = mrzLine.split("<");
+                if (parts.length >= 2) {
+                    StringBuilder fullName = new StringBuilder();
+                    for (String part : parts) {
+                        if (!part.trim().isEmpty()) {
+                            if (fullName.length() > 0) {
+                                fullName.append(" ");
+                            }
+                            fullName.append(part.trim());
+                        }
+                    }
+                    
+                    String fullNameMRZ = fullName.toString().trim();
+                    if (!fullNameMRZ.isEmpty()) {
+                        // Chuẩn hóa tên MRZ
+                        fullNameMRZ = normalizeName(fullNameMRZ);
+                        
+                        info.put("fullNameMRZ", fullNameMRZ);
+                        System.out.println("=== DEBUG: Trích xuất tên từ MRZ format khác: " + fullNameMRZ + " ===");
+                    }
                 }
             }
         }
@@ -425,7 +433,7 @@ public class OcrCccdService {
             // Parse thông tin từ mặt trước
             info = parseCccdFrontInfo(linesFront);
             
-            // Parse thông tin từ mặt sau (ngày cấp)
+            // Parse thông tin từ mặt sau (ngày cấp và tên từ MRZ)
             Map<String, Object> backInfo = parseCccdBackInfo(linesBack);
             
             // Kết hợp thông tin từ cả 2 mặt
@@ -438,16 +446,19 @@ public class OcrCccdService {
             throw new RuntimeException("Không xác định được loại ảnh. Vui lòng upload ảnh CCCD rõ ràng.");
         }
         
-        // Xác minh tính nhất quán của CCCD bằng cách so sánh tên
-        String frontName = (String) info.get("fullName");
-        String backName = (String) info.get("fullNameMRZ");
+        // Xác minh tính nhất quán của CCCD bằng cách so sánh nhiều trường
+        System.out.println("=== DEBUG: Bắt đầu xác minh tính nhất quán CCCD ===");
         
-        if (frontName != null && backName != null) {
-            boolean namesMatch = compareNames(frontName, backName);
+        // 1. So sánh tên từ mặt trước với tên từ MRZ mặt sau (QUAN TRỌNG NHẤT)
+        String frontName = (String) info.get("fullName");
+        String backNameMRZ = (String) info.get("fullNameMRZ");
+        
+        if (frontName != null && backNameMRZ != null) {
+            boolean namesMatch = compareNames(frontName, backNameMRZ);
             if (!namesMatch) {
                 System.out.println("=== LỖI: Tên không khớp giữa 2 mặt CCCD ===");
                 System.out.println("Mặt trước: " + frontName);
-                System.out.println("Mặt sau: " + backName);
+                System.out.println("Mặt sau (MRZ): " + backNameMRZ);
                 throw new RuntimeException("Tên không khớp giữa 2 mặt CCCD. Có thể đây không phải là cùng một CCCD.");
             } else {
                 System.out.println("=== THÀNH CÔNG: Tên khớp giữa 2 mặt CCCD ===");
@@ -455,7 +466,54 @@ public class OcrCccdService {
         } else {
             System.out.println("=== CẢNH BÁO: Không thể xác minh tên (thiếu thông tin) ===");
             if (frontName == null) System.out.println("Không tìm thấy tên ở mặt trước");
-            if (backName == null) System.out.println("Không tìm thấy tên ở mặt sau");
+            if (backNameMRZ == null) System.out.println("Không tìm thấy tên ở mặt sau (MRZ)");
+            
+            // Nếu không có tên để so sánh, vẫn cho phép tiếp tục nhưng cảnh báo
+            System.out.println("=== CẢNH BÁO: Tiếp tục xử lý nhưng không đảm bảo tính nhất quán ===");
+        }
+        
+        // 2. So sánh tên từ MRZ mặt trước (nếu có) với tên từ MRZ mặt sau (KHÔNG BẮT BUỘC)
+        String frontNameMRZ = (String) info.get("fullNameMRZFront");
+        if (frontNameMRZ != null && backNameMRZ != null) {
+            boolean mrzNamesMatch = compareNames(frontNameMRZ, backNameMRZ);
+            if (!mrzNamesMatch) {
+                System.out.println("=== CẢNH BÁO: Tên MRZ không khớp giữa 2 mặt CCCD ===");
+                System.out.println("MRZ mặt trước: " + frontNameMRZ);
+                System.out.println("MRZ mặt sau: " + backNameMRZ);
+                System.out.println("=== CẢNH BÁO: Tiếp tục xử lý vì đây không phải validation bắt buộc ===");
+            } else {
+                System.out.println("=== THÀNH CÔNG: Tên MRZ khớp giữa 2 mặt CCCD ===");
+            }
+        }
+        
+        // 3. So sánh số CCCD (nếu có ở cả 2 mặt) - KHÔNG BẮT BUỘC
+        String frontID = (String) info.get("nationalID");
+        String backID = (String) info.get("nationalIDBack");
+        if (frontID != null && backID != null) {
+            boolean idMatch = frontID.equals(backID);
+            if (!idMatch) {
+                System.out.println("=== CẢNH BÁO: Số CCCD không khớp giữa 2 mặt ===");
+                System.out.println("Mặt trước: " + frontID);
+                System.out.println("Mặt sau: " + backID);
+                System.out.println("=== CẢNH BÁO: Tiếp tục xử lý vì đây không phải validation bắt buộc ===");
+            } else {
+                System.out.println("=== THÀNH CÔNG: Số CCCD khớp giữa 2 mặt ===");
+            }
+        }
+        
+        // 4. So sánh ngày sinh (nếu có ở cả 2 mặt) - KHÔNG BẮT BUỘC
+        String frontBirthDate = (String) info.get("birthDate");
+        String backBirthDate = (String) info.get("birthDateBack");
+        if (frontBirthDate != null && backBirthDate != null) {
+            boolean birthDateMatch = frontBirthDate.equals(backBirthDate);
+            if (!birthDateMatch) {
+                System.out.println("=== CẢNH BÁO: Ngày sinh không khớp giữa 2 mặt ===");
+                System.out.println("Mặt trước: " + frontBirthDate);
+                System.out.println("Mặt sau: " + backBirthDate);
+                System.out.println("=== CẢNH BÁO: Tiếp tục xử lý vì đây không phải validation bắt buộc ===");
+            } else {
+                System.out.println("=== THÀNH CÔNG: Ngày sinh khớp giữa 2 mặt ===");
+            }
         }
         
         // Debug: In ra kết quả cuối cùng
@@ -464,6 +522,21 @@ public class OcrCccdService {
             System.out.println(entry.getKey() + ": " + entry.getValue());
         }
         System.out.println("=== END DEBUG ===");
+        
+        // Thêm debug chi tiết cho việc so sánh tên
+        System.out.println("=== DEBUG: Chi tiết so sánh tên ===");
+        if (frontName != null && backNameMRZ != null) {
+            String normalizedFront = normalizeName(frontName);
+            String normalizedBack = normalizeName(backNameMRZ);
+            System.out.println("Tên mặt trước (gốc): " + frontName);
+            System.out.println("Tên mặt sau MRZ (gốc): " + backNameMRZ);
+            System.out.println("Tên mặt trước (chuẩn hóa): " + normalizedFront);
+            System.out.println("Tên mặt sau MRZ (chuẩn hóa): " + normalizedBack);
+            System.out.println("Độ dài tên mặt trước: " + normalizedFront.length());
+            System.out.println("Độ dài tên mặt sau: " + normalizedBack.length());
+            System.out.println("Chênh lệch độ dài: " + Math.abs(normalizedFront.length() - normalizedBack.length()));
+        }
+        System.out.println("=== END DEBUG CHI TIẾT ===");
         
         return info;
     }
@@ -484,7 +557,18 @@ public class OcrCccdService {
         normalized = normalized.replaceAll("[ỲÝỴỶỸ]", "Y");
         normalized = normalized.replaceAll("[Đ]", "D");
         
+        // Loại bỏ các ký tự đặc biệt và số
+        normalized = normalized.replaceAll("[^A-Z\\s]", "");
+        
         // Loại bỏ khoảng trắng thừa
+        normalized = normalized.replaceAll("\\s+", " ").trim();
+        
+        // Xử lý các trường hợp đặc biệt
+        // Ví dụ: "DAO NGOC MINH" vs "DAO<<NGOC<MINH" -> "DAO NGOC MINH"
+        normalized = normalized.replaceAll("<<", " ");
+        normalized = normalized.replaceAll("<", " ");
+        
+        // Loại bỏ khoảng trắng thừa sau khi xử lý
         normalized = normalized.replaceAll("\\s+", " ").trim();
         
         return normalized;
@@ -503,10 +587,73 @@ public class OcrCccdService {
         System.out.println("Tên mặt trước (chuẩn hóa): " + normalizedFront);
         System.out.println("Tên mặt sau (chuẩn hóa): " + normalizedBack);
         
-        boolean isMatch = normalizedFront.equals(normalizedBack);
-        System.out.println("Kết quả so sánh: " + (isMatch ? "KHỚP" : "KHÔNG KHỚP"));
+        // So sánh chính xác trước
+        boolean exactMatch = normalizedFront.equals(normalizedBack);
+        if (exactMatch) {
+            System.out.println("Kết quả so sánh: KHỚP CHÍNH XÁC");
+            return true;
+        }
+        
+        // Nếu không khớp chính xác, thử fuzzy matching
+        boolean fuzzyMatch = fuzzyNameMatch(normalizedFront, normalizedBack);
+        if (fuzzyMatch) {
+            System.out.println("Kết quả so sánh: KHỚP FUZZY (có thể có lỗi OCR nhỏ)");
+            return true;
+        }
+        
+        System.out.println("Kết quả so sánh: KHÔNG KHỚP");
+        return false;
+    }
+    
+    // Hàm fuzzy matching cho tên
+    private boolean fuzzyNameMatch(String name1, String name2) {
+        if (name1 == null || name2 == null) return false;
+        
+        // Nếu độ dài chênh lệch quá lớn, không thể khớp
+        int lengthDiff = Math.abs(name1.length() - name2.length());
+        if (lengthDiff > 5) return false; // Tăng từ 3 lên 5 để linh hoạt hơn
+        
+        // Tính độ tương đồng bằng thuật toán Levenshtein
+        int distance = levenshteinDistance(name1, name2);
+        int maxLength = Math.max(name1.length(), name2.length());
+        
+        // Nếu độ tương đồng > 70%, coi như khớp (giảm từ 80% xuống 70%)
+        double similarity = 1.0 - ((double) distance / maxLength);
+        boolean isMatch = similarity > 0.7;
+        
+        System.out.println("=== DEBUG: Fuzzy matching ===");
+        System.out.println("Levenshtein distance: " + distance);
+        System.out.println("Max length: " + maxLength);
+        System.out.println("Similarity: " + String.format("%.2f", similarity * 100) + "%");
+        System.out.println("Fuzzy match result: " + (isMatch ? "KHỚP" : "KHÔNG KHỚP"));
         
         return isMatch;
+    }
+    
+    // Thuật toán Levenshtein để tính khoảng cách giữa 2 chuỗi
+    private int levenshteinDistance(String s1, String s2) {
+        int[][] dp = new int[s1.length() + 1][s2.length() + 1];
+        
+        for (int i = 0; i <= s1.length(); i++) {
+            dp[i][0] = i;
+        }
+        
+        for (int j = 0; j <= s2.length(); j++) {
+            dp[0][j] = j;
+        }
+        
+        for (int i = 1; i <= s1.length(); i++) {
+            for (int j = 1; j <= s2.length(); j++) {
+                if (s1.charAt(i - 1) == s2.charAt(j - 1)) {
+                    dp[i][j] = dp[i - 1][j - 1];
+                } else {
+                    dp[i][j] = Math.min(dp[i - 1][j - 1] + 1, 
+                                      Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1));
+                }
+            }
+        }
+        
+        return dp[s1.length()][s2.length()];
     }
     
     // Hàm kiểm tra xem có phải mặt trước CCCD không
@@ -538,6 +685,34 @@ public class OcrCccdService {
             }
         }
         return false;
+    }
+    
+    // Hàm kiểm tra ngày sinh hợp lệ
+    private boolean isValidBirthDate(String birthDate) {
+        try {
+            // Parse ngày theo format DD/MM/YYYY
+            String[] parts = birthDate.split("/");
+            if (parts.length != 3) return false;
+            
+            int day = Integer.parseInt(parts[0]);
+            int month = Integer.parseInt(parts[1]);
+            int year = Integer.parseInt(parts[2]);
+            
+            // Kiểm tra ngày tháng hợp lệ
+            if (day < 1 || day > 31 || month < 1 || month > 12) return false;
+            
+            // Kiểm tra năm hợp lệ (thường từ 1900 đến năm hiện tại)
+            int currentYear = java.time.Year.now().getValue();
+            if (year < 1900 || year > currentYear) return false;
+            
+            // Kiểm tra ngày sinh phải nhỏ hơn ngày hiện tại
+            java.time.LocalDate birth = java.time.LocalDate.of(year, month, day);
+            java.time.LocalDate now = java.time.LocalDate.now();
+            
+            return birth.isBefore(now);
+        } catch (Exception e) {
+            return false;
+        }
     }
     
     // Hàm trích xuất MRZ từ mặt trước CCCD (nếu có)
