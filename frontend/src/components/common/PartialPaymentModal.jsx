@@ -15,7 +15,6 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
   const [totalWithFees, setTotalWithFees] = useState(0);
   const [paymentCount, setPaymentCount] = useState(0);
   const [loadingPaymentCount, setLoadingPaymentCount] = useState(false);
-
   // Debug logs
   console.log('PartialPaymentModal render:', { visible, bill });
 

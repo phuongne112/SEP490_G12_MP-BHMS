@@ -110,7 +110,7 @@ export default function CashPartialPaymentModal({
   const calculateFees = (count) => {
     console.log('=== TÍNH PHÍ THANH TOÁN ===');
     console.log('Payment count:', count, 'Type:', typeof count);
-    
+  
     // Tính phí thanh toán từng phần dựa trên số lần thanh toán (giống VNPAY)
     let fee = 0;
     switch (count) {

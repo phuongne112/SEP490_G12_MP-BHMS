@@ -374,7 +374,6 @@ public class BillController {
                     formatCurrency(maxPaymentAmount) + ")");
                 return ResponseEntity.badRequest().body(errorResponse);
             }
-            
             // 🆕 KIỂM TRA KHOẢNG THỜI GIAN 30 NGÀY GIỮA CÁC LẦN THANH TOÁN TỪNG PHẦN
             if (Boolean.TRUE.equals(bill.getIsPartiallyPaid()) && bill.getLastPaymentDate() != null) {
                 Instant currentDate = Instant.now();
