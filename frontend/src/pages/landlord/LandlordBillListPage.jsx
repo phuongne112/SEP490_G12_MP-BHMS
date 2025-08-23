@@ -132,6 +132,7 @@ function BillFilterPopover({ onFilter }) {
 
 export default function LandlordBillListPage() {
   const isMobile = useMediaQuery({ maxWidth: 768 });
+  const isTablet = useMediaQuery({ minWidth: 769, maxWidth: 1024 });
   const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
   
   const [bills, setBills] = useState([]);
@@ -1360,7 +1361,7 @@ export default function LandlordBillListPage() {
                     style={{ flex: 1 }}
                     size="large"
                   >
-                    Thêm hóa đơn
+                    Thêm HĐ
                   </Button>
                 </div>
                 <Button
@@ -1375,7 +1376,7 @@ export default function LandlordBillListPage() {
                   onClick={handleBulkGenerate}
                   size="large"
                 >
-                  Tạo Hóa Đơn Tự Động
+                  Tạo HĐ Auto
                 </Button>
                 <Button
                   type="default"
@@ -1389,7 +1390,7 @@ export default function LandlordBillListPage() {
                   onClick={handleAutoGenerateServiceBills}
                   size="large"
                 >
-                  Tạo HĐ Dịch Vụ Auto
+                  HĐ Dịch Vụ
                 </Button>
               </div>
               
@@ -1448,7 +1449,9 @@ export default function LandlordBillListPage() {
                 <div style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
-                  gap: 12
+                  gap: isTablet ? 6 : 8,
+                  flexWrap: 'wrap',
+                  justifyContent: 'flex-end'
                 }}>
                   <Input
                     placeholder="Tìm hóa đơn..."
@@ -1457,7 +1460,10 @@ export default function LandlordBillListPage() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     onPressEnter={() => setCurrentPage(1)}
-                    style={{ width: 300 }}
+                    style={{ 
+                      width: isTablet ? 200 : 250, 
+                      minWidth: isTablet ? 150 : 200 
+                    }}
                   />
                   <Popover
                     open={filterOpen}
@@ -1469,6 +1475,7 @@ export default function LandlordBillListPage() {
                     <Button 
                       icon={<FilterOutlined />} 
                       type="default"
+                      size="middle"
                     >
                       Bộ lọc
                     </Button>
@@ -1477,32 +1484,37 @@ export default function LandlordBillListPage() {
                     type="primary"
                     icon={<PlusOutlined />}
                     onClick={handleCreateBillModalOpen}
+                    size="middle"
                   >
-                    Thêm hóa đơn
+                    {isTablet ? "Thêm" : "Thêm hóa đơn"}
                   </Button>
                   <Button
                     type="default"
                     style={{ 
                       background: '#52c41a', 
                       borderColor: '#52c41a', 
-                      color: '#fff'
+                      color: '#fff',
+                      whiteSpace: 'nowrap'
                     }}
                     loading={bulkLoading}
                     onClick={handleBulkGenerate}
+                    size="middle"
                   >
-                    Tạo Hóa Đơn Tự Động
+                    {isTablet ? "Tạo HĐ" : "Tạo HĐ Tự Động"}
                   </Button>
                   <Button
                     type="default"
                     style={{ 
                       background: '#1890ff', 
                       borderColor: '#1890ff', 
-                      color: '#fff'
+                      color: '#fff',
+                      whiteSpace: 'nowrap'
                     }}
                     loading={serviceLoading}
                     onClick={handleAutoGenerateServiceBills}
+                    size="middle"
                   >
-                    Tạo HĐ Dịch Vụ Auto
+                    {isTablet ? "HĐ Dịch Vụ" : "Tạo HĐ Dịch Vụ"}
                   </Button>
                 </div>
               </div>

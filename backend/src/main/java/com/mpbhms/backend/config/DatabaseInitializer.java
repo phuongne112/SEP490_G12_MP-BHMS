@@ -171,6 +171,7 @@ public class    DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Send Bill", "/mpbhms/bills/{id}/send", "POST", "Bill"));
             permissions.add(new Permission("Dashboard Bill Stats", "/mpbhms/bills/dashboard-stats", "GET", "Bill"));
             permissions.add(new Permission("Bulk Generate Bills", "/mpbhms/bills/bulk-generate", "POST", "Bill"));
+            permissions.add(new Permission("Auto Generate Service Bills", "/mpbhms/bills/auto-generate-service-bills", "POST", "Bill"));
             permissions.add(new Permission("Update Bill Payment Status", "/mpbhms/bills/{id}/payment-status", "PUT", "Bill"));
             permissions.add(new Permission("Create Late Penalty Bill", "/mpbhms/bills/{id}/create-penalty", "POST", "Bill"));
             permissions.add(new Permission("Check And Create Late Penalties", "/mpbhms/bills/check-and-create-penalties", "POST", "Bill"));
