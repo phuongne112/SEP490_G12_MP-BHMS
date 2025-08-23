@@ -136,7 +136,7 @@ public class OcrControlController {
             Map<String, Object> result = ocrCccdService.ocrCccd(frontImage, backImage);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error processing CCCD: " + e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
