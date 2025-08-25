@@ -1,9 +1,19 @@
 import { Button } from "antd";
 import { useNavigate } from "react-router-dom";
 import { CheckCircleTwoTone } from "@ant-design/icons";
+import { useEffect } from "react";
 
 export default function PaymentSuccessPage() {
   const navigate = useNavigate();
+
+  // 🆕 Trigger refresh notifications khi thanh toán thành công
+  useEffect(() => {
+    window.dispatchEvent(new Event('refresh-notifications'));
+    // 🆕 Hiện notification toast
+    window.dispatchEvent(new CustomEvent('show-notification-toast', {
+      detail: { message: 'Thanh toán đã hoàn tất thành công! 🎉', type: 'success' }
+    }));
+  }, []);
   return (
     <div style={{
       minHeight: "100vh",

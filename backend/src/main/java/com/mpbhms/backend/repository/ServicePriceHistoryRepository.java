@@ -29,4 +29,12 @@ public interface ServicePriceHistoryRepository extends JpaRepository<ServicePric
 
     @Query("SELECT sph FROM ServicePriceHistory sph WHERE sph.service.id = :serviceId AND sph.isActive = true")
     List<ServicePriceHistory> findByServiceIdAndIsActiveTrue(@Param("serviceId") Long serviceId);
+    
+    // 🆕 Tìm tất cả giá pending cho một dịch vụ cụ thể vào một ngày
+    @Query("SELECT sph FROM ServicePriceHistory sph WHERE sph.service.id = :serviceId AND sph.effectiveDate = :effectiveDate AND sph.isActive = false")
+    List<ServicePriceHistory> findByServiceIdAndEffectiveDateAndIsActiveFalse(@Param("serviceId") Long serviceId, @Param("effectiveDate") LocalDate effectiveDate);
+    
+    // 🆕 Kiểm tra xem đã có giá nào với ngày hiệu lực trùng không (cả active và pending)
+    @Query("SELECT COUNT(sph) > 0 FROM ServicePriceHistory sph WHERE sph.service.id = :serviceId AND sph.effectiveDate = :effectiveDate")
+    boolean existsByServiceIdAndEffectiveDate(@Param("serviceId") Long serviceId, @Param("effectiveDate") LocalDate effectiveDate);
 } 

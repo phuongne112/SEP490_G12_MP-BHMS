@@ -22,6 +22,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Comparator;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -45,23 +47,68 @@ public class ServicePriceActivationJob {
         
         LocalDate today = LocalDate.now();
         
-        // Tìm tất cả lịch sử giá có ngày hiệu lực là hôm nay và chưa active
-        List<ServicePriceHistory> pendingPrices = servicePriceHistoryRepository
-                .findByEffectiveDateAndIsActiveFalse(today);
+        // 🆕 Tìm tất cả dịch vụ có giá mới cần kích hoạt
+        Set<Long> serviceIds = servicePriceHistoryRepository
+                .findByEffectiveDateAndIsActiveFalse(today)
+                .stream()
+                .map(price -> price.getService().getId())
+                .collect(Collectors.toSet());
         
-        log.info("Tìm thấy {} giá dịch vụ cần kích hoạt", pendingPrices.size());
+        log.info("Tìm thấy {} dịch vụ cần kích hoạt giá mới", serviceIds.size());
         
-        for (ServicePriceHistory priceHistory : pendingPrices) {
+        for (Long serviceId : serviceIds) {
             try {
-                activateServicePrice(priceHistory);
-                log.info("Đã kích hoạt giá mới cho dịch vụ: {}", priceHistory.getService().getServiceName());
+                // 🆕 Với mỗi dịch vụ, tìm giá có ngày hiệu lực sớm nhất để áp dụng
+                List<ServicePriceHistory> pendingPricesForService = servicePriceHistoryRepository
+                        .findByServiceIdAndEffectiveDateAndIsActiveFalse(serviceId, today);
+                
+                if (!pendingPricesForService.isEmpty()) {
+                    // 🆕 Sắp xếp theo ngày hiệu lực (sớm nhất trước) và chọn giá đầu tiên
+                    ServicePriceHistory earliestPrice = pendingPricesForService.stream()
+                            .sorted(Comparator.comparing(ServicePriceHistory::getEffectiveDate))
+                            .findFirst()
+                            .orElse(null);
+                    
+                    if (earliestPrice != null) {
+                        // 🆕 Kiểm tra xem có xung đột với giá đang active không
+                        if (isValidPriceActivation(earliestPrice)) {
+                            activateServicePrice(earliestPrice);
+                            log.info("Đã kích hoạt giá mới (sớm nhất) cho dịch vụ: {} - Giá: {} VND", 
+                                earliestPrice.getService().getServiceName(), 
+                                earliestPrice.getUnitPrice());
+                        } else {
+                            log.warn("Bỏ qua giá dịch vụ {} do xung đột ngày hiệu lực", 
+                                earliestPrice.getService().getServiceName());
+                        }
+                    }
+                }
             } catch (Exception e) {
-                log.error("Lỗi khi kích hoạt giá cho dịch vụ {}: {}", 
-                    priceHistory.getService().getServiceName(), e.getMessage());
+                log.error("Lỗi khi kích hoạt giá cho dịch vụ ID {}: {}", serviceId, e.getMessage());
             }
         }
         
         log.info("Hoàn thành job kích hoạt giá dịch vụ mới");
+    }
+    
+    /**
+     * 🆕 Kiểm tra xem giá có thể được kích hoạt không (không xung đột ngày hiệu lực)
+     */
+    private boolean isValidPriceActivation(ServicePriceHistory newPrice) {
+        CustomService service = newPrice.getService();
+        
+        // Kiểm tra xem có giá nào đang active với ngày hiệu lực trùng không
+        List<ServicePriceHistory> activePrices = servicePriceHistoryRepository
+                .findByServiceIdAndIsActiveTrue(service.getId());
+        
+        for (ServicePriceHistory activePrice : activePrices) {
+            if (activePrice.getEffectiveDate().equals(newPrice.getEffectiveDate())) {
+                log.warn("Phát hiện xung đột ngày hiệu lực: Dịch vụ {} đã có giá active vào ngày {}", 
+                    service.getServiceName(), newPrice.getEffectiveDate());
+                return false;
+            }
+        }
+        
+        return true;
     }
     
     /**

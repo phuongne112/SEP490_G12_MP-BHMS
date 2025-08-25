@@ -82,6 +82,8 @@ export default function Header() {
   const [selectedNoti, setSelectedNoti] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [ocrData, setOcrData] = useState(null);
+  const [previousUnreadCount, setPreviousUnreadCount] = useState(0);
+  const [notificationToast, setNotificationToast] = useState({ show: false, message: '', type: 'info' });
 
   let dateStr = "N/A";
   if (selectedNoti?.createdDate && dayjs(selectedNoti.createdDate).isValid()) {
@@ -186,21 +188,120 @@ export default function Header() {
     setLoadingNoti(true);
     try {
       const res = await getMyNotifications();
-      setNotifications(res || []);
+      const newNotifications = res || [];
+      const newUnreadCount = newNotifications.filter((n) => n.status !== "READ").length;
+      
+      // 🆕 Kiểm tra nếu có thông báo mới (tăng số lượng chưa đọc)
+      console.log('🔔 DEBUG Notifications:', { 
+        newUnreadCount, 
+        previousUnreadCount, 
+        shouldShowToast: newUnreadCount > previousUnreadCount && previousUnreadCount >= 0,
+        notifications: newNotifications 
+      });
+      
+      if (newUnreadCount > previousUnreadCount && previousUnreadCount >= 0) {
+        // 🆕 Hiện notification toast
+        const latestNotification = newNotifications.find(n => n.status !== "READ");
+        const toastMessage = latestNotification?.title || "Bạn có thông báo mới";
+        console.log('🚀 Showing toast:', { latestNotification, toastMessage });
+        
+        setNotificationToast({ 
+          show: true, 
+          message: toastMessage, 
+          type: 'success' 
+        });
+        
+        // Tự động ẩn toast sau 4 giây
+        setTimeout(() => {
+          setNotificationToast({ show: false, message: '', type: 'info' });
+        }, 4000);
+      }
+      
+      setNotifications(newNotifications);
+      setPreviousUnreadCount(newUnreadCount);
     } finally {
       setLoadingNoti(false);
     }
   };
 
+  // 🆕 Thêm listener để refresh thông báo ngay lập tức khi có action quan trọng
+  useEffect(() => {
+    const handleRefreshNotifications = () => {
+      fetchNotifications();
+    };
+
+    // 🆕 Thêm listener để hiện toast khi có action cụ thể
+    const handleShowToast = (e) => {
+      const { message, type = 'success' } = e.detail || {};
+      console.log('🎯 Show toast event received:', { message, type });
+      if (message) {
+        console.log('✅ Setting toast state to show');
+        setNotificationToast({ 
+          show: true, 
+          message, 
+          type 
+        });
+        
+        // Tự động ẩn toast sau 4 giây
+        setTimeout(() => {
+          console.log('⏰ Auto-hiding toast');
+          setNotificationToast({ show: false, message: '', type: 'info' });
+        }, 4000);
+      }
+    };
+
+    // Lắng nghe custom event để refresh notifications
+    window.addEventListener('refresh-notifications', handleRefreshNotifications);
+    window.addEventListener('show-notification-toast', handleShowToast);
+    
+    return () => {
+      window.removeEventListener('refresh-notifications', handleRefreshNotifications);
+      window.removeEventListener('show-notification-toast', handleShowToast);
+    };
+  }, []);
+
   useEffect(() => {
     if (notiOpen) fetchNotifications();
   }, [notiOpen]);
 
+  // 🆕 Init previous unread count khi mount
   useEffect(() => {
-    // Polling mỗi 20s để cập nhật notifications
+    const initNotifications = async () => {
+      try {
+        const res = await getMyNotifications();
+        const notifications = res || [];
+        const unreadCount = notifications.filter((n) => n.status !== "READ").length;
+        setPreviousUnreadCount(unreadCount);
+        setNotifications(notifications);
+        
+        // 🆕 Test toast function - có thể xóa sau khi test xong
+        window.testToast = () => {
+          console.log('🧪 Testing toast...');
+          setNotificationToast({ 
+            show: true, 
+            message: 'Test notification toast!', 
+            type: 'success' 
+          });
+          setTimeout(() => {
+            setNotificationToast({ show: false, message: '', type: 'info' });
+          }, 4000);
+        };
+        console.log('🧪 Test function available: window.testToast()');
+      } catch (error) {
+        console.error('Error initializing notifications:', error);
+      }
+    };
+    
+    if (token && user) {
+      initNotifications();
+    }
+  }, [token, user?.id]);
+
+    useEffect(() => {
+    // 🆕 Polling mỗi 5s để cập nhật notifications (tăng tốc độ nhận thông báo)
     const interval = setInterval(() => {
       fetchNotifications();
-    }, 20000); // 20 giây
+}, 5000); // 5 giây thay vì 20 giây
     return () => clearInterval(interval);
   }, []);
 
@@ -623,6 +724,61 @@ export default function Header() {
         onClose={() => setShowBookingModal(false)}
         currentUser={user}
       />
+
+                    {/* 🆕 Notification Toast - Hiện ra bên ngoài và tự biến mất */}
+       {console.log('📱 Toast render check:', notificationToast)}
+       {notificationToast.show && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '70px', // Dưới header bar (header thường cao ~60px)
+            right: '05px',
+            zIndex: 10000,
+            backgroundColor: '#52c41a',
+            color: 'white',
+            padding: '12px 20px',
+            borderRadius: '8px',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            minWidth: '300px',
+            maxWidth: '400px',
+            animation: 'slideInFromRight 0.3s ease-out',
+            cursor: 'pointer',
+          }}
+          onClick={() => {
+            setNotificationToast({ show: false, message: '', type: 'info' });
+            setNotiOpen(true);
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              borderRadius: '50%',
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <BellOutlined style={{ color: 'white', fontSize: '14px' }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '2px' }}>
+              Thông báo mới
+            </div>
+            <div style={{ fontSize: '13px', opacity: 0.9, lineHeight: '1.3' }}>
+              {notificationToast.message}
+            </div>
+          </div>
+          <div style={{ fontSize: '12px', opacity: 0.7, flexShrink: 0 }}>
+            Click để xem
+          </div>
+        </div>
+      )}
     </header>
   );
 }

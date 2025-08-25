@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Layout, message, Button, Popover, Select, Modal, Input, DatePicker, List, Pagination, Tag, Card, Descriptions, Typography, Drawer } from "antd";
+import { Layout, message, Button, Popover, Select, Modal, Input, InputNumber, DatePicker, List, Pagination, Tag, Card, Descriptions, Typography, Drawer } from "antd";
 import PageHeader from "../../components/common/PageHeader";
 import { getAllContracts, deleteContract, exportContractPdf, buildContractFilterString } from "../../services/contractApi";
 import { useSelector } from "react-redux";
@@ -828,7 +828,8 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
     if (amount === null || amount === undefined) return '0 VND';
     // Sử dụng Math.round để tránh mất mát dữ liệu số thập phân
     const roundedAmount = Math.round(parseFloat(amount) * 100) / 100;
-    return roundedAmount.toLocaleString('vi-VN') + ' VND';
+    // 🆕 Sử dụng Intl.NumberFormat để đảm bảo format đúng như tiền thuê
+    return new Intl.NumberFormat('vi-VN').format(roundedAmount) + ' VND';
   };
 
   const formatAmendmentValue = (value) => {
@@ -841,7 +842,8 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
         // 🆕 Sử dụng Math.round để tránh mất mát dữ liệu số thập phân
         const num = Math.round(parseFloat(number) * 100) / 100;
         if (!isNaN(num)) {
-          return num.toLocaleString('vi-VN') + ' VND';
+          // 🆕 Sử dụng Intl.NumberFormat để đảm bảo format đúng
+          return new Intl.NumberFormat('vi-VN').format(num) + ' VND';
         }
         return match;
       });
@@ -1082,9 +1084,23 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
             <div style={{ marginBottom: 8 }}>Ngày kết thúc mới:</div>
             <DatePicker value={updateEndDate} onChange={setUpdateEndDate} style={{ width: '100%', marginBottom: 12 }} format="DD/MM/YYYY" />
             <div style={{ marginBottom: 8 }}>Tiền thuê mới:</div>
-            <Input type="number" value={updateRentAmount} onChange={e => setUpdateRentAmount(e.target.value)} style={{ marginBottom: 12 }} />
+            <InputNumber 
+              value={updateRentAmount} 
+              onChange={setUpdateRentAmount} 
+              style={{ width: '100%', marginBottom: 12 }}
+              formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              parser={value => value.replace(/\$\s?|(,*)/g, '')}
+              placeholder="Nhập tiền thuê mới"
+            />
             <div style={{ marginBottom: 8 }}>Tiền đặt cọc mới:</div>
-            <Input type="number" value={updateDeposit} onChange={e => setUpdateDeposit(e.target.value)} style={{ marginBottom: 12 }} />
+            <InputNumber 
+              value={updateDeposit} 
+              onChange={setUpdateDeposit} 
+              style={{ width: '100%', marginBottom: 12 }}
+              formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              parser={value => value.replace(/\$\s?|(,*)/g, '')}
+              placeholder="Nhập tiền cọc mới"
+            />
             <div style={{ marginBottom: 8 }}>Chu kỳ thanh toán:</div>
             <Select value={updatePaymentCycle} onChange={setUpdatePaymentCycle} style={{ width: '100%', marginBottom: 12 }} options={paymentCycleOptions.map(opt => ({ ...opt, label: opt.value === 'MONTHLY' ? 'Hàng tháng' : opt.value === 'QUARTERLY' ? 'Hàng quý' : 'Hàng năm' }))} />
             <div style={{ marginBottom: 8, fontWeight: 500 }}>Điều khoản hợp đồng:</div>
@@ -1963,7 +1979,7 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
                 borderLeft: '4px solid #fa8c16'
               }}>
                 <div style={{ fontSize: 14, color: '#d46b08', marginBottom: 4, fontWeight: 500 }}>
-                  ⚠️ Lưu ý:
+                  Lưu ý:
                 </div>
                 <div style={{ fontSize: 13, color: '#8c8c8c' }}>
                   Vui lòng nhập lý do cụ thể để bên kia hiểu và có thể điều chỉnh đề xuất phù hợp.
@@ -1971,7 +1987,7 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
               </div>
 
               <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 8, color: '#262626' }}>
-                📝 Lý do từ chối:
+                Lý do từ chối:
               </div>
               <Input.TextArea
                 value={rejectReason}

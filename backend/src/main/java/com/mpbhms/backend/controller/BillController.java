@@ -1218,6 +1218,10 @@ public class BillController {
 
                 // Notification trong hệ thống
                 try {
+                    // 🆕 Debug log để kiểm tra format
+                    System.out.println("💰 DEBUG: paymentAmount raw = " + paymentHistory.getPaymentAmount());
+                    System.out.println("💰 DEBUG: paymentAmount formatted = " + formatCurrency(paymentHistory.getPaymentAmount()));
+                    
                     NotificationDTO noti = new NotificationDTO();
                     noti.setTitle("Thanh toán tiền mặt bị từ chối");
                     noti.setMessage("Yêu cầu thanh toán " + formatCurrency(paymentHistory.getPaymentAmount()) + " cho hóa đơn #" + bill.getId() + " đã bị từ chối" + (reason != null && !reason.trim().isEmpty() ? ". Lý do: " + reason : ""));
@@ -1464,7 +1468,12 @@ public class BillController {
     // Helper method để format số tiền VNĐ (chuẩn hóa)
     private String formatCurrency(java.math.BigDecimal amount) {
         if (amount == null) return "0 VNĐ";
-        return new java.text.DecimalFormat("#,###").format(amount) + " VNĐ";
+        // 🆕 Đảm bảo format số đúng với locale VN
+        java.text.DecimalFormat formatter = new java.text.DecimalFormat("#,###");
+        formatter.setDecimalFormatSymbols(
+            java.text.DecimalFormatSymbols.getInstance(java.util.Locale.forLanguageTag("vi-VN"))
+        );
+        return formatter.format(amount) + " VNĐ";
     }
 
     // 🆕 Helper method để lấy IP address thực sự của client

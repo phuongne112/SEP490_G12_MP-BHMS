@@ -1213,7 +1213,7 @@ export default function RenterContractPage() {
           
           <div>
             <label style={{ fontWeight: 'bold', marginBottom: 8, display: 'block' }}>
-              📝 Lý do gia hạn:
+              Lý do gia hạn:
             </label>
             <textarea
               value={renewReason}
@@ -1243,7 +1243,6 @@ export default function RenterContractPage() {
             message="Bạn đang từ chối thay đổi hợp đồng"
             description="Vui lòng nhập lý do cụ thể để chủ nhà hiểu và có thể điều chỉnh đề xuất."
             type="warning"
-            showIcon
             style={{ marginBottom: 16 }}
           />
           <div style={{ marginBottom: 8, fontWeight: 'bold' }}>Lý do từ chối:</div>

@@ -131,18 +131,36 @@ export default function LandlordServiceListPage() {
    };
 
   // Thêm handler cho cập nhật giá
-  const handleUpdatePrice = (id) => {
+  const handleUpdatePrice = async (id) => {
     const service = services.find(s => s.id === id);
     if (service) {
       setSelectedServiceForPrice(service);
-      // Thay đổi: set ngày mặc định là 5 ngày từ hiện tại thay vì tháng tiếp theo
-      const fiveDaysFromNow = dayjs().add(5, 'day');
-      priceForm.setFieldsValue({
-        newUnitPrice: service.price,
-        effectiveDate: fiveDaysFromNow,
-        reason: '',
-      });
-      setIsPriceModalOpen(true);
+      
+      try {
+        // 🆕 Lấy lịch sử giá để kiểm tra ngày hiệu lực trùng
+        const response = await getServicePriceHistory(id);
+        const priceHistory = response.data || [];
+        setPriceHistory(priceHistory);
+        
+        // Thay đổi: set ngày mặc định là 5 ngày từ hiện tại thay vì tháng tiếp theo
+        const fiveDaysFromNow = dayjs().add(5, 'day');
+        priceForm.setFieldsValue({
+          newUnitPrice: service.price,
+          effectiveDate: fiveDaysFromNow,
+          reason: '',
+        });
+        setIsPriceModalOpen(true);
+      } catch (error) {
+        console.error("Error fetching price history:", error);
+        // Vẫn mở modal nếu không lấy được lịch sử
+        const fiveDaysFromNow = dayjs().add(5, 'day');
+        priceForm.setFieldsValue({
+          newUnitPrice: service.price,
+          effectiveDate: fiveDaysFromNow,
+          reason: '',
+        });
+        setIsPriceModalOpen(true);
+      }
     }
   };
 
@@ -918,8 +936,28 @@ export default function LandlordServiceListPage() {
                 <Form.Item 
                   label="Ngày hiệu lực" 
                   name="effectiveDate" 
-                  rules={[{ required: true, message: "Vui lòng chọn ngày hiệu lực" }]}
-                  extra="Ngày hiệu lực phải cách ngày hiện tại ít nhất 5 ngày"
+                  rules={[
+                    { required: true, message: "Vui lòng chọn ngày hiệu lực" },
+                    {
+                      validator: (_, value) => {
+                        if (!value) return Promise.resolve();
+                        
+                        // 🆕 Kiểm tra ngày hiệu lực không được trùng với giá đã tồn tại
+                        const selectedDate = value.format('YYYY-MM-DD');
+                        const hasDuplicateDate = priceHistory.some(history => 
+                          history.effectiveDate === selectedDate
+                        );
+                        
+                        if (hasDuplicateDate) {
+                          return Promise.reject(new Error('Ngày hiệu lực này đã tồn tại. Vui lòng chọn ngày khác.'));
+                        }
+                        
+                        return Promise.resolve();
+                      },
+                      validateTrigger: ['onChange', 'onBlur']
+                    }
+                  ]}
+                  extra="Ngày hiệu lực phải cách ngày hiện tại ít nhất 5 ngày và không được trùng với ngày đã tồn tại"
                 >
                   <DatePicker 
                     style={{ width: "100%" }} 

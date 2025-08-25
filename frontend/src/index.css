@@ -12,6 +12,18 @@ code {
     monospace;
 }
 
+/* 🆕 Toast Animation - slide in từ bên phải */
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
 /* 360 Modal Styles (FB-like) */
 .image-360-modal .ant-modal-content {
   background: transparent !important;

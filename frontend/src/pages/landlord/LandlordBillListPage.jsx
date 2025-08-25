@@ -272,6 +272,13 @@ export default function LandlordBillListPage() {
       // Đánh dấu đã gửi hôm nay
       markEmailSentToday(bill.id);
       
+      // 🆕 Trigger refresh notifications ngay lập tức
+      window.dispatchEvent(new Event('refresh-notifications'));
+      // 🆕 Hiện notification toast
+      window.dispatchEvent(new CustomEvent('show-notification-toast', {
+        detail: { message: `Cảnh báo quá hạn cho hóa đơn #${bill.id} đã được gửi`, type: 'success' }
+      }));
+      
       // Cập nhật danh sách
       fetchBills();
     } catch (error) {
@@ -299,6 +306,12 @@ export default function LandlordBillListPage() {
       
       if (successCount > 0) {
         message.success(`✅ Đã gửi cảnh báo cho ${successCount}/${overdueBills.length} hóa đơn quá hạn (từ ngày thứ 7)`);
+        // 🆕 Trigger refresh notifications ngay lập tức khi gửi bulk email thành công
+        window.dispatchEvent(new Event('refresh-notifications'));
+        // 🆕 Hiện notification toast
+        window.dispatchEvent(new CustomEvent('show-notification-toast', {
+          detail: { message: `Đã gửi cảnh báo cho ${successCount} hóa đơn quá hạn`, type: 'success' }
+        }));
       } else {
         message.warning("⚠️ Không thể gửi cảnh báo cho hóa đơn nào");
       }
@@ -618,6 +631,12 @@ export default function LandlordBillListPage() {
       message.success(msg);
       // Mark as sent today after successful sending
       markEmailSentToday(id);
+      // 🆕 Trigger refresh notifications ngay lập tức sau khi gửi email thành công
+      window.dispatchEvent(new Event('refresh-notifications'));
+      // 🆕 Hiện notification toast
+      window.dispatchEvent(new CustomEvent('show-notification-toast', {
+        detail: { message: `Email hóa đơn #${id} đã được gửi thành công`, type: 'success' }
+      }));
     } catch (err) {
       const apiMsg = err?.response?.data?.message || err?.response?.data || err?.message || 'Gửi email thất bại!';
       message.error(apiMsg);
