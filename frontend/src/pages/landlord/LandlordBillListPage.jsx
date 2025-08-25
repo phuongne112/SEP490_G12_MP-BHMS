@@ -474,18 +474,18 @@ export default function LandlordBillListPage() {
         isValid: true, 
         message: `Khoảng ngày phù hợp với chu kỳ thanh toán ${cycleName}` 
       };
-    } else if (diffFromExpected <= 1.0) { // Sai lệch trung bình - Cảnh báo
-      return { 
-        isValid: true, 
-        isWarning: true,
-        message: `Cảnh báo: Khoảng ngày sai lệch với chu kỳ thanh toán ${cycleName} (dự kiến ${expectedMonths} tháng, thực tế ${monthsDiff.toFixed(1)} tháng). Backend sẽ kiểm tra và quyết định.` 
-      };
-    } else { // Sai lệch lớn - Cảnh báo mạnh nhưng vẫn cho phép
-      return { 
-        isValid: true,
-        isWarning: true, 
-        message: `Cảnh báo nghiêm trọng: Khoảng ngày sai lệch lớn với chu kỳ thanh toán ${cycleName} (dự kiến ${expectedMonths} tháng, thực tế ${monthsDiff.toFixed(1)} tháng). Hệ thống có thể từ chối tạo hóa đơn.` 
-      };
+         } else if (diffFromExpected <= 1.0) { // Sai lệch trung bình - Cảnh báo
+       return { 
+         isValid: true, 
+         isWarning: true,
+         message: `Cảnh báo: Khoảng ngày sai lệch với chu kỳ thanh toán ${cycleName} (dự kiến ${expectedMonths} tháng, thực tế ${monthsDiff.toFixed(1)} tháng). Hệ thống sẽ kiểm tra và quyết định.` 
+       };
+     } else { // Sai lệch lớn - Cảnh báo mạnh nhưng vẫn cho phép
+       return { 
+         isValid: true,
+         isWarning: true, 
+         message: `Cảnh báo nghiêm trọng: Khoảng ngày sai lệch lớn với chu kỳ thanh toán ${cycleName} (dự kiến ${expectedMonths} tháng, thực tế ${monthsDiff.toFixed(1)} tháng). Hệ thống có thể từ chối tạo hóa đơn.` 
+       };
     }
   }
 
@@ -1829,9 +1829,33 @@ export default function LandlordBillListPage() {
                   <Form.Item
                     name="customAmount"
                     label="Số tiền"
-                    rules={[{ required: true, message: 'Vui lòng nhập số tiền' }]}
+                    rules={[
+                      { required: true, message: 'Vui lòng nhập số tiền' },
+                      {
+                        validator: (_, value) => {
+                          if (!value || value === null || value === undefined) {
+                            return Promise.resolve();
+                          }
+                          if (value <= 0) {
+                            return Promise.reject(new Error('Số tiền phải lớn hơn 0'));
+                          }
+                          if (value >= 999999999) {
+                            return Promise.reject(new Error('Số tiền không được vượt quá 999.999.999 VND'));
+                          }
+                          return Promise.resolve();
+                        },
+                        validateTrigger: ['onBlur', 'onChange']
+                      }
+                    ]}
                   >
-                    <InputNumber min={0} style={{ width: "100%" }} placeholder="Nhập số tiền (VND)" />
+                    <InputNumber 
+                      min={0} 
+                      max={999999998}
+                      style={{ width: "100%" }} 
+                      placeholder="Nhập số tiền (VND)" 
+                      formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                    />
                   </Form.Item>
                   <Form.Item
                     name="customDateRange"
