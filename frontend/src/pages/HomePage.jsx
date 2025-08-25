@@ -52,22 +52,22 @@ const QUICK_FILTERS = [
   {
     id: 'budget',
     name: 'Tiết kiệm',
-    description: '< 3 triệu',
-    filters: { price: [0, 3000000], status: 'Available' },
+    description: '< 1,5 triệu',
+    filters: { price: [0, 1500000], status: 'Available' },
     color: '#52c41a'
   },
   {
     id: 'popular',
     name: 'Phổ biến',
-    description: '3-5 triệu',
-    filters: { price: [3000000, 5000000], status: 'Available' },
+    description: '1,5-2,5 triệu',
+    filters: { price: [1500000, 2500000], status: 'Available' },
     color: '#1890ff'
   },
   {
     id: 'premium',
     name: 'Cao cấp',
-    description: '> 5 triệu',
-    filters: { price: [5000000, 10000000], hasAsset: 'true', status: 'Available' },
+    description: '> 2,5 triệu',
+    filters: { price: [2500000, 10000000], hasAsset: 'true', status: 'Available' },
     color: '#722ed1'
   }
 ];
