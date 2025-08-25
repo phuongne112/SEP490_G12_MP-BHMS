@@ -219,6 +219,12 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
       const vnpayResponse = await createPartialPaymentVnPayUrl(request);
       if (vnpayResponse.success) {
         message.success(`Đang chuyển hướng đến VNPAY... Tổng thanh toán: ${formatCurrency(totalAmountToPay)}`);
+        // 🆕 Trigger refresh notifications ngay lập tức
+        window.dispatchEvent(new Event('refresh-notifications'));
+        // 🆕 Hiện notification toast
+        window.dispatchEvent(new CustomEvent('show-notification-toast', {
+          detail: { message: `Yêu cầu thanh toán ${formatCurrency(totalAmountToPay)} đã được tạo`, type: 'success' }
+        }));
         window.location.href = vnpayResponse.paymentUrl;
       } else {
         message.error(vnpayResponse.message || 'Có lỗi xảy ra khi tạo link thanh toán');
@@ -235,13 +241,9 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
         errorMessage = error.message;
       }
       
-      // Hiển thị thông báo lỗi cụ thể cho các trường hợp bảo vệ
+      // 🆕 Hiển thị thông báo lỗi cụ thể cho các trường hợp bảo vệ (giống như trong CashFullPaymentModal)
       if (errorMessage.includes("đã có yêu cầu thanh toán tiền mặt đang chờ xử lý")) {
-        message.error({
-          content: errorMessage,
-          duration: 8, // Hiển thị lâu hơn để user đọc
-          style: { maxWidth: '600px' }
-        });
+        message.error(errorMessage, 8); // Hiển thị lâu hơn để user đọc
       } else {
         message.error(errorMessage);
       }
@@ -291,11 +293,17 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
   const minPayment = getMinPaymentAmount();
   const maxPayment = getMaxPaymentAmount();
 
+  // Handle cancel
+  const handleCancel = () => {
+    form.resetFields();
+    onCancel();
+  };
+
   return (
     <Modal
       title="Thanh toán từng phần"
       open={visible}
-      onCancel={onCancel}
+      onCancel={handleCancel}
       footer={null}
       width={600}
     >

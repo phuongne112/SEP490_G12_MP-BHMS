@@ -1629,6 +1629,12 @@ public class ContractServiceImpl implements ContractService {
                 applyAmendmentToContract(amendment);
             }
             logger.info("Amendment {} successfully applied to contract.", amendmentId);
+            
+            // 🆕 Gửi thông báo khi yêu cầu được hoàn toàn duyệt
+            sendAmendmentApprovedNotification(amendment);
+        } else {
+            // 🆕 Gửi thông báo về việc duyệt từng phần
+            sendPartialApprovalNotification(amendment, currentUserId, isLandlordApproval);
         }
         contractAmendmentRepository.save(amendment);
     }
@@ -1657,6 +1663,8 @@ public class ContractServiceImpl implements ContractService {
         // Check if amendment should be rejected (if anyone rejected, it's rejected)
         if (rejectedBy.size() > 0) {
             amendment.setStatus(ContractAmendment.AmendmentStatus.REJECTED);
+            // 🆕 Gửi thông báo khi yêu cầu bị từ chối
+            sendAmendmentRejectedNotification(amendment, currentUserId, reason);
         } else {
             // Check if all required approvals are received
             boolean landlordApproved = amendment.getApprovedByLandlord() != null && amendment.getApprovedByLandlord();
@@ -1669,6 +1677,8 @@ public class ContractServiceImpl implements ContractService {
                 } else {
                     applyAmendmentToContract(amendment);
                 }
+                // 🆕 Gửi thông báo khi yêu cầu được hoàn toàn duyệt
+                sendAmendmentApprovedNotification(amendment);
             } else {
                 amendment.setStatus(ContractAmendment.AmendmentStatus.PENDING);
             }
@@ -1848,15 +1858,15 @@ public class ContractServiceImpl implements ContractService {
      */
     private String getAmendmentTypeText(ContractAmendment.AmendmentType type) {
         switch (type) {
-            case RENT_INCREASE: return "Tăng tiền thuê";
-            case DEPOSIT_CHANGE: return "Thay đổi tiền cọc";
-            case TERMS_UPDATE: return "Cập nhật điều khoản";
-            case DURATION_EXTENSION: return "Gia hạn hợp đồng";
-            case RENTER_CHANGE: return "Thay đổi người thuê";
-            case PAYMENT_CYCLE_CHANGE: return "Thay đổi chu kỳ thanh toán";
-            case TERMINATION: return "Chấm dứt hợp đồng";
-            case OTHER: return "Thay đổi khác";
-            default: return type.name();
+            case RENT_INCREASE: return "thay đổi giá thuê";
+            case DEPOSIT_CHANGE: return "thay đổi tiền cọc";
+            case TERMS_UPDATE: return "thay đổi điều khoản";
+            case DURATION_EXTENSION: return "gia hạn hợp đồng";
+            case RENTER_CHANGE: return "thay đổi người thuê";
+            case PAYMENT_CYCLE_CHANGE: return "thay đổi kỳ thanh toán";
+            case TERMINATION: return "chấm dứt hợp đồng";
+            case OTHER: return "cập nhật hợp đồng";
+            default: return "thay đổi hợp đồng";
         }
     }
 
@@ -2427,6 +2437,173 @@ public class ContractServiceImpl implements ContractService {
         
         logger.info("Hoàn thành migrate ContractRenterInfo cho {} hợp đồng", migratedCount);
     }
+
+    // 🆕 Helper methods để gửi thông báo amendment
+    private void sendAmendmentApprovedNotification(ContractAmendment amendment) {
+        try {
+            Contract contract = amendment.getContract();
+            String amendmentTypeText = getAmendmentTypeText(amendment.getAmendmentType());
+            
+            // Gửi cho tất cả renters
+            if (contract.getRoomUsers() != null) {
+                for (RoomUser roomUser : contract.getRoomUsers()) {
+                    if (roomUser.getUser() != null && Boolean.TRUE.equals(roomUser.getIsActive())) {
+                        com.mpbhms.backend.dto.NotificationDTO notification = new com.mpbhms.backend.dto.NotificationDTO();
+                        notification.setRecipientId(roomUser.getUser().getId());
+                        notification.setTitle("Yêu cầu cập nhật hợp đồng đã được duyệt");
+                        notification.setMessage("Yêu cầu " + amendmentTypeText + " hợp đồng #" + contract.getId() + 
+                            " đã được chủ trọ và tất cả người thuê đồng ý. Thay đổi đã có hiệu lực.");
+                        notification.setType(com.mpbhms.backend.enums.NotificationType.ANNOUNCEMENT);
+                        notification.setMetadata("{\"contractId\":" + contract.getId() + ",\"amendmentId\":" + amendment.getId() + "}");
+                        notificationService.createAndSend(notification);
+                    }
+                }
+            }
+            
+            // Gửi cho landlord
+            if (contract.getRoom() != null && contract.getRoom().getLandlord() != null) {
+                com.mpbhms.backend.dto.NotificationDTO notification = new com.mpbhms.backend.dto.NotificationDTO();
+                notification.setRecipientId(contract.getRoom().getLandlord().getId());
+                notification.setTitle("Yêu cầu cập nhật hợp đồng đã được duyệt");
+                notification.setMessage("Yêu cầu " + amendmentTypeText + " hợp đồng #" + contract.getId() + 
+                    " đã được bạn và tất cả người thuê đồng ý. Thay đổi đã có hiệu lực.");
+                notification.setType(com.mpbhms.backend.enums.NotificationType.ANNOUNCEMENT);
+                notification.setMetadata("{\"contractId\":" + contract.getId() + ",\"amendmentId\":" + amendment.getId() + "}");
+                notificationService.createAndSend(notification);
+            }
+        } catch (Exception e) {
+            logger.error("Lỗi gửi thông báo amendment approved: {}", e.getMessage());
+        }
+    }
+
+    private void sendPartialApprovalNotification(ContractAmendment amendment, Long currentUserId, Boolean isLandlordApproval) {
+        try {
+            Contract contract = amendment.getContract();
+            String amendmentTypeText = getAmendmentTypeText(amendment.getAmendmentType());
+            
+            // Xác định ai đã duyệt
+            String approverName = "";
+            boolean isLandlord = isLandlordApproval != null && isLandlordApproval;
+            
+            if (isLandlord) {
+                approverName = "Chủ trọ";
+            } else {
+                // Tìm tên người thuê đã duyệt
+                if (contract.getRoomUsers() != null) {
+                    for (RoomUser roomUser : contract.getRoomUsers()) {
+                        if (roomUser.getUser() != null && roomUser.getUser().getId().equals(currentUserId)) {
+                            approverName = roomUser.getUser().getUserInfo() != null ? 
+                                roomUser.getUser().getUserInfo().getFullName() : roomUser.getUser().getUsername();
+                            break;
+                        }
+                    }
+                }
+                if (approverName.isEmpty()) {
+                    approverName = "Người thuê";
+                }
+            }
+
+            // Gửi cho tất cả renters (trừ người đã duyệt nếu là renter)
+            if (contract.getRoomUsers() != null) {
+                for (RoomUser roomUser : contract.getRoomUsers()) {
+                    if (roomUser.getUser() != null && Boolean.TRUE.equals(roomUser.getIsActive()) && 
+                        !roomUser.getUser().getId().equals(currentUserId)) {
+                        
+                        com.mpbhms.backend.dto.NotificationDTO notification = new com.mpbhms.backend.dto.NotificationDTO();
+                        notification.setRecipientId(roomUser.getUser().getId());
+                        notification.setTitle("Có người đã duyệt yêu cầu cập nhật hợp đồng");
+                        notification.setMessage(approverName + " đã chấp nhận yêu cầu " + amendmentTypeText + 
+                            " hợp đồng #" + contract.getId() + ". Đang chờ các bên khác xác nhận.");
+                        notification.setType(com.mpbhms.backend.enums.NotificationType.ANNOUNCEMENT);
+                        notification.setMetadata("{\"contractId\":" + contract.getId() + ",\"amendmentId\":" + amendment.getId() + "}");
+                        notificationService.createAndSend(notification);
+                    }
+                }
+            }
+            
+            // Gửi cho landlord (nếu không phải landlord đã duyệt)
+            if (!isLandlord && contract.getRoom() != null && contract.getRoom().getLandlord() != null) {
+                com.mpbhms.backend.dto.NotificationDTO notification = new com.mpbhms.backend.dto.NotificationDTO();
+                notification.setRecipientId(contract.getRoom().getLandlord().getId());
+                notification.setTitle("Có người đã duyệt yêu cầu cập nhật hợp đồng");
+                notification.setMessage(approverName + " đã chấp nhận yêu cầu " + amendmentTypeText + 
+                    " hợp đồng #" + contract.getId() + ". Đang chờ bạn xác nhận.");
+                notification.setType(com.mpbhms.backend.enums.NotificationType.ANNOUNCEMENT);
+                notification.setMetadata("{\"contractId\":" + contract.getId() + ",\"amendmentId\":" + amendment.getId() + "}");
+                notificationService.createAndSend(notification);
+            }
+        } catch (Exception e) {
+            logger.error("Lỗi gửi thông báo partial approval: {}", e.getMessage());
+        }
+    }
+
+    private void sendAmendmentRejectedNotification(ContractAmendment amendment, Long currentUserId, String reason) {
+        try {
+            Contract contract = amendment.getContract();
+            String amendmentTypeText = getAmendmentTypeText(amendment.getAmendmentType());
+            
+            // Xác định ai đã từ chối
+            String rejecterName = "";
+            boolean isLandlord = false;
+            
+            // Kiểm tra xem người từ chối có phải landlord không
+            if (contract.getRoom() != null && contract.getRoom().getLandlord() != null && 
+                contract.getRoom().getLandlord().getId().equals(currentUserId)) {
+                rejecterName = "Chủ trọ";
+                isLandlord = true;
+            } else {
+                // Tìm tên người thuê đã từ chối
+                if (contract.getRoomUsers() != null) {
+                    for (RoomUser roomUser : contract.getRoomUsers()) {
+                        if (roomUser.getUser() != null && roomUser.getUser().getId().equals(currentUserId)) {
+                            rejecterName = roomUser.getUser().getUserInfo() != null ? 
+                                roomUser.getUser().getUserInfo().getFullName() : roomUser.getUser().getUsername();
+                            break;
+                        }
+                    }
+                }
+                if (rejecterName.isEmpty()) {
+                    rejecterName = "Người thuê";
+                }
+            }
+
+            String rejectionMessage = rejecterName + " đã từ chối yêu cầu " + amendmentTypeText + 
+                " hợp đồng #" + contract.getId() + 
+                (reason != null && !reason.trim().isEmpty() ? ". Lý do: " + reason : ".");
+
+            // Gửi cho tất cả renters (trừ người đã từ chối nếu là renter)
+            if (contract.getRoomUsers() != null) {
+                for (RoomUser roomUser : contract.getRoomUsers()) {
+                    if (roomUser.getUser() != null && Boolean.TRUE.equals(roomUser.getIsActive()) && 
+                        !roomUser.getUser().getId().equals(currentUserId)) {
+                        
+                        com.mpbhms.backend.dto.NotificationDTO notification = new com.mpbhms.backend.dto.NotificationDTO();
+                        notification.setRecipientId(roomUser.getUser().getId());
+                        notification.setTitle("Yêu cầu cập nhật hợp đồng bị từ chối");
+                        notification.setMessage(rejectionMessage);
+                        notification.setType(com.mpbhms.backend.enums.NotificationType.ANNOUNCEMENT);
+                        notification.setMetadata("{\"contractId\":" + contract.getId() + ",\"amendmentId\":" + amendment.getId() + "}");
+                        notificationService.createAndSend(notification);
+                    }
+                }
+            }
+            
+            // Gửi cho landlord (nếu không phải landlord đã từ chối)
+            if (!isLandlord && contract.getRoom() != null && contract.getRoom().getLandlord() != null) {
+                com.mpbhms.backend.dto.NotificationDTO notification = new com.mpbhms.backend.dto.NotificationDTO();
+                notification.setRecipientId(contract.getRoom().getLandlord().getId());
+                notification.setTitle("Yêu cầu cập nhật hợp đồng bị từ chối");
+                notification.setMessage(rejectionMessage);
+                notification.setType(com.mpbhms.backend.enums.NotificationType.ANNOUNCEMENT);
+                notification.setMetadata("{\"contractId\":" + contract.getId() + ",\"amendmentId\":" + amendment.getId() + "}");
+                notificationService.createAndSend(notification);
+            }
+        } catch (Exception e) {
+            logger.error("Lỗi gửi thông báo amendment rejected: {}", e.getMessage());
+        }
+    }
+
+
 
 }
 

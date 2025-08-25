@@ -190,6 +190,13 @@ public class ServiceServiceImpl implements ServiceService {
             throw new BusinessException("Ngày hiệu lực phải cách ngày hiện tại ít nhất 5 ngày");
         }
         
+        // 🆕 Kiểm tra ngày hiệu lực không được trùng với giá đã tồn tại
+        if (servicePriceHistoryRepository.existsByServiceIdAndEffectiveDate(serviceId, request.getEffectiveDate())) {
+            throw new BusinessException("Đã tồn tại giá dịch vụ với ngày hiệu lực " + 
+                request.getEffectiveDate().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + 
+                ". Vui lòng chọn ngày hiệu lực khác.");
+        }
+        
         // Tạo lịch sử giá mới (chưa active)
         ServicePriceHistory priceHistory = new ServicePriceHistory();
         priceHistory.setService(service);
