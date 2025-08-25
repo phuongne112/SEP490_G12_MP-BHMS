@@ -65,12 +65,91 @@ export default function LandlordContractTemplateManager() {
 
   const handleSave = async (values) => {
     try {
-      await createOrUpdateTemplate({ ...editing, ...values, landlordId });
+      // Kiểm tra validation ở frontend trước khi gửi request
+      if (!values.name || values.name.trim() === '') {
+        message.error("Tên mẫu không được để trống hoặc chỉ chứa khoảng trắng");
+        form.setFields([
+          {
+            name: 'name',
+            errors: ['Tên mẫu không được để trống hoặc chỉ chứa khoảng trắng']
+          }
+        ]);
+        return;
+      }
+      
+      if (!values.content || values.content.trim() === '') {
+        message.error("Nội dung mẫu không được để trống hoặc chỉ chứa khoảng trắng");
+        form.setFields([
+          {
+            name: 'content',
+            errors: ['Nội dung mẫu không được để trống hoặc chỉ chứa khoảng trắng']
+          }
+        ]);
+        return;
+      }
+
+      // Trim khoảng trắng cho các trường
+      const cleanedValues = {
+        ...values,
+        name: values.name.trim(),
+        content: values.content.trim()
+      };
+
+      await createOrUpdateTemplate({ ...editing, ...cleanedValues, landlordId });
       message.success(editing?.id ? 'Cập nhật thành công!' : 'Tạo mới thành công!');
       setEditing(null);
       fetchTemplates();
     } catch (e) {
-      message.error('Lưu mẫu hợp đồng thất bại!');
+      console.error('Error saving template:', e);
+      
+      // Xử lý lỗi từ backend một cách chi tiết hơn
+      if (e.response?.data) {
+        const responseData = e.response.data;
+        
+        // Xử lý lỗi validation cụ thể từ backend
+        if (responseData.message && responseData.message.includes('Validation failed')) {
+          // Tìm lỗi validation trong constraint violations
+          if (responseData.message.includes('name')) {
+            message.error("Tên mẫu không hợp lệ. Vui lòng kiểm tra lại!");
+            form.setFields([
+              {
+                name: 'name',
+                errors: ['Tên mẫu không hợp lệ']
+              }
+            ]);
+          } else if (responseData.message.includes('content')) {
+            message.error("Nội dung mẫu không hợp lệ. Vui lòng kiểm tra lại!");
+            form.setFields([
+              {
+                name: 'content',
+                errors: ['Nội dung mẫu không hợp lệ']
+              }
+            ]);
+          } else {
+            message.error("Thông tin nhập vào không hợp lệ. Vui lòng kiểm tra lại!");
+          }
+        } else if (responseData.message) {
+          // Hiển thị thông báo lỗi chính từ backend
+          message.error(responseData.message);
+        } else {
+          message.error("Lưu mẫu hợp đồng thất bại! Vui lòng thử lại.");
+        }
+        
+        // Xử lý lỗi validation cho từng trường
+        if (responseData.data && typeof responseData.data === "object") {
+          const fieldErrors = Object.entries(responseData.data).map(([field, errorMsg]) => ({
+            name: field,
+            errors: [errorMsg],
+          }));
+          
+          if (fieldErrors.length > 0) {
+            form.setFields(fieldErrors);
+          }
+        }
+      } else {
+        // Lỗi khác
+        message.error(e.message || "Lưu mẫu hợp đồng thất bại! Vui lòng thử lại.");
+      }
     }
   };
 
@@ -80,7 +159,22 @@ export default function LandlordContractTemplateManager() {
       message.success('Đã xóa mẫu hợp đồng!');
       fetchTemplates();
     } catch (e) {
-      message.error('Xóa thất bại!');
+      console.error('Error deleting template:', e);
+      
+      // Xử lý lỗi từ backend một cách chi tiết hơn
+      if (e.response?.data) {
+        const responseData = e.response.data;
+        
+        if (responseData.message) {
+          // Hiển thị thông báo lỗi chính từ backend
+          message.error(responseData.message);
+        } else {
+          message.error("Xóa mẫu hợp đồng thất bại! Vui lòng thử lại.");
+        }
+      } else {
+        // Lỗi khác
+        message.error(e.message || "Xóa mẫu hợp đồng thất bại! Vui lòng thử lại.");
+      }
     }
   };
 
@@ -90,7 +184,22 @@ export default function LandlordContractTemplateManager() {
       message.success('Đã đặt làm mẫu mặc định!');
       fetchTemplates();
     } catch (e) {
-      message.error('Cập nhật thất bại!');
+      console.error('Error setting default template:', e);
+      
+      // Xử lý lỗi từ backend một cách chi tiết hơn
+      if (e.response?.data) {
+        const responseData = e.response.data;
+        
+        if (responseData.message) {
+          // Hiển thị thông báo lỗi chính từ backend
+          message.error(responseData.message);
+        } else {
+          message.error("Đặt mẫu mặc định thất bại! Vui lòng thử lại.");
+        }
+      } else {
+        // Lỗi khác
+        message.error(e.message || "Đặt mẫu mặc định thất bại! Vui lòng thử lại.");
+      }
     }
   };
 
@@ -411,11 +520,56 @@ export default function LandlordContractTemplateManager() {
                 layout="vertical"
                 id="template-form"
               >
-                <Form.Item name="name" label="Tên mẫu" rules={[{ required: true, message: 'Vui lòng nhập tên mẫu!' }]}>
-                  <Input />
+                <Form.Item 
+                  name="name" 
+                  label="Tên mẫu" 
+                  rules={[
+                    { required: true, message: 'Vui lòng nhập tên mẫu!' },
+                    {
+                      validator: (_, value) => {
+                        if (!value || value.trim() === '') {
+                          return Promise.reject(new Error('Tên mẫu không được để trống hoặc chỉ chứa khoảng trắng'));
+                        }
+                        if (value.trim().length < 2) {
+                          return Promise.reject(new Error('Tên mẫu phải có ít nhất 2 ký tự'));
+                        }
+                        if (value.trim().length > 100) {
+                          return Promise.reject(new Error('Tên mẫu không được quá 100 ký tự'));
+                        }
+                        return Promise.resolve();
+                      },
+                      validateTrigger: ['onBlur', 'onChange']
+                    }
+                  ]}
+                >
+                  <Input placeholder="Nhập tên mẫu hợp đồng" />
                 </Form.Item>
-                <Form.Item name="content" label="Nội dung mẫu (HTML, hỗ trợ biến Handlebars)" rules={[{ required: true, message: 'Vui lòng nhập nội dung mẫu!' }]}>
-                  <Input.TextArea rows={isMobile ? 8 : 12} />
+                <Form.Item 
+                  name="content" 
+                  label="Nội dung mẫu (HTML, hỗ trợ biến Handlebars)" 
+                  rules={[
+                    { required: true, message: 'Vui lòng nhập nội dung mẫu!' },
+                    {
+                      validator: (_, value) => {
+                        if (!value || value.trim() === '') {
+                          return Promise.reject(new Error('Nội dung mẫu không được để trống hoặc chỉ chứa khoảng trắng'));
+                        }
+                        if (value.trim().length < 10) {
+                          return Promise.reject(new Error('Nội dung mẫu phải có ít nhất 10 ký tự'));
+                        }
+                        if (value.trim().length > 10000) {
+                          return Promise.reject(new Error('Nội dung mẫu không được quá 10,000 ký tự'));
+                        }
+                        return Promise.resolve();
+                      },
+                      validateTrigger: ['onBlur', 'onChange']
+                    }
+                  ]}
+                >
+                  <Input.TextArea 
+                    rows={isMobile ? 8 : 12} 
+                    placeholder="Nhập nội dung mẫu hợp đồng (hỗ trợ HTML và biến Handlebars)"
+                  />
                 </Form.Item>
               </Form>
               <div style={{ marginTop: 16, fontSize: isMobile ? 11 : 13, color: '#888' }}>

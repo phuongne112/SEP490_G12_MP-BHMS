@@ -38,10 +38,40 @@ export default function LandlordAddAssetModal({ open, onClose, onSuccess, asset,
 
   const doUpdate = async (values) => {
     try {
+      // Kiểm tra validation ở frontend trước khi gửi request
+      if (!values.assetName || values.assetName.trim() === '') {
+        message.error("Tên tài sản không được để trống hoặc chỉ chứa khoảng trắng");
+        form.setFields([
+          {
+            name: 'assetName',
+            errors: ['Tên tài sản không được để trống hoặc chỉ chứa khoảng trắng']
+          }
+        ]);
+        setLoading(false);
+        return;
+      }
+      
+      if (!values.quantity || values.quantity <= 0) {
+        message.error("Số lượng phải lớn hơn 0");
+        form.setFields([
+          {
+            name: 'quantity',
+            errors: ['Số lượng phải lớn hơn 0']
+          }
+        ]);
+        setLoading(false);
+        return;
+      }
+
       const formData = new FormData();
       Object.entries(values).forEach(([key, value]) => {
         if (key !== "assetImage") {
-          formData.append(key, value);
+          // Trim khoảng trắng cho tên tài sản
+          if (key === "assetName") {
+            formData.append(key, value.trim());
+          } else {
+            formData.append(key, value);
+          }
         }
       });
       if (fileList.length > 0 && fileList[0].originFileObj) {
@@ -62,14 +92,87 @@ export default function LandlordAddAssetModal({ open, onClose, onSuccess, asset,
       onClose();
     } catch (err) {
       console.error("[AssetModal] Error:", err);
-      message.error(err.response?.data?.message || "Lưu tài sản thất bại");
+      
+      // Xử lý lỗi từ backend một cách chi tiết hơn
+      if (err.response?.data) {
+        const responseData = err.response.data;
+        
+        // Xử lý lỗi validation cụ thể từ backend
+        if (responseData.message && responseData.message.includes('Validation failed')) {
+          // Tìm lỗi validation trong constraint violations
+          if (responseData.message.includes('assetName')) {
+            message.error("Tên tài sản không hợp lệ. Vui lòng kiểm tra lại!");
+            form.setFields([
+              {
+                name: 'assetName',
+                errors: ['Tên tài sản không hợp lệ']
+              }
+            ]);
+          } else if (responseData.message.includes('quantity')) {
+            message.error("Số lượng không hợp lệ. Vui lòng kiểm tra lại!");
+            form.setFields([
+              {
+                name: 'quantity',
+                errors: ['Số lượng không hợp lệ']
+              }
+            ]);
+          } else {
+            message.error("Thông tin nhập vào không hợp lệ. Vui lòng kiểm tra lại!");
+          }
+        } else if (responseData.message) {
+          // Hiển thị thông báo lỗi chính từ backend
+          message.error(responseData.message);
+        } else {
+          message.error("Lưu tài sản thất bại! Vui lòng thử lại.");
+        }
+        
+        // Xử lý lỗi validation cho từng trường
+        if (responseData.data && typeof responseData.data === "object") {
+          const fieldErrors = Object.entries(responseData.data).map(([field, errorMsg]) => ({
+            name: field === "assetName" ? "assetName" : field === "quantity" ? "quantity" : field,
+            errors: [errorMsg],
+          }));
+          
+          if (fieldErrors.length > 0) {
+            form.setFields(fieldErrors);
+          }
+        }
+      } else {
+        // Lỗi khác
+        message.error(err.message || "Lưu tài sản thất bại! Vui lòng thử lại.");
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
+      
+      // Kiểm tra validation bổ sung trước khi submit
+      if (!values.assetName || values.assetName.trim() === '') {
+        message.error("Tên tài sản không được để trống hoặc chỉ chứa khoảng trắng");
+        form.setFields([
+          {
+            name: 'assetName',
+            errors: ['Tên tài sản không được để trống hoặc chỉ chứa khoảng trắng']
+          }
+        ]);
+        return;
+      }
+      
+      if (!values.quantity || values.quantity <= 0) {
+        message.error("Số lượng phải lớn hơn 0");
+        form.setFields([
+          {
+            name: 'quantity',
+            errors: ['Số lượng phải lớn hơn 0']
+          }
+        ]);
+        return;
+      }
+      
       if (mode === "edit") {
         Modal.confirm({
           title: "Bạn có chắc muốn cập nhật tài sản này không?",
@@ -83,7 +186,11 @@ export default function LandlordAddAssetModal({ open, onClose, onSuccess, asset,
         await doUpdate(values);
       }
     } catch (err) {
-      // validation error
+      // Validation error từ form rules
+      if (err?.errorFields) {
+        console.log('Form validation failed:', err);
+        message.error("Vui lòng kiểm tra lại thông tin nhập vào!");
+      }
     }
   };
 
@@ -102,6 +209,18 @@ export default function LandlordAddAssetModal({ open, onClose, onSuccess, asset,
           label="Tên tài sản"
           rules={[
             { required: true, message: "Vui lòng nhập tên tài sản" },
+            {
+              validator: (_, value) => {
+                if (!value || value.trim() === '') {
+                  return Promise.reject(new Error('Tên tài sản không được để trống hoặc chỉ chứa khoảng trắng'));
+                }
+                if (value.trim().length < 2) {
+                  return Promise.reject(new Error('Tên tài sản phải có ít nhất 2 ký tự'));
+                }
+                return Promise.resolve();
+              },
+              validateTrigger: ['onBlur', 'onChange']
+            },
             {
               validator: async (_, value) => {
                 if (!value || value.trim() === '') {
@@ -126,14 +245,37 @@ export default function LandlordAddAssetModal({ open, onClose, onSuccess, asset,
             }
           ]}
         >
-          <Input />
+          <Input placeholder="Nhập tên tài sản" />
         </Form.Item>
         <Form.Item
           name="quantity"
           label="Số lượng"
-          rules={[{ required: true, message: "Vui lòng nhập số lượng" }]}
+          rules={[
+            { required: true, message: "Vui lòng nhập số lượng" },
+            {
+              validator: (_, value) => {
+                if (!value || value === null || value === undefined) {
+                  return Promise.reject(new Error('Vui lòng nhập số lượng'));
+                }
+                if (value <= 0) {
+                  return Promise.reject(new Error('Số lượng phải lớn hơn 0'));
+                }
+                if (!Number.isInteger(value)) {
+                  return Promise.reject(new Error('Số lượng phải là số nguyên'));
+                }
+                return Promise.resolve();
+              },
+              validateTrigger: ['onBlur', 'onChange']
+            }
+          ]}
         >
-          <InputNumber min={1} style={{ width: "100%" }} />
+          <InputNumber 
+            min={1} 
+            style={{ width: "100%" }} 
+            placeholder="Nhập số lượng"
+            step={1}
+            precision={0}
+          />
         </Form.Item>
         <Form.Item name="conditionNote" label="Ghi chú tình trạng">
           <Input.TextArea />

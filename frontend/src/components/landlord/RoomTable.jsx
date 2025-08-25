@@ -1070,29 +1070,41 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
                   >
                     Sửa
                   </Button>
-                  <Button
-                    type="primary"
-                    danger
-                    style={{ borderRadius: 6, minWidth: 90, height: 38 }}
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      if (window.confirm("Bạn có chắc muốn xóa phòng này không?")) {
-                        try {
-                          await deleteRoom(room.id);
-                          message.success("Xóa phòng thành công");
-                          if (onRoomsUpdate) onRoomsUpdate();
-                        } catch (e) {
-                          const backendMsg =
-                            e?.response?.data?.message ||
-                            e?.response?.data?.error ||
-                            "Xóa phòng thất bại";
-                          message.error(backendMsg);
-                        }
-                      }
-                    }}
-                  >
-                    Xóa
-                  </Button>
+                                     <Popconfirm
+                     title="Bạn có chắc muốn xóa phòng này không?"
+                     description="Hành động này không thể hoàn tác"
+                     onConfirm={async () => {
+                       try {
+                         await deleteRoom(room.id);
+                         message.success("Xóa phòng thành công");
+                         
+                         // Chuyển về trang danh sách phòng chính sau khi xóa thành công
+                         navigate('/landlord/rooms');
+                         
+                         // Cập nhật danh sách phòng nếu cần
+                         if (onRoomsUpdate) onRoomsUpdate();
+                       } catch (e) {
+                         const backendMsg =
+                           e?.response?.data?.message ||
+                           e?.response?.data?.error ||
+                           "Xóa phòng thất bại";
+                         message.error(backendMsg);
+                       }
+                     }}
+                     okText="Xóa"
+                     cancelText="Hủy"
+                     okType="danger"
+                     placement="top"
+                   >
+                    <Button
+                      type="primary"
+                      danger
+                      style={{ borderRadius: 6, minWidth: 90, height: 38 }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Xóa
+                    </Button>
+                  </Popconfirm>
                   <Dropdown
                     overlay={statusMenu(room)}
                     trigger={["click"]}

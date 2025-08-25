@@ -55,14 +55,38 @@ export const createPersonalInfo = async (data) => {
 export const getUserStats = async () => {
   const res = await getAllUsers(0, 1000);
   const users = res?.result || [];
-  const stats = { total: 0, admin: 0, renter: 0, guest: 0 };
-  users.forEach(u => {
-    const role = u.role?.roleName?.toUpperCase?.() || "GUEST";
-    if (role === "ADMIN") stats.admin++;
-    else if (role === "RENTER") stats.renter++;
+
+  const stats = {
+    total: 0,
+    admin: 0,
+    renter: 0,
+    guest: 0,
+    active: 0,
+    inactive: 0,
+    byRole: {},
+  };
+
+  const knownRoles = ["ADMIN", "SUBADMIN", "LANDLORD", "RENTER", "GUEST"];
+  knownRoles.forEach((r) => { stats.byRole[r] = 0; });
+
+  users.forEach((user) => {
+    const roleName = (user.role?.roleName || "GUEST").toUpperCase();
+
+    // Legacy named fields for existing UI
+    if (roleName === "ADMIN") stats.admin++;
+    else if (roleName === "RENTER") stats.renter++;
     else stats.guest++;
+
+    // Generic grouping by role for charts (ensure unknown still counted with its name)
+    stats.byRole[roleName] = (stats.byRole[roleName] || 0) + 1;
+
+    // Account status
+    if (user.isActive) stats.active++;
+    else stats.inactive++;
+
     stats.total++;
   });
+
   return stats;
 };
 
