@@ -883,7 +883,8 @@ export default function LandlordRenterListPage() {
                                   key={`issueDate-${forceUpdate}`}
                                   defaultValue={ocrIssueDate}
                                   defaultPickerValue={dayjs()}
-                                  inputReadOnly
+                                  inputReadOnly={false}
+                                  allowClear
                                   onChange={(date) => {
                                     addForm.setFieldsValue({ nationalIDIssueDate: date });
                                   }}
