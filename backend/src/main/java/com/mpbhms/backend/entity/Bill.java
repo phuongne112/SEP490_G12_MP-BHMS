@@ -114,12 +114,26 @@ public class Bill extends BaseEntity {
     // Phương thức để tính toán outstanding amount
     public void calculateOutstandingAmount() {
         if (this.totalAmount != null) {
+            // 🆕 Nếu hóa đơn đã được đánh dấu là thanh toán hoàn toàn, thì outstandingAmount = 0
+            if (Boolean.TRUE.equals(this.status)) {
+                this.outstandingAmount = BigDecimal.ZERO;
+                this.isPartiallyPaid = false;
+                
+                // Debug logging
+                System.out.println("🧮 calculateOutstandingAmount - Hóa đơn đã thanh toán hoàn toàn:");
+                System.out.println("  - status: " + this.status);
+                System.out.println("  - outstandingAmount: " + this.outstandingAmount);
+                System.out.println("  - isPartiallyPaid: " + this.isPartiallyPaid);
+                return;
+            }
+            
+            // Nếu chưa thanh toán hoàn toàn, tính toán bình thường
             BigDecimal paidAmountSafe = this.paidAmount != null ? this.paidAmount : BigDecimal.ZERO;
             this.outstandingAmount = this.totalAmount.subtract(paidAmountSafe);
             this.isPartiallyPaid = this.outstandingAmount.compareTo(BigDecimal.ZERO) > 0 && paidAmountSafe.compareTo(BigDecimal.ZERO) > 0;
             
             // Debug logging
-            System.out.println("🧮 calculateOutstandingAmount:");
+            System.out.println("🧮 calculateOutstandingAmount - Hóa đơn chưa thanh toán hoàn toàn:");
             System.out.println("  - totalAmount: " + this.totalAmount);
             System.out.println("  - paidAmount: " + paidAmountSafe);
             System.out.println("  - outstandingAmount: " + this.outstandingAmount);

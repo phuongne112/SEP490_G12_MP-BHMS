@@ -21,7 +21,7 @@ public class ContractTerm {
     private Contract contract;
 
     @NotBlank(message = "Nội dung điều khoản không được để trống")
-    @Size(min = 10, max = 2000, message = "Điều khoản phải có độ dài từ 10 đến 2000 ký tự")
+    @Size(min = 10, max = 200, message = "Điều khoản phải có độ dài từ 10 đến 200 ký tự")
     @Lob
     @Column(name = "content", nullable = false)
     private String content;

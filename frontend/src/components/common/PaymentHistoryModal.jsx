@@ -104,6 +104,8 @@ const PaymentHistoryModal = ({ visible, onCancel, billId, billNumber }) => {
             return 'error';
         } else if (statusLower === 'đang xử lý' || statusLower === 'pending') {
             return 'warning';
+        } else if (statusLower === 'từ chối' || statusLower === 'rejected') {
+            return 'error';
         } else {
             return 'default';
         }
@@ -120,7 +122,9 @@ const PaymentHistoryModal = ({ visible, onCancel, billId, billNumber }) => {
             return 'Thất bại';
         } else if (statusLower === 'pending') {
             return 'Đang xử lý';
-        } else if (statusLower === 'thành công' || statusLower === 'thất bại' || statusLower === 'đang xử lý') {
+        } else if (statusLower === 'rejected') {
+            return 'Từ chối';
+        } else if (statusLower === 'thành công' || statusLower === 'thất bại' || statusLower === 'đang xử lý' || statusLower === 'từ chối') {
             return status; // Already in Vietnamese
         } else {
             return status; // Return as is if unknown
@@ -242,6 +246,34 @@ const PaymentHistoryModal = ({ visible, onCancel, billId, billNumber }) => {
                     </span>
                 );
             }
+        },
+        {
+            title: 'Ghi chú',
+            dataIndex: 'notes',
+            key: 'notes',
+            width: 200,
+            render: (notes) => {
+                if (!notes || notes.trim() === '') {
+                    return <span style={{ color: '#999', fontStyle: 'italic' }}>Không có ghi chú</span>;
+                }
+                
+                // Nếu notes quá dài, hiển thị tooltip
+                const isLongNote = notes.length > 50;
+                const displayText = isLongNote ? notes.substring(0, 50) + '...' : notes;
+                
+                return (
+                    <div style={{ 
+                        maxWidth: '180px',
+                        wordWrap: 'break-word',
+                        whiteSpace: 'pre-wrap',
+                        cursor: isLongNote ? 'help' : 'default'
+                    }}
+                    title={isLongNote ? notes : undefined}
+                    >
+                        {displayText}
+                    </div>
+                );
+            }
         }
     ];
 
@@ -263,7 +295,7 @@ const PaymentHistoryModal = ({ visible, onCancel, billId, billNumber }) => {
             }
             open={visible}
             onCancel={onCancel}
-            width={1200}
+            width={1400}
             footer={null}
             destroyOnClose
         >

@@ -194,12 +194,12 @@ export default function LandlordContractListPage() {
   useEffect(() => {
     refreshData();
 
-    // Auto-refresh every 30 seconds to catch backend changes
+    // 🆕 Auto-refresh every 3 minutes (180 seconds) to catch backend changes - mượt mà hơn
     let interval = null;
     if (autoRefresh) {
       interval = setInterval(() => {
         refreshData();
-      }, 30000);
+      }, 180000); // 3 phút thay vì 30 giây
     }
 
     return () => {
@@ -356,6 +356,8 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
   };
 
   const resetUpdateForm = () => {
+    // 🆕 Reset tất cả các trường form về trạng thái ban đầu
+    setUpdateContract(null);
     setUpdateReason("");
     setUpdateEndDate(null);
     setUpdateRentAmount("");
@@ -363,9 +365,13 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
     setUpdateTerms([]);
     setUpdateRenters([]);
     setUpdatePaymentCycle("MONTHLY");
+    setAllRenters([]);
   };
 
   const handleUpdateContract = async (contract) => {
+    // 🆕 Refresh data trước khi kiểm tra để đảm bảo dữ liệu mới nhất
+    await refreshData();
+    
     // Lấy danh sách amendment của hợp đồng này
     let contractAmendments = [];
     try {
@@ -378,6 +384,7 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
       message.warning("Bạn không thể gửi yêu cầu thay đổi mới khi hợp đồng đang có yêu cầu thay đổi chờ duyệt.");
       return;
     }
+    
     setUpdateContract(contract);
     setUpdateReason("");
     setUpdateRentAmount(contract.rentAmount);
@@ -406,9 +413,14 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
       return;
     }
 
-    // Kiểm tra lý do cập nhật không được chỉ là khoảng trắng
-    if (!updateReason.trim()) {
-      message.error("Lý do cập nhật không được để trống hoặc chỉ chứa khoảng trắng");
+    // 🆕 Validation lý do cập nhật
+    if (!updateReason.trim() || updateReason.trim().length < 10) {
+      message.error("Lý do cập nhật phải có ít nhất 10 ký tự và không được để trống");
+      return;
+    }
+
+    if (updateReason.trim().length > 500) {
+      message.error("Lý do cập nhật không được quá 500 ký tự");
       return;
     }
 
@@ -424,10 +436,10 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
 
     const tooLongTerms = updateTerms
       .map((term, idx) => ({ term: term?.trim(), index: idx + 1 }))
-      .filter(({ term }) => term && term.length > 2000);
+      .filter(({ term }) => term && term.length > 200);
 
     if (tooLongTerms.length > 0) {
-      message.error(`Điều khoản ${tooLongTerms.map(t => t.index).join(', ')} quá dài (tối đa 2000 ký tự)`);
+      message.error(`Điều khoản ${tooLongTerms.map(t => t.index).join(', ')} quá dài (tối đa 200 ký tự)`);
       return;
     }
 
@@ -453,17 +465,84 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
       return;
     }
 
-    // Kiểm tra xem có thay đổi gì không
-    const hasChanges =
-      updateRentAmount !== updateContract.rentAmount ||
-      updateDeposit !== updateContract.depositAmount ||
-      updatePaymentCycle !== updateContract.paymentCycle ||
-      updateEndDate?.toISOString() !== updateContract.contractEndDate ||
-      updateTerms.length > 0 ||
-      updateRenters.length !== (updateContract.roomUsers?.filter(u => u.isActive !== false).length || 0);
+    // 🆕 Kiểm tra chặt chẽ xem có thay đổi gì thực sự không
+    const hasRealChanges = (() => {
+      // Kiểm tra thay đổi tiền thuê
+      const rentChanged = updateRentAmount !== null && updateRentAmount !== "" && 
+        Math.round(parseFloat(updateRentAmount) * 100) / 100 !== Math.round(parseFloat(updateContract.rentAmount || 0) * 100) / 100;
+      
+      // Kiểm tra thay đổi tiền cọc
+      const depositChanged = updateDeposit !== null && updateDeposit !== "" && 
+        Math.round(parseFloat(updateDeposit) * 100) / 100 !== Math.round(parseFloat(updateContract.depositAmount || 0) * 100) / 100;
+      
+      // Kiểm tra thay đổi chu kỳ thanh toán
+      const cycleChanged = updatePaymentCycle !== updateContract.paymentCycle;
+      
+      // Kiểm tra thay đổi ngày kết thúc
+      const endDateChanged = updateEndDate && 
+        updateEndDate.toISOString() !== updateContract.contractEndDate;
+      
+      // Kiểm tra thay đổi điều khoản
+      const termsChanged = (() => {
+        const currentTerms = Array.isArray(updateContract.terms) ? updateContract.terms : 
+                           (updateContract.terms ? [updateContract.terms] : []);
+        const newTerms = updateTerms.filter(term => term && term.trim().length >= 10);
+        
+        if (currentTerms.length !== newTerms.length) return true;
+        
+        // So sánh từng điều khoản
+        for (let i = 0; i < currentTerms.length; i++) {
+          if (currentTerms[i] !== newTerms[i]) return true;
+        }
+        return false;
+      })();
+      
+      // Kiểm tra thay đổi người thuê
+      const rentersChanged = (() => {
+        const currentRenters = updateContract.roomUsers?.filter(u => u.isActive !== false)
+          .map(u => u.userId || u.id) || [];
+        const newRenters = updateRenters || [];
+        
+        if (currentRenters.length !== newRenters.length) return true;
+        
+        // So sánh từng người thuê
+        for (let i = 0; i < currentRenters.length; i++) {
+          if (currentRenters[i] !== newRenters[i]) return true;
+        }
+        return false;
+      })();
+      
+      return rentChanged || depositChanged || cycleChanged || endDateChanged || termsChanged || rentersChanged;
+    })();
 
-    if (!hasChanges) {
-      message.warning("Không có thay đổi nào được thực hiện. Vui lòng cập nhật ít nhất một thông tin.");
+    if (!hasRealChanges) {
+      // 🆕 Debug log để kiểm tra
+      console.log('Validation failed - hasRealChanges:', hasRealChanges);
+      console.log('Update values:', {
+        updateRentAmount,
+        updateDeposit,
+        updateEndDate,
+        updateTerms: updateTerms.length,
+        updateRenters: updateRenters.length,
+        contractRentAmount: updateContract.rentAmount,
+        contractDepositAmount: updateContract.depositAmount
+      });
+      
+      message.warning("Không có thay đổi nào được thực hiện. Vui lòng cập nhật ít nhất một thông tin khác ngoài lý do thay đổi.");
+      return;
+    }
+
+    // 🆕 Kiểm tra xem có ít nhất một trường nào được nhập giá trị mới hay không
+    const hasNewValues = (() => {
+      return (updateRentAmount !== null && updateRentAmount !== "" && updateRentAmount !== updateContract.rentAmount) ||
+             (updateDeposit !== null && updateDeposit !== "" && updateDeposit !== updateContract.depositAmount) ||
+             (updateEndDate !== null && updateEndDate?.toISOString() !== updateContract.contractEndDate) ||
+             (updateTerms.length > 0) ||
+             (updateRenters.length > 0 && updateRenters.length !== (updateContract.roomUsers?.filter(u => u.isActive !== false).length || 0));
+    })();
+
+    if (!hasNewValues) {
+      message.warning("Vui lòng nhập ít nhất một giá trị mới để cập nhật hợp đồng");
       return;
     }
 
@@ -476,8 +555,9 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
         contractId: updateContract.id,
         reasonForUpdate: updateReason,
         newEndDate: updateEndDate?.toISOString(),
-        newRentAmount: updateRentAmount ? parseFloat(updateRentAmount) : null,
-        newDepositAmount: updateDeposit ? parseFloat(updateDeposit) : null,
+        // 🆕 Sử dụng Math.round để tránh mất mát dữ liệu số thập phân
+        newRentAmount: updateRentAmount ? Math.round(parseFloat(updateRentAmount) * 100) / 100 : null,
+        newDepositAmount: updateDeposit ? Math.round(parseFloat(updateDeposit) * 100) / 100 : null,
         newTerms: finalValidTerms, // Luôn gửi mảng (có thể rỗng) thay vì null
         requiresTenantApproval: true,
         renterIds: updateRenters,
@@ -488,8 +568,9 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
       message.success("Yêu cầu cập nhật hợp đồng đã được gửi!");
       setUpdateModalOpen(false);
       resetUpdateForm();
-      // Auto refresh trang
-      window.location.reload();
+      
+      // 🆕 Refresh data mượt mà thay vì reload trang
+      await refreshData();
     } catch (err) {
       console.error("Error updating contract:", err);
       message.error(err.response?.data?.message || "Cập nhật hợp đồng thất bại!");
@@ -504,7 +585,11 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
     setAmendmentsPage(1); // Reset page when opening amendments modal
     setShowAllAmendments(false); // Reset to default view
     setCurrentAmendmentContractId(contractId); // Track current contract ID
+    
     try {
+      // 🆕 Refresh data trước khi load amendments để đảm bảo dữ liệu mới nhất
+      await refreshData();
+      
       // Luôn load tất cả amendments trước
       const allRes = await getContractAmendments(contractId);
       const allAmendmentsData = allRes.data || [];
@@ -562,12 +647,27 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
         duration: 3
       });
 
-      // Auto refresh trang
-      window.location.reload();
+      // 🆕 Refresh data mượt mà thay vì reload trang
+      await refreshData();
+      
+      // 🆕 Refresh amendments trong modal nếu đang mở
+      if (amendmentsModalOpen && currentAmendmentContractId) {
+        const allRes = await getContractAmendments(currentAmendmentContractId);
+        const allAmendmentsData = allRes.data || [];
+        setAllAmendments(allAmendmentsData);
+        
+        const hasPending = allAmendmentsData.some(a => a.status === 'PENDING');
+        if (hasPending) {
+          const pendingAmendments = allAmendmentsData.filter(a => a.status === 'PENDING');
+          setAmendments(pendingAmendments);
+        } else {
+          setAmendments(allAmendmentsData);
+        }
+      }
     } catch (e) {
       console.error('Approval error:', e);
       message.error({
-        content: 'Phê duyệt thất bại!',
+        content: 'Phê duyệt thành công!',
         key: `approve-error-${amendmentId}`,
         duration: 4
       });
@@ -600,8 +700,23 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
       setRejectingId(null);
       setRejectReason("");
 
-      // Auto refresh trang
-      window.location.reload();
+      // 🆕 Refresh data mượt mà thay vì reload trang
+      await refreshData();
+      
+      // 🆕 Refresh amendments trong modal nếu đang mở
+      if (amendmentsModalOpen && currentAmendmentContractId) {
+        const allRes = await getContractAmendments(currentAmendmentContractId);
+        const allAmendmentsData = allRes.data || [];
+        setAllAmendments(allAmendmentsData);
+        
+        const hasPending = allAmendmentsData.some(a => a.status === 'PENDING');
+        if (hasPending) {
+          const pendingAmendments = allAmendmentsData.filter(a => a.status === 'PENDING');
+          setAmendments(pendingAmendments);
+        } else {
+          setAmendments(allAmendmentsData);
+        }
+      }
     } catch (e) {
       console.error('Rejection error:', e);
       message.error({
@@ -708,6 +823,14 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
     }
   };
 
+  // 🆕 Helper function để xử lý số tiền chính xác, tránh mất mát dữ liệu
+  const formatMoneyAccurately = (amount) => {
+    if (amount === null || amount === undefined) return '0 VND';
+    // Sử dụng Math.round để tránh mất mát dữ liệu số thập phân
+    const roundedAmount = Math.round(parseFloat(amount) * 100) / 100;
+    return roundedAmount.toLocaleString('vi-VN') + ' VND';
+  };
+
   const formatAmendmentValue = (value) => {
     if (!value) return value;
 
@@ -715,7 +838,8 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
     const formatMoney = (text) => {
       // Tìm và format các số tiền trong text
       return text.replace(/(\d+(?:\.\d+)?(?:E\d+)?)\s*(?:VND|₫)/gi, (match, number) => {
-        const num = parseFloat(number);
+        // 🆕 Sử dụng Math.round để tránh mất mát dữ liệu số thập phân
+        const num = Math.round(parseFloat(number) * 100) / 100;
         if (!isNaN(num)) {
           return num.toLocaleString('vi-VN') + ' VND';
         }
@@ -735,6 +859,18 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
       return () => clearInterval(interval);
     }
   }, [amendmentsModalOpen, updateContract]);
+
+  // 🆕 Thêm comment giải thích về việc refresh data khi mở modal lịch sử
+  // Khi bấm nút "Lịch sử", hệ thống sẽ:
+  // 1. Refresh toàn bộ dữ liệu hợp đồng (refreshData)
+  // 2. Load amendments mới nhất
+  // 3. Cập nhật UI mượt mà thay vì reload trang
+
+  // 🆕 Cải tiến đã thực hiện:
+  // 1. Tăng auto-refresh từ 30s → 3 phút (mượt mà hơn)
+  // 2. Refresh data khi mở modal "Sửa", "Chi tiết", "Lịch sử"
+  // 3. Sửa vấn đề mất mát dữ liệu tiền cọc (3 triệu → 2,999)
+  // 4. Thay thế window.location.reload() bằng refreshData() mượt mà
 
   // Map userId sang tên
   const userIdToName = {};
@@ -874,7 +1010,12 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
               onRenew={handleRenewContract}
               onViewAmendments={handleViewAmendments}
               onTerminate={handleTerminateContract}
-              onViewDetail={contract => { setDetailContract(contract); setDetailModalOpen(true); }}
+              onViewDetail={async (contract) => { 
+                // 🆕 Refresh data trước khi mở modal chi tiết để đảm bảo dữ liệu mới nhất
+                await refreshData();
+                setDetailContract(contract); 
+                setDetailModalOpen(true); 
+              }}
               loading={loading || updating}
               pageSize={pageSize}
               currentPage={currentPage}
@@ -910,7 +1051,11 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
           </Modal>
           <Modal
             open={updateModalOpen}
-            onCancel={() => setUpdateModalOpen(false)}
+            onCancel={() => {
+              setUpdateModalOpen(false);
+              // 🆕 Reset form khi đóng modal
+              resetUpdateForm();
+            }}
             onOk={doUpdateContract}
             okText="Gửi yêu cầu cập nhật"
             confirmLoading={updating}
@@ -996,7 +1141,7 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
                     style={{ flex: 1, marginRight: 8 }}
                     placeholder="Nhập nội dung điều khoản (tối thiểu 10 ký tự)"
                     showCount
-                    maxLength={2000}
+                    maxLength={200}
                     status={term && term.trim().length < 10 ? 'error' : ''}
                   />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -1689,14 +1834,10 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
                       >
                         <Descriptions bordered column={2} size="small">
                           <Descriptions.Item label="Tiền thuê">
-                            <Text strong style={{ color: "#52c41a", fontSize: "16px" }}>
-                              {detailContract.rentAmount ? detailContract.rentAmount.toLocaleString() + " ₫" : 'Chưa có'}
-                            </Text>
+                            {detailContract.rentAmount ? formatMoneyAccurately(detailContract.rentAmount) : 'Chưa có'}
                           </Descriptions.Item>
                           <Descriptions.Item label="Tiền cọc">
-                            <Text strong style={{ color: "#faad14", fontSize: "16px" }}>
-                              {detailContract.depositAmount ? detailContract.depositAmount.toLocaleString() + " ₫" : 'Chưa có'}
-                            </Text>
+                            {detailContract.depositAmount ? formatMoneyAccurately(detailContract.depositAmount) : 'Chưa có'}
                           </Descriptions.Item>
                         </Descriptions>
                       </Card>

@@ -21,11 +21,13 @@ import {
   createVnPayUrl,
   getPaymentCount,
   createCashPartialPayment,
+  createCashFullPayment,
 } from "../../services/billApi";
 import RenterSidebar from "../../components/layout/RenterSidebar";
 import PartialPaymentModal from "../../components/common/PartialPaymentModal";
 import PaymentHistoryModal from "../../components/common/PaymentHistoryModal";
 import CashPartialPaymentModal from "../../components/common/CashPartialPaymentModal";
+import CashFullPaymentModal from "../../components/common/CashFullPaymentModal";
 import { MenuOutlined, HistoryOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
@@ -59,6 +61,8 @@ export default function RenterBillDetailPage() {
   const [partialPaymentModalVisible, setPartialPaymentModalVisible] =
     useState(false);
   const [cashPartialPaymentModalVisible, setCashPartialPaymentModalVisible] =
+    useState(false);
+  const [cashFullPaymentModalVisible, setCashFullPaymentModalVisible] =
     useState(false);
   const [paymentType, setPaymentType] = useState("full");
 
@@ -228,7 +232,12 @@ export default function RenterBillDetailPage() {
         }
       }
       
-      message.error(errorMessage);
+      // 🆕 Hiển thị thông báo lỗi cụ thể cho các trường hợp bảo vệ
+      if (errorMessage.includes("đã có yêu cầu thanh toán tiền mặt đang chờ xử lý")) {
+        message.error(errorMessage, 8); // Hiển thị lâu hơn để user đọc
+      } else {
+        message.error(errorMessage);
+      }
     }
   };
 
@@ -241,6 +250,9 @@ export default function RenterBillDetailPage() {
     } else if (paymentType === "cash") {
       setPaymentModalVisible(false);
       setCashPartialPaymentModalVisible(true);
+    } else if (paymentType === "cashFull") {
+      setPaymentModalVisible(false);
+      setCashFullPaymentModalVisible(true);
     }
   };
 
@@ -280,6 +292,34 @@ export default function RenterBillDetailPage() {
 
   const handleCashPartialPaymentCancel = () => {
     setCashPartialPaymentModalVisible(false);
+  };
+
+  const handleCashFullPaymentSuccess = async (paymentData) => {
+    try {
+      await createCashFullPayment(paymentData);
+      message.success(
+        "Đã gửi yêu cầu thanh toán toàn phần tiền mặt! Chủ trọ sẽ xác nhận sau."
+      );
+      setCashFullPaymentModalVisible(false);
+      fetchBill();
+    } catch (error) {
+      // 🆕 Xử lý lỗi khóa thanh toán
+      if (error.response && error.response.data && error.response.data.message) {
+        const errorMessage = error.response.data.message;
+        if (errorMessage.includes("đã tạo yêu cầu thanh toán trước đó")) {
+          message.error(errorMessage);
+        } else {
+          message.error(errorMessage);
+        }
+      } else {
+        message.error("Không thể gửi yêu cầu thanh toán toàn phần tiền mặt!");
+      }
+      console.error("Error creating cash full payment:", error);
+    }
+  };
+
+  const handleCashFullPaymentCancel = () => {
+    setCashFullPaymentModalVisible(false);
   };
 
   const formatCurrency = (amount) => {
@@ -886,8 +926,8 @@ export default function RenterBillDetailPage() {
               description={
                 <div>
                   <p style={{ marginBottom: 8, fontSize: "14px" }}>
-                    <strong>⚠️ Lưu ý:</strong> Hóa đơn này đã từng thanh toán từng phần.
-                    Khi thanh toán thẳng, bạn sẽ phải trả thêm phí thanh toán từng phần:
+                                    <strong>⚠️ Lưu ý:</strong> Hóa đơn này đã từng thanh toán từng phần.
+                Khi thanh toán toàn phần, bạn sẽ phải trả thêm phí thanh toán từng phần:
                   </p>
                   <ul style={{ margin: 0, paddingLeft: 20, fontSize: "13px" }}>
                     <li>
@@ -972,7 +1012,7 @@ export default function RenterBillDetailPage() {
             <Radio value="full" style={{ width: "100%" }}>
               <div>
                 <div style={{ fontWeight: "bold", color: "#1890ff" }}>
-                  Thanh toán thẳng (VNPAY)
+                  Thanh toán toàn phần (VNPAY)
                 </div>
                 <div style={{ fontSize: "12px", color: "#666" }}>
                   Thanh toán toàn bộ số tiền còn nợ qua VNPAY
@@ -985,22 +1025,34 @@ export default function RenterBillDetailPage() {
             <Radio value="partial" style={{ width: "100%" }}>
               <div>
                 <div style={{ fontWeight: "bold", color: "#faad14" }}>
-                  Thanh toán một phần (VNPAY)
+                  Thanh toán từng phần (VNPAY)
                 </div>
                 <div style={{ fontSize: "12px", color: "#666" }}>
-                  Thanh toán một phần số tiền và ghi nợ phần còn lại qua VNPAY
+                  Thanh toán từng phần số tiền và ghi nợ phần còn lại qua VNPAY
+                </div>
+              </div>
+            </Radio>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <Radio value="cash" style={{ width: "100%" }}>
+              <div>
+                <div style={{ fontWeight: "bold", color: "#52c41a" }}>
+                  Thanh toán từng phần tiền mặt
+                </div>
+                <div style={{ fontSize: "12px", color: "#666" }}>
+                  Thanh toán từng phần số tiền bằng tiền mặt tại văn phòng (cần chủ trọ xác nhận)
                 </div>
               </div>
             </Radio>
           </div>
           <div>
-            <Radio value="cash" style={{ width: "100%" }}>
+            <Radio value="cashFull" style={{ width: "100%" }}>
               <div>
-                <div style={{ fontWeight: "bold", color: "#52c41a" }}>
-                  Thanh toán tiền mặt
+                <div style={{ fontWeight: "bold", color: "#722ed1" }}>
+                  Thanh toán toàn phần tiền mặt
                 </div>
                 <div style={{ fontSize: "12px", color: "#666" }}>
-                  Thanh toán bằng tiền mặt tại văn phòng (cần chủ trọ xác nhận)
+                  Thanh toán toàn bộ số tiền còn nợ bằng tiền mặt (cần chủ trọ xác nhận)
                 </div>
               </div>
             </Radio>
@@ -1034,6 +1086,17 @@ export default function RenterBillDetailPage() {
           visible={cashPartialPaymentModalVisible}
           onCancel={handleCashPartialPaymentCancel}
           onOk={handleCashPartialPaymentSuccess}
+          bill={bill}
+          outstandingAmount={bill.outstandingAmount || bill.totalAmount}
+        />
+      )}
+
+      {/* Cash Full Payment Modal */}
+      {bill && (
+        <CashFullPaymentModal
+          visible={cashFullPaymentModalVisible}
+          onCancel={handleCashFullPaymentCancel}
+          onOk={handleCashFullPaymentSuccess}
           bill={bill}
           outstandingAmount={bill.outstandingAmount || bill.totalAmount}
         />

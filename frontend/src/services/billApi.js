@@ -37,7 +37,16 @@ export const generateFirstBill = async (contractId) => {
 };
 
 export const deleteBill = async (id) => {
-  return axiosClient.delete(`/bills/${id}`);
+  try {
+    const response = await axiosClient.delete(`/bills/${id}`);
+    return response.data;
+  } catch (error) {
+    // 🆕 Xử lý lỗi bảo vệ từ backend
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw error;
+  }
 };
 
 export const exportBillPdf = async (id) => {
@@ -83,7 +92,7 @@ export const createVnPayUrl = async ({ billId, amount, orderInfo }) => {
     console.error('createVnPayUrl error:', error);
     console.error('error.response:', error.response);
     
-    // Nếu là lỗi HTTP 400/500, extract message từ response
+    // 🆕 Xử lý lỗi bảo vệ từ backend
     if (error.response) {
       const errorData = error.response.data;
       console.log('Error response data:', errorData);
@@ -164,6 +173,10 @@ export const createPartialPaymentVnPayUrl = async (request) => {
     const response = await axiosClient.post('/bills/partial-payment/vnpay', request);
     return response.data;
   } catch (error) {
+    // 🆕 Xử lý lỗi bảo vệ từ backend
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
     throw error;
   }
 };
@@ -185,6 +198,17 @@ export const createCashPartialPayment = async (paymentData) => {
     return response.data;
   } catch (error) {
     console.error('Error creating cash partial payment:', error);
+    throw error;
+  }
+};
+
+// Thanh toán toàn phần bằng tiền mặt
+export const createCashFullPayment = async (paymentData) => {
+  try {
+    const response = await axiosClient.post('/bills/cash-full-payment', paymentData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating cash full payment:', error);
     throw error;
   }
 };

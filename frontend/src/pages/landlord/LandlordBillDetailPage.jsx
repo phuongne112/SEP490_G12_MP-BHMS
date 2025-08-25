@@ -168,7 +168,12 @@ export default function LandlordBillDetailPage() {
         }
       }
       
-      message.error(errorMessage);
+      // 🆕 Hiển thị thông báo lỗi cụ thể cho các trường hợp bảo vệ
+      if (errorMessage.includes("đã có yêu cầu thanh toán tiền mặt đang chờ xử lý")) {
+        message.error(errorMessage, 8); // Hiển thị lâu hơn để user đọc
+      } else {
+        message.error(errorMessage);
+      }
     }
   };
 

@@ -13,6 +13,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.math.BigDecimal;
+import com.mpbhms.backend.repository.PaymentHistoryRepository;
 
 @RestController
 @RequestMapping("/mpbhms/payment")
@@ -31,6 +34,9 @@ public class PaymentController {
     @Autowired
     private com.mpbhms.backend.service.PaymentHistoryService paymentHistoryService;
 
+    @Autowired
+    private PaymentHistoryRepository paymentHistoryRepository;
+
     // 1. API tạo URL thanh toán VNPay
     @PostMapping("/create-vnpay-url")
     public ResponseEntity<?> createVnPayUrl(@RequestBody Map<String, Object> payload) {
@@ -43,6 +49,21 @@ public class PaymentController {
             Bill bill = billService.getBillById(billId);
             if (bill == null) {
                 return ResponseEntity.badRequest().body("Không tìm thấy hóa đơn");
+            }
+            
+            // 🆕 KIỂM TRA XEM CÓ YÊU CẦU THANH TOÁN TIỀN MẶT ĐANG CHỜ XỬ LÝ KHÔNG
+            // Nếu có, không cho phép tạo thanh toán VNPAY
+            if (bill.getPaymentUrlLockedUntil() != null && bill.getPaymentUrlLockedUntil().isAfter(Instant.now())) {
+                // Kiểm tra xem có phải là khóa từ thanh toán tiền mặt không
+                List<PaymentHistory> pendingPayments = paymentHistoryRepository.findByBillIdAndStatusOrderByPaymentDateDesc(billId, "PENDING");
+                if (!pendingPayments.isEmpty()) {
+                    long secondsLeft = java.time.Duration.between(Instant.now(), bill.getPaymentUrlLockedUntil()).getSeconds();
+                    long minutesLeft = (secondsLeft + 59) / 60; // làm tròn lên phút còn lại
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("success", false);
+                    errorResponse.put("message", "Không thể tạo thanh toán VNPAY vì đã có yêu cầu thanh toán tiền mặt đang chờ xử lý. Vui lòng đợi thêm " + minutesLeft + " phút nữa hoặc xử lý yêu cầu thanh toán tiền mặt trước.");
+                    return ResponseEntity.badRequest().body(errorResponse);
+                }
             }
             
             // Kiểm tra nếu hóa đơn đã từng thanh toán từng phần
@@ -202,7 +223,7 @@ public class PaymentController {
                                 paymentHistory.setPaymentMethod("VNPAY");
                                 paymentHistory.setStatus("SUCCESS");
                                 paymentHistory.setPaymentDate(Instant.now());
-                                paymentHistory.setPaymentNumber(billService.getPaymentCount(bill.getId()) + 1);
+                                paymentHistory.setPaymentNumber(billService.getAllPaymentCount(bill.getId()) + 1);
 
                                 paymentHistory.setPaymentAmount(originalPaymentAmount); // TIỀN GỐC
                                 paymentHistory.setTotalAmount(new java.math.BigDecimal(paidAmount)); // tổng VNPay trả (gồm phí)
@@ -339,7 +360,7 @@ public class PaymentController {
                                 paymentHistory.setPaymentMethod("VNPAY");
                                 paymentHistory.setStatus("SUCCESS");
                                 paymentHistory.setPaymentDate(Instant.now());
-                                paymentHistory.setPaymentNumber(billService.getPaymentCount(bill.getId()) + 1);
+                                paymentHistory.setPaymentNumber(billService.getAllPaymentCount(bill.getId()) + 1);
 
                                 paymentHistory.setPaymentAmount(originalAmount); // TIỀN GỐC
                                 paymentHistory.setTotalAmount(new java.math.BigDecimal(paidAmount)); // tổng VNPay trả (gồm phí)
@@ -656,6 +677,14 @@ public class PaymentController {
                 if (bill != null && (bill.getStatus() == null || !bill.getStatus())) {
                     bill.setStatus(true);
                     bill.setPaidDate(Instant.now());
+                    // 🆕 Đảm bảo outstandingAmount = 0 khi hóa đơn được đánh dấu là đã thanh toán
+                    bill.setOutstandingAmount(BigDecimal.ZERO);
+                    bill.setIsPartiallyPaid(false);
+                    // 🆕 Cập nhật paidAmount để phản ánh rằng hóa đơn đã được thanh toán đầy đủ
+                    if (bill.getPaidAmount() == null || bill.getPaidAmount().compareTo(BigDecimal.ZERO) == 0) {
+                        bill.setPaidAmount(bill.getTotalAmount());
+                        System.out.println("💰 Cập nhật paidAmount: " + bill.getTotalAmount() + " cho hóa đơn #" + bill.getId());
+                    }
                     // Xóa khóa tạo URL khi IPN báo thành công
                     bill.setPaymentUrlLockedUntil(null);
                     billRepository.save(bill);
@@ -727,6 +756,17 @@ public class PaymentController {
                 bill.setStatus(status);
                 if (status) {
                     bill.setPaidDate(Instant.now());
+                    // 🆕 Đảm bảo outstandingAmount = 0 khi hóa đơn được đánh dấu là đã thanh toán
+                    bill.setOutstandingAmount(BigDecimal.ZERO);
+                    bill.setIsPartiallyPaid(false);
+                    // 🆕 Cập nhật paidAmount để phản ánh rằng hóa đơn đã được thanh toán đầy đủ
+                    if (bill.getPaidAmount() == null || bill.getPaidAmount().compareTo(BigDecimal.ZERO) == 0) {
+                        bill.setPaidAmount(bill.getTotalAmount());
+                        System.out.println("💰 Cập nhật paidAmount: " + bill.getTotalAmount() + " cho hóa đơn #" + bill.getId());
+                    }
+                } else {
+                    // 🆕 Nếu bỏ đánh dấu đã thanh toán, tính lại outstandingAmount
+                    bill.calculateOutstandingAmount();
                 }
                 Bill savedBill = billRepository.save(bill);
                 System.out.println("DEBUG: Trạng thái hóa đơn " + billId + " sau khi lưu: " + savedBill.getStatus());

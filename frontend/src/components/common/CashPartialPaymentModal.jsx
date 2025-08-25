@@ -284,7 +284,7 @@ export default function CashPartialPaymentModal({
               )}
               <p><strong>Còn nợ:</strong> {formatCurrency(getOutstandingAmount())}</p>
               <p><strong>Tối thiểu thanh toán (50%):</strong> <span style={{ color: '#faad14', fontWeight: 'bold' }}>{formatCurrency(minPayment)}</span></p>
-              <p><strong>Tối đa thanh toán:</strong> 
+              <p><strong>Tối đa thanh toán: </strong> 
                 <span style={{ color: '#52c41a', fontWeight: 'bold' }}>{formatCurrency(maxPayment)}</span>
                 <span style={{ color: '#52c41a', fontSize: '12px', marginLeft: '8px' }}>
                   ({paymentCount === 0 ? '80%' : '100%'} số tiền còn nợ)
@@ -394,11 +394,11 @@ export default function CashPartialPaymentModal({
                     {paymentCount > 0 && ` (lần thanh toán thứ ${paymentCount + 1})`}
                   </p>
                   <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#666' }}>
-                    <em>⚠️ Phí này sẽ được tính bất kể số tiền thanh toán (từ 50% đến 100%)</em>
+                    <em> Phí này sẽ được tính bất kể số tiền thanh toán (từ 50% đến 100%)</em>
                   </p>
                   {paymentCount === 0 && (
                     <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#1890ff' }}>
-                      <em>💡 Lần đầu: Thanh toán từ 50% đến 80% số tiền còn nợ. Từ lần thứ 2 có thể thanh toán tối đa 100%.</em>
+                      <em> Lần đầu: Thanh toán từ 50% đến 80% số tiền còn nợ. Từ lần thứ 2 có thể thanh toán tối đa 100%.</em>
                     </p>
                   )}
                 </div>
@@ -461,8 +461,10 @@ export default function CashPartialPaymentModal({
           description="Sau khi xác nhận, chủ trọ sẽ được thông báo để kiểm tra và xác nhận thanh toán tiền mặt."
           type="info"
           showIcon
+          style={{ marginBottom: 24 }}
         />
-        <Form.Item>
+        
+        <Form.Item style={{ marginTop: 16 }}>
           <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
             <Button onClick={handleCancel}>
               Hủy

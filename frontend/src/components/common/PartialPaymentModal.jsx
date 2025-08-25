@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, InputNumber, Input, Button, message, Alert, Divider, Card, Statistic } from 'antd';
+import { Modal, Form, InputNumber, Button, message, Alert, Space, Typography } from 'antd';
 import { createPartialPaymentVnPayUrl, getPaymentCount } from '../../services/billApi';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 dayjs.extend(customParseFormat);
-const { TextArea } = Input;
+const { Text } = Typography;
 
 const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
   const [form] = Form.useForm();
@@ -205,7 +205,7 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
         billId: bill.id,
         paymentAmount: totalAmountToPay, // Gửi tổng số tiền bao gồm cả phí
         paymentMethod: 'VNPAY',
-        notes: values.notes || '',
+        notes: 'Thanh toán từng phần qua VNPAY',
         partialPaymentFee: partialPaymentFee, // Phí thanh toán từng phần
         overdueInterest: overdueInterest, // Lãi suất quá hạn
         totalWithFees: totalAmountToPay, // Tổng bao gồm cả phí
@@ -225,7 +225,26 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
       }
     } catch (error) {
       console.error('Lỗi thanh toán từng phần:', error);
-      message.error(error.response?.data?.message || 'Có lỗi xảy ra khi thanh toán');
+      
+      // 🆕 Xử lý lỗi bảo vệ từ backend
+      let errorMessage = 'Có lỗi xảy ra khi thanh toán';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Hiển thị thông báo lỗi cụ thể cho các trường hợp bảo vệ
+      if (errorMessage.includes("đã có yêu cầu thanh toán tiền mặt đang chờ xử lý")) {
+        message.error({
+          content: errorMessage,
+          duration: 8, // Hiển thị lâu hơn để user đọc
+          style: { maxWidth: '600px' }
+        });
+      } else {
+        message.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -278,25 +297,26 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
       open={visible}
       onCancel={onCancel}
       footer={null}
-      width={700}
+      width={600}
     >
-      <div style={{ marginBottom: 16 }}>
+      <Form form={form} layout="vertical" onFinish={handleSubmit}>
         <Alert
-          message="Thông tin thanh toán từng phần"
+          message="Thông tin hóa đơn"
           description={
             <div>
-              <p><strong>Hóa đơn #:</strong> {bill.id}</p>
-              <p><strong>Phòng:</strong> {bill.roomNumber}</p>
-              <p><strong>Tổng tiền hóa đơn:</strong> {formatCurrency(bill.totalAmount)}</p>
+              <p><strong>Hóa đơn #:</strong> {bill.id || 'N/A'}</p>
+              <p><strong>Phòng:</strong> {bill.roomNumber || 'N/A'}</p>
+              <p><strong>Tổng tiền:</strong> {formatCurrency(bill.totalAmount)}</p>
               <p><strong>Đã thanh toán:</strong> {formatCurrency(bill.paidAmount || 0)}</p>
               <p><strong>Còn nợ:</strong> {formatCurrency(getOutstandingAmount())}</p>
-              <p><strong>Lần thanh toán thứ:</strong> {paymentCount + 1}</p>
-              <p><strong>Giới hạn thanh toán:</strong> 
-                {paymentCount === 0 ? 
-                  `50% - 80% (${formatCurrency(minPayment)} - ${formatCurrency(maxPayment)})` : 
-                  `50% - 100% (${formatCurrency(minPayment)} - ${formatCurrency(maxPayment)})`
-                }
+              <p><strong>Tối thiểu thanh toán (50%):</strong> <span style={{ color: '#faad14', fontWeight: 'bold' }}>{formatCurrency(minPayment)}</span></p>
+              <p><strong>Tối đa thanh toán:</strong> 
+                <span style={{ color: '#52c41a', fontWeight: 'bold' }}>{formatCurrency(maxPayment)}</span>
+                <span style={{ color: '#52c41a', fontSize: '12px', marginLeft: '8px' }}>
+                  ({paymentCount === 0 ? '80%' : '100%'} số tiền còn nợ)
+                </span>
               </p>
+              <p><strong>Lần thanh toán thứ:</strong> {paymentCount + 1}</p>
               
               {/* 🆕 Hiển thị thông tin về khoảng thời gian 30 ngày */}
               {bill.isPartiallyPaid && bill.lastPaymentDate && (
@@ -317,10 +337,8 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
           showIcon={false}
           style={{ marginBottom: 16 }}
         />
-      </div>
 
-      {/* Thông tin phí thanh toán từng phần */}
-      <div style={{ marginBottom: 16 }}>
+        {/* Thông tin phí thanh toán từng phần */}
         <Alert
           message="Phí thanh toán từng phần"
           description={
@@ -347,11 +365,11 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
                   {loadingPaymentCount && ' (đang tải...)'}
                 </p>
                 <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#666' }}>
-                  <em>⚠️ Phí này sẽ được tính bất kể số tiền thanh toán (từ 50% đến 100%)</em>
+                  <em> Phí này sẽ được tính bất kể số tiền thanh toán (từ 50% đến 100%)</em>
                 </p>
                 {paymentCount === 0 && (
                   <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#1890ff' }}>
-                    <em>💡 Lần đầu: Thanh toán từ 50% đến 80% số tiền còn nợ. Từ lần thứ 2 có thể thanh toán tối đa 100%.</em>
+                    <em> Lần đầu: Thanh toán từ 50% đến 80% số tiền còn nợ. Từ lần thứ 2 có thể thanh toán tối đa 100%.</em>
                   </p>
                 )}
               </div>
@@ -359,46 +377,43 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
           }
           type="warning"
           showIcon={false}
+          style={{ marginBottom: 16 }}
         />
-      </div>
 
-      {/* Thông tin lãi suất quá hạn */}
-      {monthsOverdue > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <Alert
-            message="Lãi suất quá hạn"
-            description={
-              <div>
-                <p style={{ marginBottom: 8 }}>
-                  <strong>Lãi suất quá hạn:</strong> 2% mỗi tháng
-                </p>
-                <div style={{ 
-                  marginTop: 12, 
-                  padding: '12px', 
-                  backgroundColor: '#fff2f0', 
-                  border: '1px solid #ffccc7', 
-                  borderRadius: '6px' 
-                }}>
-                  <p style={{ margin: 0, fontSize: '14px', color: '#cf1322' }}>
-                    <strong>⚠️ Hóa đơn đã quá hạn {monthsOverdue} tháng</strong>
+        {/* Thông tin lãi suất quá hạn */}
+        {monthsOverdue > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <Alert
+              message="Lãi suất quá hạn"
+              description={
+                <div>
+                  <p style={{ marginBottom: 8 }}>
+                    <strong>Lãi suất quá hạn:</strong> 2% mỗi tháng (tối đa 5% số tiền còn nợ)
                   </p>
-                  <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#666' }}>
-                    Lãi suất sẽ được tính cho số tiền còn lại sau khi thanh toán từng phần
-                  </p>
+                  <ul style={{ margin: 0, paddingLeft: 20 }}>
+                    <li>Số tháng quá hạn: <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>{monthsOverdue} tháng</span></li>
+                    <li>Lãi suất lần này: <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>{formatCurrency(overdueInterest)}</span></li>
+                  </ul>
+                  <div style={{ 
+                    marginTop: 12, 
+                    padding: '12px', 
+                    backgroundColor: '#fff2f0', 
+                    border: '1px solid #ffccc7', 
+                    borderRadius: '6px' 
+                  }}>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#cf1322' }}>
+                      <em>⚠️ Lãi suất sẽ được tính cho số tiền còn lại sau khi thanh toán từng phần</em>
+                    </p>
+                  </div>
                 </div>
-              </div>
-            }
-            type="error"
-            showIcon={false}
-          />
-        </div>
-      )}
+              }
+              type="error"
+              showIcon={false}
+              style={{ marginBottom: 16 }}
+            />
+          </div>
+        )}
 
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={handleSubmit}
-      >
         <Form.Item
           label="Số tiền thanh toán"
           name="paymentAmount"
@@ -424,6 +439,7 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
               }
             }
           ]}
+          style={{ marginBottom: '16px' }}
         >
           <InputNumber
             style={{ width: '100%' }}
@@ -434,139 +450,74 @@ const PartialPaymentModal = ({ visible, onCancel, onSuccess, bill }) => {
             parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
             onChange={handleAmountChange}
             addonAfter={
-              <>
-                <button
-                  type="button"
-                  className="ant-btn ant-btn-default ant-btn-sm"
+              <Space>
+                <Button
+                  type="default"
+                  size="small"
                   onClick={() => {
                     const minAmount = minPayment;
                     form.setFieldsValue({ paymentAmount: minAmount });
                     handleAmountChange(minAmount);
                   }}
                 >
-                  <span>50%</span>
-                </button>
-                <button
-                  type="button"
-                  className="ant-btn ant-btn-default ant-btn-sm"
+                  50%
+                </Button>
+                <Button
+                  type="default"
+                  size="small"
                   onClick={() => {
                     form.setFieldsValue({ paymentAmount: maxPayment });
                     handleAmountChange(maxPayment);
                   }}
-                  style={{ marginLeft: 8 }}
                 >
-                  <span>{paymentCount === 0 ? '80%' : 'Tối đa'}</span>
-                </button>
-              </>
+                  {paymentCount === 0 ? '80%' : 'Tối đa'}
+                </Button>
+              </Space>
             }
           />
         </Form.Item>
 
-        {/* Hiển thị thông tin tính toán */}
-        {paymentAmount > 0 && (
-          <Card size="small" style={{ marginBottom: 16, backgroundColor: '#fafafa' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-              <Statistic
-                title="Số tiền thanh toán"
-                value={paymentAmount}
-                formatter={(value) => formatCurrency(value)}
-                valueStyle={{ color: '#1890ff' }}
-              />
-              <Statistic
-                title="Phí thanh toán từng phần"
-                value={partialPaymentFee}
-                formatter={(value) => formatCurrency(value)}
-                valueStyle={{ color: '#faad14' }}
-              />
-              {overdueInterest > 0 && (
-                <Statistic
-                  title="Lãi suất quá hạn"
-                  value={overdueInterest}
-                  formatter={(value) => formatCurrency(value)}
-                  valueStyle={{ color: '#cf1322' }}
-                />
-              )}
-              <Statistic
-                title="Tổng thanh toán"
-                value={totalWithFees}
-                formatter={(value) => formatCurrency(value)}
-                valueStyle={{ color: '#52c41a', fontWeight: 'bold' }}
-              />
-            </div>
-            
-            <div style={{ 
-              marginTop: 12, 
-              padding: '8px 12px', 
-              backgroundColor: '#fff2f0', 
-              border: '1px solid #ffccc7', 
-              borderRadius: '4px',
-              fontSize: '12px',
-              color: '#cf1322'
-            }}>
-              <strong>Chi tiết:</strong> {formatCurrency(paymentAmount)} (thanh toán) + {formatCurrency(partialPaymentFee)} (phí từng phần)
-              {overdueInterest > 0 && ` + ${formatCurrency(overdueInterest)} (lãi suất quá hạn)`} = {formatCurrency(totalWithFees)}
-            </div>
-            {paymentAmount === maxPayment && (
-              <div style={{ 
-                marginTop: 8, 
-                padding: '8px 12px', 
-                backgroundColor: '#f6ffed', 
-                border: '1px solid #b7eb8f', 
-                borderRadius: '4px',
-                fontSize: '12px',
-                color: '#52c41a'
-              }}>
-                <strong>✅ Thanh toán tối đa:</strong> {paymentCount === 0 ? '80%' : '100%'} số tiền còn nợ - Phí từng phần vẫn được tính theo quy định
-              </div>
-            )}
-          </Card>
-        )}
-
-        <Form.Item
-          label="Phương thức thanh toán"
-        >
-          <div style={{ 
-            padding: '12px 16px', 
-            backgroundColor: '#f6ffed', 
-            border: '1px solid #b7eb8f', 
-            borderRadius: '6px',
-            color: '#52c41a',
-            fontWeight: '500'
-          }}>
+        <Alert
+          message={`Tổng cộng: ${totalWithFees.toLocaleString()} ₫`}
+          description={
             <div>
-              <span>Thanh toán qua VNPAY</span>
+              <Text>Số tiền gốc: {paymentAmount.toLocaleString()} ₫</Text><br />
+              <Text>Phí thanh toán: {partialPaymentFee.toLocaleString()} ₫</Text><br />
+              <Text>Lãi suất: {overdueInterest.toLocaleString()} ₫</Text>
             </div>
-            <div style={{ fontSize: '12px', color: '#666', marginTop: 4 }}>
-              An toàn và nhanh chóng với cổng thanh toán VNPAY
-            </div>
-          </div>
-        </Form.Item>
+          }
+          type="success"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
 
-        <Form.Item
-          label="Ghi chú"
-          name="notes"
-        >
-          <TextArea
-            rows={3}
-            placeholder="Ghi chú về khoản thanh toán (tùy chọn)"
-          />
-        </Form.Item>
 
-        <Divider />
+
+        <Alert
+          message="Lưu ý"
+          description="Sau khi xác nhận, bạn sẽ được chuyển hướng đến VNPAY để hoàn tất thanh toán."
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
 
         <Form.Item>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={loading}
-            disabled={!canMakePartialPayment()}
-            style={{ width: '100%' }}
-          >
-            {!canMakePartialPayment() 
-              ? `Đợi thêm ${getRemainingDays()} ngày nữa` 
-              : 'Thanh toán qua VNPAY'
-            }
-          </Button>
+          <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+            <Button onClick={onCancel}>
+              Hủy
+            </Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={loading}
+              disabled={!canMakePartialPayment()}
+            >
+              {!canMakePartialPayment() 
+                ? `Đợi thêm ${getRemainingDays()} ngày nữa` 
+                : 'Thanh toán qua VNPAY'
+              }
+            </Button>
+          </Space>
         </Form.Item>
       </Form>
     </Modal>

@@ -5,11 +5,13 @@ import com.mpbhms.backend.entity.Contract;
 import com.mpbhms.backend.entity.CustomService;
 import com.mpbhms.backend.entity.RoomUser;
 import com.mpbhms.backend.entity.ServicePriceHistory;
+import com.mpbhms.backend.entity.User;
 import com.mpbhms.backend.enums.ContractStatus;
 import com.mpbhms.backend.enums.NotificationType;
 import com.mpbhms.backend.repository.ContractRepository;
 import com.mpbhms.backend.repository.ServicePriceHistoryRepository;
 import com.mpbhms.backend.repository.ServiceRepository;
+import com.mpbhms.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -29,6 +31,7 @@ public class ServicePriceActivationJob {
     private final ServicePriceHistoryRepository servicePriceHistoryRepository;
     private final ServiceRepository serviceRepository;
     private final ContractRepository contractRepository;
+    private final UserRepository userRepository;
     private final NotificationService notificationService;
 
     /**
@@ -91,86 +94,77 @@ public class ServicePriceActivationJob {
     
     /**
      * Gửi thông báo cho tất cả người thuê và chủ trọ về việc thay đổi giá dịch vụ
+     * (KHÔNG cần kiểm tra hợp đồng active)
      */
     private void sendServicePriceChangeNotification(CustomService service, ServicePriceHistory newPrice) {
         try {
-            // Tìm tất cả hợp đồng đang active
-            List<Contract> activeContracts = contractRepository.findByContractStatus(ContractStatus.ACTIVE);
-            
-            // Set để tránh gửi thông báo trùng lặp cho cùng một landlord
-            Set<Long> notifiedLandlords = new HashSet<>();
-            
-            for (Contract contract : activeContracts) {
-                // Gửi thông báo cho người thuê
-                if (contract.getRoomUsers() != null) {
-                    for (RoomUser roomUser : contract.getRoomUsers()) {
-                        if (roomUser.getUser() != null && Boolean.TRUE.equals(roomUser.getIsActive())) {
-                            try {
-                                NotificationDTO notification = new NotificationDTO();
-                                notification.setRecipientId(roomUser.getUser().getId());
-                                notification.setTitle("Thay đổi giá dịch vụ: " + service.getServiceName());
-                                notification.setMessage(String.format(
-                                    "Giá dịch vụ %s đã được cập nhật thành %s VNĐ/%s từ ngày %s. " +
-                                    "Lý do: %s",
-                                    service.getServiceName(),
-                                    newPrice.getUnitPrice().toString(),
-                                    service.getUnit(),
-                                    newPrice.getEffectiveDate().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")),
-                                    newPrice.getReason() != null ? newPrice.getReason() : "Không có lý do"
-                                ));
-                                notification.setType(NotificationType.SERVICE_UPDATE);
-                                notification.setMetadata(String.format(
-                                    "{\"serviceId\":%d,\"serviceName\":\"%s\",\"newPrice\":%s,\"effectiveDate\":\"%s\"}",
-                                    service.getId(),
-                                    service.getServiceName(),
-                                    newPrice.getUnitPrice().toString(),
-                                    newPrice.getEffectiveDate().toString()
-                                ));
-                                
-                                notificationService.createAndSend(notification);
-                                log.info("Đã gửi thông báo thay đổi giá dịch vụ cho user: {}", roomUser.getUser().getId());
-                            } catch (Exception e) {
-                                log.error("Lỗi gửi thông báo thay đổi giá dịch vụ cho user {}: {}", 
-                                    roomUser.getUser().getId(), e.getMessage());
-                            }
-                        }
-                    }
+            // 🆕 Gửi thông báo cho TẤT CẢ landlords (không cần kiểm tra hợp đồng)
+            List<User> allLandlords = userRepository.findAll().stream()
+                .filter(user -> user.getRole() != null && "LANDLORD".equals(user.getRole().getRoleName()))
+                .toList();
+            for (User landlord : allLandlords) {
+                try {
+                    NotificationDTO landlordNotification = new NotificationDTO();
+                    landlordNotification.setRecipientId(landlord.getId());
+                    landlordNotification.setTitle("Cập nhật giá dịch vụ thành công: " + service.getServiceName());
+                    landlordNotification.setMessage(String.format(
+                        "Giá dịch vụ %s đã được cập nhật thành %s VNĐ/%s từ ngày %s. " +
+                        "Lý do: %s",
+                        service.getServiceName(),
+                        newPrice.getUnitPrice().toString(),
+                        service.getUnit(),
+                        newPrice.getEffectiveDate().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                        newPrice.getReason() != null ? newPrice.getReason() : "Không có lý do"
+                    ));
+                    landlordNotification.setType(NotificationType.SERVICE_UPDATE);
+                    landlordNotification.setMetadata(String.format(
+                        "{\"serviceId\":%d,\"serviceName\":\"%s\",\"newPrice\":%s,\"effectiveDate\":\"%s\"}",
+                        service.getId(),
+                        service.getServiceName(),
+                        newPrice.getUnitPrice().toString(),
+                        newPrice.getEffectiveDate().toString()
+                    ));
+                    
+                    notificationService.createAndSend(landlordNotification);
+                    log.info("Đã gửi thông báo cập nhật giá dịch vụ cho landlord: {}", landlord.getId());
+                } catch (Exception e) {
+                    log.error("Lỗi gửi thông báo thay đổi giá dịch vụ cho landlord {}: {}", 
+                        landlord.getId(), e.getMessage());
                 }
-                
-                // Gửi thông báo cho chủ trọ (nếu chưa gửi)
-                if (contract.getRoom() != null && contract.getRoom().getLandlord() != null) {
-                    Long landlordId = contract.getRoom().getLandlord().getId();
-                    if (!notifiedLandlords.contains(landlordId)) {
-                        try {
-                            NotificationDTO landlordNotification = new NotificationDTO();
-                            landlordNotification.setRecipientId(landlordId);
-                            landlordNotification.setTitle("Cập nhật giá dịch vụ thành công: " + service.getServiceName());
-                            landlordNotification.setMessage(String.format(
-                                "Giá dịch vụ %s đã được cập nhật thành %s VNĐ/%s từ ngày %s. " +
-                                "Lý do: %s",
-                                service.getServiceName(),
-                                newPrice.getUnitPrice().toString(),
-                                service.getUnit(),
-                                newPrice.getEffectiveDate().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")),
-                                newPrice.getReason() != null ? newPrice.getReason() : "Không có lý do"
-                            ));
-                            landlordNotification.setType(NotificationType.SERVICE_UPDATE);
-                            landlordNotification.setMetadata(String.format(
-                                "{\"serviceId\":%d,\"serviceName\":\"%s\",\"newPrice\":%s,\"effectiveDate\":\"%s\"}",
-                                service.getId(),
-                                service.getServiceName(),
-                                newPrice.getUnitPrice().toString(),
-                                newPrice.getEffectiveDate().toString()
-                            ));
-                            
-                            notificationService.createAndSend(landlordNotification);
-                            notifiedLandlords.add(landlordId);
-                            log.info("Đã gửi thông báo cập nhật giá dịch vụ cho landlord: {}", landlordId);
-                        } catch (Exception e) {
-                            log.error("Lỗi gửi thông báo thay đổi giá dịch vụ cho landlord {}: {}", 
-                                landlordId, e.getMessage());
-                        }
-                    }
+            }
+            
+            // 🆕 Gửi thông báo cho TẤT CẢ renters (không cần kiểm tra hợp đồng)
+            List<User> allRenters = userRepository.findAll().stream()
+                .filter(user -> user.getRole() != null && "RENTER".equals(user.getRole().getRoleName()))
+                .toList();
+            for (User renter : allRenters) {
+                try {
+                    NotificationDTO notification = new NotificationDTO();
+                    notification.setRecipientId(renter.getId());
+                    notification.setTitle("Thay đổi giá dịch vụ: " + service.getServiceName());
+                    notification.setMessage(String.format(
+                        "Giá dịch vụ %s đã được cập nhật thành %s VNĐ/%s từ ngày %s. " +
+                        "Lý do: %s",
+                        service.getServiceName(),
+                        newPrice.getUnitPrice().toString(),
+                        service.getUnit(),
+                        newPrice.getEffectiveDate().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                        newPrice.getReason() != null ? newPrice.getReason() : "Không có lý do"
+                    ));
+                    notification.setType(NotificationType.SERVICE_UPDATE);
+                    notification.setMetadata(String.format(
+                        "{\"serviceId\":%d,\"serviceName\":\"%s\",\"newPrice\":%s,\"effectiveDate\":\"%s\"}",
+                        service.getId(),
+                        service.getServiceName(),
+                        newPrice.getUnitPrice().toString(),
+                        newPrice.getEffectiveDate().toString()
+                    ));
+                    
+                    notificationService.createAndSend(notification);
+                    log.info("Đã gửi thông báo thay đổi giá dịch vụ cho renter: {}", renter.getId());
+                } catch (Exception e) {
+                    log.error("Lỗi gửi thông báo thay đổi giá dịch vụ cho renter {}: {}", 
+                        renter.getId(), e.getMessage());
                 }
             }
         } catch (Exception e) {
