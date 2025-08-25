@@ -146,6 +146,16 @@ public class PaymentHistoryServiceImpl implements PaymentHistoryService {
     }
 
     @Override
+    public long countSuccessfulPaymentsByBillId(Long billId) {
+        return paymentHistoryRepository.countSuccessfulPaymentsByBillId(billId);
+    }
+
+    @Override
+    public long countAllPaymentsByBillId(Long billId) {
+        return paymentHistoryRepository.countAllPaymentsByBillId(billId);
+    }
+
+    @Override
     public BigDecimal getTotalPaidAmountByBillId(Long billId) {
         return paymentHistoryRepository.sumPaymentAmountByBillId(billId);
     }

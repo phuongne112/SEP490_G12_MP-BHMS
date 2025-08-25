@@ -27,6 +27,18 @@ public interface PaymentHistoryRepository extends JpaRepository<PaymentHistory, 
     long countByBillId(Long billId);
 
     /**
+     * Đếm số lần thanh toán THÀNH CÔNG của một hóa đơn (chỉ SUCCESS, không bao gồm PENDING/REJECTED)
+     */
+    @Query("SELECT COUNT(ph) FROM PaymentHistory ph WHERE ph.bill.id = :billId AND ph.status = 'SUCCESS'")
+    long countSuccessfulPaymentsByBillId(@Param("billId") Long billId);
+
+    /**
+     * Đếm tổng số lần thanh toán của một hóa đơn (bao gồm tất cả status: SUCCESS, PENDING, REJECTED)
+     * Dùng để tạo paymentNumber
+     */
+    long countAllPaymentsByBillId(Long billId);
+
+    /**
      * Tìm lần thanh toán cuối cùng của một hóa đơn
      */
     @Query("SELECT ph FROM PaymentHistory ph WHERE ph.bill.id = :billId ORDER BY ph.paymentDate DESC LIMIT 1")

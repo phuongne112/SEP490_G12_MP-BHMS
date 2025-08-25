@@ -15,11 +15,15 @@ import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.time.ZoneId;
 import java.util.*;
+import com.mpbhms.backend.entity.PaymentHistory;
+import com.mpbhms.backend.repository.PaymentHistoryRepository;
 
 @Service
 public class VnPayService {
     @Autowired
     private BillRepository billRepository;
+    @Autowired
+    private PaymentHistoryRepository paymentHistoryRepository;
 
     public String createPaymentUrl(Long billId, Long amount, String orderInfo) throws Exception {
         // Đảm bảo số tiền hợp lệ
@@ -32,6 +36,19 @@ public class VnPayService {
             Bill bill = billRepository.findById(billId).orElse(null);
             if (bill == null) {
                 throw new IllegalArgumentException("Không tìm thấy hóa đơn: " + billId);
+            }
+
+            // 🆕 KIỂM TRA XEM CÓ YÊU CẦU THANH TOÁN TIỀN MẶT ĐANG CHỜ XỬ LÝ KHÔNG
+            // Nếu có, không cho phép tạo thanh toán VNPAY
+            if (bill.getPaymentUrlLockedUntil() != null && bill.getPaymentUrlLockedUntil().isAfter(Instant.now())) {
+                // Kiểm tra xem có phải là khóa từ thanh toán tiền mặt không
+                // Nếu có PaymentHistory PENDING, thì đây là thanh toán tiền mặt
+                List<PaymentHistory> pendingPayments = paymentHistoryRepository.findByBillIdAndStatusOrderByPaymentDateDesc(billId, "PENDING");
+                if (!pendingPayments.isEmpty()) {
+                    long secondsLeft = java.time.Duration.between(Instant.now(), bill.getPaymentUrlLockedUntil()).getSeconds();
+                    long minutesLeft = (secondsLeft + 59) / 60; // làm tròn lên phút còn lại
+                    throw new IllegalStateException("Không thể tạo thanh toán VNPAY vì đã có yêu cầu thanh toán tiền mặt đang chờ xử lý. Vui lòng đợi thêm " + minutesLeft + " phút nữa hoặc xử lý yêu cầu thanh toán tiền mặt trước.");
+                }
             }
 
             // Kiểm tra khóa tạo URL thanh toán trong 15 phút

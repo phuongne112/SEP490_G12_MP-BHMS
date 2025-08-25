@@ -281,6 +281,58 @@ code {
   z-index: 1 !important;
 }
 
+/* 🆕 FIX VỊ TRÍ THÔNG BÁO ANT DESIGN - ĐẶT GIỮA MÀN HÌNH */
+.ant-message {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 9999 !important;
+}
+
+.ant-message .ant-message-notice {
+  text-align: center !important;
+}
+
+.ant-message .ant-message-notice-content {
+  display: inline-block !important;
+  padding: 10px 16px !important;
+  background: #fff !important;
+  border-radius: 6px !important;
+  box-shadow: 0 3px 6px -4px rgba(0,0,0,.12), 0 6px 16px 0 rgba(0,0,0,.08), 0 9px 28px 8px rgba(0,0,0,.05) !important;
+  border: 1px solid #d9d9d9 !important;
+  max-width: 400px !important;
+  word-wrap: break-word !important;
+}
+
+/* 🆕 STYLE RIÊNG CHO THÔNG BÁO LỖI */
+.ant-message-error .ant-message-notice-content {
+  background: #fff2f0 !important;
+  border: 1px solid #ffccc7 !important;
+  color: #cf1322 !important;
+}
+
+/* 🆕 STYLE RIÊNG CHO THÔNG BÁO THÀNH CÔNG */
+.ant-message-success .ant-message-notice-content {
+  background: #f6ffed !important;
+  border: 1px solid #b7eb8f !important;
+  color: #389e0d !important;
+}
+
+/* 🆕 STYLE RIÊNG CHO THÔNG BÁO CẢNH BÁO */
+.ant-message-warning .ant-message-notice-content {
+  background: #fffbe6 !important;
+  border: 1px solid #ffe58f !important;
+  color: #d48806 !important;
+}
+
+/* 🆕 STYLE RIÊNG CHO THÔNG BÁO THÔNG TIN */
+.ant-message-info .ant-message-notice-content {
+  background: #e6f7ff !important;
+  border: 1px solid #91d5ff !important;
+  color: #1890ff !important;
+}
+
 /* Fix for pagination in modal or drawer contexts */
 .ant-modal .ant-pagination,
 .ant-drawer .ant-pagination {

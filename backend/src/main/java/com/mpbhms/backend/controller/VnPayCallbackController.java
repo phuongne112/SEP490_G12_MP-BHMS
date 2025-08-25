@@ -120,7 +120,7 @@ public class VnPayCallbackController {
             ph.setPaymentMethod("VNPAY");
             ph.setStatus("SUCCESS");
             ph.setPaymentDate(paymentInstant);
-            ph.setPaymentNumber(billService.getPaymentCount(bill.getId()) + 1);
+            ph.setPaymentNumber(billService.getAllPaymentCount(bill.getId()) + 1);
 
             ph.setPaymentAmount(originalAmount); // TIỀN GỐC
             ph.setTotalAmount(totalPaid);        // tổng VNPay trả (gồm phí)
@@ -152,11 +152,11 @@ public class VnPayCallbackController {
                 landlordNotification.setRecipientId(bill.getRoom().getLandlord().getId());
                 landlordNotification.setTitle("Thanh toán VNPay thành công");
                 String message = "Người thuê phòng " + bill.getRoom().getRoomNumber() + 
-                    " đã thanh toán thành công " + formatCurrencyPlain(originalAmount) + " qua VNPay cho hóa đơn #" + bill.getId();
+                    " đã thanh toán thành công " + formatCurrency(originalAmount) + " qua VNPay cho hóa đơn #" + bill.getId();
                 if (bill.getStatus()) {
                     message += ". Hóa đơn đã được thanh toán hoàn toàn.";
                 } else {
-                    message += ". Số tiền còn nợ: " + formatCurrencyPlain(bill.getOutstandingAmount()) + ".";
+                    message += ". Số tiền còn nợ: " + formatCurrency(bill.getOutstandingAmount()) + ".";
                 }
                 landlordNotification.setMessage(message);
                 landlordNotification.setType(NotificationType.ANNOUNCEMENT);
@@ -242,5 +242,11 @@ public class VnPayCallbackController {
     private String formatCurrencyPlain(BigDecimal amount) {
         if (amount == null) return "0 VNĐ";
         return amount.toString() + " VNĐ";
+    }
+
+    // Helper method để format số tiền VNĐ (chuẩn hóa)
+    private String formatCurrency(BigDecimal amount) {
+        if (amount == null) return "0 VNĐ";
+        return new java.text.DecimalFormat("#,###").format(amount) + " VNĐ";
     }
 }

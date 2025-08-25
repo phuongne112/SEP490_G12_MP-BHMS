@@ -506,7 +506,22 @@ export default function LandlordBillListPage() {
       message.success("Xóa hóa đơn thành công");
       fetchBills();
     } catch (err) {
-      message.error("Xóa thất bại");
+      // 🆕 Xử lý lỗi bảo vệ từ backend
+      let errorMessage = "Xóa thất bại";
+      
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      // Hiển thị thông báo lỗi cụ thể cho các trường hợp bảo vệ
+      if (errorMessage.includes("đang có thanh toán đang xử lý") || 
+          errorMessage.includes("đang có yêu cầu thanh toán tiền mặt đang chờ xử lý")) {
+        message.error(errorMessage, 8); // Hiển thị lâu hơn để user đọc
+      } else {
+        message.error(errorMessage);
+      }
     }
   };
 

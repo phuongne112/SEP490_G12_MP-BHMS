@@ -99,6 +99,8 @@ public class PaymentHistoryResponse {
             return "Thất bại";
         } else if ("PENDING".equals(this.status)) {
             return "Đang xử lý";
+        } else if ("REJECTED".equals(this.status)) {
+            return "Từ chối";
         } else {
             return this.status;
         }

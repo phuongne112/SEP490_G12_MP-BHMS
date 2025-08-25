@@ -13,6 +13,7 @@ import com.mpbhms.backend.enums.ServiceType;
 import com.mpbhms.backend.exception.BusinessException;
 import com.mpbhms.backend.exception.NotFoundException;
 import com.mpbhms.backend.repository.BillRepository;
+import com.mpbhms.backend.repository.BillDetailRepository;
 import com.mpbhms.backend.repository.ContractRepository;
 import com.mpbhms.backend.repository.ServiceReadingRepository;
 import com.mpbhms.backend.repository.ServiceRepository;
@@ -68,6 +69,7 @@ import java.util.HashMap;
 public class BillServiceImpl implements BillService {
 
     private final BillRepository billRepository;
+    private final BillDetailRepository billDetailRepository;
     private final ContractRepository contractRepository;
     private final ServiceReadingRepository serviceReadingRepository;
     private final ServiceRepository serviceRepository;
@@ -958,13 +960,124 @@ public class BillServiceImpl implements BillService {
     }
 
     @Override
+    @Transactional
     public void deleteBillById(Long id) {
         Bill bill = billRepository.findById(id)
             .orElseThrow(() -> new NotFoundException("Không tìm thấy hóa đơn"));
+        
         if (Boolean.TRUE.equals(bill.getStatus())) {
-            throw new BusinessException("Không thể xóa hóa đơn đã thanh toán.");
+            throw new BusinessException("Không thể xóa hóa đơn đã thanh toán hoàn toàn.");
         }
+        
+        // 🆕 KIỂM TRA HÓA ĐƠN ĐÃ THANH TOÁN TỪNG PHẦN VÀ ĐƯỢC DUYỆT
+        if (Boolean.TRUE.equals(bill.getIsPartiallyPaid())) {
+            // Kiểm tra có payment history nào đã được duyệt (SUCCESS) không
+            List<PaymentHistory> approvedPayments = paymentHistoryRepository
+                .findByBillIdAndStatusOrderByPaymentDateDesc(id, "SUCCESS");
+            
+            if (!approvedPayments.isEmpty()) {
+                throw new BusinessException("Không thể xóa hóa đơn đã thanh toán từng phần và được duyệt. Chỉ có thể xóa khi hóa đơn bị từ chối thanh toán.");
+            }
+        }
+        
+        // 🆕 KIỂM TRA XEM CÓ THANH TOÁN ĐANG XỬ LÝ KHÔNG (CẢ TIỀN MẶT VÀ VNPAY)
+        if (bill.getPaymentUrlLockedUntil() != null && Instant.now().isBefore(bill.getPaymentUrlLockedUntil())) {
+            long secondsLeft = java.time.Duration.between(Instant.now(), bill.getPaymentUrlLockedUntil()).getSeconds();
+            long minutesLeft = (secondsLeft + 59) / 60; // làm tròn lên phút còn lại
+            throw new BusinessException("Không thể xóa hóa đơn đang có thanh toán đang xử lý. Vui lòng đợi thanh toán hoàn tất hoặc hủy thanh toán trước. Thời gian còn lại: " + minutesLeft + " phút.");
+        }
+        
+        // Kiểm tra xem có PaymentHistory nào đang PENDING không
+        List<PaymentHistory> pendingPayments = paymentHistoryRepository.findByBillIdAndStatusOrderByPaymentDateDesc(id, "PENDING");
+        if (!pendingPayments.isEmpty()) {
+            throw new BusinessException("Không thể xóa hóa đơn đang có yêu cầu thanh toán tiền mặt đang chờ xử lý. Vui lòng xử lý các yêu cầu thanh toán trước.");
+        }
+        
+        // 🆕 XÓA TẤT CẢ PAYMENT HISTORY TRƯỚC KHI XÓA HÓA ĐƠN
+        // Điều này sẽ giải quyết lỗi foreign key constraint
+        List<PaymentHistory> allPayments = paymentHistoryRepository.findByBillIdOrderByPaymentDateDesc(id);
+        if (!allPayments.isEmpty()) {
+            System.out.println("🗑️ Xóa " + allPayments.size() + " bản ghi thanh toán trước khi xóa hóa đơn #" + id);
+            paymentHistoryRepository.deleteAll(allPayments);
+        }
+        
+        // 🆕 XÓA TẤT CẢ BILL DETAILS TRƯỚC KHI XÓA HÓA ĐƠN
+        if (bill.getBillDetails() != null && !bill.getBillDetails().isEmpty()) {
+            System.out.println("🗑️ Xóa " + bill.getBillDetails().size() + " chi tiết hóa đơn trước khi xóa hóa đơn #" + id);
+            billDetailRepository.deleteAll(bill.getBillDetails());
+        }
+        
+        // Bây giờ có thể xóa hóa đơn an toàn
         billRepository.deleteById(id);
+        System.out.println("✅ Đã xóa hóa đơn #" + id + " thành công");
+    }
+
+    // 🆕 PHƯƠNG THỨC MỚI: KIỂM TRA TRẠNG THÁI HÓA ĐƠN CHI TIẾT
+    public Map<String, Object> getBillDeletionStatus(Long billId) {
+        Bill bill = billRepository.findById(billId)
+            .orElseThrow(() -> new NotFoundException("Không tìm thấy hóa đơn"));
+        
+        Map<String, Object> status = new HashMap<>();
+        status.put("billId", billId);
+        status.put("billStatus", bill.getStatus());
+        status.put("canDelete", true);
+        status.put("reasons", new ArrayList<String>());
+        
+        // Kiểm tra hóa đơn đã thanh toán
+        if (Boolean.TRUE.equals(bill.getStatus())) {
+            status.put("canDelete", false);
+            ((List<String>) status.get("reasons")).add("Hóa đơn đã thanh toán hoàn toàn");
+        }
+        
+        // Kiểm tra paymentUrlLockedUntil
+        if (bill.getPaymentUrlLockedUntil() != null) {
+            if (Instant.now().isBefore(bill.getPaymentUrlLockedUntil())) {
+                long secondsLeft = java.time.Duration.between(Instant.now(), bill.getPaymentUrlLockedUntil()).getSeconds();
+                long minutesLeft = (secondsLeft + 59) / 60;
+                status.put("canDelete", false);
+                ((List<String>) status.get("reasons")).add("Có thanh toán đang xử lý (khóa trong " + minutesLeft + " phút nữa)");
+                status.put("paymentUrlLockedUntil", bill.getPaymentUrlLockedUntil());
+                status.put("timeRemainingMinutes", minutesLeft);
+            } else {
+                status.put("paymentUrlLockedUntil", bill.getPaymentUrlLockedUntil());
+                status.put("timeRemainingMinutes", 0);
+                ((List<String>) status.get("reasons")).add("Khóa thanh toán đã hết hạn (có thể xóa)");
+            }
+        } else {
+            status.put("paymentUrlLockedUntil", null);
+            status.put("timeRemainingMinutes", 0);
+            ((List<String>) status.get("reasons")).add("Không có khóa thanh toán (có thể xóa)");
+        }
+        
+        // Kiểm tra PENDING payments
+        List<PaymentHistory> pendingPayments = paymentHistoryRepository.findByBillIdAndStatusOrderByPaymentDateDesc(billId, "PENDING");
+        if (!pendingPayments.isEmpty()) {
+            status.put("canDelete", false);
+            ((List<String>) status.get("reasons")).add("Có " + pendingPayments.size() + " yêu cầu thanh toán tiền mặt đang chờ xử lý");
+            status.put("pendingPaymentsCount", pendingPayments.size());
+            status.put("pendingPayments", pendingPayments.stream()
+                .map(ph -> Map.of(
+                    "id", ph.getId(),
+                    "amount", ph.getPaymentAmount(),
+                    "method", ph.getPaymentMethod(),
+                    "date", ph.getPaymentDate()
+                ))
+                .collect(Collectors.toList()));
+        } else {
+            status.put("pendingPaymentsCount", 0);
+            ((List<String>) status.get("reasons")).add("Không có yêu cầu thanh toán tiền mặt đang chờ xử lý (có thể xóa)");
+        }
+        
+        // Kiểm tra tất cả payment history
+        List<PaymentHistory> allPayments = paymentHistoryRepository.findByBillIdOrderByPaymentDateDesc(billId);
+        status.put("totalPaymentsCount", allPayments.size());
+        status.put("paymentsByStatus", allPayments.stream()
+            .collect(Collectors.groupingBy(
+                PaymentHistory::getStatus,
+                Collectors.counting()
+            )));
+        
+        return status;
     }
 
     @Override
@@ -1595,11 +1708,21 @@ public class BillServiceImpl implements BillService {
         
         bill.setStatus(status);
         
-        // Nếu đánh dấu là đã thanh toán, cập nhật ngày thanh toán
+        // Nếu đánh dấu là đã thanh toán, cập nhật ngày thanh toán và outstandingAmount
         if (status) {
             bill.setPaidDate(Instant.now());
+            // 🆕 Đảm bảo outstandingAmount = 0 khi hóa đơn được đánh dấu là đã thanh toán
+            bill.setOutstandingAmount(BigDecimal.ZERO);
+            bill.setIsPartiallyPaid(false);
+            // 🆕 Cập nhật paidAmount để phản ánh rằng hóa đơn đã được thanh toán đầy đủ
+            if (bill.getPaidAmount() == null || bill.getPaidAmount().compareTo(BigDecimal.ZERO) == 0) {
+                bill.setPaidAmount(bill.getTotalAmount());
+                System.out.println("💰 Cập nhật paidAmount: " + bill.getTotalAmount() + " cho hóa đơn #" + bill.getId());
+            }
         } else {
             bill.setPaidDate(null);
+            // 🆕 Nếu bỏ đánh dấu đã thanh toán, tính lại outstandingAmount
+            bill.calculateOutstandingAmount();
         }
         
         Bill updatedBill = billRepository.save(bill);
@@ -1695,7 +1818,7 @@ public class BillServiceImpl implements BillService {
             bill.setPaidDate(currentDate);
             System.out.println("✅ Hóa đơn #" + bill.getId() + " đã được thanh toán đầy đủ!");
 
-            // 🆕 Gửi email + thông báo “đã thanh toán hoàn toàn”
+            // 🆕 Gửi email + thông báo "đã thanh toán hoàn toàn"
             try {
                 // Gửi email xác nhận đã thanh toán
                 if (bill.getContract() != null && bill.getContract().getRoomUsers() != null) {
@@ -2910,12 +3033,25 @@ public class BillServiceImpl implements BillService {
 
     @Override
     public int getPaymentCount(Long billId) {
-        // Đếm số record trong payment_history cho hóa đơn này
+        // Đếm số lần thanh toán THÀNH CÔNG (chỉ SUCCESS, không bao gồm PENDING/REJECTED)
         try {
-            long count = paymentHistoryService.countPaymentsByBillId(billId);
+            long count = paymentHistoryService.countSuccessfulPaymentsByBillId(billId);
             return (int) count;
         } catch (Exception e) {
-            System.err.println("Lỗi khi đếm số lần thanh toán cho hóa đơn " + billId + ": " + e.getMessage());
+            System.err.println("Lỗi khi đếm số lần thanh toán thành công cho hóa đơn " + billId + ": " + e.getMessage());
+            return 0;
+        }
+    }
+
+    @Override
+    public int getAllPaymentCount(Long billId) {
+        // Đếm tổng số lần thanh toán (bao gồm tất cả status: SUCCESS, PENDING, REJECTED)
+        // Dùng để tạo paymentNumber
+        try {
+            long count = paymentHistoryService.countAllPaymentsByBillId(billId);
+            return (int) count;
+        } catch (Exception e) {
+            System.err.println("Lỗi khi đếm tổng số lần thanh toán cho hóa đơn " + billId + ": " + e.getMessage());
             return 0;
         }
     }
@@ -2956,6 +3092,8 @@ public class BillServiceImpl implements BillService {
             return "Đang xử lý";
         } else if ("COMPLETED".equals(status)) {
             return "Hoàn thành";
+        } else if ("REJECTED".equals(status)) {
+            return "Từ chối";
         } else {
             return status;
         }

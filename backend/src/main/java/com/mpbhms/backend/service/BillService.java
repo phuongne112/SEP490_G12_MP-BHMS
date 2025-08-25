@@ -31,6 +31,7 @@ public interface BillService {
 
     BillResponse createAndSaveServiceBill(Long roomId, int month, int year);
 
+    @org.springframework.transaction.annotation.Transactional
     void deleteBillById(Long id);
 
     Page<Bill> filterBills(Long roomId, Boolean status, BigDecimal minPrice, BigDecimal maxPrice, String search, Pageable pageable);
@@ -75,10 +76,20 @@ public interface BillService {
     // Lấy tất cả hóa đơn phạt
     List<Bill> getAllPenaltyBills();
 
-    // Lấy số lần thanh toán đã thực hiện cho một hóa đơn
+    /**
+     * Lấy số lần thanh toán đã thực hiện cho một hóa đơn
+     */
     int getPaymentCount(Long billId);
 
-    // Tính phí thanh toán tiếp theo dựa trên số lần đã thanh toán
+    /**
+     * Lấy tổng số lần thanh toán của một hóa đơn (bao gồm tất cả status: SUCCESS, PENDING, REJECTED)
+     * Dùng để tạo paymentNumber
+     */
+    int getAllPaymentCount(Long billId);
+
+    /**
+     * Tính phí thanh toán từng phần cho lần thanh toán tiếp theo
+     */
     java.math.BigDecimal calculateNextPaymentFee(int paymentCount);
     
     // Gửi thông báo cảnh báo hóa đơn quá hạn
@@ -101,4 +112,7 @@ public interface BillService {
     
     // 🆕 Đếm số hóa đơn thanh toán từng phần
     long countPartiallyPaidBills();
+    
+    // 🆕 KIỂM TRA TRẠNG THÁI XÓA HÓA ĐƠN CHI TIẾT
+    java.util.Map<String, java.lang.Object> getBillDeletionStatus(Long billId);
 }

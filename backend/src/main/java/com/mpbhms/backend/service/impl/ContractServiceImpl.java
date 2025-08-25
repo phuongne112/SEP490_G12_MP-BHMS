@@ -733,8 +733,8 @@ public class ContractServiceImpl implements ContractService {
             if (content.trim().length() < 10) {
                 throw new RuntimeException("Điều khoản thứ " + (i + 1) + " quá ngắn (tối thiểu 10 ký tự)");
             }
-            if (content.trim().length() > 2000) {
-                throw new RuntimeException("Điều khoản thứ " + (i + 1) + " quá dài (tối đa 2000 ký tự)");
+            if (content.trim().length() > 200) {
+                throw new RuntimeException("Điều khoản thứ " + (i + 1) + " quá dài (tối đa 200 ký tự)");
             }
         }
         

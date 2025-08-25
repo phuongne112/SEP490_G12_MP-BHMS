@@ -59,6 +59,17 @@ public interface PaymentHistoryService {
     long countPaymentsByBillId(Long billId);
 
     /**
+     * Đếm số lần thanh toán THÀNH CÔNG của một hóa đơn (chỉ SUCCESS, không bao gồm PENDING/REJECTED)
+     */
+    long countSuccessfulPaymentsByBillId(Long billId);
+
+    /**
+     * Đếm tổng số lần thanh toán của một hóa đơn (bao gồm tất cả status: SUCCESS, PENDING, REJECTED)
+     * Dùng để tạo paymentNumber
+     */
+    long countAllPaymentsByBillId(Long billId);
+
+    /**
      * Tính tổng số tiền đã thanh toán của một hóa đơn
      */
     java.math.BigDecimal getTotalPaidAmountByBillId(Long billId);

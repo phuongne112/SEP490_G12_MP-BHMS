@@ -180,6 +180,7 @@ public class    DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Partial Payment VNPay", "/mpbhms/bills/partial-payment/vnpay", "POST", "Bill"));
             permissions.add(new Permission("Get Payment Count", "/mpbhms/bills/{id}/payment-count", "GET", "Bill"));
             permissions.add(new Permission("Cash Partial Payment", "/mpbhms/bills/cash-partial-payment", "POST", "Bill"));
+            permissions.add(new Permission("Cash Full Payment", "/mpbhms/bills/cash-full-payment", "POST", "Bill"));
             permissions.add(new Permission("Confirm Cash Payment", "/mpbhms/bills/{billId}/confirm-cash-payment/{paymentHistoryId}", "POST", "Bill"));
             permissions.add(new Permission("Reject Cash Payment", "/mpbhms/bills/{billId}/reject-cash-payment/{paymentHistoryId}", "POST", "Bill"));
             //Payment History
@@ -394,6 +395,9 @@ public class    DatabaseInitializer implements CommandLineRunner {
             
             Permission cashPartialPayment = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/cash-partial-payment", "POST");
             if (cashPartialPayment != null) renterPermission.add(cashPartialPayment);
+            
+            Permission cashFullPayment = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/cash-full-payment", "POST");
+            if (cashFullPayment != null) renterPermission.add(cashFullPayment);
             
             Permission confirmCashPayment = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/{billId}/confirm-cash-payment/{paymentHistoryId}", "POST");
             if (confirmCashPayment != null) renterPermission.add(confirmCashPayment);
