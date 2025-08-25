@@ -774,7 +774,8 @@ export default function LandlordRenterListPage() {
                           <Col span={12}>
                             <Form.Item label="Mật khẩu" name="password" rules={[
                               { required: true, message: "Vui lòng nhập mật khẩu" },
-                              { min: 6, max: 32, message: "Mật khẩu phải từ 6-32 ký tự" }
+                              { min: 6, max: 32, message: "Mật khẩu phải từ 6-32 ký tự" },
+                              { pattern: /^\S+$/, message: "Mật khẩu không được chứa khoảng trắng" }
                             ]}>
                               <Input.Password placeholder="Nhập mật khẩu" />
                             </Form.Item>
@@ -921,8 +922,20 @@ export default function LandlordRenterListPage() {
                           </Col>
                         </Row>
                         
-                        {/* Thêm vùng upload ảnh CCCD và nút quét */}
-                        <Row gutter={16} style={{ marginBottom: 16 }}>
+                                                 {/* Thêm vùng upload ảnh CCCD và nút quét */}
+                         <div style={{ 
+                           marginBottom: 16, 
+                           padding: 8, 
+                           backgroundColor: '#f6ffed', 
+                           border: '1px solid #b7eb8f', 
+                           borderRadius: 6,
+                           fontSize: 12,
+                           color: '#52c41a'
+                         }}>
+                           💡 <strong>Lưu ý:</strong> Upload ảnh CCCD là tùy chọn. Bạn có thể nhập thông tin bằng tay hoặc upload ảnh CCCD để quét tự động thông tin.<br/>
+                           Việc quét CCCD chỉ nhằm mục đích giúp tạo tài khoản chính xác, nhanh chóng và bảo mật. Chúng tôi không lưu trữ thông tin người thuê trọ cho mục đích riêng tư.
+                         </div>
+                         <Row gutter={16} style={{ marginBottom: 16 }}>
                           <Col span={12}>
                             <div style={{ marginBottom: 8, fontWeight: 500 }}>Ảnh mặt trước CCCD</div>
                             <Upload.Dragger

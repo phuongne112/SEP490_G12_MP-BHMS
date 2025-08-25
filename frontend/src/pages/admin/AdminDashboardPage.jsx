@@ -18,24 +18,14 @@ const AdminDashboardPage = () => {
   
   const [loading, setLoading] = useState(true);
   const [userStats, setUserStats] = useState(null);
-  const [roomStats, setRoomStats] = useState(null);
-  const [assetStats, setAssetStats] = useState(null);
-  const [billStats, setBillStats] = useState(null);
+  // Chỉ giữ thống kê người dùng theo yêu cầu mới
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [users, rooms, assets, bills] = await Promise.all([
-          getUserStats(),
-          getRoomStats(),
-          getAssetStats(),
-          getBillStats(),
-        ]);
+        const users = await getUserStats();
         setUserStats(users);
-        setRoomStats(rooms);
-        setAssetStats(assets);
-        setBillStats(bills);
       } catch (err) {
         message.error("Lỗi khi tải dữ liệu thống kê");
       }
@@ -44,7 +34,7 @@ const AdminDashboardPage = () => {
     fetchData();
   }, []);
 
-  if (loading || !userStats || !roomStats || !assetStats || !billStats) return <Spin size="large" style={{ marginTop: 100 }} />;
+  if (loading || !userStats) return <Spin size="large" style={{ marginTop: 100 }} />;
 
   // Chuẩn bị dữ liệu biểu đồ
   const userTypeRatio = [
@@ -52,8 +42,12 @@ const AdminDashboardPage = () => {
     { name: "Người thuê", value: userStats?.renter || 0 },
     { name: "Khách", value: userStats?.guest || 0 },
   ];
-  const assetTypeRatio = assetStats?.byType ? Object.entries(assetStats.byType).map(([name, value]) => ({ name, value })) : [];
-  const transactionByMonth = billStats?.byMonth ? Object.entries(billStats.byMonth).map(([month, count]) => ({ month, count })) : [];
+  const accountStatusRatio = [
+    { name: "Đang hoạt động", value: userStats?.active || 0 },
+    { name: "Ngừng hoạt động", value: userStats?.inactive || 0 },
+  ];
+  const rolesOrder = ["ADMIN", "SUBADMIN", "LANDLORD", "RENTER", "GUEST"];
+  const accountsPerRole = rolesOrder.map((r) => ({ role: r, count: userStats?.byRole?.[r] || 0 }));
 
   // Responsive breakpoints
   const statsColSpan = isMobile ? 24 : isTablet ? 8 : 6;
@@ -194,67 +188,7 @@ const AdminDashboardPage = () => {
                   </div>
                 </Card>
               </Col>
-              <Col span={statsColSpan}>
-                <Card 
-                  style={{ 
-                    borderRadius: "8px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                    border: "none"
-                  }}
-                  bodyStyle={{ padding: isMobile ? "16px" : "24px" }}
-                >
-                  <Statistic 
-                    title={<span style={{ fontSize: isMobile ? "14px" : "16px", color: "#666" }}>Tổng số phòng</span>}
-                    value={roomStats?.total || 0}
-                    valueStyle={{ 
-                      fontSize: isMobile ? "24px" : "28px",
-                      fontWeight: "600",
-                      color: "#52c41a"
-                    }}
-                  />
-                </Card>
-              </Col>
-              <Col span={statsColSpan}>
-                <Card 
-                  style={{ 
-                    borderRadius: "8px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                    border: "none"
-                  }}
-                  bodyStyle={{ padding: isMobile ? "16px" : "24px" }}
-                >
-                  <Statistic 
-                    title={<span style={{ fontSize: isMobile ? "14px" : "16px", color: "#666" }}>Tổng số giao dịch</span>}
-                    value={billStats?.total || 0}
-                    valueStyle={{ 
-                      fontSize: isMobile ? "24px" : "28px",
-                      fontWeight: "600",
-                      color: "#fa8c16"
-                    }}
-                  />
-                </Card>
-              </Col>
-              <Col span={statsColSpan}>
-                <Card 
-                  style={{ 
-                    borderRadius: "8px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                    border: "none"
-                  }}
-                  bodyStyle={{ padding: isMobile ? "16px" : "24px" }}
-                >
-                  <Statistic 
-                    title={<span style={{ fontSize: isMobile ? "14px" : "16px", color: "#666" }}>Doanh thu hệ thống</span>}
-                    value={billStats?.revenue || 0}
-                    suffix="₫"
-                    valueStyle={{ 
-                      fontSize: isMobile ? "24px" : "28px",
-                      fontWeight: "600",
-                      color: "#722ed1"
-                    }}
-                  />
-                </Card>
-              </Col>
+              {/* Các thẻ khác bỏ theo yêu cầu */}
             </Row>
 
             {/* Charts */}
@@ -296,36 +230,7 @@ const AdminDashboardPage = () => {
               </Col>
               <Col span={chartColSpan}>
                 <Card 
-                  title={<span style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: "600" }}>Giao dịch theo tháng</span>}
-                  style={{ 
-                    borderRadius: "8px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                    border: "none"
-                  }}
-                  bodyStyle={{ padding: isMobile ? "16px" : "24px" }}
-                >
-                  <ResponsiveContainer width="100%" height={isMobile ? 250 : 280}>
-                    <BarChart data={transactionByMonth}>
-                      <XAxis 
-                        dataKey="month" 
-                        fontSize={isMobile ? 12 : 14}
-                        angle={isMobile ? -45 : 0}
-                        textAnchor={isMobile ? "end" : "middle"}
-                        height={isMobile ? 60 : 40}
-                      />
-                      <YAxis fontSize={isMobile ? 12 : 14} />
-                      <Tooltip 
-                        formatter={(value) => [value, 'Số giao dịch']}
-                        labelStyle={{ fontSize: isMobile ? 12 : 14 }}
-                      />
-                      <Bar dataKey="count" fill="#8884d8" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </Card>
-              </Col>
-              <Col span={chartColSpan}>
-                <Card 
-                  title={<span style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: "600" }}>Phân loại bất động sản</span>}
+                  title={<span style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: "600" }}>Trạng thái tài khoản</span>}
                   style={{ 
                     borderRadius: "8px",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
@@ -336,25 +241,47 @@ const AdminDashboardPage = () => {
                   <ResponsiveContainer width="100%" height={isMobile ? 250 : 280}>
                     <PieChart>
                       <Pie 
-                        data={assetTypeRatio} 
-                        dataKey="value" 
-                        nameKey="name" 
-                        cx="50%" 
-                        cy="50%" 
+                        data={accountStatusRatio}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
                         outerRadius={isMobile ? 70 : 80}
                         label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                         labelLine={false}
                       >
-                        {assetTypeRatio.map((entry, index) => (
-                          <Cell key={`cell-asset-${index}`} fill={COLORS[index % COLORS.length]} />
+                        {accountStatusRatio.map((entry, index) => (
+                          <Cell key={`cell-status-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Legend 
-                        verticalAlign="bottom" 
-                        height={36}
-                        wrapperStyle={{ fontSize: isMobile ? "12px" : "14px" }}
-                      />
+                      <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: isMobile ? "12px" : "14px" }} />
                     </PieChart>
+                  </ResponsiveContainer>
+                </Card>
+              </Col>
+              <Col span={chartColSpan}>
+                <Card 
+                  title={<span style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: "600" }}>Số tài khoản theo cấp quyền</span>}
+                  style={{ 
+                    borderRadius: "8px",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                    border: "none"
+                  }}
+                  bodyStyle={{ padding: isMobile ? "16px" : "24px" }}
+                >
+                  <ResponsiveContainer width="100%" height={isMobile ? 250 : 280}>
+                    <BarChart data={accountsPerRole}>
+                      <XAxis 
+                        dataKey="role" 
+                        interval={0}
+                        tickMargin={14}
+                        tick={{ fontSize: isMobile ? 9 : 11 }}
+                        tickLine={false}
+                      />
+                      <YAxis tick={{ fontSize: isMobile ? 9 : 11 }} />
+                      <Tooltip formatter={(value) => [value, 'Số tài khoản']} labelStyle={{ fontSize: isMobile ? 12 : 14 }} />
+                      <Bar dataKey="count" fill="#82ca9d" radius={[4, 4, 0, 0]} />
+                    </BarChart>
                   </ResponsiveContainer>
                 </Card>
               </Col>

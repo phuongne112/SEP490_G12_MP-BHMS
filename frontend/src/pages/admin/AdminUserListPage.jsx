@@ -362,6 +362,7 @@ export default function AdminUserListPage() {
                       label="Mật khẩu"
                       rules={[
                         { required: true, message: "Vui lòng nhập mật khẩu" },
+                        { pattern: /^\S+$/, message: "Mật khẩu không được chứa khoảng trắng" },
                       ]}
                     >
                       <Input.Password />
@@ -374,6 +375,7 @@ export default function AdminUserListPage() {
                       dependencies={["password"]}
                       rules={[
                         { required: true, message: "Vui lòng nhập lại mật khẩu" },
+                        { pattern: /^\S+$/, message: "Mật khẩu không được chứa khoảng trắng" },
                         ({ getFieldValue }) => ({
                           validator(_, value) {
                             return value === getFieldValue("password")

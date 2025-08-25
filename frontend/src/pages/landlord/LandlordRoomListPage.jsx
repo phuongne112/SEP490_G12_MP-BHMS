@@ -81,7 +81,7 @@ export default function LandlordRoomListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rooms, setRooms] = useState([]);
   const [total, setTotal] = useState(0);
-  const [pageSize, setPageSize] = useState(isMobile ? 4 : 5);
+  const [pageSize, setPageSize] = useState(6);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const user = useSelector((state) => state.account.user);
@@ -139,7 +139,7 @@ export default function LandlordRoomListPage() {
 
   // Cập nhật pageSize khi isMobile thay đổi
   useEffect(() => {
-    setPageSize(isMobile ? 4 : 5);
+    setPageSize(6);
   }, [isMobile]);
 
   const handleSearch = () => setCurrentPage(1);
@@ -489,7 +489,7 @@ export default function LandlordRoomListPage() {
                 showSizeChanger={true}
                 showQuickJumper={!isMobile}
                 showTotal={(total, range) => `${range[0]}-${range[1]} trên tổng số ${total} phòng`}
-                pageSizeOptions={['5', '10', '20', '50', '100']}
+                pageSizeOptions={['6', '10', '20', '50', '100']}
                 style={{
                   display: "flex",
                   justifyContent: "center",

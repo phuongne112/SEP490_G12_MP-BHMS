@@ -71,6 +71,7 @@ export default function ChangePasswordModal({ open, onClose }) {
           rules={[
             { required: true, message: "Vui lòng nhập mật khẩu mới" },
             { min: 6, message: "Mật khẩu phải có ít nhất 6 ký tự" },
+            { pattern: /^\S+$/, message: "Mật khẩu không được chứa khoảng trắng" },
           ]}
         >
           <Input.Password placeholder="Nhập mật khẩu mới" />
@@ -82,6 +83,7 @@ export default function ChangePasswordModal({ open, onClose }) {
           dependencies={["newPassword"]}
           rules={[
             { required: true, message: "Vui lòng xác nhận mật khẩu mới" },
+            { pattern: /^\S+$/, message: "Mật khẩu không được chứa khoảng trắng" },
             ({ getFieldValue }) => ({
               validator(_, value) {
                 if (!value || getFieldValue("newPassword") === value) {

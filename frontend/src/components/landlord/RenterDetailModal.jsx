@@ -79,14 +79,14 @@ export default function RenterDetailModal({ visible, onClose, renterData }) {
                 {renterData.phoneNumber || renterData.userInfo?.phoneNumber || "N/A"}
               </div>
             </Col>
-            {renterData.userInfo?.phoneNumber2 && (
+            {(renterData.phoneNumber2 || renterData.userInfo?.phoneNumber2) && (
               <Col span={12}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                   <PhoneOutlined style={{ color: "#1890ff" }} />
-                  <span style={{ fontWeight: 500 }}>Số điện thoại 2:</span>
+                  <span style={{ fontWeight: 500 }}>Số điện thoại của người thân:</span>
                 </div>
                 <div style={{ marginLeft: 24, color: "#262626" }}>
-                  {renterData.userInfo.phoneNumber2}
+                  {renterData.phoneNumber2 || renterData.userInfo?.phoneNumber2}
                 </div>
               </Col>
             )}
