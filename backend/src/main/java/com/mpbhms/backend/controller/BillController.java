@@ -19,6 +19,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -188,13 +189,27 @@ public class BillController {
     }
 
     @PostMapping("/{billId}/send")
-    public ResponseEntity<?> sendBill(@PathVariable Long billId) {
-        return sendBillEmail(billId);
+    public ResponseEntity<?> sendBill(@PathVariable Long billId, HttpServletRequest request) {
+        return sendBillEmail(billId, request);
     }
 
     @PostMapping("/send-email/{billId}")
-    public ResponseEntity<?> sendBillEmail(@PathVariable Long billId) {
+    public ResponseEntity<?> sendBillEmail(@PathVariable Long billId, HttpServletRequest request) {
         Bill bill = billService.getBillById(billId);
+        
+        // 🆕 Kiểm tra chống spam email
+        String clientIp = getClientIpAddress(request);
+        String userAgent = request.getHeader("User-Agent");
+        
+        try {
+            billService.checkEmailSpamLimit(billId, clientIp, "BILL");
+        } catch (RuntimeException e) {
+            java.util.Map<String, Object> error = new java.util.HashMap<>();
+            error.put("success", false);
+            error.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+        
         byte[] pdfBytes = billService.generateBillPdf(billId);
         
         // Nếu hóa đơn đã từng thanh toán từng phần, kiểm tra giới hạn 30 ngày giữa các lần
@@ -252,6 +267,8 @@ public class BillController {
                 if (roomUser.getUser().getEmail() != null) {
                     try {
                         emailService.sendBillWithAttachment(roomUser.getUser().getEmail(), subject, content, pdfBytes);
+                        // 🆕 Lưu log email đã gửi
+                        billService.logEmailSent(billId, roomUser.getUser().getEmail(), "BILL", clientIp, userAgent, getCurrentUserId());
                         sent++;
                     } catch (Exception e) {
                         // Có thể log lỗi gửi từng email
@@ -1448,6 +1465,24 @@ public class BillController {
     private String formatCurrency(java.math.BigDecimal amount) {
         if (amount == null) return "0 VNĐ";
         return new java.text.DecimalFormat("#,###").format(amount) + " VNĐ";
+    }
+
+    // 🆕 Helper method để lấy IP address thực sự của client
+    private String getClientIpAddress(HttpServletRequest request) {
+        String xfHeader = request.getHeader("X-Forwarded-For");
+        if (xfHeader == null) {
+            return request.getRemoteAddr();
+        }
+        return xfHeader.split(",")[0].trim();
+    }
+
+    // 🆕 Helper method để lấy current user ID
+    private Long getCurrentUserId() {
+        try {
+            return com.mpbhms.backend.util.SecurityUtil.getCurrentUserId();
+        } catch (Exception e) {
+            return null;
+        }
     }
 
 
