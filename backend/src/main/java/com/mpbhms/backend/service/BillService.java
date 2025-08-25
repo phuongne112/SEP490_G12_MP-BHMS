@@ -115,4 +115,8 @@ public interface BillService {
     
     // 🆕 KIỂM TRA TRẠNG THÁI XÓA HÓA ĐƠN CHI TIẾT
     java.util.Map<String, java.lang.Object> getBillDeletionStatus(Long billId);
+
+    // 🆕 Anti-spam methods
+    void checkEmailSpamLimit(Long billId, String ipAddress, String emailType);
+    void logEmailSent(Long billId, String recipientEmail, String emailType, String ipAddress, String userAgent, Long sentByUserId);
 }

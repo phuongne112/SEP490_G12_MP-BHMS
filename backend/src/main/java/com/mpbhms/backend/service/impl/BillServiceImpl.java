@@ -15,6 +15,7 @@ import com.mpbhms.backend.exception.NotFoundException;
 import com.mpbhms.backend.repository.BillRepository;
 import com.mpbhms.backend.repository.BillDetailRepository;
 import com.mpbhms.backend.repository.ContractRepository;
+import com.mpbhms.backend.repository.EmailSentLogRepository;
 import com.mpbhms.backend.repository.ServiceReadingRepository;
 import com.mpbhms.backend.repository.ServiceRepository;
 import com.mpbhms.backend.repository.RoomRepository;
@@ -71,6 +72,7 @@ public class BillServiceImpl implements BillService {
     private final BillRepository billRepository;
     private final BillDetailRepository billDetailRepository;
     private final ContractRepository contractRepository;
+    private final EmailSentLogRepository emailSentLogRepository;
     private final ServiceReadingRepository serviceReadingRepository;
     private final ServiceRepository serviceRepository;
     private final ServiceService serviceService;
@@ -3104,6 +3106,38 @@ public class BillServiceImpl implements BillService {
             return "Thanh toán từng phần";
         } else {
             return "Thanh toán đầy đủ";
+        }
+    }
+
+    // 🆕 Anti-spam methods implementation
+    @Override
+    public void checkEmailSpamLimit(Long billId, String ipAddress, String emailType) {
+        Instant oneDayAgo = Instant.now().minus(24, ChronoUnit.HOURS);
+
+        // Kiểm tra: Chỉ được gửi 1 email mỗi ngày cho 1 hóa đơn
+        long emailsInLastDay = emailSentLogRepository.countEmailsSentSince(billId, emailType, oneDayAgo);
+        if (emailsInLastDay >= 1) {
+            throw new RuntimeException("Mỗi hóa đơn chỉ được gửi email 1 lần trong 24 giờ. Vui lòng thử lại vào ngày mai.");
+        }
+    }
+
+    @Override
+    public void logEmailSent(Long billId, String recipientEmail, String emailType, String ipAddress, String userAgent, Long sentByUserId) {
+        try {
+            Bill bill = billRepository.findById(billId).orElse(null);
+            if (bill != null) {
+                EmailSentLog log = new EmailSentLog();
+                log.setBill(bill);
+                log.setRecipientEmail(recipientEmail);
+                log.setEmailType(emailType);
+                log.setIpAddress(ipAddress);
+                log.setUserAgent(userAgent);
+                log.setSentByUserId(sentByUserId);
+                emailSentLogRepository.save(log);
+            }
+        } catch (Exception e) {
+            // Log error nhưng không làm fail việc gửi email
+            System.err.println("Lỗi khi lưu email log: " + e.getMessage());
         }
     }
 
