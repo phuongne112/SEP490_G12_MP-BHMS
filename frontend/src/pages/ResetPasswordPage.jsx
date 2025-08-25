@@ -39,12 +39,19 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError({});
 
+    if (/\s/.test(form.newPassword)) {
+      return setError({ newPassword: "Mật khẩu không được chứa khoảng trắng." });
+    }
+    if (/\s/.test(form.confirmPassword)) {
+      return setError({ confirmPassword: "Mật khẩu không được chứa khoảng trắng." });
+    }
+
     if (form.newPassword !== form.confirmPassword) {
       return setError({ confirmPassword: "Passwords do not match." });
     }
 
     try {
-      await resetPassword({ token, newPassword: form.newPassword });
+      await resetPassword({ token, newPassword: form.newPassword.trim() });
       setSuccess(true);
     } catch (err) {
       const res = err.response?.data;

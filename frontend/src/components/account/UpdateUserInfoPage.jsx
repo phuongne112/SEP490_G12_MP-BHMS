@@ -461,25 +461,25 @@ export default function UpdateUserInfoModal({
           >
             <Input placeholder="Nhập số điện thoại chính" />
           </Form.Item>
-          <Form.Item name="phoneNumber2" label="Số điện thoại phụ"
+          <Form.Item name="phoneNumber2" label="Số điện thoại của người thân"
             rules={[
-              { required: true, message: "Vui lòng nhập số điện thoại phụ" },
+              { required: true, message: "Vui lòng nhập số điện thoại của người thân" },
               {
                 pattern: /^0\d{9}$/,
-                message: "Số điện thoại phụ phải có 10 số và bắt đầu bằng 0"
+                message: "Số điện thoại của người thân phải có 10 số và bắt đầu bằng 0"
               },
               {
                 validator: (_, value) => {
                   const phone1 = form.getFieldValue('phoneNumber');
                   if (value && phone1 && value === phone1) {
-                    return Promise.reject(new Error('Số điện thoại phụ không được trùng với số điện thoại chính'));
+                    return Promise.reject(new Error('Số điện thoại của người thân không được trùng với số điện thoại chính'));
                   }
                   return Promise.resolve();
                 }
               }
             ]}
           >
-            <Input placeholder="Nhập số điện thoại phụ" />
+            <Input placeholder="Nhập số điện thoại của người thân" />
           </Form.Item>
           <Form.Item name="gender" label="Giới tính"
             rules={[{ required: true, message: "Vui lòng chọn giới tính" }]}
@@ -610,7 +610,8 @@ export default function UpdateUserInfoModal({
              fontSize: 12,
              color: '#52c41a'
            }}>
-             💡 <strong>Lưu ý:</strong> Upload ảnh CCCD là tùy chọn. Bạn có thể nhập thông tin bằng tay hoặc upload ảnh CCCD để quét tự động thông tin.
+                           💡 <strong>Lưu ý:</strong> Upload ảnh CCCD là tùy chọn. Bạn có thể nhập thông tin bằng tay hoặc upload ảnh CCCD để quét tự động thông tin.<br/>
+              Việc quét CCCD chỉ nhằm mục đích giúp tạo tài khoản chính xác, nhanh chóng và bảo mật. Chúng tôi không lưu trữ thông tin người thuê trọ cho mục đích riêng tư.
            </div>
           <Row gutter={16} style={{ marginBottom: 0 }}>
             <Col span={12}>
