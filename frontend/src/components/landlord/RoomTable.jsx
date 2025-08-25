@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   Row,
@@ -46,6 +46,7 @@ import { Modal as AntdModal, Popconfirm } from "antd";
 import { getContractHistoryByRoom } from "../../services/contractApi";
 import AssignRenterModal from "./AssignRenterModal";
 import EditRoomModal from "./EditRoomModal";
+import dayjs from "dayjs";
 
 const { Meta } = Card;
 const { Option } = Select;
@@ -1507,7 +1508,7 @@ export default function RoomTable({ rooms, loading, onRoomsUpdate }) {
               >
                 {contractList.map((c) => (
                   <Select.Option key={c.id} value={c.id}>
-                    {c.contractCode || `Hợp đồng #${c.id}`} (Từ {c.startDate} đến {c.endDate})
+                    {c.contractCode || `Hợp đồng #${c.id}`} ({c.contractStartDate ? dayjs(c.contractStartDate).format('DD/MM/YYYY') : '-'} đến {c.contractEndDate ? dayjs(c.contractEndDate).format('DD/MM/YYYY') : '-'})
                   </Select.Option>
                 ))}
               </Select>
