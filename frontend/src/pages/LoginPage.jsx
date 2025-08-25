@@ -17,8 +17,13 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError({});
+    const pwd = (password || "").trim();
+    if (/\s/.test(password)) {
+      setError({ password: "Mật khẩu không được chứa khoảng trắng" });
+      return;
+    }
     try {
-      const user = await login(email, password);
+      const user = await login(email, pwd);
       dispatch(
         setUser({
           id: user.id,

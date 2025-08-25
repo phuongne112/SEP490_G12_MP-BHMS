@@ -406,6 +406,12 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
       return;
     }
 
+    // Kiểm tra lý do cập nhật không được chỉ là khoảng trắng
+    if (!updateReason.trim()) {
+      message.error("Lý do cập nhật không được để trống hoặc chỉ chứa khoảng trắng");
+      return;
+    }
+
     // Validate điều khoản hợp đồng
     const invalidTerms = updateTerms
       .map((term, idx) => ({ term: term?.trim(), index: idx + 1 }))
@@ -920,7 +926,14 @@ const handleTerminateContract = (contractId, type = 'bilateral') => {
             }
           >
             <div style={{ marginBottom: 8 }}>Lý do cập nhật:</div>
-            <Input.TextArea value={updateReason} onChange={e => setUpdateReason(e.target.value)} rows={2} style={{ marginBottom: 12 }} />
+            <Input.TextArea 
+              value={updateReason} 
+              onChange={e => setUpdateReason(e.target.value)} 
+              rows={2} 
+              style={{ marginBottom: 12 }} 
+              placeholder="Nhập lý do cập nhật hợp đồng"
+              status={updateReason && !updateReason.trim() ? 'error' : ''}
+            />
             <div style={{ marginBottom: 8 }}>Ngày kết thúc mới:</div>
             <DatePicker value={updateEndDate} onChange={setUpdateEndDate} style={{ width: '100%', marginBottom: 12 }} format="DD/MM/YYYY" />
             <div style={{ marginBottom: 8 }}>Tiền thuê mới:</div>

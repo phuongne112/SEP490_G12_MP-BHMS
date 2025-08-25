@@ -35,6 +35,13 @@ export default function Register() {
     e.preventDefault();
     setErrors({});
 
+    if (/\s/.test(form.password)) {
+      return setErrors({ password: "Mật khẩu không được chứa khoảng trắng." });
+    }
+    if (/\s/.test(form.confirmPassword)) {
+      return setErrors({ confirmPassword: "Mật khẩu không được chứa khoảng trắng." });
+    }
+
     // Validate username is not an email
     if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.username)) {
       return setErrors({ username: "Tên đăng nhập không được là địa chỉ email." });
@@ -49,7 +56,7 @@ export default function Register() {
       fullName: form.fullName,
       email: form.email,
       phone: form.phone,
-      password: form.password,
+      password: form.password.trim(),
       citizenId: form.citizenId,
     };
 

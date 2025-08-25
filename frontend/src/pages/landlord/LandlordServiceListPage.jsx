@@ -190,6 +190,31 @@ export default function LandlordServiceListPage() {
      const handleAddService = async (values) => {
      setIsSubmitting(true);
      try {
+       // Kiểm tra validation ở frontend trước khi gửi request
+       if (!values.name || values.name.trim() === '') {
+         message.error("Tên dịch vụ không được để trống hoặc chỉ chứa khoảng trắng");
+         form.setFields([
+           {
+             name: 'name',
+             errors: ['Tên dịch vụ không được để trống hoặc chỉ chứa khoảng trắng']
+           }
+         ]);
+         setIsSubmitting(false);
+         return;
+       }
+       
+       if (!values.unit || values.unit.trim() === '') {
+         message.error("Đơn vị không được để trống hoặc chỉ chứa khoảng trắng");
+         form.setFields([
+           {
+             name: 'unit',
+             errors: ['Đơn vị không được để trống hoặc chỉ chứa khoảng trắng']
+           }
+         ]);
+         setIsSubmitting(false);
+         return;
+       }
+
        let serviceData;
 
        if (editingService) {
@@ -217,9 +242,9 @@ export default function LandlordServiceListPage() {
          
          // Khi chỉnh sửa: chỉ gửi thông tin dịch vụ (không bao gồm giá)
          serviceData = {
-           serviceName: values.name,
+           serviceName: values.name.trim(),
            serviceType: values.type,
-           unit: values.unit,
+           unit: values.unit.trim(),
          };
        } else {
          // Kiểm tra tên dịch vụ trùng lặp khi tạo mới
@@ -232,9 +257,9 @@ export default function LandlordServiceListPage() {
          
          // Khi tạo mới: gửi đầy đủ thông tin bao gồm giá
          serviceData = {
-           serviceName: values.name,
+           serviceName: values.name.trim(),
            serviceType: values.type,
-           unit: values.unit,
+           unit: values.unit.trim(),
            unitPrice: values.price,
          };
        }
@@ -255,7 +280,55 @@ export default function LandlordServiceListPage() {
        }
      } catch (error) {
        console.error("Error saving service:", error);
-       message.error(error.message || "Lưu dịch vụ thất bại");
+       
+       // Xử lý lỗi từ backend một cách chi tiết hơn
+       if (error.response?.data) {
+         const responseData = error.response.data;
+         
+         // Xử lý lỗi validation cụ thể từ backend
+         if (responseData.message && responseData.message.includes('Validation failed')) {
+           // Tìm lỗi validation trong constraint violations
+           if (responseData.message.includes('serviceName')) {
+             message.error("Tên dịch vụ không hợp lệ. Vui lòng kiểm tra lại!");
+             form.setFields([
+               {
+                 name: 'name',
+                 errors: ['Tên dịch vụ không hợp lệ']
+               }
+             ]);
+           } else if (responseData.message.includes('unit')) {
+             message.error("Đơn vị không hợp lệ. Vui lòng kiểm tra lại!");
+             form.setFields([
+               {
+                 name: 'unit',
+                 errors: ['Đơn vị không hợp lệ']
+               }
+             ]);
+           } else {
+             message.error("Thông tin nhập vào không hợp lệ. Vui lòng kiểm tra lại!");
+           }
+         } else if (responseData.message) {
+           // Hiển thị thông báo lỗi chính từ backend
+           message.error(responseData.message);
+         } else {
+           message.error("Lưu dịch vụ thất bại! Vui lòng thử lại.");
+         }
+         
+         // Xử lý lỗi validation cho từng trường
+         if (responseData.data && typeof responseData.data === "object") {
+           const fieldErrors = Object.entries(responseData.data).map(([field, errorMsg]) => ({
+             name: field === "serviceName" ? "name" : field === "unit" ? "unit" : field,
+             errors: [errorMsg],
+           }));
+           
+           if (fieldErrors.length > 0) {
+             form.setFields(fieldErrors);
+           }
+         }
+       } else {
+         // Lỗi khác
+         message.error(error.message || "Lưu dịch vụ thất bại! Vui lòng thử lại.");
+       }
      } finally {
        setIsSubmitting(false);
      }
@@ -292,9 +365,33 @@ export default function LandlordServiceListPage() {
       }
     } catch (error) {
       console.error("Error updating price:", error);
-      // Hiển thị thông báo lỗi từ backend nếu có
-      const errorMessage = error.response?.data?.message || error.message || "Cập nhật giá thất bại";
-      message.error(errorMessage);
+      
+      // Xử lý lỗi từ backend một cách chi tiết hơn
+      if (error.response?.data) {
+        const responseData = error.response.data;
+        
+        if (responseData.message) {
+          // Hiển thị thông báo lỗi chính từ backend
+          message.error(responseData.message);
+        } else {
+          message.error("Cập nhật giá thất bại! Vui lòng thử lại.");
+        }
+        
+        // Xử lý lỗi validation cho từng trường
+        if (responseData.data && typeof responseData.data === "object") {
+          const fieldErrors = Object.entries(responseData.data).map(([field, errorMsg]) => ({
+            name: field,
+            errors: [errorMsg],
+          }));
+          
+          if (fieldErrors.length > 0) {
+            priceForm.setFields(fieldErrors);
+          }
+        }
+      } else {
+        // Lỗi khác
+        message.error(error.message || "Cập nhật giá thất bại! Vui lòng thử lại.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -308,7 +405,21 @@ export default function LandlordServiceListPage() {
         fetchServices(pagination.current, pagination.pageSize, activeFilters);
     } catch (error) {
         console.error("Error deleting service:", error);
-        message.error("Xóa dịch vụ thất bại");
+        
+        // Xử lý lỗi từ backend một cách chi tiết hơn
+        if (error.response?.data) {
+          const responseData = error.response.data;
+          
+          if (responseData.message) {
+            // Hiển thị thông báo lỗi chính từ backend
+            message.error(responseData.message);
+          } else {
+            message.error("Xóa dịch vụ thất bại! Vui lòng thử lại.");
+          }
+        } else {
+          // Lỗi khác
+          message.error(error.message || "Xóa dịch vụ thất bại! Vui lòng thử lại.");
+        }
     }
   };
 
@@ -726,10 +837,46 @@ export default function LandlordServiceListPage() {
               }
             >
                          <Form layout="vertical" form={form} onFinish={handleAddService}>
-               <Form.Item label="Tên dịch vụ" name="name" rules={[{ required: true, message: "Vui lòng nhập tên dịch vụ" }]}>
+               <Form.Item 
+                 label="Tên dịch vụ" 
+                 name="name" 
+                 rules={[
+                   { required: true, message: "Vui lòng nhập tên dịch vụ" },
+                   {
+                     validator: (_, value) => {
+                       if (!value || value.trim() === '') {
+                         return Promise.reject(new Error('Tên dịch vụ không được để trống hoặc chỉ chứa khoảng trắng'));
+                       }
+                       if (value.trim().length < 2) {
+                         return Promise.reject(new Error('Tên dịch vụ phải có ít nhất 2 ký tự'));
+                       }
+                       return Promise.resolve();
+                     },
+                     validateTrigger: ['onBlur', 'onChange']
+                   }
+                 ]}
+               >
                  <Input placeholder="Nhập tên dịch vụ" />
                </Form.Item>
-               <Form.Item label="Đơn vị" name="unit" rules={[{ required: true, message: "Vui lòng nhập đơn vị" }]}>
+               <Form.Item 
+                 label="Đơn vị" 
+                 name="unit" 
+                 rules={[
+                   { required: true, message: "Vui lòng nhập đơn vị" },
+                   {
+                     validator: (_, value) => {
+                       if (!value || value.trim() === '') {
+                         return Promise.reject(new Error('Đơn vị không được để trống hoặc chỉ chứa khoảng trắng'));
+                       }
+                       if (value.trim().length < 1) {
+                         return Promise.reject(new Error('Đơn vị không được để trống'));
+                       }
+                       return Promise.resolve();
+                     },
+                     validateTrigger: ['onBlur', 'onChange']
+                   }
+                 ]}
+               >
                  <Input placeholder="VD: kWh, m³, ..." />
                </Form.Item>
                {!editingService && (

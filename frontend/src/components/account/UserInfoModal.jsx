@@ -121,7 +121,7 @@ export default function UserInfoModal({ open, onClose, onShowUpdateModal }) {
             <Descriptions.Item label="Số điện thoại">
               {info?.phoneNumber || "-"}
             </Descriptions.Item>
-            <Descriptions.Item label="Số điện thoại phụ">
+            <Descriptions.Item label="Số điện thoại của người thân">
               {info?.phoneNumber2 || "-"}
             </Descriptions.Item>
             <Descriptions.Item label="Giới tính">
