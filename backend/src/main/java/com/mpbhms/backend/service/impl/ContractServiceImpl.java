@@ -1071,6 +1071,7 @@ public class ContractServiceImpl implements ContractService {
                     com.mpbhms.backend.dto.RoomUserDTO rudto = new com.mpbhms.backend.dto.RoomUserDTO();
                     rudto.setFullName(renterInfo.getFullName());
                     rudto.setPhoneNumber(renterInfo.getPhoneNumber());
+                    rudto.setEmail(renterInfo.getEmail());
                     rudto.setIsActive(false); // Đánh dấu là thông tin lịch sử
                     roomUserDTOs.add(rudto);
                 }
@@ -1411,6 +1412,9 @@ public class ContractServiceImpl implements ContractService {
         
         // Xử lý thay đổi người thuê
         if (request.getRenterIds() != null) {
+            if (request.getRenterIds().isEmpty()) {
+                throw new RuntimeException("Không thể xóa hết người thuê: Hợp đồng phải còn ít nhất 1 người.");
+            }
             // Lấy danh sách người thuê hiện tại
             java.util.List<Long> currentRenterIds = contract.getRoomUsers().stream()
             .filter(RoomUser::getIsActive)
@@ -1424,6 +1428,10 @@ public class ContractServiceImpl implements ContractService {
             
             boolean hasRenterChange = !currentRenterIds.equals(newRenterIds);
             
+            // Không cho phép cập nhật khiến số người thuê còn lại < 1
+            if (request.getRenterIds() != null && newRenterIds.size() < 1) {
+                throw new RuntimeException("Hợp đồng phải có ít nhất 1 người thuê.");
+            }
             if (hasRenterChange) {
                 // Lấy danh sách người thuê hiện tại
                 java.util.List<String> currentRenterNames = contract.getRoomUsers().stream()
@@ -1611,11 +1619,12 @@ public class ContractServiceImpl implements ContractService {
         boolean allRentersApproved = amendment.getPendingApprovals() != null
             && amendment.getApprovedBy() != null
             && amendment.getPendingApprovals().stream().allMatch(id -> amendment.getApprovedBy().contains(id));
+        // Duyệt hai phía không phụ thuộc thứ tự: landlord và toàn bộ renter đều có thể duyệt trước/sau
         if (amendment.getApprovedByLandlord() && allRentersApproved) {
             logger.info("Amendment {} approved by all parties. Applying changes to contract.", amendmentId);
             amendment.setStatus(ContractAmendment.AmendmentStatus.APPROVED);
             if (amendment.getAmendmentType() == ContractAmendment.AmendmentType.TERMINATION) {
-                terminateContract(amendment.getContract().getId());
+                terminateContractInternal(amendment.getContract());
             } else {
                 applyAmendmentToContract(amendment);
             }
@@ -1942,6 +1951,14 @@ public class ContractServiceImpl implements ContractService {
             throw new RuntimeException("Chỉ chủ phòng mới có thể chấm dứt hợp đồng trực tiếp.");
         }
         
+        // Thực hiện chấm dứt thực sự
+        terminateContractInternal(contract);
+    }
+
+    /**
+     * Chấm dứt hợp đồng không kiểm tra quyền. Dùng cho các luồng đã được phê duyệt (song phương).
+     */
+    private void terminateContractInternal(Contract contract) {
         // Lưu lịch sử vào ContractRenterInfo trước khi xóa RoomUser
         if (contract.getRoomUsers() != null) {
             for (RoomUser ru : contract.getRoomUsers()) {
@@ -1969,7 +1986,7 @@ public class ContractServiceImpl implements ContractService {
                             history.setPhoneNumber(ru.getUser().getUserInfo().getPhoneNumber());
                             history.setNationalID(ru.getUser().getUserInfo().getNationalID());
                             history.setPermanentAddress(ru.getUser().getUserInfo().getPermanentAddress());
-                            history.setEmail(ru.getUser().getEmail()); // Thêm email
+                            history.setEmail(ru.getUser().getEmail());
                         }
                         contractRenterInfoRepository.save(history);
                         logger.info("Created ContractRenterInfo history for user {} in terminated contract {}", 
@@ -1985,7 +2002,7 @@ public class ContractServiceImpl implements ContractService {
         // Cập nhật trạng thái hợp đồng thành TERMINATED
         contract.setContractStatus(ContractStatus.TERMINATED);
         contractRepository.save(contract);
-        logger.info("Contract {} terminated successfully", contractId);
+        logger.info("Contract {} terminated successfully", contract.getId());
         
         Room room = contract.getRoom();
         
@@ -1995,7 +2012,7 @@ public class ContractServiceImpl implements ContractService {
                 if (ru.getIsActive() != null && ru.getIsActive()) {
                     roomUserRepository.delete(ru); // XÓA HẲN khỏi DB
                     logger.info("Deleted RoomUser {} for user {} in terminated contract {}", 
-                        ru.getId(), ru.getUser() != null ? ru.getUser().getUserInfo().getFullName() : "Unknown", contractId);
+                        ru.getId(), ru.getUser() != null ? ru.getUser().getUserInfo().getFullName() : "Unknown", contract.getId());
                 }
             }
         }
@@ -2004,7 +2021,6 @@ public class ContractServiceImpl implements ContractService {
         if (room != null) {
             int activeUserCount = roomUserRepository.countByRoomId(room.getId());
             if (activeUserCount == 0) {
-                // Nếu không còn người thuê nào, cập nhật trạng thái phòng thành "Available"
                 roomService.updateRoomStatus(room.getId(), RoomStatus.Available.name());
                 logger.info("Room {} status updated to Available after contract termination", room.getId());
             }

@@ -189,6 +189,12 @@ public class RoomUserServiceImpl implements RoomUserService {
             throw new RuntimeException("Không tìm thấy thông tin phòng");
         }
         
+        // Không cho phép rời phòng nếu đây là người thuê cuối cùng còn lại
+        int activeBefore = roomUserRepository.countByRoomId(room.getId());
+        if (activeBefore <= 1) {
+            throw new RuntimeException("Không thể xóa người thuê cuối cùng khỏi hợp đồng/phòng.");
+        }
+
         // Xóa RoomUser
         roomUserRepository.delete(roomUser);
         
