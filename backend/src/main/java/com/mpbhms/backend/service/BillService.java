@@ -103,6 +103,9 @@ public interface BillService {
     
     // Tạo nội dung email hóa đơn thông thường
     String buildNormalBillEmailContent(Bill bill, String paymentUrl);
+    
+    // 🆕 Tạo nội dung email hóa đơn đơn giản chỉ có PDF + link chi tiết (không có QR/payment URL)
+    String buildSimpleBillEmailContent(Bill bill);
 
     // Tạo nội dung email thông báo thanh toán từng phần/tiền mặt thành công
     String buildPartialPaymentEmailContent(com.mpbhms.backend.entity.Bill bill, java.math.BigDecimal paymentAmount);

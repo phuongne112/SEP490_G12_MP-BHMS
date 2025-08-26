@@ -36,3 +36,4 @@ public interface EmailSentLogRepository extends JpaRepository<EmailSentLog, Long
     @Query("SELECT e FROM EmailSentLog e WHERE e.bill.id = :billId AND e.emailType = :emailType ORDER BY e.sentAt DESC LIMIT 1")
     EmailSentLog findLastEmailSent(@Param("billId") Long billId, @Param("emailType") String emailType);
 }
+

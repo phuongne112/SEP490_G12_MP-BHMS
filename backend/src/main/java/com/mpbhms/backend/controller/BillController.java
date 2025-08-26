@@ -234,28 +234,9 @@ public class BillController {
             
         String subject = "Hóa đơn mới - Phòng " + bill.getRoom().getRoomNumber();
         
-        // Tạo payment URL: sử dụng số tiền còn nợ (và phí thanh toán từng phần nếu có)
-        String paymentUrl = "";
-        try {
-            java.math.BigDecimal outstanding = bill.getOutstandingAmount() != null ? bill.getOutstandingAmount() : bill.getTotalAmount();
-            long amountForLink = outstanding.longValue();
-            String orderInfo = "Thanh toán hóa đơn #" + bill.getId();
-
-            if (Boolean.TRUE.equals(bill.getIsPartiallyPaid())) {
-                int paymentCount = billService.getPaymentCount(bill.getId());
-                java.math.BigDecimal nextFee = billService.calculateNextPaymentFee(paymentCount);
-                amountForLink = outstanding.add(nextFee).longValue();
-                // Gắn originalAmount để callback xử lý đúng tiền gốc
-                orderInfo += "|originalAmount:" + outstanding.toPlainString();
-            }
-
-            paymentUrl = vnPayService.createPaymentUrl(bill.getId(), amountForLink, orderInfo);
-        } catch (Exception e) {
-            paymentUrl = null;
-        }
-        
-        // Tạo nội dung email đẹp hơn
-        String content = billService.buildNormalBillEmailContent(bill, paymentUrl);
+        // 🆕 Không tạo payment URL nữa, chỉ gửi link chi tiết hóa đơn
+        // Tạo nội dung email đơn giản chỉ có link chi tiết
+        String content = billService.buildSimpleBillEmailContent(bill);
         
         int sent = 0;
         int notificationsSent = 0;
