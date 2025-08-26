@@ -557,8 +557,8 @@ export default function LandlordContractTemplateManager() {
                         if (value.trim().length < 10) {
                           return Promise.reject(new Error('Nội dung mẫu phải có ít nhất 10 ký tự'));
                         }
-                        if (value.trim().length > 10000) {
-                          return Promise.reject(new Error('Nội dung mẫu không được quá 10,000 ký tự'));
+                        if (value.trim().length > 20000) {
+                          return Promise.reject(new Error('Nội dung mẫu không được quá 20,000 ký tự'));
                         }
                         return Promise.resolve();
                       },
