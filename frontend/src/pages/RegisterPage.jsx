@@ -122,7 +122,7 @@ export default function Register() {
           }}
         >
           <TextInput
-            label="Tên đăng nhập"
+            label="Tên người dùng"
             name="username"
             value={form.username}
             onChange={handleChange}

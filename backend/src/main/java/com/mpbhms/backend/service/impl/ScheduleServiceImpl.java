@@ -137,8 +137,71 @@ public class ScheduleServiceImpl implements ScheduleService {
     @Override
     public ScheduleDTO updateStatus(Long id, ScheduleStatus status) {
         Schedule schedule = scheduleRepository.findById(id).orElseThrow();
+        ScheduleStatus oldStatus = schedule.getStatus();
         schedule.setStatus(status);
         schedule = scheduleRepository.save(schedule);
+        
+        // Gửi thông báo cho người dùng khi landlord thay đổi trạng thái lịch hẹn
+        if (oldStatus != status) {
+            try {
+                // Tìm user để gửi thông báo (ưu tiên renter, nếu không có thì tìm theo email)
+                User recipient = null;
+                if (schedule.getRenter() != null) {
+                    recipient = schedule.getRenter();
+                } else if (schedule.getEmail() != null) {
+                    try {
+                        recipient = userRepository.findByEmail(schedule.getEmail());
+                    } catch (Exception e) {
+                        // Nếu không tìm thấy user với email này, để recipient = null
+                        recipient = null;
+                    }
+                }
+                
+                if (recipient != null) {
+                    NotificationDTO notification = new NotificationDTO();
+                    notification.setRecipientId(recipient.getId());
+                    
+                    String roomNumber = schedule.getRoom() != null ? schedule.getRoom().getRoomNumber() : "phòng";
+                    String appointmentTime = schedule.getAppointmentTime() != null ? 
+                        java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+                            .format(schedule.getAppointmentTime().atZone(java.time.ZoneId.systemDefault())) : "";
+                    
+                    switch (status) {
+                        case CONFIRMED:
+                            notification.setTitle("Lịch hẹn xem phòng đã được xác nhận");
+                            notification.setMessage("Lịch hẹn xem " + roomNumber + " vào lúc " + appointmentTime + " đã được chủ nhà xác nhận. Vui lòng đến đúng giờ hẹn.");
+                            notification.setType(NotificationType.BOOKING_STATUS);
+                            break;
+                        case REJECTED:
+                            notification.setTitle("Lịch hẹn xem phòng bị từ chối");
+                            notification.setMessage("Lịch hẹn xem " + roomNumber + " vào lúc " + appointmentTime + " đã bị chủ nhà từ chối. Vui lòng liên hệ chủ nhà để biết thêm chi tiết hoặc đặt lịch hẹn khác.");
+                            notification.setType(NotificationType.BOOKING_STATUS);
+                            break;
+                        case CANCELLED:
+                            notification.setTitle("Lịch hẹn xem phòng bị hủy");
+                            notification.setMessage("Lịch hẹn xem " + roomNumber + " vào lúc " + appointmentTime + " đã bị hủy. Vui lòng liên hệ chủ nhà để biết thêm chi tiết hoặc đặt lịch hẹn khác.");
+                            notification.setType(NotificationType.BOOKING_STATUS);
+                            break;
+                        case COMPLETED:
+                            notification.setTitle("Lịch hẹn xem phòng đã hoàn thành");
+                            notification.setMessage("Lịch hẹn xem " + roomNumber + " vào lúc " + appointmentTime + " đã hoàn thành. Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi.");
+                            notification.setType(NotificationType.BOOKING_STATUS);
+                            break;
+                        default:
+                            // Không gửi thông báo cho các trạng thái khác
+                            break;
+                    }
+                    
+                    if (notification.getTitle() != null) {
+                        notificationService.createAndSend(notification);
+                    }
+                }
+            } catch (Exception e) {
+                // Log lỗi nhưng không làm gián đoạn quá trình cập nhật trạng thái
+                System.err.println("Lỗi gửi thông báo khi cập nhật trạng thái lịch hẹn: " + e.getMessage());
+            }
+        }
+        
         return toDTO(schedule);
     }
 
