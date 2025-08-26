@@ -62,6 +62,12 @@ export default function LandlordRenterListPage() {
   const [userCurrentPage, setUserCurrentPage] = useState(1);
   const [userPageSize, setUserPageSize] = useState(10);
   const [userTotal, setUserTotal] = useState(0);
+  
+  // Validation states
+  const [usernameExists, setUsernameExists] = useState(false);
+  const [emailExists, setEmailExists] = useState(false);
+  const [phoneExists, setPhoneExists] = useState(false);
+  const [citizenIdExists, setCitizenIdExists] = useState(false);
   useEffect(() => {
     async function fetchRooms() {
       try {
@@ -163,6 +169,46 @@ export default function LandlordRenterListPage() {
     fetchUsersWithoutRole();
     // eslint-disable-next-line
   }, [userCurrentPage, userPageSize]);
+
+  // Kiểm tra trùng lặp username
+  const checkUsernameExists = async (username) => {
+    try {
+      const res = await getAllUsers(0, 1000, `username='${username}'`);
+      return (res.result || []).length > 0;
+    } catch (err) {
+      return false;
+    }
+  };
+
+  // Kiểm tra trùng lặp email
+  const checkEmailExists = async (email) => {
+    try {
+      const res = await getAllUsers(0, 1000, `email='${email}'`);
+      return (res.result || []).length > 0;
+    } catch (err) {
+      return false;
+    }
+  };
+
+  // Kiểm tra trùng lặp số điện thoại
+  const checkPhoneExists = async (phone) => {
+    try {
+      const res = await getAllRenters(0, 1000, { phone });
+      return (res.result || []).length > 0;
+    } catch (err) {
+      return false;
+    }
+  };
+
+  // Kiểm tra trùng lặp CCCD/CMND
+  const checkCitizenIdExists = async (citizenId) => {
+    try {
+      const res = await getAllRenters(0, 1000, { citizenId });
+      return (res.result || []).length > 0;
+    } catch (err) {
+      return false;
+    }
+  };
 
   const handleGrantRenter = async (user) => {
     // Hiển thị popup confirm trước khi cấp quyền
@@ -746,47 +792,122 @@ export default function LandlordRenterListPage() {
                       <Form form={addForm} layout="vertical" initialValues={{ isActive: true }}>
                         <Row gutter={16}>
                           <Col span={12}>
-                            <Form.Item label="Tên người dùng" name="username" rules={[
-                              { required: true, message: "Vui lòng nhập tên người dùng" },
-                              { min: 3, max: 50, message: "Tên người dùng phải từ 3-50 ký tự" },
-                              { pattern: /^[^@\s]+$/, message: "Tên người dùng không được là email." }
-                            ]}>
-                              <Input placeholder="Nhập tên người dùng" />
-                            </Form.Item>
+                                                         <Form.Item label="Tên người dùng" name="username" rules={[
+                               { required: true, message: "Vui lòng nhập tên người dùng" },
+                               { min: 3, max: 50, message: "Tên người dùng phải từ 3-50 ký tự" },
+                               { pattern: /^[^@\s]+$/, message: "Tên người dùng không được là email." },
+                               { validator: async (_, value) => {
+                                   if (!value) return Promise.resolve();
+                                   const exists = await checkUsernameExists(value);
+                                   if (exists) {
+                                     setUsernameExists(true);
+                                     return Promise.reject(new Error("Tên người dùng đã tồn tại"));
+                                   }
+                                   setUsernameExists(false);
+                                   return Promise.resolve();
+                                 }
+                               }
+                             ]}>
+                               <Input 
+                                 placeholder="Nhập tên người dùng" 
+                                 onChange={(e) => {
+                                   if (usernameExists) setUsernameExists(false);
+                                 }}
+                               />
+                             </Form.Item>
                           </Col>
                           <Col span={12}>
-                            <Form.Item label="Họ và tên" name="fullName" rules={[
-                              { required: true, message: "Vui lòng nhập họ và tên" },
-                              { min: 2, max: 100, message: "Họ và tên phải từ 2-100 ký tự" }
-                            ]}>
-                              <Input placeholder="Nhập họ và tên" />
-                            </Form.Item>
+                                                         <Form.Item label="Họ và tên" name="fullName" rules={[
+                               { required: true, message: "Vui lòng nhập họ và tên" },
+                               { min: 2, max: 100, message: "Họ và tên phải từ 2-100 ký tự" },
+                               { 
+                                 pattern: /^[a-zA-ZÀ-ỹ\s]+$/,
+                                 message: "Họ và tên chỉ được chứa chữ cái và khoảng trắng"
+                               }
+                             ]}>
+                               <Input 
+                                 placeholder="Nhập họ và tên" 
+                                 showCount
+                                 maxLength={100}
+                               />
+                             </Form.Item>
                           </Col>
                           <Col span={12}>
-                            <Form.Item label="Email" name="email" rules={[
-                              { required: true, message: "Vui lòng nhập email" },
-                              { type: "email", message: "Email không hợp lệ" },
-                              { max: 100, message: "Email tối đa 100 ký tự" }
-                            ]}>
-                              <Input type="email" placeholder="Nhập email" />
-                            </Form.Item>
+                                                         <Form.Item label="Email" name="email" rules={[
+                               { required: true, message: "Vui lòng nhập email" },
+                               { type: "email", message: "Email không hợp lệ" },
+                               { max: 100, message: "Email tối đa 100 ký tự" },
+                               { validator: async (_, value) => {
+                                   if (!value) return Promise.resolve();
+                                   const exists = await checkEmailExists(value);
+                                   if (exists) {
+                                     setEmailExists(true);
+                                     return Promise.reject(new Error("Email đã tồn tại"));
+                                   }
+                                   setEmailExists(false);
+                                   return Promise.resolve();
+                                 }
+                               }
+                             ]}>
+                               <Input 
+                                 type="email" 
+                                 placeholder="Nhập email" 
+                                 onChange={(e) => {
+                                   if (emailExists) setEmailExists(false);
+                                 }}
+                               />
+                             </Form.Item>
                           </Col>
                           <Col span={12}>
-                            <Form.Item label="Mật khẩu" name="password" rules={[
-                              { required: true, message: "Vui lòng nhập mật khẩu" },
-                              { min: 6, max: 32, message: "Mật khẩu phải từ 6-32 ký tự" },
-                              { pattern: /^\S+$/, message: "Mật khẩu không được chứa khoảng trắng" }
-                            ]}>
-                              <Input.Password placeholder="Nhập mật khẩu" />
-                            </Form.Item>
+                                                         <Form.Item label="Mật khẩu" name="password" rules={[
+                               { required: true, message: "Vui lòng nhập mật khẩu" },
+                               { min: 8, max: 32, message: "Mật khẩu phải từ 8-32 ký tự" },
+                               { pattern: /^\S+$/, message: "Mật khẩu không được chứa khoảng trắng" },
+                               { 
+                                 pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+                                 message: "Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt"
+                               }
+                             ]}>
+                               <Input.Password 
+                                 placeholder="Nhập mật khẩu" 
+                                 showCount
+                                 maxLength={32}
+                               />
+                             </Form.Item>
                           </Col>
                           <Col span={12}>
-                            <Form.Item label="Số điện thoại" name="phoneNumber" rules={[
-                              { required: true, message: "Vui lòng nhập số điện thoại" },
-                              { message: "Số điện thoại không hợp lệ. Bắt đầu bằng 0, 10 số, đúng đầu số Việt Nam." }
-                            ]}>
-                              <Input placeholder="Nhập số điện thoại" />
-                            </Form.Item>
+                                                         <Form.Item label="Số điện thoại" name="phoneNumber" rules={[
+                               { required: true, message: "Vui lòng nhập số điện thoại" },
+                               { 
+                                 pattern: /^(0[3|5|7|8|9])+([0-9]{8})$/,
+                                 message: "Số điện thoại không hợp lệ. Bắt đầu bằng 0, 10 số, đúng đầu số Việt Nam."
+                               },
+                               { validator: async (_, value) => {
+                                   if (!value) return Promise.resolve();
+                                   const exists = await checkPhoneExists(value);
+                                   if (exists) {
+                                     setPhoneExists(true);
+                                     return Promise.reject(new Error("Số điện thoại đã tồn tại"));
+                                   }
+                                   setPhoneExists(false);
+                                   return Promise.resolve();
+                                 }
+                               }
+                             ]}>
+                               <Input 
+                                 placeholder="Nhập số điện thoại" 
+                                 maxLength={10}
+                                 onKeyPress={(e) => {
+                                   // Chỉ cho phép nhập số
+                                   if (!/[0-9]/.test(e.key)) {
+                                     e.preventDefault();
+                                   }
+                                 }}
+                                 onChange={(e) => {
+                                   if (phoneExists) setPhoneExists(false);
+                                 }}
+                               />
+                             </Form.Item>
                           </Col>
                           <Col span={12}>
                             <Form.Item label="Ngày sinh" name="dateOfBirth" rules={[
@@ -834,31 +955,61 @@ export default function LandlordRenterListPage() {
                             </Form.Item>
                           </Col>
                           <Col span={12}>
-                            <Form.Item label="CCCD/CMND" name="citizenId" rules={[
-                              { required: true, message: "Vui lòng nhập CCCD/CMND" }
-                            ]}>
-                              <Input 
-                                placeholder="Nhập số CCCD/CMND" 
-                                maxLength={12}
-                                onKeyPress={(e) => {
-                                  // Chỉ cho phép nhập số
-                                  if (!/[0-9]/.test(e.key)) {
-                                    e.preventDefault();
-                                  }
-                                }}
-                              />
-                            </Form.Item>
+                                                         <Form.Item label="CCCD/CMND" name="citizenId" rules={[
+                               { required: true, message: "Vui lòng nhập CCCD/CMND" },
+                               { 
+                                 pattern: /^[0-9]{9}$|^[0-9]{12}$/,
+                                 message: "CCCD/CMND phải có đúng 9 hoặc 12 chữ số"
+                               },
+                               { validator: async (_, value) => {
+                                   if (!value) return Promise.resolve();
+                                   const exists = await checkCitizenIdExists(value);
+                                   if (exists) {
+                                     setCitizenIdExists(true);
+                                     return Promise.reject(new Error("CCCD/CMND đã tồn tại"));
+                                   }
+                                   setCitizenIdExists(false);
+                                   return Promise.resolve();
+                                 }
+                               }
+                             ]}>
+                               <Input 
+                                 placeholder="Nhập số CCCD/CMND" 
+                                 maxLength={12}
+                                 onKeyPress={(e) => {
+                                   // Chỉ cho phép nhập số
+                                   if (!/[0-9]/.test(e.key)) {
+                                     e.preventDefault();
+                                   }
+                                 }}
+                                 onChange={(e) => {
+                                   if (citizenIdExists) setCitizenIdExists(false);
+                                 }}
+                               />
+                             </Form.Item>
                           </Col>
-                          <Col span={12}>
-                            <Form.Item label="Nơi sinh" name="birthPlace">
-                              <Input placeholder="Nhập nơi sinh" />
-                            </Form.Item>
-                          </Col>
-                          <Col span={12}>
-                            <Form.Item label="Nơi cấp CCCD" name="nationalIDIssuePlace">
-                              <Input placeholder="Nhập nơi cấp CCCD" />
-                            </Form.Item>
-                          </Col>
+                                                     <Col span={12}>
+                             <Form.Item label="Nơi sinh" name="birthPlace" rules={[
+                               { min: 2, max: 100, message: "Nơi sinh phải từ 2-100 ký tự" }
+                             ]}>
+                               <Input 
+                                 placeholder="Nhập nơi sinh" 
+                                 showCount
+                                 maxLength={100}
+                               />
+                             </Form.Item>
+                           </Col>
+                           <Col span={12}>
+                             <Form.Item label="Nơi cấp CCCD" name="nationalIDIssuePlace" rules={[
+                               { min: 2, max: 100, message: "Nơi cấp CCCD phải từ 2-100 ký tự" }
+                             ]}>
+                               <Input 
+                                 placeholder="Nhập nơi cấp CCCD" 
+                                 showCount
+                                 maxLength={100}
+                               />
+                             </Form.Item>
+                           </Col>
                           <Col span={12}>
                             <Form.Item label="Ngày cấp CCCD" name="nationalIDIssueDate" rules={[
                               { required: true, message: "Vui lòng chọn ngày cấp CCCD" },
@@ -909,13 +1060,18 @@ export default function LandlordRenterListPage() {
                               </Select>
                             </Form.Item>
                           </Col>
-                          <Col span={24}>
-                            <Form.Item label="Địa chỉ thường trú" name="permanentAddress" rules={[
-                              { required: true, message: "Vui lòng nhập địa chỉ thường trú" }
-                            ]}>
-                              <Input placeholder="Nhập địa chỉ thường trú" />
-                            </Form.Item>
-                          </Col>
+                                                     <Col span={24}>
+                             <Form.Item label="Địa chỉ thường trú" name="permanentAddress" rules={[
+                               { required: true, message: "Vui lòng nhập địa chỉ thường trú" },
+                               { min: 10, max: 200, message: "Địa chỉ phải từ 10-200 ký tự" }
+                             ]}>
+                               <Input 
+                                 placeholder="Nhập địa chỉ thường trú" 
+                                 showCount
+                                 maxLength={200}
+                               />
+                             </Form.Item>
+                           </Col>
                           <Col span={12}>
                             <Form.Item label="Trạng thái hoạt động" name="isActive" valuePropName="checked">
                               <Switch checkedChildren="Đang hoạt động" unCheckedChildren="Ngừng hoạt động" />
@@ -1054,11 +1210,17 @@ export default function LandlordRenterListPage() {
                             }
                           }}
                                                      columns={[
-                             {
-                               title: 'Tên người dùng',
-                               dataIndex: 'username',
-                               key: 'username',
-                             },
+                            {
+                              title: 'Họ và tên',
+                              dataIndex: 'fullName',
+                              key: 'fullName',
+                              render: (text) => text || '---',
+                            },
+                            {
+                              title: 'Tên người dùng',
+                              dataIndex: 'username',
+                              key: 'username',
+                            },
                             {
                               title: 'Email',
                               dataIndex: 'email',
