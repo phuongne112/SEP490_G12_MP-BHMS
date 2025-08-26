@@ -121,7 +121,7 @@ export default function Login() {
           >
             <form onSubmit={handleLogin}>
               <div style={{ marginBottom: 16 }}>
-                <label>Tên đăng nhập</label>
+                <label>Email</label>
                 <input
                   type="email"
                   value={email}

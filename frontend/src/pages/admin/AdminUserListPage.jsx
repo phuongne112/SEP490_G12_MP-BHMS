@@ -301,15 +301,15 @@ export default function AdminUserListPage() {
                   <Col span={isMobile ? 24 : 12}>
                     <Form.Item
                       name="username"
-                      label="Tên đăng nhập"
+                      label="Tên người dùng"
                       rules={[
                         {
                           required: true,
-                          message: "Vui lòng nhập tên đăng nhập",
+                          message: "Vui lòng nhập tên người dùng",
                         },
                         {
                           pattern: /^[^@\s]+$/,
-                          message: "Tên đăng nhập không được là email.",
+                          message: "Tên người dùng không được là email.",
                         },
                       ]}
                     >
@@ -469,11 +469,11 @@ export default function AdminUserListPage() {
                   <Col span={isMobile ? 24 : 12}>
                     <Form.Item
                       name="username"
-                      label="Tên đăng nhập"
+                      label="Tên người dùng"
                       rules={[
                         {
                           required: true,
-                          message: "Vui lòng nhập tên đăng nhập",
+                          message: "Vui lòng nhập tên người dùng",
                         },
                       ]}
                     >

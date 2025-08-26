@@ -746,12 +746,12 @@ export default function LandlordRenterListPage() {
                       <Form form={addForm} layout="vertical" initialValues={{ isActive: true }}>
                         <Row gutter={16}>
                           <Col span={12}>
-                            <Form.Item label="Tên đăng nhập" name="username" rules={[
-                              { required: true, message: "Vui lòng nhập tên đăng nhập" },
-                              { min: 3, max: 50, message: "Tên đăng nhập phải từ 3-50 ký tự" },
-                              { pattern: /^[^@\s]+$/, message: "Tên đăng nhập không được là email." }
+                            <Form.Item label="Tên người dùng" name="username" rules={[
+                              { required: true, message: "Vui lòng nhập tên người dùng" },
+                              { min: 3, max: 50, message: "Tên người dùng phải từ 3-50 ký tự" },
+                              { pattern: /^[^@\s]+$/, message: "Tên người dùng không được là email." }
                             ]}>
-                              <Input placeholder="Nhập tên đăng nhập" />
+                              <Input placeholder="Nhập tên người dùng" />
                             </Form.Item>
                           </Col>
                           <Col span={12}>
@@ -1053,12 +1053,12 @@ export default function LandlordRenterListPage() {
                               setUserPageSize(size);
                             }
                           }}
-                          columns={[
-                            {
-                              title: 'Tên đăng nhập',
-                              dataIndex: 'username',
-                              key: 'username',
-                            },
+                                                     columns={[
+                             {
+                               title: 'Tên người dùng',
+                               dataIndex: 'username',
+                               key: 'username',
+                             },
                             {
                               title: 'Email',
                               dataIndex: 'email',

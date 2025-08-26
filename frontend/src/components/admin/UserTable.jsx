@@ -167,7 +167,7 @@ export default function UserTable({
       width: 200,
     },
     {
-      title: "Tên đăng nhập",
+      title: "Tên người dùng",
       dataIndex: "username",
       align: "center",
       width: 150,
