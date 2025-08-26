@@ -1848,20 +1848,59 @@ export default function LandlordBillListPage() {
                   <Form.Item
                     name="customAmount"
                     label="Số tiền"
-                    rules={[{ required: true, message: 'Vui lòng nhập số tiền' }]}
+                    rules={[
+                      { required: true, message: 'Vui lòng nhập số tiền' },
+                      {
+                        validator: (_, value) => {
+                          if (!value || value === null || value === undefined) {
+                            return Promise.resolve();
+                          }
+                          if (value <= 0) {
+                            return Promise.reject(new Error('Số tiền phải lớn hơn 0'));
+                          }
+                          if (value >= 999999999) {
+                            return Promise.reject(new Error('Số tiền không được vượt quá 999.999.999 VND'));
+                          }
+                          return Promise.resolve();
+                        },
+                        validateTrigger: ['onBlur', 'onChange']
+                      }
+                    ]}
                   >
-                    <InputNumber min={0} style={{ width: "100%" }} placeholder="Nhập số tiền (VND)" />
+                    <InputNumber 
+                      min={0} 
+                      max={999999998}
+                      style={{ width: "100%" }} 
+                      placeholder="Nhập số tiền (VND)" 
+                      formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                    />
                   </Form.Item>
                   <Form.Item
                     name="customDateRange"
                     label="Khoảng ngày"
-                    rules={[{ required: true, message: 'Vui lòng chọn khoảng ngày' }]}
+                    rules={[
+                      { required: true, message: 'Vui lòng chọn khoảng ngày' },
+                      ({ getFieldValue }) => ({
+                        validator(_, value) {
+                          if (!value || value.length !== 2) {
+                            return Promise.resolve();
+                          }
+                          const [start, end] = value;
+                          if (start && end && end.isBefore(start)) {
+                            return Promise.reject(new Error("Ngày kết thúc phải lớn hơn ngày bắt đầu"));
+                          }
+                          return Promise.resolve();
+                        },
+                      }),
+                    ]}
                   >
-                    <RangePicker 
-                      style={{ width: '100%' }} 
-                      placeholder={["Ngày bắt đầu", "Ngày kết thúc"]}
-                      format="DD/MM/YYYY"
-                    />
+                  <RangePicker
+                    style={{ width: '100%' }}
+                    placeholder={["Ngày bắt đầu", "Ngày kết thúc"]}
+                    format="DD/MM/YYYY"
+                    order={false}   
+                  />
                   </Form.Item>
                 </>
               )}

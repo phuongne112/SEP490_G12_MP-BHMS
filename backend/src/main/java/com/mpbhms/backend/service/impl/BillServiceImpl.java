@@ -725,7 +725,12 @@ public class BillServiceImpl implements BillService {
             response.setOverdueDays(0);
         }
         
-        response.setPenaltyAmount(bill.getPenaltyAmount());
+        // Làm tròn số tiền phạt để tránh lỗi parsing ở frontend
+        if (bill.getPenaltyAmount() != null) {
+            response.setPenaltyAmount(bill.getPenaltyAmount().setScale(0, BigDecimal.ROUND_DOWN));
+        } else {
+            response.setPenaltyAmount(null);
+        }
         response.setNotes(bill.getNotes());
 
         List<BillDetailResponse> detailResponses = new ArrayList<>();
@@ -1121,6 +1126,11 @@ public class BillServiceImpl implements BillService {
 
     @Override
     public BillResponse createCustomBill(Long roomId, String name, String description, BigDecimal amount, Instant fromDate, Instant toDate) {
+        // 🆕 Validation ngày: toDate không được nhỏ hơn fromDate
+        if (fromDate != null && toDate != null && toDate.isBefore(fromDate)) {
+            throw new BusinessException("Ngày kết thúc không được nhỏ hơn ngày bắt đầu. Vui lòng kiểm tra lại.");
+        }
+        
         Room room = roomRepository.findById(roomId)
             .orElseThrow(() -> new NotFoundException("Không tìm thấy phòng"));
         // Kiểm tra hợp đồng active
@@ -1984,8 +1994,8 @@ public class BillServiceImpl implements BillService {
                     if (roomUser.getUser() != null && Boolean.TRUE.equals(roomUser.getIsActive())) {
                         NotificationDTO notification = new NotificationDTO();
                         notification.setTitle("Thanh toán hóa đơn thành công");
-                        String notificationMessage = "Bạn đã thanh toán " + formatCurrencyPlain(paymentAmount) + " cho hóa đơn #" + bill.getId() + 
-                            ". Số tiền còn nợ: " + formatCurrencyPlain(bill.getOutstandingAmount());
+                                String notificationMessage = "Bạn đã thanh toán " + formatCurrency(paymentAmount) + " cho hóa đơn #" + bill.getId() +
+                ". Số tiền còn nợ: " + formatCurrency(bill.getOutstandingAmount());
                         
                         if (!bill.getStatus()) {
                             notificationMessage += ". Hạn thanh toán đã được gia hạn thêm 30 ngày.";
@@ -2022,7 +2032,7 @@ public class BillServiceImpl implements BillService {
             NotificationDTO landlordNotification = new NotificationDTO();
             landlordNotification.setTitle("Thanh toán hóa đơn từ người thuê");
             landlordNotification.setMessage("Người thuê phòng " + bill.getRoom().getRoomNumber() + 
-                " đã thanh toán " + formatCurrencyPlain(paymentAmount) + " cho hóa đơn #" + bill.getId());
+                " đã thanh toán " + formatCurrency(paymentAmount) + " cho hóa đơn #" + bill.getId());
             landlordNotification.setType(NotificationType.ANNOUNCEMENT);
             landlordNotification.setRecipientId(bill.getRoom().getLandlord().getId());
             landlordNotification.setMetadata("{\"billId\":" + bill.getId() + ",\"roomNumber\":\"" + bill.getRoom().getRoomNumber() + "\",\"paymentAmount\":" + paymentAmount + "}");
@@ -2268,7 +2278,7 @@ public class BillServiceImpl implements BillService {
                             noti.setRecipientId(ru.getUser().getId());
                             noti.setTitle("Cảnh báo hóa đơn quá hạn - Phòng " + contract.getRoom().getRoomNumber());
                             noti.setMessage("Hóa đơn #" + overdueBill.getId() + " đã quá hạn " + overdueDays + " ngày. Số tiền: " + 
-                        formatCurrencyPlain(overdueBill.getTotalAmount()) + ". Vui lòng thanh toán ngay để tránh bị phạt.");
+                        formatCurrency(overdueBill.getTotalAmount()) + ". Vui lòng thanh toán ngay để tránh bị phạt.");
                             noti.setType(NotificationType.RENT_REMINDER);
                             noti.setMetadata("{\"billId\":" + overdueBill.getId() + ",\"overdueDays\":" + overdueDays + "}");
                             notificationService.createAndSend(noti);
@@ -2320,7 +2330,7 @@ public class BillServiceImpl implements BillService {
                 landlordNoti.setRecipientId(landlord.getId());
                 landlordNoti.setTitle("Thông báo hóa đơn quá hạn - Phòng " + overdueBill.getRoom().getRoomNumber());
                 landlordNoti.setMessage("Hóa đơn #" + overdueBill.getId() + " của phòng " + overdueBill.getRoom().getRoomNumber() + 
-                    " đã quá hạn " + overdueDays + " ngày. Số tiền: " + formatCurrencyPlain(overdueBill.getTotalAmount()) + ". " +
+                    " đã quá hạn " + overdueDays + " ngày. Số tiền: " + formatCurrency(overdueBill.getTotalAmount()) + ". " +
                     "Hệ thống sẽ tự động tạo phạt nếu không thanh toán.");
                 landlordNoti.setType(NotificationType.RENT_REMINDER);
                 landlordNoti.setMetadata("{\"billId\":" + overdueBill.getId() + ",\"roomNumber\":\"" + overdueBill.getRoom().getRoomNumber() + "\",\"overdueDays\":" + overdueDays + "}");
@@ -2381,7 +2391,7 @@ public class BillServiceImpl implements BillService {
         content.append("<ul style='margin: 0; padding-left: 20px; color: #721c24;'>");
         content.append("<li style='margin-bottom: 8px;'>Hóa đơn đã quá hạn <strong>").append(overdueDays).append(" ngày</strong></li>");
         content.append("<li style='margin-bottom: 8px;'>Nếu không thanh toán ngay, sẽ bị tính phạt theo quy định</li>");
-        content.append("<li style='margin-bottom: 8px;'>Phạt sẽ tăng dần: Tuần 1 (2%) → Tuần 2 (4%) → Tuần 3 (6%) → ...</li>");
+        content.append("<li style='margin-bottom: 8px;'>Phạt sẽ tăng dần: Tuần 1 (1%) → Tuần 2 (2%) → Tuần 3 (3%) → Tuần 4 (4%) → Từ tuần 5 (5%)</li>");
         content.append("</ul>");
         content.append("</div>");
         
@@ -2528,7 +2538,9 @@ public class BillServiceImpl implements BillService {
     @Override
     public BigDecimal calculateLatePenalty(BigDecimal originalAmount, int overdueDays) {
         BigDecimal penaltyRate = calculatePenaltyRate(overdueDays);
-        return originalAmount.multiply(penaltyRate).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP);
+        // Tính phạt và làm tròn xuống để lấy phần nguyên, tránh lỗi parsing
+        BigDecimal penaltyAmount = originalAmount.multiply(penaltyRate).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP);
+        return penaltyAmount.setScale(0, BigDecimal.ROUND_DOWN);
     }
 
     @Override
@@ -2641,10 +2653,12 @@ public class BillServiceImpl implements BillService {
         return penaltyRate;
     }
 
-    // Helper method để format số tiền VNĐ (chuẩn hóa)
+    // Helper method để format số tiền VNĐ (chuẩn hóa) - chỉ lấy phần nguyên
     private String formatCurrency(BigDecimal amount) {
         if (amount == null) return "0 VNĐ";
-        return new java.text.DecimalFormat("#,###").format(amount) + " VNĐ";
+        // Làm tròn xuống để lấy phần nguyên
+        BigDecimal roundedAmount = amount.setScale(0, BigDecimal.ROUND_DOWN);
+        return new java.text.DecimalFormat("#,###").format(roundedAmount) + " VNĐ";
     }
 
     // Helper method để format số tiền VNĐ không có dấu phẩy (cho thông báo)
@@ -2700,9 +2714,9 @@ public class BillServiceImpl implements BillService {
                             noti.setTitle("Hóa đơn phạt quá hạn - Phòng " + contract.getRoom().getRoomNumber());
                     noti.setMessage("Bạn có hóa đơn phạt #" + penaltyBill.getId() + " cho hóa đơn #" + 
                                 originalBill.getId() + " - Số tiền phạt: " + 
-                                formatCurrencyPlain(penaltyBill.getPenaltyAmount()) + " (" + penaltyBill.getPenaltyRate() + "%). Vui lòng thanh toán sớm để tránh phạt tăng thêm.");
+                                formatCurrency(penaltyBill.getPenaltyAmount()) + " (" + penaltyBill.getPenaltyRate() + "%). Vui lòng thanh toán sớm để tránh phạt tăng thêm.");
                     noti.setType(NotificationType.RENT_REMINDER);
-                            noti.setMetadata("{\"billId\":" + penaltyBill.getId() + ",\"originalBillId\":" + originalBill.getId() + ",\"penaltyAmount\":" + penaltyBill.getPenaltyAmount() + "}");
+                            noti.setMetadata("{\"billId\":" + penaltyBill.getId() + ",\"originalBillId\":" + originalBill.getId() + ",\"penaltyAmount\":" + penaltyBill.getPenaltyAmount().setScale(0, BigDecimal.ROUND_DOWN) + "}");
                     notificationService.createAndSend(noti);
                         } catch (Exception e) {
                             System.err.println("Lỗi gửi notification phạt cho user " + ru.getUser().getId() + ": " + e.getMessage());
@@ -2753,9 +2767,9 @@ public class BillServiceImpl implements BillService {
                 landlordNoti.setTitle("Thông báo hóa đơn phạt - Phòng " + penaltyBill.getRoom().getRoomNumber());
                 landlordNoti.setMessage("Đã tạo hóa đơn phạt #" + penaltyBill.getId() + " cho hóa đơn #" + originalBill.getId() + 
                     " của phòng " + penaltyBill.getRoom().getRoomNumber() + ". Số tiền phạt: " + 
-                    formatCurrencyPlain(penaltyBill.getPenaltyAmount()) + " (" + penaltyBill.getPenaltyRate() + "%).");
+                    formatCurrency(penaltyBill.getPenaltyAmount()) + " (" + penaltyBill.getPenaltyRate() + "%).");
                 landlordNoti.setType(NotificationType.RENT_REMINDER);
-                landlordNoti.setMetadata("{\"billId\":" + penaltyBill.getId() + ",\"originalBillId\":" + originalBill.getId() + ",\"roomNumber\":\"" + penaltyBill.getRoom().getRoomNumber() + "\",\"penaltyAmount\":" + penaltyBill.getPenaltyAmount() + "}");
+                landlordNoti.setMetadata("{\"billId\":" + penaltyBill.getId() + ",\"originalBillId\":" + originalBill.getId() + ",\"roomNumber\":\"" + penaltyBill.getRoom().getRoomNumber() + "\",\"penaltyAmount\":" + penaltyBill.getPenaltyAmount().setScale(0, BigDecimal.ROUND_DOWN) + "}");
                 notificationService.createAndSend(landlordNoti);
                 
                 System.out.println("Đã gửi notification phạt cho landlord " + landlord.getUsername());

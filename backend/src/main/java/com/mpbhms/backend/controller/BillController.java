@@ -193,6 +193,11 @@ public class BillController {
         return sendBillEmail(billId, request);
     }
 
+    @PostMapping("/{billId}/sendBill")
+    public ResponseEntity<?> sendBillAlternative(@PathVariable Long billId, HttpServletRequest request) {
+        return sendBillEmail(billId, request);
+    }
+
     @PostMapping("/send-email/{billId}")
     public ResponseEntity<?> sendBillEmail(@PathVariable Long billId, HttpServletRequest request) {
         Bill bill = billService.getBillById(billId);
