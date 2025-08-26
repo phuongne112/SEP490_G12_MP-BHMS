@@ -113,18 +113,22 @@ const RenterDashboardPage = () => {
         const billsArray = Array.isArray(billsData) ? billsData : [];
         setBills(billsArray);
         
-        // Thống kê hóa đơn
-        const stats = await getBillStats();
+        // Thống kê hóa đơn - tính toán từ dữ liệu bills thực tế
+        const totalBills = billsArray.length;
+        const paidBills = billsArray.filter(b => b.status).length;
+        const unpaidBills = totalBills - paidBills;
+        const overdueBills = billsArray.filter(b => b.isOverdue).length;
+        
         setBillStats({
-          unpaid: stats.unpaid || 0,
-          overdue: stats.overdue || 0,
-          paid: stats.paid || 0,
-          total: (stats.unpaid || 0) + (stats.overdue || 0) + (stats.paid || 0),
+          unpaid: unpaidBills,
+          overdue: overdueBills,
+          paid: paidBills,
+          total: totalBills,
         });
         setBillStatusPie([
-          { name: "Đã thanh toán", value: stats.paid },
-          { name: "Chưa thanh toán", value: stats.unpaid },
-          { name: "Quá hạn", value: stats.overdue },
+          { name: "Đã thanh toán", value: paidBills },
+          { name: "Chưa thanh toán", value: unpaidBills },
+          { name: "Quá hạn", value: overdueBills },
         ]);
       } catch (err) {
         console.error("Renter dashboard error:", err, err?.response?.data);
@@ -306,12 +310,7 @@ const RenterDashboardPage = () => {
                 }}>
                   <Statistic 
                     title="Hóa đơn chưa thanh toán" 
-                    value={(() => {
-                      const unpaidCount = Array.isArray(bills) ? bills.filter(b => !b.status).length : 0;
-                      console.log("Unpaid bills count:", unpaidCount, "from", bills);
-                      console.log("All bills:", bills);
-                      return unpaidCount;
-                    })()}
+                    value={billStats.unpaid}
                     valueStyle={{ 
                       fontSize: isMobile ? 16 : 20,
                       fontWeight: 600,
@@ -341,24 +340,42 @@ const RenterDashboardPage = () => {
                     color: "#001529"
                   }}
                 >
-                  <ResponsiveContainer width="100%" height={isMobile ? 200 : 220}>
-                    <PieChart>
-                      <Pie
-                        data={billStatusPie}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={isMobile ? 60 : 70}
-                        label
-                      >
-                        {billStatusPie.map((entry, index) => (
-                          <Cell key={`cell-bill-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {billStats.total === 0 ? (
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: isMobile ? 200 : 220,
+                      color: '#999',
+                      fontSize: isMobile ? 14 : 16
+                    }}>
+                      <div style={{ marginBottom: 8 }}>📊</div>
+                      <div>Chưa có hóa đơn nào</div>
+                      <div style={{ fontSize: isMobile ? 12 : 14, marginTop: 4 }}>
+                        Hóa đơn sẽ xuất hiện ở đây khi có dữ liệu
+                      </div>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={isMobile ? 200 : 220}>
+                      <PieChart>
+                        <Pie
+                          data={billStatusPie}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={isMobile ? 60 : 70}
+                          label
+                        >
+                          {billStatusPie.map((entry, index) => (
+                            <Cell key={`cell-bell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
                 </Card>
               </Col>
               <Col span={chartColSpan} style={{ marginBottom: isMobile ? 12 : 0 }}>
@@ -374,42 +391,60 @@ const RenterDashboardPage = () => {
                     color: "#001529"
                   }}
                 >
-                  <ResponsiveContainer width="100%" height={isMobile ? 200 : 220}>
-                    <LineChart data={electricityData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="month" 
-                        tick={{ fontSize: isMobile ? 10 : 12 }}
-                        angle={-45}
-                        textAnchor="end"
-                        height={isMobile ? 50 : 60}
-                      />
-                      <YAxis 
-                        tick={{ fontSize: isMobile ? 10 : 12 }}
-                        label={{ 
-                          value: 'kWh', 
-                          angle: -90, 
-                          position: 'insideLeft', 
-                          fontSize: isMobile ? 10 : 12 
-                        }}
-                      />
-                      <Tooltip 
-                        formatter={(value, name) => [
-                          `${value} kWh`, 
-                          name === 'consumption' ? 'Tổng tiêu thụ' : 'Trung bình'
-                        ]}
-                        labelFormatter={(label) => `Tháng ${label}`}
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="consumption" 
-                        stroke="#8884d8" 
-                        strokeWidth={2}
-                        name="Tổng tiêu thụ"
-                        dot={{ fill: '#8884d8', strokeWidth: 2, r: isMobile ? 3 : 4 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  {electricityData.length === 0 ? (
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: isMobile ? 200 : 220,
+                      color: '#999',
+                      fontSize: isMobile ? 14 : 16
+                    }}>
+                      <div style={{ marginBottom: 8 }}>⚡</div>
+                      <div>Chưa có dữ liệu điện</div>
+                      <div style={{ fontSize: isMobile ? 12 : 14, marginTop: 4 }}>
+                        Biểu đồ sẽ hiển thị khi có dữ liệu tiêu thụ
+                      </div>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={isMobile ? 200 : 220}>
+                      <LineChart data={electricityData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="month" 
+                          tick={{ fontSize: isMobile ? 10 : 12 }}
+                          angle={-45}
+                          textAnchor="end"
+                          height={isMobile ? 50 : 60}
+                        />
+                        <YAxis 
+                          tick={{ fontSize: isMobile ? 10 : 12 }}
+                          label={{ 
+                            value: 'kWh', 
+                            angle: -90, 
+                            position: 'insideLeft', 
+                            fontSize: isMobile ? 10 : 12 
+                          }}
+                        />
+                        <Tooltip 
+                          formatter={(value, name) => [
+                            `${value} kWh`, 
+                            name === 'consumption' ? 'Tổng tiêu thụ' : 'Trung bình'
+                          ]}
+                          labelFormatter={(label) => `Tháng ${label}`}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="consumption" 
+                          stroke="#8884d8" 
+                          strokeWidth={2}
+                          name="Tổng tiêu thụ"
+                          dot={{ fill: '#8884d8', strokeWidth: 2, r: isMobile ? 3 : 4 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  )}
                 </Card>
               </Col>
             </Row>
