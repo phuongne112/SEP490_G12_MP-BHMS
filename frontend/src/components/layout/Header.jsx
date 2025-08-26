@@ -84,11 +84,45 @@ export default function Header() {
   const [ocrData, setOcrData] = useState(null);
   const [previousUnreadCount, setPreviousUnreadCount] = useState(0);
   const [notificationToast, setNotificationToast] = useState({ show: false, message: '', type: 'info' });
+  const [toastTimeoutRef, setToastTimeoutRef] = useState(null);
+  const [lastToastTime, setLastToastTime] = useState(0);
 
   let dateStr = "N/A";
   if (selectedNoti?.createdDate && dayjs(selectedNoti.createdDate).isValid()) {
     dateStr = dayjs(selectedNoti.createdDate).format("HH:mm DD/MM/YYYY");
   }
+
+  // 🆕 Helper function để hiển thị toast với debounce
+  const showToastSafely = (message, type = 'success', forceShow = false) => {
+    const now = Date.now();
+    
+    // Nếu không force và toast vừa được hiển thị trong vòng 1 giây, bỏ qua
+    if (!forceShow && (now - lastToastTime) < 1000) {
+      console.log('🚫 Toast ignored - too frequent');
+      return;
+    }
+    
+    console.log('✅ Showing toast:', { message, type });
+    setLastToastTime(now);
+    
+    // Clear timeout cũ nếu có
+    if (toastTimeoutRef) {
+      clearTimeout(toastTimeoutRef);
+    }
+    
+    setNotificationToast({ 
+      show: true, 
+      message, 
+      type 
+    });
+    
+    // Tự động ẩn toast sau 4 giây
+    const newTimeout = setTimeout(() => {
+      setNotificationToast({ show: false, message: '', type: 'info' });
+      setToastTimeoutRef(null);
+    }, 4000);
+    setToastTimeoutRef(newTimeout);
+  };
 
   // Định dạng ngày trong nội dung thông báo (YYYY-MM-DD -> DD/MM/YYYY)
   const formatDatesInText = (text) => {
@@ -200,21 +234,10 @@ export default function Header() {
       });
       
       if (newUnreadCount > previousUnreadCount && previousUnreadCount >= 0) {
-        // 🆕 Hiện notification toast
+        // 🆕 Hiện notification toast với debounce
         const latestNotification = newNotifications.find(n => n.status !== "READ");
         const toastMessage = latestNotification?.title || "Bạn có thông báo mới";
-        console.log('🚀 Showing toast:', { latestNotification, toastMessage });
-        
-        setNotificationToast({ 
-          show: true, 
-          message: toastMessage, 
-          type: 'success' 
-        });
-        
-        // Tự động ẩn toast sau 4 giây
-        setTimeout(() => {
-          setNotificationToast({ show: false, message: '', type: 'info' });
-        }, 4000);
+        showToastSafely(toastMessage, 'success');
       }
       
       setNotifications(newNotifications);
@@ -235,18 +258,8 @@ export default function Header() {
       const { message, type = 'success' } = e.detail || {};
       console.log('🎯 Show toast event received:', { message, type });
       if (message) {
-        console.log('✅ Setting toast state to show');
-        setNotificationToast({ 
-          show: true, 
-          message, 
-          type 
-        });
-        
-        // Tự động ẩn toast sau 4 giây
-        setTimeout(() => {
-          console.log('⏰ Auto-hiding toast');
-          setNotificationToast({ show: false, message: '', type: 'info' });
-        }, 4000);
+        // Custom events luôn force show (thay thế toast hiện tại)
+        showToastSafely(message, type, true);
       }
     };
 
@@ -257,6 +270,10 @@ export default function Header() {
     return () => {
       window.removeEventListener('refresh-notifications', handleRefreshNotifications);
       window.removeEventListener('show-notification-toast', handleShowToast);
+      // 🆕 Clear timeout khi component unmount
+      if (toastTimeoutRef) {
+        clearTimeout(toastTimeoutRef);
+      }
     };
   }, []);
 
@@ -277,14 +294,7 @@ export default function Header() {
         // 🆕 Test toast function - có thể xóa sau khi test xong
         window.testToast = () => {
           console.log('🧪 Testing toast...');
-          setNotificationToast({ 
-            show: true, 
-            message: 'Test notification toast!', 
-            type: 'success' 
-          });
-          setTimeout(() => {
-            setNotificationToast({ show: false, message: '', type: 'info' });
-          }, 4000);
+          showToastSafely('Test notification toast!', 'success', true);
         };
         console.log('🧪 Test function available: window.testToast()');
       } catch (error) {
@@ -748,6 +758,11 @@ export default function Header() {
             cursor: 'pointer',
           }}
           onClick={() => {
+            // Clear timeout khi click vào toast
+            if (toastTimeoutRef) {
+              clearTimeout(toastTimeoutRef);
+              setToastTimeoutRef(null);
+            }
             setNotificationToast({ show: false, message: '', type: 'info' });
             setNotiOpen(true);
           }}

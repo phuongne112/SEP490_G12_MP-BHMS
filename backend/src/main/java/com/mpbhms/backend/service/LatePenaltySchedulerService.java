@@ -31,7 +31,7 @@ public class LatePenaltySchedulerService {
         try {
             // 🆕 LOGIC MỚI: Tách biệt cảnh báo và tạo phạt
             // 1. Gửi cảnh báo cho hóa đơn quá hạn 7 ngày
-            billService.sendOverdueWarningFor7Days();
+            billService.sendOverdueWarningNotificationFor7Days();
             
             // 2. Tạo phạt cho hóa đơn quá hạn từ 8 ngày trở đi
             List<BillResponse> createdPenalties = billService.checkAndCreateLatePenalties();

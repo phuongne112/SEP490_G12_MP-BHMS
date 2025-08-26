@@ -253,6 +253,43 @@ export default function LandlordBillListPage() {
     }
   };
 
+  // 🆕 Xử lý hóa đơn phạt - Gửi thông báo phạt thủ công
+  const handleSendPenaltyNotification = async (billId) => {
+    // Set loading state
+    setEmailLoading(prev => ({ ...prev, [billId]: true }));
+    
+    try {
+      // Kiểm tra xem đã gửi hôm nay chưa
+      if (isEmailSentToday(billId)) {
+        message.warning(`Đã gửi thông báo phạt cho hóa đơn #${billId} hôm nay rồi`);
+        return;
+      }
+
+      // Gọi API gửi thông báo phạt mới
+      const res = await axiosClient.post(`/bills/${billId}/send-penalty-notification`);
+      const msg = typeof res?.data === 'string' ? res.data : (res?.data?.message || 'Đã gửi thông báo phạt thành công!');
+      message.success(msg);
+      
+      // Đánh dấu đã gửi hôm nay
+      markEmailSentToday(billId);
+      
+      // 🆕 Trigger refresh notifications ngay lập tức
+      window.dispatchEvent(new Event('refresh-notifications'));
+      // 🆕 Hiện notification toast
+      window.dispatchEvent(new CustomEvent('show-notification-toast', {
+        detail: { message: `Thông báo phạt cho hóa đơn #${billId} đã được gửi`, type: 'success' }
+      }));
+      
+      // Cập nhật danh sách
+      fetchBills();
+    } catch (error) {
+      message.error("Không thể gửi thông báo phạt: " + (error.response?.data?.message || error.message));
+    } finally {
+      // Clear loading state
+      setEmailLoading(prev => ({ ...prev, [billId]: false }));
+    }
+  };
+
   // Xử lý hóa đơn quá hạn - Gửi email cảnh báo (ngày thứ 7)
   const handleOverdueBill = async (bill) => {
     // Set loading state
@@ -266,7 +303,7 @@ export default function LandlordBillListPage() {
       }
 
       // Gửi cảnh báo quá hạn (ngày thứ 7)
-      await sendBillToRenter(bill.id);
+      const res = await axiosClient.post(`/bills/${bill.id}/send-overdue-warning`);
       message.success(`Đã gửi email cảnh báo cho hóa đơn #${bill.id} (ngày thứ 7)`);
       
       // Đánh dấu đã gửi hôm nay
@@ -1186,34 +1223,53 @@ export default function LandlordBillListPage() {
             {/* 3. Nút "Quá hạn/Gửi Email" - Nút thông minh tự động hóa */}
             <Popover
               content={
-                isOverdue
-                  ? overdueDays === 7 
-                    ? `Gửi email cảnh báo hết hạn (ngày thứ 7) - 1 lần/ngày`
-                    : overdueDays >= 8
-                      ? `Hóa đơn quá hạn ${overdueDays} ngày - Tự động tạo phạt từ ngày thứ 8`
-                      : `Gửi email cho hóa đơn quá hạn ${overdueDays} ngày (1 lần/ngày)`
-                  : record.status
-                    ? 'Chỉ gửi email cho hóa đơn chưa thanh toán'
-                    : isEmailSentToday(record.id)
-                      ? 'Đã gửi hôm nay'
-                      : 'Gửi email hóa đơn'
+                record.billType === 'LATE_PENALTY'
+                  ? 'Gửi thông báo hóa đơn phạt cho người thuê và landlord - 1 lần/ngày'
+                  : isOverdue
+                    ? overdueDays === 7 
+                      ? `Gửi email cảnh báo hết hạn (ngày thứ 7) - 1 lần/ngày`
+                      : overdueDays >= 8
+                        ? `Hóa đơn quá hạn ${overdueDays} ngày - Tự động tạo phạt từ ngày thứ 8`
+                        : `Gửi email cho hóa đơn quá hạn ${overdueDays} ngày (1 lần/ngày)`
+                    : record.status
+                      ? 'Chỉ gửi email cho hóa đơn chưa thanh toán'
+                      : isEmailSentToday(record.id)
+                        ? 'Đã gửi hôm nay'
+                        : 'Gửi email hóa đơn'
               }
               placement="top"
             >
               <Button
-                type={isOverdue ? "default" : "default"}
-                icon={isOverdue ? <ClockCircleOutlined /> : <SendOutlined />}
-                onClick={() => isOverdue ? handleOverdueBill(record) : handleSendEmail(record.id)}
+                type={record.billType === 'LATE_PENALTY' ? "default" : (isOverdue ? "default" : "default")}
+                icon={record.billType === 'LATE_PENALTY' ? <ExclamationCircleOutlined /> : (isOverdue ? <ClockCircleOutlined /> : <SendOutlined />)}
+                onClick={() => {
+                  // 🆕 Logic mới: Phân biệt loại hóa đơn để gọi API phù hợp
+                  if (record.billType === 'LATE_PENALTY') {
+                    // Hóa đơn phạt → gọi API gửi thông báo phạt
+                    handleSendPenaltyNotification(record.id);
+                  } else if (isOverdue) {
+                    // Hóa đơn quá hạn thường → gọi API cảnh báo quá hạn
+                    handleOverdueBill(record);
+                  } else {
+                    // Hóa đơn thường → gọi API gửi email hóa đơn
+                    handleSendEmail(record.id);
+                  }
+                }}
                 size="small"
                 loading={emailLoading[record.id]}
                 disabled={record.status === true || isEmailSentToday(record.id)}
                 style={{ 
                   minWidth: '90px',
-                  color: isOverdue ? '#ff4d4f' : undefined,
-                  borderColor: isOverdue ? '#ff4d4f' : undefined
+                  color: record.billType === 'LATE_PENALTY' ? '#fa8c16' : (isOverdue ? '#ff4d4f' : undefined),
+                  borderColor: record.billType === 'LATE_PENALTY' ? '#fa8c16' : (isOverdue ? '#ff4d4f' : undefined)
                 }}
               >
-                {isOverdue ? (overdueDays === 7 ? "Cảnh báo" : "Gửi email") : (isMobile ? "Email" : (isEmailSentToday(record.id) ? "Đã gửi hôm nay" : "Gửi email"))}
+                {record.billType === 'LATE_PENALTY' 
+                  ? "Thông báo phạt" 
+                  : isOverdue 
+                    ? (overdueDays === 7 ? "Cảnh báo" : "Gửi email") 
+                    : (isMobile ? "Email" : (isEmailSentToday(record.id) ? "Đã gửi hôm nay" : "Gửi email"))
+                }
               </Button>
             </Popover>
             
@@ -1879,13 +1935,28 @@ export default function LandlordBillListPage() {
                   <Form.Item
                     name="customDateRange"
                     label="Khoảng ngày"
-                    rules={[{ required: true, message: 'Vui lòng chọn khoảng ngày' }]}
+                    rules={[
+                      { required: true, message: 'Vui lòng chọn khoảng ngày' },
+                      ({ getFieldValue }) => ({
+                        validator(_, value) {
+                          if (!value || value.length !== 2) {
+                            return Promise.resolve();
+                          }
+                          const [start, end] = value;
+                          if (start && end && end.isBefore(start)) {
+                            return Promise.reject(new Error("Ngày kết thúc phải lớn hơn ngày bắt đầu"));
+                          }
+                          return Promise.resolve();
+                        },
+                      }),
+                    ]}
                   >
-                    <RangePicker 
-                      style={{ width: '100%' }} 
-                      placeholder={["Ngày bắt đầu", "Ngày kết thúc"]}
-                      format="DD/MM/YYYY"
-                    />
+                  <RangePicker
+                    style={{ width: '100%' }}
+                    placeholder={["Ngày bắt đầu", "Ngày kết thúc"]}
+                    format="DD/MM/YYYY"
+                    order={false}   
+                  />
                   </Form.Item>
                 </>
               )}
