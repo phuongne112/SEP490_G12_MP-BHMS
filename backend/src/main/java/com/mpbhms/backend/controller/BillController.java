@@ -612,21 +612,79 @@ public class BillController {
     }
 
     @PostMapping("/{billId}/send-overdue-warning")
-    public ResponseEntity<?> sendOverdueWarning(@PathVariable Long billId) {
+    public ResponseEntity<?> sendOverdueWarning(@PathVariable Long billId, HttpServletRequest request) {
         try {
             Bill bill = billService.getBillById(billId);
+            
+            // 🆕 Kiểm tra chống spam email - tương tự như gửi email bình thường
+            String clientIp = getClientIpAddress(request);
+            String userAgent = request.getHeader("User-Agent");
+            
+            try {
+                billService.checkEmailSpamLimit(billId, clientIp, "OVERDUE_WARNING");
+            } catch (RuntimeException e) {
+                java.util.Map<String, Object> error = new java.util.HashMap<>();
+                error.put("success", false);
+                error.put("message", e.getMessage());
+                return ResponseEntity.badRequest().body(error);
+            }
             
             // Kiểm tra hóa đơn có quá hạn không
             if (bill.getStatus()) {
                 return ResponseEntity.badRequest().body("Hóa đơn đã thanh toán, không cần gửi cảnh báo quá hạn");
             }
             
-            // Gọi service để gửi thông báo cảnh báo
-            billService.sendOverdueWarningNotification(bill);
+            // Gọi service để gửi thông báo cảnh báo (service sẽ tự lưu log cho từng email)
+            billService.sendOverdueWarningNotificationWithLogging(bill, clientIp, userAgent, getCurrentUserId());
             
             return ResponseEntity.ok("Đã gửi thông báo cảnh báo quá hạn thành công");
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Lỗi khi gửi thông báo cảnh báo: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 🆕 API gửi thông báo hóa đơn phạt thủ công
+     * Dành cho LANDLORD để gửi thông báo phạt cho người thuê
+     */
+    @PostMapping("/{billId}/send-penalty-notification")
+    public ResponseEntity<?> sendPenaltyNotification(@PathVariable Long billId, HttpServletRequest request) {
+        try {
+            Bill bill = billService.getBillById(billId);
+            
+            if (bill == null) {
+                return ResponseEntity.badRequest().body("Không tìm thấy hóa đơn");
+            }
+            
+            // 🆕 Kiểm tra chống spam email - tương tự như gửi email bình thường
+            String clientIp = getClientIpAddress(request);
+            String userAgent = request.getHeader("User-Agent");
+            
+            try {
+                billService.checkEmailSpamLimit(billId, clientIp, "PENALTY");
+            } catch (RuntimeException e) {
+                java.util.Map<String, Object> error = new java.util.HashMap<>();
+                error.put("success", false);
+                error.put("message", e.getMessage());
+                return ResponseEntity.badRequest().body(error);
+            }
+            
+            // Kiểm tra xem có phải hóa đơn phạt không
+            if (!BillType.LATE_PENALTY.equals(bill.getBillType())) {
+                return ResponseEntity.badRequest().body("Chỉ có thể gửi thông báo cho hóa đơn phạt");
+            }
+            
+            // Kiểm tra xem hóa đơn đã thanh toán chưa
+            if (bill.getStatus()) {
+                return ResponseEntity.badRequest().body("Hóa đơn phạt đã thanh toán, không cần gửi thông báo");
+            }
+            
+            // Gọi service để gửi thông báo phạt (service sẽ tự lưu log cho từng email)
+            billService.sendPenaltyNotificationWithLogging(bill, clientIp, userAgent, getCurrentUserId());
+            
+            return ResponseEntity.ok("Đã gửi thông báo hóa đơn phạt thành công");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Lỗi khi gửi thông báo phạt: " + e.getMessage());
         }
     }
     

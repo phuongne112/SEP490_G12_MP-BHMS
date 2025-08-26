@@ -2694,8 +2694,9 @@ public class BillServiceImpl implements BillService {
     }
 
     // Gửi thông báo và email phạt
+    @Override
     @Transactional
-    private void sendPenaltyNotification(Bill penaltyBill) {
+    public void sendPenaltyNotification(Bill penaltyBill) {
         try {
             // Fetch contract với roomUsers để tránh lazy loading
             Contract contract = contractRepository.findById(penaltyBill.getContract().getId())
@@ -2752,6 +2753,73 @@ public class BillServiceImpl implements BillService {
             
         } catch (Exception e) {
             System.err.println("Lỗi trong sendPenaltyNotification: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    // 🆕 Gửi thông báo và email phạt với logging (cho manual trigger)
+    @Override
+    @Transactional
+    public void sendPenaltyNotificationWithLogging(Bill penaltyBill, String clientIp, String userAgent, Long sentByUserId) {
+        try {
+            // Fetch contract với roomUsers để tránh lazy loading
+            Contract contract = contractRepository.findById(penaltyBill.getContract().getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy contract"));
+            
+            Bill originalBill = penaltyBill.getOriginalBill();
+            
+            // 1. Gửi thông báo cho người thuê
+        if (contract.getRoomUsers() != null) {
+            for (RoomUser ru : contract.getRoomUsers()) {
+                if (ru.getUser() != null && Boolean.TRUE.equals(ru.getIsActive())) {
+                        // Gửi notification trong hệ thống
+                        try {
+                    NotificationDTO noti = new NotificationDTO();
+                    noti.setRecipientId(ru.getUser().getId());
+                            noti.setTitle("Hóa đơn phạt quá hạn - Phòng " + contract.getRoom().getRoomNumber());
+                    noti.setMessage("Bạn có hóa đơn phạt #" + penaltyBill.getId() + " cho hóa đơn #" + 
+                                originalBill.getId() + " - Số tiền phạt: " + 
+                                formatCurrency(penaltyBill.getPenaltyAmount()) + " (" + penaltyBill.getPenaltyRate() + "%). Vui lòng thanh toán sớm để tránh phạt tăng thêm.");
+                    noti.setType(NotificationType.RENT_REMINDER);
+                            noti.setMetadata("{\"billId\":" + penaltyBill.getId() + ",\"originalBillId\":" + originalBill.getId() + ",\"penaltyAmount\":" + penaltyBill.getPenaltyAmount().setScale(0, BigDecimal.ROUND_DOWN) + "}");
+                    notificationService.createAndSend(noti);
+                        } catch (Exception e) {
+                            System.err.println("Lỗi gửi notification phạt cho user " + ru.getUser().getId() + ": " + e.getMessage());
+                        }
+                        
+                        // Gửi email phạt
+                        if (ru.getUser().getEmail() != null) {
+                            try {
+                                String subject = "HÓA ĐƠN PHẠT QUÁ HẠN - Phòng " + contract.getRoom().getRoomNumber();
+                                String content = buildPenaltyEmailContent(penaltyBill, originalBill);
+                                
+                                // Tạo PDF hóa đơn phạt
+                                byte[] pdfBytes = generateBillPdf(penaltyBill.getId());
+                                
+                                emailService.sendBillWithAttachment(
+                                    ru.getUser().getEmail(), 
+                                    subject, 
+                                    content, 
+                                    pdfBytes
+                                );
+                                
+                                // 🆕 Lưu log email đã gửi (giống như API gửi email bình thường)
+                                logEmailSent(penaltyBill.getId(), ru.getUser().getEmail(), "PENALTY", clientIp, userAgent, sentByUserId);
+                                
+                                System.out.println("Đã gửi email phạt cho " + ru.getUser().getEmail());
+                            } catch (Exception e) {
+                                System.err.println("Lỗi gửi email phạt cho " + ru.getUser().getEmail() + ": " + e.getMessage());
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 2. 🆕 Gửi thông báo cho landlord
+            sendLandlordPenaltyNotification(penaltyBill, originalBill);
+            
+        } catch (Exception e) {
+            System.err.println("Lỗi trong sendPenaltyNotificationWithLogging: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -2867,10 +2935,76 @@ public class BillServiceImpl implements BillService {
         sendOverdueWarningNotificationInternal(bill);
     }
     
+    // 🆕 Gửi thông báo cảnh báo quá hạn với logging (cho manual trigger)
+    @Override
+    @Transactional
+    public void sendOverdueWarningNotificationWithLogging(Bill overdueBill, String clientIp, String userAgent, Long sentByUserId) {
+        try {
+            // Fetch contract với roomUsers để tránh lazy loading
+            Contract contract = contractRepository.findById(overdueBill.getContract().getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy contract"));
+            
+            int overdueDays = calculateOverdueDays(overdueBill);
+            
+            // 1. Gửi thông báo cho người thuê
+            if (contract.getRoomUsers() != null) {
+                for (RoomUser ru : contract.getRoomUsers()) {
+                    if (ru.getUser() != null && Boolean.TRUE.equals(ru.getIsActive())) {
+                        // Gửi notification cảnh báo
+                        try {
+                            NotificationDTO noti = new NotificationDTO();
+                            noti.setRecipientId(ru.getUser().getId());
+                            noti.setTitle("Cảnh báo hóa đơn quá hạn - Phòng " + contract.getRoom().getRoomNumber());
+                            noti.setMessage("Hóa đơn #" + overdueBill.getId() + " đã quá hạn " + overdueDays + " ngày. Số tiền: " + 
+                        formatCurrency(overdueBill.getTotalAmount()) + ". Vui lòng thanh toán ngay để tránh bị phạt.");
+                            noti.setType(NotificationType.RENT_REMINDER);
+                            noti.setMetadata("{\"billId\":" + overdueBill.getId() + ",\"overdueDays\":" + overdueDays + "}");
+                            notificationService.createAndSend(noti);
+                        } catch (Exception e) {
+                            System.err.println("Lỗi gửi notification cảnh báo cho user " + ru.getUser().getId() + ": " + e.getMessage());
+                        }
+                        
+                        // Gửi email cảnh báo
+                        if (ru.getUser().getEmail() != null) {
+                            try {
+                                String subject = "CẢNH BÁO HÓA ĐƠN QUÁ HẠN - Phòng " + contract.getRoom().getRoomNumber();
+                                String content = buildOverdueWarningEmailContent(overdueBill, overdueDays);
+                                
+                                // Tạo PDF hóa đơn gốc
+                                byte[] pdfBytes = generateBillPdf(overdueBill.getId());
+                                
+                                emailService.sendBillWithAttachment(
+                                    ru.getUser().getEmail(), 
+                                    subject, 
+                                    content, 
+                                    pdfBytes
+                                );
+                                
+                                // 🆕 Lưu log email đã gửi (giống như API gửi email bình thường)
+                                logEmailSent(overdueBill.getId(), ru.getUser().getEmail(), "OVERDUE_WARNING", clientIp, userAgent, sentByUserId);
+                                
+                                System.out.println("Đã gửi email cảnh báo quá hạn cho " + ru.getUser().getEmail());
+                            } catch (Exception e) {
+                                System.err.println("Lỗi gửi email cảnh báo cho " + ru.getUser().getEmail() + ": " + e.getMessage());
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 2. 🆕 Gửi thông báo cho landlord
+            sendLandlordOverdueNotification(overdueBill, overdueDays);
+            
+        } catch (Exception e) {
+            System.err.println("Lỗi trong sendOverdueWarningNotificationWithLogging: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
     // 🆕 Method mới: Gửi cảnh báo cho hóa đơn quá hạn 7 ngày (chỉ 1 lần duy nhất)
     @Override
     @Transactional
-    public void sendOverdueWarningFor7Days() {
+    public void sendOverdueWarningNotificationFor7Days() {
         System.out.println("[" + java.time.LocalDateTime.now() + "] Bắt đầu gửi cảnh báo cho hóa đơn quá hạn 7 ngày");
         
         List<Bill> overdueBills = getOverdueBills();

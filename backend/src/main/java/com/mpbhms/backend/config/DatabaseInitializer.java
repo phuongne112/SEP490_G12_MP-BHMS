@@ -169,6 +169,8 @@ public class    DatabaseInitializer implements CommandLineRunner {
             permissions.add(new Permission("Export Bill", "/mpbhms/bills/{id}/export", "GET", "Bill"));
             permissions.add(new Permission("Send bill to Email", "/mpbhms/bills/send-email/{billId}", "POST", "Bill"));
             permissions.add(new Permission("Send Bill", "/mpbhms/bills/{id}/send", "POST", "Bill"));
+            permissions.add(new Permission("Send Penalty Notification", "/mpbhms/bills/{billId}/send-penalty-notification", "POST", "Bill"));
+            permissions.add(new Permission("Send Overdue Warning", "/mpbhms/bills/{billId}/send-overdue-warning", "POST", "Bill"));
             permissions.add(new Permission("Dashboard Bill Stats", "/mpbhms/bills/dashboard-stats", "GET", "Bill"));
             permissions.add(new Permission("Bulk Generate Bills", "/mpbhms/bills/bulk-generate", "POST", "Bill"));
             permissions.add(new Permission("Auto Generate Service Bills", "/mpbhms/bills/auto-generate-service-bills", "POST", "Bill"));
@@ -561,6 +563,18 @@ public class    DatabaseInitializer implements CommandLineRunner {
             Permission sendBill = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/{id}/send", "POST");
             if (sendBill != null && !landlordPermission.contains(sendBill)) {
                 landlordPermission.add(sendBill);
+            }
+            
+            // 🆕 Send Penalty Notification permission for LANDLORD
+            Permission sendPenaltyNotification = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/{billId}/send-penalty-notification", "POST");
+            if (sendPenaltyNotification != null && !landlordPermission.contains(sendPenaltyNotification)) {
+                landlordPermission.add(sendPenaltyNotification);
+            }
+            
+            // 🆕 Send Overdue Warning permission for LANDLORD
+            Permission sendOverdueWarning = permissionRepository.findByModuleAndApiPathAndMethod("Bill", "/mpbhms/bills/{billId}/send-overdue-warning", "POST");
+            if (sendOverdueWarning != null && !landlordPermission.contains(sendOverdueWarning)) {
+                landlordPermission.add(sendOverdueWarning);
             }
             
             // Payment History permissions for LANDLORD

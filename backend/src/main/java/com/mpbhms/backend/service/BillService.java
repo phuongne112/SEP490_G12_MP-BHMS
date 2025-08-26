@@ -95,8 +95,17 @@ public interface BillService {
     // Gửi thông báo cảnh báo hóa đơn quá hạn
     void sendOverdueWarningNotification(Bill bill);
     
+    // 🆕 Gửi thông báo cảnh báo quá hạn với logging (cho manual trigger)
+    void sendOverdueWarningNotificationWithLogging(Bill bill, String clientIp, String userAgent, Long sentByUserId);
+    
+    // 🆕 Gửi thông báo hóa đơn phạt
+    void sendPenaltyNotification(Bill bill);
+    
+    // 🆕 Gửi thông báo hóa đơn phạt với logging (cho manual trigger)
+    void sendPenaltyNotificationWithLogging(Bill bill, String clientIp, String userAgent, Long sentByUserId);
+    
     // 🆕 Gửi cảnh báo cho hóa đơn quá hạn 7 ngày
-    void sendOverdueWarningFor7Days();
+    void sendOverdueWarningNotificationFor7Days();
     
     // Tính số ngày quá hạn
     int calculateOverdueDays(Bill bill);
