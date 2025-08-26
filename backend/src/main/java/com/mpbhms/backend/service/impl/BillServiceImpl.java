@@ -61,7 +61,6 @@ import java.util.stream.Collectors;
 import com.mpbhms.backend.service.EmailService;
 import com.mpbhms.backend.service.InterestCalculationService;
 import com.mpbhms.backend.service.PaymentHistoryService;
-import com.mpbhms.backend.service.ConfigurationService;
 import com.mpbhms.backend.repository.PaymentHistoryRepository;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.Map;
@@ -84,7 +83,6 @@ public class BillServiceImpl implements BillService {
     private final InterestCalculationService interestCalculationService;
     private final PaymentHistoryService paymentHistoryService;
     private final PaymentHistoryRepository paymentHistoryRepository;
-    private final ConfigurationService configurationService;
     
     // Cache để theo dõi các hóa đơn đã gửi cảnh báo ngày thứ 7
     private final Set<Long> warningSentBills = new HashSet<>();
